@@ -77,11 +77,11 @@ python run.py  # 或者 python main.py，取决于最终确定的入口脚本
 
 - **Python**: 主要开发语言。
 - **LangChain**: 构建和管理 AI 代理、工具链和记忆的核心框架。
-- **OpenAI API**: 提供底层的自然语言处理和代码生成能力。
+- **DeepSeek API**: 提供底层的自然语言处理和代码生成能力。
 - **Opentrons Python API**: 用于生成和模拟验证 Opentrons 协议。
 - **(未来) Pylabrobot**: 用于支持更广泛的实验室自动化设备。
-- **Asyncio**: 用于提升 I/O 密集型操作（如 API 调用）的性能和响应速度 (参考未来改进)。
-- **RAG (Retrieval Augmented Generation)**: 计划集成，通过检索相关文档提高生成代码的准确性和可靠性 (参考未来改进)。
+- **(计划) Asyncio**: 用于提升 I/O 密集型操作（如 API 调用）的性能和响应速度 (参考未来改进)。
+- **(计划) RAG (Retrieval Augmented Generation)**: 计划集成，通过检索相关文档提高生成代码的准确性和可靠性 (参考未来改进)。
 
 ### 主要文件说明
 
@@ -100,7 +100,7 @@ python run.py  # 或者 python main.py，取决于最终确定的入口脚本
 A: 仅使用模拟验证功能不需要完整的 Opentrons App，但需要安装 `opentrons` Python 包。实际在机器人上运行生成的协议则需要相应的 Opentrons 环境。
 
 **Q: 支持哪些大语言模型？**
-A: 当前主要基于 OpenAI API (GPT-3.5/4)。未来可以通过 LangChain 的抽象轻松扩展支持其他模型。
+A: 当前主要基于 DeepSeek API。未来可以通过 LangChain 的抽象轻松扩展支持其他模型。
 
 **Q: 如何添加对新设备的支持？**
 A: 需要编写相应的工具函数（类似 `opentrons_utils.py`），提供代码生成模板、验证逻辑（如果可能），并将其集成到 `langchain_agent.py` 的工具集中。
@@ -110,37 +110,15 @@ A: 可能原因包括：自然语言描述不够清晰、AI 理解偏差、目�
 
 ## 未来改进方向与建议
 
-### 1. 提升响应速度：引入异步操作
+### 1. (计划) 提升响应速度：引入异步操作 (`Asyncio`)
 *   **目标**：减少用户等待时间，尤其是在调用外部大模型 API 时。
 *   **核心技术**：Python 的 `asyncio` 库。
-*   **实施建议**：
-    *   识别项目中主要的 I/O 阻塞点，特别是 `langchain_agent.py` 中与 LLM 交互的部分。
-    *   利用 LangChain 组件提供的异步方法（如 `arun`, `acall`, `apredict` 等），将相关函数改造为 `async def`。
-    *   在主程序逻辑（例如 `run.py` 或替代 Streamlit 的新入口脚本）中使用 `asyncio.run()` 来执行异步代码。
-    *   若涉及多个独立的耗时任务（如并行调用不同 LLM 功能或工具），可使用 `asyncio.gather()` 实现并发执行。
-    *   评估 `opentrons_utils.py` 中的辅助函数，看是否有适合异步化的 I/O 操作。
+*   **实施概要**：识别 I/O 阻塞点 (如 API 调用)，利用 LangChain 的异步接口和 `asyncio` 进行重构。
 
-### 2. 提高生成准确性：集成 RAG (Retrieval Augmented Generation)
-*   **目标**：利用专业知识库增强大模型，确保生成的 SOP 和协议代码更符合 Opentrons 的规范和最佳实践。
+### 2. (计划) 提高生成准确性：集成 RAG (Retrieval Augmented Generation)
+*   **目标**：利用专业知识库（如 API 文档、最佳实践）增强大模型，生成更准确、可靠的脚本。
 *   **核心技术**：检索增强生成（RAG）。
-*   **实施建议**：
-    *   **构建知识库**：
-        *   收集 Opentrons 官方 Python API 文档（关注项目使用的 PAPI 版本）。
-        *   提取 `opentrons_utils.py` 中的关键函数逻辑和文档字符串。
-        *   利用 `generated_protocols/` 目录下经过验证的高质量协议作为范例。
-        *   整理任何内部积累的实验设计最佳实践、注意事项或错误排查指南。
-    *   **选择 RAG 实现方式**：
-        *   **方案 A (外部服务)**：评估如 `ragflow` 等 RAG 服务的 API，若其功能、易用性和数据策略符合要求，可简化搭建过程。需要在 `langchain_agent.py` 中集成 API 调用逻辑，获取上下文并注入 Prompt。
-        *   **方案 B (自行搭建)**：使用 LangChain 或 LlamaIndex 等库，结合文档加载器、文本分割器、嵌入模型和向量数据库（如 FAISS, ChromaDB）自行构建 RAG 流程。这提供了更高的灵活性和控制力。
-    *   **集成点**：
-        *   在**SOP 生成阶段**，根据用户输入检索相关 API 用法、参数和注意事项，辅助生成准确的SOP。
-        *   在**代码生成阶段**（SOP 转代码），检索具体的函数签名和代码示例，约束 LLM 生成规范代码。
-        *   在**对话交互阶段**，直接利用 RAG 回答用户关于 Opentrons 的特定问题。
-    *   **关键步骤**：
-        *   设计有效的 RAG 查询策略。
-        *   评估和优化检索结果的相关性。
-        *   精心设计 Prompt，将检索到的上下文有效融入，引导 LLM 生成。
-        *   从小范围知识库开始试验，逐步迭代优化。
+*   **实施概要**：构建包含相关文档的知识库，选择或搭建 RAG 系统（如使用 LangChain 相关组件），在生成前检索上下文信息并注入 Prompt。
 
 ### 3. 扩展设备兼容性
 *   逐步集成 `pylabrobot` 或其他库，支持更多自动化平台。
@@ -155,7 +133,7 @@ A: 可能原因包括：自然语言描述不够清晰、AI 理解偏差、目�
 如果您在使用过程中遇到任何问题，或有改进建议，请通过以下方式联系我们：
 
 - 在 GitHub 仓库提交 Issue: [https://github.com/KRATSZ/LabScript-AI/issues](https://github.com/KRATSZ/LabScript-AI/issues)
-- (可选) 发送邮件至：[您的联系邮箱]
+- 发送邮件至：gaoyuanbio@qq.com
 
 ## 许可证
 
