@@ -85,14 +85,34 @@ python run.py  # 或者 python main.py，取决于最终确定的入口脚本
 
 ### 主要文件说明
 
-- **`run.py` / `main.py`**: 应用的命令行入口点。负责初始化环境、处理用户输入循环、调用核心 Agent。
-- **`langchain_agent.py`**: 定义核心的 LangChain Agent 或 Chain。集成 LLM、工具（如代码生成、模拟验证）、记忆模块，处理用户请求的核心逻辑。
-- **`opentrons_utils.py`**: 包含与 Opentrons 相关的工具函数，如协议模拟、错误分析、API 版本处理等。未来可能重构或增加类似 `pylabrobot_utils.py` 的文件。
-- **`config.py`**: 存放配置信息，如 API 密钥加载逻辑、默认模型参数、支持的设备/API 列表等。
-- **`requirements.txt`**: 列出项目所需的 Python 依赖库。
-- **`.env`**: (需用户创建) 存储敏感信息，如 API 密钥。由 `.gitignore` 排除。
-- **`.gitignore`**: 定义 Git 应忽略的文件和目录。
-- **`generated_protocols/`**: (可能由 `.gitignore` 排除) 用于存放 AI 生成的协议文件。
+- **`main.py`**: **命令行交互界面 (CLI) 的主入口**。负责处理用户输入循环、选择机器人/API版本、调用 LangChain Agent 处理请求、显示对话历史和最终生成的代码。
+- **`langchain_agent.py`**: **核心 AI 代理逻辑**。配置 LangChain Agent Executor，包括：
+    - 初始化 LLM (当前配置为 DeepSeek API)。
+    - 定义 `opentrons_simulator` 工具，并集成 `opentrons_utils.py` 中的模拟函数。
+    - 构建复杂的 ReAct Prompt Template，包含工具使用说明、上下文（有效名称、代码示例）、格式要求和逐步思考指令。
+    - 设置对话记忆 (ConversationBufferMemory)。
+- **`opentrons_utils.py`**: **Opentrons 专属工具集**。主要包含 `run_opentrons_simulation` 函数，该函数：
+    - 接收 Python 代码字符串。
+    - 查找并执行 `opentrons_simulate` 命令行工具（处理 PATH 和常见安装位置）。
+    - 将代码写入临时文件进行模拟。
+    - 捕获并解析模拟器的 stdout 和 stderr，处理编码问题。
+    - 返回包含模拟结果（成功/失败/日志）的字符串，供 Agent 分析。
+    - 包含 `SimulateToolInput` Pydantic 模型用于 LangChain 工具的输入校验。
+- **`config.py`**: **配置与知识库**。
+    - 存储 API 密钥和基础 URL (当前为 DeepSeek)。
+    - 定义 LLM 模型名称。
+    - 包含大量的 **硬编码知识**，作为 RAG 的初步替代或补充，供 Prompt 引用：
+        - `VALID_LABWARE_NAMES`
+        - `VALID_INSTRUMENT_NAMES`
+        - `VALID_MODULE_NAMES`
+        - `CODE_EXAMPLES` (包含 OT-2 和 Flex 的代码片段)
+- **`run.py`**: **启动器脚本**。提供一个简单的菜单，允许用户选择启动命令行版本 (`main.py`) 或安装依赖。是运行应用推荐的起点 (`python run.py`)。
+- **`requirements.txt`**: 列出项目运行所需的 Python 依赖库 (如 `langchain-openai`, `opentrons` 等)。
+- **`test_imports.py`**: **环境检查脚本**。用于快速测试核心依赖项（如 LangChain, OpenAI/DeepSeek 客户端, 本地工具模块）是否已正确安装并可以导入。
+- **`.env`**: (需用户手动创建) 用于安全地存储 API 密钥等敏感信息，避免硬编码在代码中。由 `.gitignore` 排除，不上传到版本库。
+- **`.gitignore`**: 定义 Git 在进行版本控制时应忽略的文件和目录（如 `__pycache__`, `venv`, `.env`, `generated_protocols` 等）。
+- **`generated_protocols/`**: (通常由 `.gitignore` 排除) 建议用于存放由 AI 生成并验证通过的协议文件，便于管理。
+- **`otcoder engineer.py`**: **历史遗留文件**。原项目主脚本，现已重构，仅作留档说明。
 
 ## 常见问题
 
