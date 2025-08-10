@@ -21,8 +21,15 @@ WORKDIR /app
 # 复制项目配置文件
 COPY pyproject.toml uv.lock ./
 
-# 使用uv安装依赖
+# 使用uv安装主环境依赖
 RUN uv sync --frozen --no-dev
+
+# 创建Opentrons隔离环境(.ot_env)
+# 这是项目双虚拟环境架构的关键部分，用于解决opentrons包的依赖冲突
+RUN uv venv .ot_env --python 3.11 --seed
+
+# 在.ot_env环境中安装opentrons包
+RUN uv pip install --python .ot_env/bin/python opentrons==8.4.1
 
 # 复制后端代码
 COPY backend/ ./backend/

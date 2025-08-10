@@ -43,13 +43,13 @@ vim .env
 
 ```bash
 # 构建并启动服务
-docker-compose up -d
+docker compose up -d
 
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看服务日志
-docker-compose logs -f backend
+docker compose logs -f backend
 ```
 
 ### 4. 验证部署
@@ -86,29 +86,29 @@ open http://localhost:8000/docs
 
 ```bash
 # 启动服务
-docker-compose up -d
+docker compose up -d
 
 # 停止服务
-docker-compose down
+docker compose down
 
 # 重启服务
-docker-compose restart
+docker compose restart
 
 # 查看服务状态
-docker-compose ps
+docker compose ps
 
 # 查看实时日志
-docker-compose logs -f backend
+docker compose logs -f backend
 ```
 
 ### 镜像管理
 
 ```bash
 # 重新构建镜像
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # 拉取最新镜像
-docker-compose pull
+docker compose pull
 
 # 清理未使用的镜像
 docker image prune -f
@@ -121,7 +121,7 @@ docker image prune -f
 docker cp labscriptai-backend:/app/logs ./backup/logs
 
 # 进入容器调试
-docker-compose exec backend bash
+docker compose exec backend bash
 
 # 查看容器资源使用
 docker stats labscriptai-backend
@@ -135,10 +135,10 @@ docker stats labscriptai-backend
 
 ```bash
 # 查看详细错误日志
-docker-compose logs backend
+docker compose logs backend
 
 # 检查环境变量配置
-docker-compose config
+docker compose config
 ```
 
 #### 2. 端口冲突
@@ -220,13 +220,13 @@ redis:
 
 ```bash
 # 查看最近100行日志
-docker-compose logs --tail=100 backend
+docker compose logs --tail=100 backend
 
 # 按时间过滤日志
-docker-compose logs --since="2024-01-01T00:00:00" backend
+docker compose logs --since="2024-01-01T00:00:00" backend
 
 # 导出日志到文件
-docker-compose logs backend > backend.log
+docker compose logs backend > backend.log
 ```
 
 ### 性能监控
@@ -236,7 +236,7 @@ docker-compose logs backend > backend.log
 docker stats --format "table {{.Container}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
 
 # 查看容器进程
-docker-compose top backend
+docker compose top backend
 ```
 
 ## 🚀 生产环境部署
@@ -276,7 +276,7 @@ server {
 sudo systemctl enable docker
 
 # 添加到crontab检查服务状态
-*/5 * * * * cd /path/to/docker && docker-compose ps | grep -q "Up" || docker-compose up -d
+*/5 * * * * cd /path/to/docker && docker compose ps | grep -q "Up" || docker compose up -d
 ```
 
 ## 📞 支持
