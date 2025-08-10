@@ -1,0 +1,106 @@
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+PIPFILE.lock
+
+# 虚拟环境
+.venv/
+venv/
+env/
+ENV/
+.ot_env/
+ot_env/
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git相关
+.git/
+.gitignore
+.gitattributes
+
+# 日志文件
+*.log
+logs/
+
+# 测试相关
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# 文档
+*.md
+docs/
+
+# 前端项目
+labscriptAI-frontend/
+
+# Docker相关
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# 配置和环境文件
+.env
+.env.*
+config.ini
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+
+# 脚本文件
+scripts/
+
+# 其他项目文件
+pylabrobot/
+opentrons_validator/
+论文中要用的实验脚本案例/
+服务器部署指南.md
+
+# Trae相关
+.trae/
+.bolt/
+
+# 其他不需要的文件
+*.pyc
+*.pyo
+*.pyd
+.Python
+.coverage
+.pytest_cache

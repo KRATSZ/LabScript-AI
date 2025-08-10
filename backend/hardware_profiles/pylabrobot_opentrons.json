@@ -1,0 +1,116 @@
+{
+  "robot_model": "opentrons",
+  "deck_type": "opentrons",
+  "deck_name": "opentrons_deck",
+  "size_x": 400,
+  "size_y": 300,
+  "size_z": 100,
+  "description": "Opentrons liquid handling robot - open-source and accessible automation platform",
+  "manufacturer": "Opentrons Labworks",
+  "precision_class": "standard",
+  "volume_range": {
+    "min_ul": 1,
+    "max_ul": 1000
+  },
+  "resources": {
+    "tip_rack_1000ul_ot": {
+      "type": "opentrons_96_tiprack_1000ul",
+      "location": {"x": 50, "y": 50, "z": 0},
+      "description": "Opentrons 1000µL tip rack - verified labware",
+      "capacity": 96,
+      "tip_volume": 1000
+    },
+    "tip_rack_300ul_ot": {
+      "type": "opentrons_96_tiprack_300ul",
+      "location": {"x": 150, "y": 50, "z": 0},
+      "description": "Opentrons 300µL tip rack - verified labware",
+      "capacity": 96,
+      "tip_volume": 300
+    },
+    "tip_rack_20ul_ot": {
+      "type": "opentrons_96_tiprack_20ul",
+      "location": {"x": 250, "y": 50, "z": 0},
+      "description": "Opentrons 20µL tip rack - precision tips",
+      "capacity": 96,
+      "tip_volume": 20
+    },
+    "sample_plate": {
+      "type": "corning_96_wellplate_360ul_flat",
+      "location": {"x": 50, "y": 150, "z": 0},
+      "description": "Corning 96-well flat bottom plate for samples",
+      "wells": 96,
+      "well_volume": 360
+    },
+    "pcr_plate": {
+      "type": "nest_96_wellplate_100ul_pcr_full_skirt",
+      "location": {"x": 150, "y": 150, "z": 0},
+      "description": "NEST 96-well PCR plate with full skirt",
+      "wells": 96,
+      "well_volume": 100
+    },
+    "reagent_reservoir": {
+      "type": "nest_12_reservoir_15ml",
+      "location": {"x": 250, "y": 150, "z": 0},
+      "description": "NEST 12-channel reservoir for reagents",
+      "channels": 12,
+      "channel_volume": 15000
+    },
+    "trash_box": {
+      "type": "opentrons_1_trash_1100ml_fixed",
+      "location": {"x": 350, "y": 150, "z": 0},
+      "description": "Fixed trash container for tip disposal",
+      "capacity": 1100000
+    }
+  },
+  "supported_operations": [
+    "pick_up_tip",
+    "drop_tip",
+    "aspirate",
+    "dispense",
+    "mix",
+    "blow_out",
+    "touch_tip",
+    "transfer",
+    "distribute",
+    "consolidate"
+  ],
+  "special_features": [
+    "Open-source platform",
+    "Standardized labware library",
+    "Community protocol sharing",
+    "Easy protocol development",
+    "Cost-effective automation",
+    "Educational friendly",
+    "Remote monitoring"
+  ],
+  "pipette_channels": [1, 8],
+  "pipette_types": [
+    "P20 Single Channel",
+    "P300 Single Channel", 
+    "P1000 Single Channel",
+    "P20 Multi Channel",
+    "P300 Multi Channel"
+  ],
+  "recommended_for": [
+    "Educational laboratories",
+    "Basic research protocols",
+    "PCR setup",
+    "Serial dilutions",
+    "Plate replication",
+    "Simple liquid handling"
+  ],
+  "workflow_types": [
+    "Basic liquid transfers",
+    "Sample preparation",
+    "Reagent addition",
+    "Plate normalization",
+    "Quality control assays"
+  ],
+  "community_features": [
+    "Protocol library access",
+    "Community support",
+    "Open-source development",
+    "Standardized procedures"
+  ],
+  "example_usage": "# Opentrons community-style protocol\np300_tips = lh.get_resource('tip_rack_300ul_ot')\nsample_plate = lh.get_resource('sample_plate')\npcr_plate = lh.get_resource('pcr_plate')\nreagent = lh.get_resource('reagent_reservoir')\n# Simple transfer protocol\nawait lh.pick_up_tip(p300_tips['A1'])\nawait lh.transfer(sample_plate['A1'], pcr_plate['A1'], volume=50)\nawait lh.drop_tip()"
+}

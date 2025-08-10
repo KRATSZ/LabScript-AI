@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # 后端API服务
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: labscriptai-backend
+    ports:
+      - "9002:8000"
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=production
+    env_file:
+      - .env
+    volumes:
+      # 挂载日志目录
+      - ./logs:/app/logs
+      # 挂载配置文件目录（可选）
+      - ./config:/app/config
+    restart: unless-stopped
+    networks:
+      - labscriptai-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+networks:
+  labscriptai-network:
+    driver: bridge
+
+volumes:
+  # 持久化日志数据
+  logs:
+    driver: local
+  # 持久化配置数据
+  config:
+    driver: local

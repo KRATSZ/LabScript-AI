@@ -1,3 +1,21 @@
+Metadata-Version: 2.4
+Name: opentrons-ai-protocol-generator
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi==0.115.12
+Requires-Dist: uvicorn==0.23.2
+Requires-Dist: langchain==0.3.25
+Requires-Dist: langchain-openai==0.3.16
+Requires-Dist: langgraph==0.4.8
+Requires-Dist: mcp==1.10.1
+Requires-Dist: pydantic==2.11.5
+Requires-Dist: python-dotenv==1.0.1
+Requires-Dist: requests==2.31.0
+Requires-Dist: faiss-cpu==1.8.0
+Requires-Dist: pylabrobot
+
 # Opentrons AI Protocol Generator
 🧬 **智能化的Opentrons实验协议生成器**
 
@@ -23,25 +41,13 @@ python -m uvicorn backend.api_server:app --host 0.0.0.0 --port 8000 --reload --r
 # 3. 启动前端开发服务器
 cd labscriptAI-frontend
 npm install  # 首次运行
-# 如果遇到依赖冲突错误，可以使用：npm install --legacy-peer-deps
 npm run dev
-
-# 4. 前端构建（生产环境）
-npm run build     # 构建生产版本
-npm run preview   # 预览构建结果
 ```
 
 ### 访问地址
 - 前端界面: http://localhost:5173
 - 后端 API: http://localhost:8000
 - API 文档: http://localhost:8000/docs
-
-### 前端构建与部署
-- **构建输出目录**: `labscriptAI-frontend/dist/`
-- **构建命令**: `npm run build`
-- **预览构建**: `npm run preview` (本地预览生产版本)
-- **部署**: 将 `dist/` 目录内容部署到静态文件服务器
-- **环境变量**: 可通过 `.env` 文件配置 API 端点等环境变量
 
 ---
 
@@ -364,7 +370,6 @@ uvicorn backend.api_server:app --host 0.0.0.0 --port 8000 --reload --reload-dir 
 # 启动前端开发服务器（需要先安装 Node.js）
 cd labscriptAI-frontend
 npm install  # 首次运行
-# 如果遇到依赖冲突错误，可以使用：npm install --legacy-peer-deps
 npm run dev
 
 # 运行测试

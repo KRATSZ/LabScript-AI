@@ -1,0 +1,39 @@
+{
+  "robot_model": "generic",
+  "deck_type": "hamilton_star",
+  "deck_name": "simple_deck",
+  "size_x": 500,
+  "size_y": 400,
+  "size_z": 100,
+  "description": "Default PyLabRobot hardware configuration for simulation",
+  "resources": {
+    "tip_rack_50ul": {
+      "type": "TIP_50ul_L",
+      "location": {"x": 100, "y": 100, "z": 0},
+      "description": "50µL tip rack for standard pipetting operations"
+    },
+    "source_plate": {
+      "type": "Cos_96_DW_1mL", 
+      "location": {"x": 200, "y": 100, "z": 0},
+      "description": "Source 96-well plate for sample input"
+    },
+    "destination_plate": {
+      "type": "Cos_96_DW_1mL",
+      "location": {"x": 300, "y": 100, "z": 0}, 
+      "description": "Destination 96-well plate for sample output"
+    },
+    "reagent_trough": {
+      "type": "Agilent_12_reservoir_15ml",
+      "location": {"x": 400, "y": 100, "z": 0},
+      "description": "12-channel reagent trough for bulk reagents"
+    }
+  },
+  "supported_operations": [
+    "pick_up_tips",
+    "drop_tips",
+    "aspirate",
+    "dispense",
+    "mix"
+  ],
+  "example_usage": "tip_rack = lh.get_resource('tip_rack_50ul')\nplate = lh.get_resource('source_plate')\nawait lh.pick_up_tips(tip_rack['A1'])\nawait lh.aspirate(plate['A1'], vols=[100])"
+}

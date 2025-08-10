@@ -1,0 +1,22 @@
+[project]
+name = "opentrons-ai-protocol-generator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.115.12",
+    "uvicorn==0.23.2",
+    "langchain==0.3.25",
+    "langchain-openai==0.3.16",
+    "langgraph==0.4.8",
+    "mcp==1.10.1",
+    "pydantic==2.11.5",
+    "python-dotenv==1.0.1",
+    "requests==2.31.0",
+    "faiss-cpu==1.8.0",
+    "pylabrobot",
+]
+
+[tool.setuptools]
+packages = ["backend"]
