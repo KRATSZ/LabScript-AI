@@ -1,6 +1,6 @@
 # TODO:
 
-- [x] 1: 修改src/services/api.ts中的API_BASE_URL (priority: High)
-- [x] 2: 修改src/pages/CodeEditingPage.tsx中的API地址 (priority: High)
-- [x] 3: 修改src/pages/CodeGenerationPage.tsx中的API地址 (priority: High)
-- [x] 4: 修改src/pages/DevToolsPage.tsx中的默认API地址 (priority: High)
+- [x] 1: 检查Git状态 (priority: High)
+- [ ] 2: 添加所有文件到暂存区 (**IN PROGRESS**) (priority: High)
+- [ ] 3: 提交更改 (priority: High)
+- [ ] 4: 推送到远程仓库 (priority: High)
