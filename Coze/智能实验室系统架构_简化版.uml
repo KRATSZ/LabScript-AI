@@ -1,0 +1,390 @@
+@startuml SmartLab_Integrated_Architecture
+
+!theme plain
+skinparam nodesep 50
+skinparam ranksep 70
+
+title 智能实验室系统完整架构
+
+' ===== 前端层 =====
+package "前端层 - XiaoZhi ESP32" {
+    component "ESP32主控" as ESP32 {
+        component "WiFi模块" as WiFi
+        component "GPIO控制" as GPIO
+        component "I2C接口" as I2C
+        component "I2S接口" as I2S
+        component "蓝牙模块" as Bluetooth
+    }
+
+    component "显示模块" as Display {
+        component "SSD1306 OLED" as OLED
+        component "显示驱动" as DisplayDriver
+    }
+
+    component "音频模块" as Audio {
+        component "INMP441麦克风" as Microphone
+        component "MAX98357A放大器" as Amplifier
+        component "ASR PRO语音识别" as ASR
+    }
+
+    component "电机控制" as Motor {
+        component "ULN2003驱动板" as ULN2003
+        component "步进电机" as StepperMotor
+    }
+}
+
+' ===== 后端服务层 =====
+package "后端服务层" {
+    component "XiaoZhi Server" as XiaoZhiServer {
+        component "Web服务器" as WebServer
+        component "WebSocket服务" as WebSocket
+        component "RESTful API" as RESTAPI
+        component "设备管理器" as DeviceManager
+        component "会话管理" as SessionManager
+        component "文件服务" as FileService
+    }
+
+    component "GPU加速服务" as GPUService {
+        component "语音识别STT" as STT
+        component "图像识别" as ImageRecognition
+        component "CUDA加速" as CUDA
+        component "模型推理" as ModelInference
+    }
+}
+
+' ===== 中间件层 =====
+package "中间件层" {
+    component "MCP服务器" as MCPServer {
+        component "协议适配器" as ProtocolAdapter
+        component "设备代理" as DeviceProxy
+        component "消息队列" as MessageQueue
+        component "连接管理器" as ConnectionManager
+        component "安全认证" as Security
+    }
+
+    component "Coze Agent平台" as CozePlatform {
+        component "LLM大模型" as LLM
+        component "意图识别引擎" as IntentEngine
+        component "SOP生成器" as SOPGenerator
+        component "代码生成器" as CodeGenerator
+        component "迭代优化器" as IterationOptimizer
+    }
+}
+
+' ===== 设备层 =====
+package "设备层" {
+    component "实验室设备" as LabEquipment {
+        component "Opentrons OT-2" as OT2
+        component "Opentrons Flex" as Flex
+        component "ONVIF摄像头" as ONVIFCamera
+        component "环境传感器" as Sensors
+        component "其他IoT设备" as OtherIoT
+    }
+}
+
+' ===== 存储层 =====
+package "存储层" {
+    database "配置数据库" as ConfigDB
+    database "协议数据库" as ProtocolDB
+    database "日志数据库" as LogDB
+    database "文件存储" as FileStorage
+}
+
+' ===== 前端硬件连接 =====
+ESP32.I2C --> DisplayDriver : I2C通信
+ESP32.I2S --> Microphone : 音频输入
+ESP32.I2S --> Amplifier : 音频输出
+ESP32.GPIO --> ULN2003 : 电机控制
+ESP32.WiFi --> XiaoZhiServer.WebServer : WiFi连接
+ESP32.Bluetooth --> XiaoZhiServer.WebSocket : 蓝牙连接
+
+' ===== 后端服务连接 =====
+XiaoZhiServer.DeviceManager --> GPUService.STT : 语音识别请求
+XiaoZhiServer.DeviceManager --> GPUService.ImageRecognition : 图像识别请求
+XiaoZhiServer.SessionManager --> CozePlatform.IntentEngine : 意图识别
+XiaoZhiServer.FileService --> FileStorage : 文件存取
+XiaoZhiServer.WebServer --> ConfigDB : 配置读取
+XiaoZhiServer.WebServer --> LogDB : 日志写入
+
+' ===== 中间件连接 =====
+XiaoZhiServer.DeviceManager --> MCPServer.ProtocolAdapter : MCP连接
+MCPServer.DeviceProxy --> OT2 : Opentrons OT-2控制
+MCPServer.DeviceProxy --> Flex : Opentrons Flex控制
+MCPServer.DeviceProxy --> ONVIFCamera : ONVIF协议控制
+MCPServer.DeviceProxy --> Sensors : 传感器数据采集
+MCPServer.DeviceProxy --> OtherIoT : IoT设备管理
+
+XiaoZhiServer.RESTAPI --> CozePlatform.LLM : LLM调用
+CozePlatform.IntentEngine --> CozePlatform.SOPGenerator : 意图处理
+CozePlatform.SOPGenerator --> CozePlatform.CodeGenerator : SOP转换
+CozePlatform.CodeGenerator --> CozePlatform.IterationOptimizer : 代码优化
+CozePlatform.IterationOptimizer --> ProtocolDB : 协议模板读取
+
+' ===== 数据库连接 =====
+MCPServer.ConnectionManager --> ConfigDB : 设备配置
+CozePlatform.SOPGenerator --> ProtocolDB : 协议模板
+XiaoZhiServer.SessionManager --> LogDB : 操作日志
+MCPServer.MessageQueue --> LogDB : 设备日志
+
+' ===== 辅助连接线 =====
+XiaoZhiServer --> MCPServer : 安全认证
+CozePlatform --> GPUService : GPU加速支持
+MCPServer --> FileStorage : 固件升级
+
+@enduml
+
+' ===== 数据流程图 =====
+@startuml SmartLab_Data_Flow
+
+!theme plain
+skinparam nodesep 40
+skinparam ranksep 60
+
+title 智能实验室数据流程
+
+actor "用户" as User
+participant "ESP32前端" as Frontend
+participant "XiaoZhi Server" as Backend
+participant "GPU服务" as GPU
+participant "Coze Agent" as Coze
+participant "MCP服务器" as MCP
+participant "Opentrons" as Robot
+participant "摄像头" as Camera
+
+User -> Frontend: 语音指令
+Frontend -> Frontend: ASR PRO本地识别
+Frontend -> Backend: 发送文本指令
+
+Backend -> GPU: 语音转文本请求
+GPU -> Backend: 精确识别结果
+
+Backend -> Coze: 发送用户指令
+Coze -> Coze: 意图识别
+Coze -> Coze: 实验需求分析
+Coze -> Coze: SOP生成
+Coze -> Coze: Python代码生成
+Coze -> Backend: 返回脚本和执行计划
+
+Backend -> MCP: 发送控制指令
+MCP -> Robot: Opentrons控制协议
+MCP -> Camera: 摄像头控制指令
+
+Robot -> MCP: 执行状态和数据
+Camera -> MCP: 视频流反馈
+MCP -> Backend: 设备状态聚合
+Backend -> Frontend: 处理结果
+Frontend -> User: OLED显示+音频反馈
+
+alt 执行异常
+    Robot -> MCP: 错误报告
+    MCP -> Backend: 错误信息
+    Backend -> Coze: 错误分析
+    Coze -> Coze: 故障诊断
+    Coze -> Coze: 修复策略生成
+    Coze -> Backend: 修复方案
+    Backend -> MCP: 修复指令
+    MCP -> Robot: 执行修复
+end
+
+@enduml
+
+' ===== 部署架构图 =====
+@startuml SmartLab_Deployment
+
+!theme plain
+skinparam nodesep 50
+skinparam ranksep 70
+
+title 系统部署架构
+
+node "前端设备" as FrontendDevice {
+    [ESP32开发板] as ESP32
+    [OLED显示屏] as OLED
+    [音频模块] as Audio
+    [麦克风模块] as Mic
+    [驱动板] as Driver
+}
+
+node "本地服务器" as LocalServer {
+    [XiaoZhi Server] as XiaoZhi
+    [GPU服务器] as GPU
+    [MCP服务器] as MCP
+}
+
+database "数据库" as Database {
+    folder "配置数据" as Config
+    folder "协议数据" as Protocol
+    folder "日志数据" as Log
+}
+
+cloud "Coze云平台" as CozeCloud {
+    [Coze Agent] as Coze
+    [LLM服务] as LLM
+}
+
+node "实验室设备" as LabEquipment {
+    [Opentrons OT-2] as OT2
+    [Opentrons Flex] as Flex
+    [ONVIF摄像头] as Camera
+    [传感器] as Sensors
+}
+
+FrontendDevice --> LocalServer : WiFi/以太网
+LocalServer --> CozeCloud : HTTPS/API
+LocalServer --> LabEquipment : LAN/串口
+LocalServer --> Database : SQL连接
+
+ESP32 --> OLED : I2C
+ESP32 --> Audio : I2S
+ESP32 --> Mic : I2S
+ESP32 --> Driver : GPIO
+
+XiaoZhi --> GPU : 局域网
+XiaoZhi --> MCP : 进程间通信
+MCP --> OT2 : TCP/IP
+MCP --> Flex : TCP/IP
+MCP --> Camera : RTSP
+MCP --> Sensors : MQTT
+
+XiaoZhi --> Config : 读取配置
+XiaoZhi --> Protocol : 读取协议
+XiaoZhi --> Log : 写入日志
+
+Coze --> LLM : 内部调用
+
+@enduml
+
+' ===== 状态转换图 =====
+@startuml SmartLab_State_Machine
+
+!theme plain
+skinparam nodesep 50
+
+title 系统状态机
+
+state "待机状态" as Idle {
+    [*] --> Idle
+    Idle --> Listening : 语音唤醒
+}
+
+state "监听状态" as Listening {
+    Listening --> Processing : 接收到指令
+    Listening --> Idle : 超时(30s)
+    Listening --> Error : 识别失败
+}
+
+state "处理状态" as Processing {
+    state "语音识别" as STT
+    state "意图分析" as Intent
+    state "SOP生成" as SOP
+    state "代码生成" as Code
+    state "设备控制" as Control
+
+    [*] --> STT
+    STT --> Intent : 识别完成
+    Intent --> SOP : 意图确认
+    SOP --> Code : SOP生成完成
+    Code --> Control : 代码生成完成
+    Control --> [*] : 指令发送完成
+}
+
+state "执行状态" as Executing {
+    Executing --> Monitoring : 开始执行
+    Executing --> Error : 执行异常
+}
+
+state "监控状态" as Monitoring {
+    Monitoring --> Executing : 参数调整
+    Monitoring --> Complete : 执行完成
+    Monitoring --> Error : 监控异常
+}
+
+state "完成状态" as Complete {
+    Complete --> Idle : 返回待机
+    Complete --> Processing : 继续执行
+}
+
+state "错误状态" as Error {
+    Error --> Processing : 自动恢复
+    Error --> Idle : 手动重置
+}
+
+Listening --> Processing
+Processing --> Executing
+Executing --> Monitoring
+Error --> Processing : 重试机制
+Complete --> Listening : 继续对话
+
+@enduml
+
+' ===== 完整工作流程序列图 =====
+@startuml SmartLab_Complete_Workflow
+
+!theme plain
+skinparam nodesep 40
+
+title 完整工作流程序列图
+
+actor "用户" as User
+participant "ESP32" as ESP32
+participant "XiaoZhi Server" as Server
+participant "GPU服务" as GPU
+participant "Coze Agent" as Coze
+participant "MCP服务器" as MCP
+participant "Opentrons" as Robot
+participant "摄像头" as Camera
+
+User -> ESP32: 上电启动
+ESP32 -> ESP32: 硬件自检
+ESP32 -> Server: 设备注册
+Server -> MCP: 服务发现
+MCP -> Robot: 设备连接
+
+User -> ESP32: "小智，开始PCR实验"
+ESP32 -> ESP32: ASR PRO语音识别
+ESP32 -> Server: 发送识别文本 "开始PCR实验"
+
+Server -> GPU: 语音增强识别
+GPU -> Server: 确认文本
+
+Server -> Coze: 发送用户指令和设备状态
+Coze -> Coze: 意图识别
+Coze -> Coze: 实验需求分析
+Coze -> Coze: SOP生成
+Coze -> Coze: Python代码生成
+Coze -> Server: 返回生成代码和执行计划
+
+Server -> MCP: 发送控制指令和Python脚本
+MCP -> Robot: 传输执行脚本
+Robot -> Robot: 执行PCR实验
+
+Robot -> MCP: 实时执行状态
+MCP -> Camera: 启动监控
+Camera -> MCP: 实时视频流
+MCP -> Server: 状态聚合
+Server -> ESP32: 处理结果
+ESP32 -> User: OLED显示进度和音频反馈
+
+alt 实验异常
+    Robot -> MCP: 错误报告 "移液器堵塞"
+    MCP -> Server: 错误详情
+    Server -> Coze: 错误分析请求
+    Coze -> Coze: 故障诊断
+    Coze -> Coze: 修复策略 "更换Tip头"
+    Coze -> Server: 修复方案
+    Server -> MCP: 修复指令
+    MCP -> Robot: 执行修复
+    Robot -> MCP: 修复完成
+    MCP -> Server: 恢复正常
+    Server -> ESP32: 问题解决
+    ESP32 -> User: "问题已解决"
+end
+
+Robot -> MCP: 实验完成
+MCP -> Server: 成功结果
+Server -> Coze: 实验总结
+Coze -> Server: 生成报告
+Server -> ESP32: 最终结果
+ESP32 -> User: "PCR实验完成"
+
+@enduml

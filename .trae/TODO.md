@@ -1,6 +1,7 @@
 # TODO:
 
-- [x] 1: 修改Dockerfile添加.ot_env环境创建步骤 (priority: High)
-- [x] 2: 在.ot_env环境中安装opentrons==8.4.1 (priority: High)
-- [x] 3: 确保Docker容器中的路径结构与本地开发环境一致 (priority: Medium)
-- [ ] 4: 测试修改后的Docker构建和运行 (**IN PROGRESS**) (priority: Medium)
+- [x] analyze_nginx_config: 分析当前nginx配置文件结构 (priority: High)
+- [x] add_upstream_config: 添加upstream配置块定义后端服务 (priority: High)
+- [x] add_proxy_timeouts: 添加proxy超时设置（connect_timeout, send_timeout, read_timeout） (priority: High)
+- [x] add_proxy_buffers: 添加proxy缓冲区配置优化性能 (priority: Medium)
+- [x] preserve_ssl_security: 保持现有SSL和安全配置不变 (priority: Medium)
