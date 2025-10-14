@@ -33,11 +33,12 @@ def test_imports():
         return False
     
     try:
-        from backend.config import api_key, base_url, model_name
+        from backend.config_manager import get_config
+        config = get_config()
         print("  ✓ backend.config imported successfully")
-        print(f"    - Model: {model_name}")
-        print(f"    - Base URL: {base_url}")
-        print(f"    - API Key: {'*' * (len(api_key) - 4) + api_key[-4:] if api_key else 'Not set'}")
+        print(f"    - Model: {config.api.model_name}")
+        print(f"    - Base URL: {config.api.base_url}")
+        print(f"    - API Key: {'*' * (len(config.api.api_key) - 4) + config.api.api_key[-4:] if config.api.api_key else 'Not set'}")
     except ImportError as e:
         print(f"  ✗ backend.config import failed: {e}")
         return False
@@ -180,4 +181,4 @@ def main():
 
 if __name__ == "__main__":
     success = main()
-    sys.exit(0 if success else 1) 
+    sys.exit(0 if success else 1)
