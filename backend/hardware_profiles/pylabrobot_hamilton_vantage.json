@@ -1,0 +1,45 @@
+{
+  "robot_model": "hamilton_vantage",
+  "manufacturer": "Hamilton Company",
+  "description": "Hamilton Vantage automated liquid handling system with advanced robotic arm and precision pipetting capabilities.",
+  "special_features": [
+    "Robotic arm for plate handling",
+    "Advanced liquid level detection",
+    "Multi-carrier system",
+    "Ultra-precise pipetting",
+    "Automated tip management",
+    "Barcode reading capabilities"
+  ],
+  "deck_layout": {
+    "comment": "Default deck layout for Hamilton Vantage",
+    "tip_carrier_1": {
+      "type": "TIP_CAR_480_A00",
+      "location": "rails_19",
+      "items": {
+        "position_1": "STF_300ul_tip_rack"
+      }
+    },
+    "plate_carrier_1": {
+      "type": "PLT_CAR_L5AC_A00",
+      "location": "rails_11",
+      "items": {
+        "position_1": "source_plate_Cor_96_wellplate_360ul_Fb",
+        "position_2": "target_plate_Cor_96_wellplate_360ul_Fb"
+      }
+    },
+    "reagent_reservoir_1": {
+      "type": "Hamilton_Reagent_Reservoir",
+      "location": "deck_position_1"
+    },
+    "waste_container_1": {
+      "type": "Hamilton_Waste_Container",
+      "location": "deck_position_2"
+    }
+  },
+  "precision_class": "ultra_high",
+  "volume_range": {
+    "min_ul": 0.1,
+    "max_ul": 1000
+  },
+  "pipette_channels": [1, 8, 16, 96]
+}

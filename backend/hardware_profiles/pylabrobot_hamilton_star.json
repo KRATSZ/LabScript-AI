@@ -1,0 +1,92 @@
+{
+  "robot_model": "hamilton_star",
+  "deck_type": "hamilton_star",
+  "deck_name": "hamilton_star_deck",
+  "size_x": 600,
+  "size_y": 400,
+  "size_z": 120,
+  "description": "Hamilton STAR liquid handling robot configuration with high-precision capabilities",
+  "manufacturer": "Hamilton Company",
+  "precision_class": "high",
+  "volume_range": {
+    "min_ul": 1,
+    "max_ul": 1000
+  },
+  "resources": {
+    "tip_rack_1000ul": {
+      "type": "TipRack_1000ul_Hamilton",
+      "location": {"x": 50, "y": 50, "z": 0},
+      "description": "1000µL tip rack for Hamilton STAR - high precision",
+      "capacity": 96,
+      "tip_volume": 1000
+    },
+    "tip_rack_300ul": {
+      "type": "TipRack_300ul_Hamilton",
+      "location": {"x": 150, "y": 50, "z": 0},
+      "description": "300µL tip rack for Hamilton STAR - medium volume",
+      "capacity": 96,
+      "tip_volume": 300
+    },
+    "tip_rack_50ul": {
+      "type": "TipRack_50ul_Hamilton",
+      "location": {"x": 250, "y": 50, "z": 0},
+      "description": "50µL tip rack for Hamilton STAR - low volume precision",
+      "capacity": 96,
+      "tip_volume": 50
+    },
+    "source_plate_96": {
+      "type": "Plate_96_DW_2ml_Hamilton",
+      "location": {"x": 50, "y": 150, "z": 0},
+      "description": "96-well deep well source plate - 2mL capacity",
+      "wells": 96,
+      "well_volume": 2000
+    },
+    "destination_plate_96": {
+      "type": "Plate_96_DW_2ml_Hamilton",
+      "location": {"x": 150, "y": 150, "z": 0},
+      "description": "96-well deep well destination plate - 2mL capacity",
+      "wells": 96,
+      "well_volume": 2000
+    },
+    "reagent_trough_8": {
+      "type": "Trough_8_channel_100ml_Hamilton",
+      "location": {"x": 250, "y": 150, "z": 0},
+      "description": "8-channel reagent trough for bulk reagents - 100mL per channel",
+      "channels": 8,
+      "channel_volume": 100000
+    },
+    "waste_container": {
+      "type": "Waste_Container_Hamilton",
+      "location": {"x": 350, "y": 150, "z": 0},
+      "description": "Waste container for tip disposal and liquid waste",
+      "capacity": 500000
+    }
+  },
+  "supported_operations": [
+    "pick_up_tips",
+    "drop_tips",
+    "aspirate",
+    "dispense",
+    "mix",
+    "blow_out",
+    "touch_tip",
+    "liquid_level_detection",
+    "tip_tracking"
+  ],
+  "special_features": [
+    "Liquid level detection",
+    "Advanced tip tracking",
+    "Multiple liquid classes",
+    "High precision dispensing",
+    "Anti-droplet control"
+  ],
+  "pipette_channels": [1, 8, 16],
+  "recommended_for": [
+    "High-precision assays",
+    "Small volume transfers",
+    "Complex multi-step protocols",
+    "Pharmaceutical applications",
+    "Research and development"
+  ],
+  "example_usage": "# Hamilton STAR high-precision protocol\ntip_rack = lh.get_resource('tip_rack_50ul')\nsource = lh.get_resource('source_plate_96')\ndest = lh.get_resource('destination_plate_96')\nawait lh.pick_up_tips(tip_rack['A1'])\nawait lh.aspirate(source['A1'], vols=[50])  # Precise 50µL\nawait lh.dispense(dest['A1'], vols=[50])\nawait lh.drop_tips()"
+}

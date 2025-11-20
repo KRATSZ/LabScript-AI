@@ -1,0 +1,102 @@
+{
+  "robot_model": "tecan_evo",
+  "deck_type": "tecan_evo",
+  "deck_name": "tecan_evo_deck",
+  "size_x": 700,
+  "size_y": 500,
+  "size_z": 150,
+  "description": "Tecan Freedom EVO liquid handling robot - modular and flexible automation platform",
+  "manufacturer": "Tecan Group",
+  "precision_class": "high",
+  "volume_range": {
+    "min_ul": 0.5,
+    "max_ul": 1000
+  },
+  "resources": {
+    "tip_rack_1000ul_evo": {
+      "type": "TipRack_1000ul_Tecan",
+      "location": {"x": 100, "y": 100, "z": 0},
+      "description": "1000µL tip rack for Tecan EVO - DiTi disposable tips",
+      "capacity": 96,
+      "tip_volume": 1000
+    },
+    "tip_rack_200ul_evo": {
+      "type": "TipRack_200ul_Tecan",
+      "location": {"x": 200, "y": 100, "z": 0},
+      "description": "200µL tip rack for Tecan EVO - precision tips",
+      "capacity": 96,
+      "tip_volume": 200
+    },
+    "microplate_source": {
+      "type": "MicroPlate_96_Tecan",
+      "location": {"x": 100, "y": 200, "z": 0},
+      "description": "96-well microplate for sample sources",
+      "wells": 96,
+      "well_volume": 300
+    },
+    "microplate_dest": {
+      "type": "MicroPlate_96_Tecan",
+      "location": {"x": 200, "y": 200, "z": 0},
+      "description": "96-well microplate for sample destinations",
+      "wells": 96,
+      "well_volume": 300
+    },
+    "reagent_trough_12": {
+      "type": "Trough_12_channel_Tecan",
+      "location": {"x": 300, "y": 200, "z": 0},
+      "description": "12-channel reagent trough for bulk dispensing",
+      "channels": 12,
+      "channel_volume": 25000
+    },
+    "deep_well_plate": {
+      "type": "DeepWell_96_2ml_Tecan",
+      "location": {"x": 400, "y": 200, "z": 0},
+      "description": "96-well deep well plate for large volume storage",
+      "wells": 96,
+      "well_volume": 2000
+    },
+    "wash_station": {
+      "type": "Wash_Station_Tecan",
+      "location": {"x": 500, "y": 200, "z": 0},
+      "description": "Integrated wash station for tip cleaning",
+      "capacity": "unlimited"
+    }
+  },
+  "supported_operations": [
+    "pick_up_tips",
+    "drop_tips",
+    "aspirate",
+    "dispense",
+    "mix",
+    "wash_tips",
+    "blow_out",
+    "multi_dispense",
+    "liquid_level_sensing"
+  ],
+  "special_features": [
+    "Modular arm configuration",
+    "Multiple pipetting arms",
+    "Integrated wash station",
+    "Flexible deck layout",
+    "High-throughput capabilities",
+    "Advanced liquid sensing",
+    "Multi-plate handling"
+  ],
+  "pipette_channels": [1, 8],
+  "recommended_for": [
+    "High-throughput screening",
+    "Multi-plate assays", 
+    "Complex automation workflows",
+    "Clinical diagnostics",
+    "Life science research",
+    "Batch processing"
+  ],
+  "workflow_capabilities": [
+    "Serial dilutions",
+    "Plate replication",
+    "Reagent distribution",
+    "Sample preparation",
+    "Multi-step protocols"
+  ],
+  "example_usage": "# Tecan EVO modular protocol\ntip_rack = lh.get_resource('tip_rack_200ul_evo')\nsource = lh.get_resource('microplate_source')\ndest = lh.get_resource('microplate_dest')\nreagent = lh.get_resource('reagent_trough_12')\n# Multi-step workflow\nawait lh.pick_up_tips(tip_rack['A1:H1'])  # 8-channel\nawait lh.aspirate(reagent['A1'], vols=[100]*8)\nawait lh.dispense(dest['A1:A8'], vols=[100]*8)\nawait lh.wash_tips()  # Use integrated wash station"
+}
