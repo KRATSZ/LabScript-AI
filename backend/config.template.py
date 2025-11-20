@@ -142,11 +142,11 @@ def run(protocol: protocol_api.ProtocolContext):
 """
 
 # 1. API Configuration
-api_key = "sk-Fbf6T3Gd8o3srcifmRyfUa3PfKmtbNuYgNzind0j92h2sV3n"
+api_key = "YOUR_OPENAI_API_KEY"
 base_url = "https://api.ai190.com/v1"
 model_name = "gemini-2.5-pro"
 # Specialized API for Intent Classification (faster model)
-DEEPSEEK_API_KEY = "C5dgRQ47zWYzeNGpS7YU9kQIEoP4KiGfPDdnrnLFwRE1AJaUCNN5acwtACD69-XPyOiqPI8H5tFMHJLxVuAJQA"
+DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"
 DEEPSEEK_BASE_URL = "https://www.sophnet.com/api/open-apis/v1"
 DEEPSEEK_INTENT_MODEL = "DeepSeek-V3-Fast"
 
@@ -155,7 +155,7 @@ REVIEW_PRIMARY_MODEL_NAME = model_name  # default to main Gemini model
 REVIEW_VISION_TOOL_CONFIG = {
     "model": "zai-org/GLM-4.5V",
     "base_url": "https://api.siliconflow.cn/v1",
-    "api_key": "sk-acrzkngnpfgpaznczxafjvfezommzpbrmraoklclyelojmlp",
+    "api_key": "YOUR_GLM_API_KEY",
 }
 
 # 2. Valid Opentrons Names and Code Examples (Knowledge Base)
