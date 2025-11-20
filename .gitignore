@@ -161,11 +161,4 @@ cython_debug/
 .ot_env/
 labscriptAI-frontend/node_modules/
 labscriptAI-frontend/dist/
-labscriptAI-frontend/.env
-
-# Sensitive configs
-backend/config.py
-
-# Archived or generated content
-archive/
 
