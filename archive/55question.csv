@@ -1,0 +1,519 @@
+Question,Type,Difficulty,Difficultynumber
+"Can you write a Python script that does the following experiment?
+Basic liquid handling with different liquid types:
+1. Load a 96-well plate and source tubes
+2. Transfer the following liquids (50uL each):
+   - Water (low viscosity)
+   - Glycerol solution (high viscosity)
+   - Ethanol solution (volatile)
+3. Adjust pipetting speed and aspiration/dispense rates for each liquid type
+4. Add proper mixing for viscous liquids
+5. Handle volatile liquid evaporation",liquid_class,Easy,1
+"Can you write a Python script that does the following experiment?
+Basic liquid transfer between wells:
+1. Load a 96-well plate with blue dye
+2. Transfer 100uL from well A1 to well B1
+3. Transfer 50uL from well B1 to well C1
+4. Include proper tip handling
+5. Complete the protocol",basic_transfer,Easy,1
+"Can you write a Python script that does the following experiment?
+Empty well handling:
+1. Set up a 96-well plate with some wells empty
+2. Attempt transfers from wells A1-H12
+3. Handle cases where:
+   - Source well is empty (skip with warning)
+   - Destination well is already occupied
+   - Tip touches dry well surface
+4. Include appropriate error messages",empty_well_handling,Easy,1
+"Can you write a Python script that does the following experiment?
+I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.
+Can you write down a script that does the following experiment?
+Protocol Steps:
+1. Wash the 6 well plate with PBS(-) by pipetting up and down 5 times. For each well, use 1 ml of PBS(-).
+2. After washing, add 1 ml of trypsin solution (0.25%) to the cell culture dish and wait for 5 minutes.
+3. Then, add 1 mL of cell culture medium (DMEM) to the 6 well plate.
+4. Finish the experiment.
+Possible Labware and Pipettes (Note that you don't need to trust these items, you can use any labware and pipette you want):
+1. opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical
+2. p1000_single
+3. corning_6_wellplate_16.8ml_flat
+When writing scripts, be aware of the following:
+1. Do not aspirate more than pipette's max volume. For example, if you want to aspirate 2000 uL with a p1000_single, you need to split it into two commands.
+2. Check the number of tips you use to avoid running out of tips.
+3. when load_labware('name', slot), you can't declare the same slot twice, you need to use different slots for different labware.",cell_culture_basic,Easy,1
+"Can you write a Python script that does the following experiment?
+Load the following labware:
+1. A custom_96_wellplate_200ul (this is an invalid labware name)
+2. A special_tube_rack_15ml (this is also invalid)
+3. Transfer between them
+This test checks labware name validation.",labware_validation,Easy,1
+"Can you write a Python script that does the following experiment?
+Multi-well sample preparation:
+1. Add 50uL buffer to wells A1-H8
+2. Add 10uL enzyme to same wells
+3. Mix by pipetting up and down 2 times
+4. Incubate for 5 minutes
+5. Add 100uL stop solution to same wells
+6. Mix one final time",multi_well_prep,Easy,1
+"Can you write a Python script that does the following experiment?
+Plate washing protocol:
+1. Load 96-well plate with samples
+2. Aspirate liquid from all wells (A1-H12)
+3. Add 200uL wash buffer to all wells
+4. Mix by pipetting up and down once
+5. Aspirate wash buffer from all wells
+6. Repeat wash step once more",plate_washing,Easy,1
+"Can you write a Python script that does the following experiment?
+Sample dilution basics:
+1. Stock solution in tube A1: 1mg/mL
+2. Create 1:2 dilution in tube B1 (add 50uL stock + 50uL buffer)
+3. Create 1:4 dilution in tube C1 (add 50uL from B1 + 50uL buffer)
+4. Mix each tube thoroughly
+5. Transfer final dilutions to plate wells",basic_dilution,Easy,1
+"Can you write a Python script that does the following experiment?
+Simple mixing protocol:
+1. Load a 96-well plate with reagents
+2. Add 100uL reagent A to wells A1-A6
+3. Add 100uL reagent B to same wells
+4. Mix each well by pipetting up and down 3 times
+5. Dispose tips properly",simple_mixing,Easy,1
+"Can you write a Python script that does the following experiment?
+Simple serial dilution calculation:
+1. Prepare serial dilutions from stock solution
+2. Stock: 10mg/mL in tube A1
+3. Create working solutions:
+   - 1mg/mL (1:10 dilution)
+   - 0.1mg/mL (1:100 dilution)
+   - 0.01mg/mL (1:1000 dilution)
+4. Calculate volumes automatically
+5. Verify final concentrations in code comments",simple_dilution,Easy,1
+"Can you write a Python script that does the following experiment?
+Single channel pipette basics:
+1. Use P300 single channel pipette
+2. Transfer 200uL from source tube to 6 different wells
+3. Use fresh tip for each transfer
+4. Track tip usage
+5. End with tip disposal",single_channel_basics,Easy,1
+"Can you write a Python script that does the following experiment?
+Use a P1000 pipette to transfer large volumes:
+1. Transfer 1500uL from source tube to destination well
+2. Transfer 2000uL from another source to another well
+3. Complete the protocol
+Pay attention to pipette volume limits.",pipette_limits,Easy,1
+"Can you write a Python script that does the following experiment?
+Volume consistency check:
+1. Transfer identical volumes to all wells in 96-well plate
+2. Use 200uL of blue dye solution
+3. Transfer to every well (A1-H12)
+4. Include quality check:
+   - Verify all wells received correct volume
+   - Check for any missed wells
+   - Log transfer completion for each well
+5. Test pipette accuracy across full plate range",consistency_check,Easy,1
+"Can you write a Python script that does the following experiment?
+Batch processing with quality control:
+1. Process 12 samples in parallel:
+   - Add 100uL reagent A to each sample
+   - Mix 3 times
+   - Add 50uL reagent B to each sample
+   - Mix 2 times
+2. Include quality check after each batch
+3. Log processing times and any issues
+4. Handle individual sample failures without stopping entire batch",batch_processing,Medium,2
+"Can you write a Python script that does the following experiment?
+Cell culture medium exchange protocol (parameterized):
+The robot should handle different cell types (hMSC/iPS) and media combinations:
+- Cells are cultured in 6 well plates
+- Exchange old medium with PBS(-) wash (2x1ml per well)
+- Add new medium (DMEM or SCM130, 1ml per well)
+This should work for any combination of cell type and medium.",medium_exchange_general,Medium,2
+"Can you write a Python script that does the following experiment?
+Contamination prevention protocol:
+1. Handle different types of liquids:
+   - Surfactant-containing solutions
+   - High-viscosity solutions
+   - Protein solutions
+2. Use proper aspiration techniques:
+   - Slow aspiration for viscous liquids
+   - Pre-wetting tips
+   - Avoid air bubble formation
+3. Include visual inspection steps in code",contamination_control,Medium,2
+"Can you write a Python script that does the following experiment?
+Cross-contamination prevention:
+1. Transfer two different colored dyes:
+   - Blue dye: wells A1-A6
+   - Red dye: wells B1-B6
+2. Use proper tip changing strategy to prevent cross-contamination
+3. Add wash steps between different dye transfers
+4. Include visual verification in protocol comments
+5. Test for color mixing in boundary wells",cross_contamination,Medium,2
+"Can you write a Python script that does the following experiment?
+Data logging and reporting:
+1. Create a comprehensive transfer protocol
+2. Log all transfer details:
+   - Source and destination positions
+   - Transfer volumes and timestamps
+   - Tip usage tracking
+   - Error events
+3. Generate end-of-run summary report
+4. Export data to CSV format for analysis",data_logging,Medium,2
+"Can you write a Python script that does the following experiment?
+Dynamic liquid level detection:
+1. Set up a transfer protocol where source liquid level decreases
+2. The robot should:
+   - Detect when source well is empty before transfer
+   - Automatically switch to next source well
+   - Log the well switching events
+   - Handle cases where all sources are exhausted
+3. Add error handling for insufficient total volume",dynamic_adaptation,Medium,2
+"Can you write a Python script that does the following experiment?
+Immunostaining protocol (parameterized for different targets):
+Cells are cultured in 6 well plates. The robot should:
+1. Fix cells with 4% paraformaldehyde (2ml per well)
+2. Wash 3x with PBS(-)
+3. Permeabilize with 0.1% Triton X-100 (500ul per well)
+4. Block with blocking buffer (1ml per well)
+5. Add primary antibody (different targets: lysosomes/E-Cadherin)
+6. Wash and add secondary antibody
+7. Add mounting medium
+Make the protocol flexible for different antibody combinations.",immunostaining_general,Medium,2
+"Can you write a Python script that does the following experiment?
+Liquid level adaptation:
+1. Fill wells in a 96-well plate to different heights:
+   - Row A: 50uL (low level)
+   - Row B: 200uL (high level)
+   - Row C: 100uL (medium level)
+2. Test aspiration from different liquid levels
+3. Adjust pipette depth for each level
+4. Ensure consistent aspiration without air bubbles",level_adaptation,Medium,2
+"Can you write a Python script that does the following experiment?
+Load multiple labware items and ensure proper slot management:
+1. Load a 96-well plate for samples
+2. Load a tube rack for reagents
+3. Load a tip rack for pipetting
+4. Transfer 100uL from tube A1 to well A1 of the plate
+5. Make sure to use different slots for each labware item
+This test specifically checks for slot conflict errors.",slot_management,Medium,2
+"Can you write a Python script that does the following experiment?
+Multi-pipette coordination:
+1. Load both P1000 and P300 pipettes
+2. Assign appropriate tasks:
+   - P1000: Transfer volumes >300uL
+   - P300: Transfer volumes <=300uL
+3. Coordinate both pipettes in same protocol
+4. Manage tip racks for both pipettes
+5. Optimize workflow to minimize pipette switching",multi_pipette,Medium,2
+"Can you write a Python script that does the following experiment?
+PCR Setup Protocol:
+1. Load a 96-well PCR plate
+2. Load reagent tubes containing: Master Mix, Forward Primer, Reverse Primer, Template DNA
+3. Add 10uL Master Mix to each well (A1-H12)
+4. Add 1uL Forward Primer to each well
+5. Add 1uL Reverse Primer to each well
+6. Add 2uL Template DNA to wells A1-A8 only
+7. Mix each well by pipetting up and down 3 times
+Use appropriate pipettes and tip management.",pcr_setup,Medium,2
+"Can you write a Python script that does the following experiment?
+Perform a 96-well transfer protocol:
+1. Transfer 50uL from each well of source plate to destination plate
+2. Use proper tip management
+3. Handle tip rack capacity limitations
+This requires managing tip usage across multiple transfers.",tip_management,Medium,2
+"Can you write a Python script that does the following experiment?
+Plate mapping and tracking:
+1. Create a sample plate layout with specific pattern:
+   - Standards in columns 1-2 (A1-H2)
+   - Controls in columns 11-12 (A11-H12)
+   - Samples in columns 3-10 (A3-H10)
+2. Implement proper well mapping logic
+3. Track sample ID to well position mapping
+4. Include logging for all transfers
+5. Generate plate map summary at end",plate_mapping,Medium,2
+"Can you write a Python script that does the following experiment?
+Protocol parameterization:
+1. Create a flexible protocol that accepts parameters:
+   - Number of samples (variable: 1-96)
+   - Transfer volume (variable: 10-500uL)
+   - Mixing repetitions (variable: 1-10)
+   - Incubation time (variable: 1-60 min)
+2. Validate input parameters
+3. Adapt protocol behavior based on inputs
+4. Include parameter range checking",parameterization,Medium,2
+"Can you write a Python script that does the following experiment?
+Reagent preparation on-deck:
+1. Prepare working solutions from stock reagents:
+   - Dilute enzyme stock 1:10 in buffer
+   - Mix substrate with diluent
+   - Prepare stop solution
+2. Use separate tubes for each preparation
+3. Include mixing steps for homogeneity
+4. Label and track prepared reagents
+5. Use freshly prepared reagents in subsequent steps",reagent_preparation,Medium,2
+"Can you write a Python script that does the following experiment?
+Temperature-sensitive reagent handling:
+1. Load a temperature module with 4C cooling
+2. Place reagents that need to stay cold:
+   - Enzyme solution (50uL)
+   - Sensitive substrate (100uL)
+3. Keep reagents on temperature module during transfers
+4. Transfer cold reagents to assay plate at room temperature
+5. Minimize time outside temperature control",temperature_control,Medium,2
+"Can you write a Python script that does the following experiment?
+Time-sensitive reaction sequencing:
+1. Set up a time-sensitive reaction with multiple steps:
+   - Add reagent A (50uL) and wait exactly 2 minutes
+   - Add reagent B (50uL) and wait exactly 30 seconds
+   - Add reagent C (100uL) immediately
+   - Mix and transfer to detection plate
+2. Use protocol.delay() for precise timing
+3. Log each step with timestamps",timing_control,Medium,2
+"Can you write a Python script that does the following experiment?
+Tip usage optimization strategy:
+1. Set up protocol with multiple transfer steps
+2. Optimize tip usage:
+   - Reuse tips for same reagent transfers
+   - Change tips only when switching reagents
+   - Use tip rack efficiently
+3. Process 96-well plate with minimal tip usage
+4. Track tip consumption throughout protocol",tip_optimization,Medium,2
+"Can you write a Python script that does the following experiment?
+Variable volume calculations:
+1. Calculate reagent volumes based on well-specific requirements:
+   - Wells A1-A6: 50uL (low concentration samples)
+   - Wells B1-B6: 100uL (medium concentration samples)
+   - Wells C1-C6: 200uL (high concentration samples)
+2. Implement volume calculation logic
+3. Adjust for different sample types automatically
+4. Include volume verification checks
+5. Log calculated vs actual volumes",variable_volume,Medium,2
+"Can you write a Python script that does the following experiment?
+Well format conversion:
+1. Transfer samples from 24-well plate to 96-well plate
+2. Each 24-well contains 1000uL sample
+3. Distribute equally to 4 corresponding 96-wells (250uL each)
+4. Maintain sample integrity during redistribution
+5. Use proper well mapping and tracking",format_conversion,Medium,2
+"Can you write a Python script that does the following experiment?
+Air bubble handling:
+1. Transfer viscous liquids prone to bubble formation
+2. Implement bubble detection techniques:
+   - Visual inspection through aspiration pressure
+   - Slow aspiration for bubble prevention
+   - Dispense techniques to eliminate bubbles
+3. Add bubble removal steps when detected
+4. Include bubble handling in quality checks",bubble_handling,Hard,3
+"Can you write a Python script that does the following experiment?
+Automated liquid level detection:
+1. Set up wells with unknown liquid levels
+2. Use liquid sensing to detect surface before aspiration
+3. Handle cases where liquid level is too low
+4. Adjust pipette depth automatically
+5. Include fallback strategies for dry wells",liquid_sensing,Hard,3
+"Can you write a Python script that does the following experiment?
+Create a 10-fold serial dilution series across a 96-well plate:
+- Starting concentration in A1: 10mg/mL
+- Create 7 dilution points (A1 to A8)
+- Each step should be 1:10 dilution
+- Use buffer for dilutions
+- Final volume in each well: 200uL
+- Replicate each dilution in triplicate (rows A, B, C)
+The robot should automatically calculate volumes and perform the dilutions.",serial_dilution,Hard,3
+"Can you write a Python script that does the following experiment?
+DNA extraction from 24 bacterial samples using magnetic beads:
+- Samples are in 1.5mL tubes in positions A1-D6 of tube rack
+- Lyse cells with lysis buffer (200uL per sample)
+- Add magnetic beads (50uL per sample)
+- Mix and incubate 10 minutes
+- Use magnetic module to separate beads
+- Wash beads 3 times with wash buffer (500uL each wash)
+- Elute DNA with elution buffer (100uL)
+- Transfer final DNA to new clean tubes
+Handle magnetic separation timing and bead resuspension properly.",dna_extraction,Hard,3
+"Can you write a Python script that does the following experiment?
+Error handling and recovery test:
+1. Set up a simple transfer protocol from tube to 96-well plate
+2. Include error handling for:
+   - Tip rack running out of tips (should pause and wait for new tip rack)
+   - Insufficient liquid in source (should detect and skip/stop)
+   - Well overflow detection (should prevent overfilling)
+3. Add appropriate user notifications and logging
+4. Implement recovery strategies where possible",error_handling,Hard,3
+"Can you write a Python script that does the following experiment?
+High-throughput cell viability assay:
+1. Seed A549 cells (8000 cells/well) in 96-well plate
+2. Prepare thapsigargin serial dilutions (10nM to 100uM, 7 concentrations)
+3. Add drugs to cells in triplicate
+4. Incubate 72 hours
+5. Add CellTox Green reagent (15uL per well)
+6. Mix on heater shaker 2 min at 500 rpm
+7. Incubate 15 min, read fluorescence
+8. Add Cell Titer Glo 2.0 reagent (80uL per well)
+9. Mix 2 min, incubate 10 min, read luminescence
+Include proper controls and timing.",drug_screening_assay,Hard,3
+"Can you write a Python script that does the following experiment?
+Large volume reservoir management:
+1. Set up large volume transfers from reservoir
+2. Reservoir starts with 50mL total volume
+3. Transfer 1mL aliquots to 48 wells (1mL each)
+4. Track remaining volume
+5. Handle reservoir depletion gracefully
+6. Switch to backup reservoir if needed",reservoir_management,Hard,3
+"Can you write a Python script that does the following experiment?
+Mitochondrial ROS measurement in HeLa cells:
+1. Seed HeLa cells (10,000 cells/well) in 96-well black plate
+2. Prepare Antimycin A serial dilutions (10nM to 100uM, 6 concentrations)
+3. Add drugs to cells (triplicate wells per concentration)
+4. Incubate 4 hours at 37C
+5. Add MitoSOX Red reagent (100uL of 5uM solution)
+6. Mix gently, incubate 10 minutes at 37C in dark
+7. Wash 2x with HBSS buffer (200uL per well)
+8. Read fluorescence (Ex 510nm, Em 580nm)
+Include proper timing, controls, and plate layout.",mitochondrial_ros_assay,Hard,3
+"Can you write a Python script that does the following experiment?
+Multi-module coordination challenge:
+1. Use magnetic module for DNA purification
+2. Use temperature module for incubation steps
+3. Use heater shaker for mixing and washing
+4. Coordinate timing between modules:
+   - Magnetic separation (5 min) -> Transfer -> Heating (37C, 10 min)
+   - Mixing (500 rpm, 2 min) -> Cooling (4C, 5 min)
+Include proper module initialization, timing control, and transfer between modules.",module_coordination,Hard,3
+"Can you write a Python script that does the following experiment?
+Pause and resume functionality:
+1. Set up a multi-step protocol that can be paused:
+   - Step 1: Add reagents to all wells
+   - Step 2: Incubate 30 minutes (pause point)
+   - Step 3: Add detection reagent
+2. Use protocol.pause() for manual intervention points
+3. Include resume instructions
+4. Log pause/resume events
+5. Handle protocol state preservation",pause_resume,Hard,3
+"Can you write a Python script that does the following experiment?
+Resource optimization:
+1. Optimize for minimal tip usage across multiple reagents
+2. Implement tip sharing strategy:
+   - Group transfers by reagent type
+   - Plan optimal tip change points
+   - Calculate tip savings
+3. Compare optimized vs non-optimized approaches
+4. Include resource usage statistics",resource_optimization,Hard,3
+"Can you write a Python script that does the following experiment?
+Simple drug addition workflow:
+1. Dispense 200 uL of compound solution from 96-deepwell plate into assay plate
+2. Add 50 uL of cell suspension to each well
+3. Mix each well by pipetting up and down 3 times
+4. Incubate 10 minutes
+5. Add 20 uL of reagent solution and mix 2 times
+Focus on basic liquid handling accuracy and timing.",simple_drug_addition,Hard,3
+"Can you write a Python script that does the following experiment?
+Small volume precision challenge:
+1. Use P10 pipette for precise small volumes
+2. Transfer the following volumes accurately:
+   - 1uL from source to destination
+   - 2uL serial dilution (1:2, 1:4, 1:8)
+   - 5uL mixing operations
+3. Handle tip pre-wetting for accuracy
+4. Include air gap to improve small volume handling",small_volume,Hard,3
+"Can you write a Python script that does the following experiment?
+Calibration and validation:
+1. Perform pipette accuracy calibration:
+   - Transfer known volumes to precision balance
+   - Compare actual vs target weights
+   - Calculate accuracy and precision
+2. Validate across different volume ranges
+3. Include calibration curve generation
+4. Document calibration results",calibration_validation,Expert,4
+"Can you write a Python script that does the following experiment?
+Cell spheroid formation with osteoinduction (parameterized):
+We are culturing cells (2,500 cells/100 ul) with DMEM in 6 well plates, and we want to make spheroids in 96 well plates under two conditions:
+1) Control condition (OS-): 100 ul medium (DMEM) each well
+2) Induction condition (OS+): 100 ul medium + supplements:
+   - Dexamethasone: 10uL of 10uM stock (final 1uM)
+   - Ascorbic acid: 10uL of 100uM stock (final 10uM)
+   - Beta-glycerophosphate: 10uL of 100mM stock (final 10mM)
+Add supplements to each well, then transfer cells to each well.
+Split the code into multiple functions for each major step.",spheroid_formation,Expert,4
+"Can you write a Python script that does the following experiment?
+ELISA Assay Protocol:
+1. Coat 96-well plate with capture antibody (100uL per well, 1ug/mL)
+2. Incubate at room temperature for 2 hours
+3. Wash plate 3 times with wash buffer (200uL per well)
+4. Block with blocking buffer (150uL per well) for 1 hour
+5. Wash 3 times again
+6. Add samples in duplicate to wells A1-H6 (100uL per well)
+7. Add standard curve samples to wells A7-H8 (8 points, duplicate)
+8. Incubate 2 hours at room temperature
+9. Wash 5 times
+10. Add detection antibody (100uL per well, 0.5ug/mL)
+11. Incubate 1 hour
+12. Wash 5 times
+13. Add substrate solution (100uL per well)
+14. Incubate 15 minutes
+15. Add stop solution (50uL per well)
+Include proper reagent management and timing.",elisa_assay,Expert,4
+"Can you write a Python script that does the following experiment?
+Emergency recovery procedures:
+1. Implement protocol checkpoints:
+   - Save progress after major steps
+   - Enable resume from any checkpoint
+   - Handle power failure recovery
+2. Create data backup for all transfers
+3. Include validation of recovered state
+4. Test recovery scenarios",emergency_recovery,Expert,4
+"Can you write a Python script that does the following experiment?
+Environmental control integration:
+1. Coordinate with environmental systems:
+   - Temperature monitoring
+   - Humidity control
+   - CO2 levels for cell work
+2. Pause protocol if conditions go out of range
+3. Log environmental parameters
+4. Include condition-based decision making",environmental_control,Expert,4
+"Can you write a Python script that does the following experiment?
+High-throughput drug screening on cell viability:
+1. Seed HeLa cells (5000 cells/well) in 384-well plate
+2. Prepare drug dilution series: 8 concentrations x 48 compounds
+3. Each compound tested in triplicate
+4. Control wells: positive control (wells A1-A16), negative control (wells A17-A24)
+5. Add drugs using acoustic liquid handling precision
+6. Incubate 48 hours
+7. Add cell viability reagent (20uL per well)
+8. Mix by orbital shaking 2 minutes at 500 rpm
+9. Incubate 10 minutes
+10. Read luminescence
+Automate the entire screening process with proper plate layout and liquid handling.",high_throughput_screening,Expert,4
+"Can you write a Python script that does the following experiment?
+High-throughput dye-response calibration on plate reader:
+1. Set up a 384-well plate for dye calibration
+2. Prepare dye serial dilutions: 8 concentrations x 12 formulations
+3. Each formulation tested in triplicate
+4. Control wells: positive control (wells A1-A16, high dye), negative control (wells A17-A24, water)
+5. Add dye dilutions using automated liquid-handling precision
+6. Equilibrate 10 minutes
+7. Add neutral buffer (20 uL per well)
+8. Mix by orbital shaking 2 minutes at 500 rpm
+9. Incubate 10 minutes
+10. Read absorbance at 595 nm
+Automate the entire process with proper plate layout and liquid handling.",dye_calibration,Expert,4
+"Can you write a Python script that does the following experiment?
+Multi-protocol scheduling:
+1. Schedule multiple protocols to run sequentially:
+   - Protocol A: Sample preparation (30 min)
+   - Protocol B: Assay setup (20 min)
+   - Protocol C: Detection (15 min)
+2. Handle resource sharing between protocols
+3. Include buffer time between protocols
+4. Generate complete schedule timeline",scheduling,Expert,4
+"Can you write a Python script that does the following experiment?
+RNA extraction from HEK293T cells using TRIzol:
+1. Cells are in 6-well plate (90% confluence)
+2. Add 1mL TRIzol to each well, mix 3-4 times
+3. Wait 5 minutes for complete lysis
+4. Transfer lysate to 1.5mL tubes
+5. Add 200uL chloroform, mix, wait 3 minutes
+6. Centrifuge 15 minutes (manual step - add delay)
+7. Transfer aqueous phase (400uL) to new tubes
+8. Add 400uL isopropanol, mix, incubate 10 minutes
+9. Centrifuge 10 minutes, wash pellet with 75% ethanol
+10. Air-dry 5 minutes, resuspend in 30uL RNase-free water
+Include proper timing and manual step indications.",rna_extraction,Expert,4

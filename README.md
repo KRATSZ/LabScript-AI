@@ -5,6 +5,8 @@
 *State Key Laboratory for Quantitative Synthetic Biology, Shenzhen Institute of Synthetic Biology, Shenzhen Institutes of Advanced Technology, Chinese Academy of Sciences*  
 *定量合成生物学重点实验室，中国科学院深圳先进技术研究院合成生物学研究所*
 
+🌐 **Official Site / 官网**: [https://LabScriptAI.cn](https://LabScriptAI.cn)
+
 ---
 
 ## 📖 Abstract / 摘要
@@ -140,8 +142,8 @@ We use a **dual-virtual-environment architecture** to isolate Opentrons dependen
 
 ## 🔗 References & Citation / 引用
 
-If you use LabscriptAI in your research, please cite our work, thanks!:
-如果您在研究中使用了 LabscriptAI，请引用我们的工作，感谢大佬！：
+If you use LabscriptAI in your research, please cite our work, thanks! 😊:
+如果您在研究中使用了 LabscriptAI，请引用我们的工作，感谢大佬！🙏：
 
 > Yuan G, et al. "Autonomous liquid-handling robotics scripting through large language models enables accessible and safe protein engineering workflows." bioRxiv (2025): 2025-09.
 
@@ -154,7 +156,7 @@ If you use LabscriptAI in your research, please cite our work, thanks!:
 ---
 
 ## 📧 Contact / 联系方式
-Facing code problem please contact: gaoyuanbio@qq.com
+📮 Facing code problem please contact: gaoyuanbio@qq.com
 
 *State Key Laboratory for Quantitative Synthetic Biology, Shenzhen Institute of Synthetic Biology,CAS.*
 *中国科学院深圳先进技术研究院合成生物学研究所，定量合成生物学重点实验室*
