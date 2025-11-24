@@ -1,11 +1,11 @@
-# LabscriptAI: Autonomous Liquid-Handling Robotics Scripting for Accessible and Responsible Protein Engineering
-# LabscriptAI：用于可访问且负责任的蛋白质工程的自主液体处理机器人脚本生成框架
+# 🚀 LabscriptAI: Autonomous Liquid-Handling Robotics Scripting for Accessible and Responsible Protein Engineering
+# 🚀 LabscriptAI：用于可访问且负责任的蛋白质工程的自主液体处理机器人脚本生成框架
 
 **Authors**: Yuan Gao# (高源), Yizhou Luo#, Wenzhuo Li#, Yunquan Lan, Han Jiang, Yongcan Chen, Xiao Yi, Lihao Fu*, Min Yang*, Tong Si*  
 *State Key Laboratory for Quantitative Synthetic Biology, Shenzhen Institute of Synthetic Biology, Shenzhen Institutes of Advanced Technology, Chinese Academy of Sciences*  
 *定量合成生物学重点实验室，中国科学院深圳先进技术研究院合成生物学研究所*
 
-🌐 **Official Site / 官网**: [https://LabScriptAI.cn](https://LabScriptAI.cn)
+🌐 **Live Demo / 在线体验**: https://LabScriptAI.cn  
 
 ---
 
@@ -19,7 +19,7 @@ Laboratory automation enhances experimental throughput and reproducibility, yet 
 
 ---
 
-## 🏗️ System Architecture / 系统架构
+## 🧠🏗️ System Architecture / 系统架构
 
 **[English]**  
 LabscriptAI employs a **Multi-Agent Architecture** orchestrated by LangGraph, separating high-level planning from low-level code implementation.
@@ -53,7 +53,7 @@ Traditional LLM-based code generation often struggles with "fixing one bug but i
 
 ---
 
-## ✨ Key Features / 核心特性
+## ✨🌍 Key Features / 核心特性
 
 ### 1. Cross-Platform Support / 跨平台支持
 
@@ -96,7 +96,7 @@ In the **CAPE (Critical Assessment of Protein Engineering)** competition, Labscr
 
 ---
 
-## 🚀 Quick Start / 快速开始
+## ⚙️🚀 Quick Start / 快速开始
 
 For detailed installation instructions, please refer to [📄 Installation Guide (docs/INSTALLATION.md)](docs/INSTALLATION.md).
 详细安装指南请参阅 [📄 安装文档 (docs/INSTALLATION.md)](docs/INSTALLATION.md)。
@@ -132,7 +132,7 @@ We use a **dual-virtual-environment architecture** to isolate Opentrons dependen
 
 ---
 
-## 📂 Documentation / 文档资源
+## 📚📂 Documentation / 文档资源
 
 *   [🛠️ Installation & Troubleshooting / 安装与故障排除](docs/INSTALLATION.md)
 *   [📚 API Architecture / API 架构说明](docs/API_ARCHITECTURE.md)
@@ -142,8 +142,8 @@ We use a **dual-virtual-environment architecture** to isolate Opentrons dependen
 
 ## 🔗 References & Citation / 引用
 
-If you use LabscriptAI in your research, please cite our work, thanks! 😊:
-如果您在研究中使用了 LabscriptAI，请引用我们的工作，感谢大佬！🙏：
+If you use LabscriptAI in your research, please cite our work, thanks!:
+如果您在研究中使用了 LabscriptAI，请引用我们的工作，感谢大佬！：
 
 > Yuan G, et al. "Autonomous liquid-handling robotics scripting through large language models enables accessible and safe protein engineering workflows." bioRxiv (2025): 2025-09.
 
@@ -156,7 +156,7 @@ If you use LabscriptAI in your research, please cite our work, thanks! 😊:
 ---
 
 ## 📧 Contact / 联系方式
-📮 Facing code problem please contact: gaoyuanbio@qq.com
+Facing code problem please contact: gaoyuanbio@qq.com
 
 *State Key Laboratory for Quantitative Synthetic Biology, Shenzhen Institute of Synthetic Biology,CAS.*
 *中国科学院深圳先进技术研究院合成生物学研究所，定量合成生物学重点实验室*

@@ -161,5 +161,6 @@ cython_debug/
 .ot_env/
 labscriptAI-frontend/node_modules/
 labscriptAI-frontend/dist/
+# Local validation artifacts
 opentrons_validator/
 
