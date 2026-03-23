@@ -1,7 +1,5 @@
 # Opentrons-Lab-Agent
 
-[中文说明](README.zh-CN.md)
-
 `Opentrons-Lab-Agent` is a Claude Code plugin-style repository that packages Opentrons-focused Agent Skills for three jobs:
 
 - writing and revising Python protocols
