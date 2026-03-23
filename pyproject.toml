@@ -1,0 +1,20 @@
+[project]
+name = "opentrons-lab-agent"
+version = "0.1.0"
+description = "Claude Code skills and helper scripts for Opentrons protocol authoring, validation, and LAN robot control."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "SmartisanNaive" }
+]
+keywords = ["opentrons", "claude-code", "agent-skills", "lab-automation", "ot-2", "flex"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
+Repository = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+

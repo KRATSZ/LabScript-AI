@@ -1,0 +1,28 @@
+{
+  "name": "opentrons-lab-agent",
+  "version": "0.1.0",
+  "description": "Claude Code skills for Opentrons protocol authoring, local verification, and LAN robot control.",
+  "author": {
+    "name": "SmartisanNaive",
+    "url": "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
+  },
+  "homepage": "https://github.com/SmartisanNaive/Opentrons-Lab-Agent",
+  "repository": "https://github.com/SmartisanNaive/Opentrons-Lab-Agent",
+  "license": "MIT",
+  "keywords": [
+    "opentrons",
+    "claude-code",
+    "skills",
+    "lab-automation",
+    "ot-2",
+    "flex"
+  ],
+  "components": {
+    "skills": [
+      "opentrons-protocol-author",
+      "opentrons-protocol-verify",
+      "opentrons-robot-lan"
+    ]
+  }
+}
+
