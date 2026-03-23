@@ -14,6 +14,7 @@ Use this skill when the user wants a Python protocol drafted or edited for an Op
 3. Start from `assets/protocol_template.py` for new protocols instead of writing one from scratch.
 4. Keep the protocol explicit about labware, instruments, mounts, slots, and any runtime parameters.
 5. If the user asks whether the protocol actually analyzes or simulates, switch to the `opentrons-protocol-verify` skill instead of guessing.
+6. If simulation fails and the goal is iterative repair, switch to `opentrons-simulation-repair`.
 
 ## Working Rules
 

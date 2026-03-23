@@ -1,0 +1,28 @@
+{
+  "name": "opentrons-lab-mcp",
+  "version": "0.1.0",
+  "description": "Practical Opentrons MCP server for live robot control plus local simulation-first repair.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "opentrons-lab-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "opentrons",
+    "mcp",
+    "flex",
+    "simulation",
+    "claude-code"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.17.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

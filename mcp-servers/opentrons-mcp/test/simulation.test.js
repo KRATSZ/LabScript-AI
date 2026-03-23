@@ -1,0 +1,41 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { parseSimulationLog } from "../lib/simulation.js";
+
+test("parseSimulationLog classifies missing trash errors", () => {
+  const result = parseSimulationLog({
+    stderr: "Traceback ... NoTrashDefinedError: drop_tip() called without a trash bin",
+    exit_code: 1,
+    protocol_path: "/tmp/protocol.py",
+  });
+
+  assert.equal(result.success, false);
+  assert.equal(result.issues[0].category, "MISSING_TRASH_OR_SETUP");
+  assert.equal(result.issues[0].fixable_by_edit, true);
+});
+
+test("parseSimulationLog classifies syntax errors", () => {
+  const result = parseSimulationLog({
+    stderr:
+      '  File "/tmp/protocol.py", line 8\n    pipette.pick_up_tip(\n                        ^\nSyntaxError: \'(\' was never closed',
+    exit_code: 1,
+    protocol_path: "/tmp/protocol.py",
+  });
+
+  assert.equal(result.success, false);
+  assert.equal(result.issues[0].category, "SYNTAX_OR_IMPORT");
+  assert.equal(result.line_references[0].line, 8);
+});
+
+test("parseSimulationLog passes clean output", () => {
+  const result = parseSimulationLog({
+    stdout: "Protocol simulation completed successfully.",
+    stderr: "",
+    exit_code: 0,
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.issue_count, 0);
+  assert.equal(result.suggested_next_step, "simulation_passed_ready_for_execution");
+});

@@ -1,9 +1,10 @@
 # Opentrons-Lab-Agent
 
-`Opentrons-Lab-Agent` is a Claude Code plugin-style repository that packages Opentrons-focused Agent Skills for three jobs:
+`Opentrons-Lab-Agent` is a Claude Code plugin-style repository that packages Opentrons-focused Agent Skills and a practical MCP server for four jobs:
 
 - writing and revising Python protocols
 - checking whether a local Opentrons runtime is able to analyze or simulate a protocol
+- iteratively repairing protocols through a simulation-first loop
 - driving an OT-2 or Flex robot over the LAN HTTP API, including camera-related actions
 
 The layout follows Anthropic's public skills conventions: each skill lives in its own folder with a `SKILL.md`, optional `scripts/`, `references/`, and `assets/`, and the repository also includes `.claude-plugin/plugin.json` so the repo can be treated as a Claude Code plugin root.
@@ -29,16 +30,29 @@ If you want the project-local interpreter explicitly, activate `.venv` created b
 - `skills/opentrons-robot-lan`
   - Talks to a robot over the Opentrons HTTP API.
   - Covers health, camera settings, preview capture, protocol upload, analysis creation, run creation, and run actions.
+- `skills/opentrons-simulation-repair`
+  - Runs a multi-round `simulate -> parse -> edit -> simulate` loop.
+  - Keeps Claude Code honest about what can be fixed by code edit vs what is a runtime blocker.
+
+## Included MCP Server
+
+- `mcp-servers/opentrons-mcp`
+  - A compact MCP server for practical Claude Code orchestration.
+  - Includes live robot tools such as `robot_health`, `upload_protocol`, `create_run`, and `get_run_status`.
+  - Adds local tools `doctor_local_runtime`, `simulate_protocol`, and `parse_simulation_output` for simulation-first repair.
 
 ## Repository Layout
 
 ```text
 Opentrons-Lab-Agent/
 ├── .claude-plugin/plugin.json
+├── mcp-servers/
+│   └── opentrons-mcp/
 ├── skills/
 │   ├── opentrons-protocol-author/
 │   ├── opentrons-protocol-verify/
-│   └── opentrons-robot-lan/
+│   ├── opentrons-robot-lan/
+│   └── opentrons-simulation-repair/
 ├── src/opentrons_lab_agent/
 └── tests/
 ```
@@ -93,6 +107,24 @@ uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 1
 uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 analyze-protocol <protocol-id>
 ```
 
+### Start the local MCP server
+
+```bash
+cd mcp-servers/opentrons-mcp
+npm install
+node index.js
+```
+
+### Local simulation-first repair workflow
+
+Recommended Claude Code tool order:
+
+1. `doctor_local_runtime`
+2. `simulate_protocol`
+3. `parse_simulation_output`
+4. edit protocol
+5. `simulate_protocol` again
+
 ## Source Mapping
 
 These skills were written against the Opentrons code that is present in the same workspace:
@@ -104,8 +136,17 @@ These skills were written against the Opentrons code that is present in the same
 
 ## Testing
 
-The helper modules are covered with lightweight unit tests that do not require a robot:
+The Python helper modules are covered with lightweight unit tests that do not require a robot:
 
 ```bash
 PYTHONPATH=src uv run python -m unittest discover -s tests -v
 ```
+
+The MCP simulation parser also has lightweight Node tests:
+
+```bash
+cd mcp-servers/opentrons-mcp
+npm test
+```
+
+Repository: https://github.com/SmartisanNaive/Opentrons-Lab-Agent
