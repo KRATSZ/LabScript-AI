@@ -1,6 +1,8 @@
 ---
 name: opentrons-protocol-verify
 description: Use when the user wants to analyze, simulate, or sanity-check an Opentrons Python protocol locally. This skill probes the local Opentrons runtime first, then invokes opentrons.cli analyze or python -m opentrons.simulate only if imports are actually available.
+license: Apache-2.0
+compatibility: Requires Python 3.8+, uv for package management, and local Opentrons runtime with optional simulation support.
 ---
 
 # Opentrons Protocol Verify

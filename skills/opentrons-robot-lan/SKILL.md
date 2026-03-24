@@ -1,6 +1,8 @@
 ---
 name: opentrons-robot-lan
 description: Use when interacting with an Opentrons OT-2 or Flex robot over the LAN HTTP API, including health checks, camera settings, preview capture, protocol upload, protocol analysis, run creation, and run play or pause control.
+license: Apache-2.0
+compatibility: Requires Python 3.8+, uv for package management, network access to OT-2 or Flex robot on LAN, and requests library.
 ---
 
 # Opentrons Robot LAN

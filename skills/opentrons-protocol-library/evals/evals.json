@@ -1,0 +1,35 @@
+{
+  "skill_name": "opentrons-protocol-library",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need a protocol for magnetic bead DNA cleanup. Is there already one in the library?",
+      "expected_output": "A list of relevant protocols from the library that perform magnetic bead cleanup, with brief descriptions and paths to the protocol folders.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Show me how to implement liquid level tracking in an Opentrons protocol.",
+      "expected_output": "A reference to the Cookbook section on liquid level tracking with code examples showing simple, complex, and API 2.13+ implementations.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm starting a new PCR plate preparation protocol. What are the common patterns I should know?",
+      "expected_output": "Relevant Cookbook sections for PCR preparation, sample protocol examples for PCR, and tips for plate handling with multi-channel pipettes.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Find me a protocol that does serial dilution from a 96-well plate.",
+      "expected_output": "A list of protocols from the library that implement serial dilution, with links to their README and protocol files.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "What's the pattern for handling CSV files to define plate layouts?",
+      "expected_output": "A reference to the Cookbook's 'Using CSVs' section with code examples showing how to parse CSV input and map wells.",
+      "files": []
+    }
+  ]
+}

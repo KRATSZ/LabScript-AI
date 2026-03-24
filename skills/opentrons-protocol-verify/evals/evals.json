@@ -1,0 +1,23 @@
+{
+  "skill_name": "opentrons-protocol-verify",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a protocol at protocols/my_protocol.py. Can you check if it's valid and show me any errors?",
+      "expected_output": "A report showing the results of the protocol analysis, including any parse errors, missing labware, or other issues detected by the Opentrons CLI tools.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want to simulate running this protocol before I upload it to the robot. The file is test_protocol.py",
+      "expected_output": "A simulation result showing the protocol would complete successfully, with details about the estimated time and any warnings from the simulator.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "My protocol keeps failing at import time. Can you run the doctor command to see what's wrong with my environment?",
+      "expected_output": "A diagnostic report showing the status of the Opentrons runtime, import paths, and any missing dependencies or configuration issues.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "opentrons-robot-lan",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My OT-2 robot is at 192.168.1.50. Can you check if it's online and show me the camera view?",
+      "expected_output": "A health check response confirming the robot status and a camera image file saved from the robot's live preview.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I have a protocol at upload/transfer_protocol.py. Upload it to the robot and create a run for it.",
+      "expected_output": "Confirmation that the protocol was uploaded with a protocol ID, followed by successful creation of a run with a run ID.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "The robot has a run in progress. I want to pause it now.",
+      "expected_output": "A successful API response confirming the run action 'pause' was executed on the specified run ID.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "skill_name": "opentrons-protocol-author",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to write an Opentrons protocol for an OT-2 robot. The protocol should transfer liquid from a 96-well plate to a 384-well plate using a 300ul single-channel pipette. Include deck setup and pipette configuration.",
+      "expected_output": "A Python protocol file with proper metadata, deck setup defining the labware, pipette configuration for a 300ul single-channel pipette, and transfer commands using valid methods.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "create a simple flex protocol that does a serial dilution. start with 100ul in first well, do 1:2 dilution across 8 wells of a 96 plate",
+      "expected_output": "A Flex-compatible Python protocol with robotType='Flex', a multi-channel pipette setup, and serial dilution logic that transfers decreasing volumes across the wells.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a protocol that isn't working. The error says 'No labware defined for tip rack on position 3'. Can you fix it?",
+      "expected_output": "The protocol should be corrected to include proper tip rack definition in the deck setup or use a valid position reference, with clear explanation of the fix.",
+      "files": []
+    }
+  ]
+}

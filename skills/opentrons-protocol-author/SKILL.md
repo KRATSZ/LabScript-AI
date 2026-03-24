@@ -1,6 +1,8 @@
 ---
 name: opentrons-protocol-author
 description: Use when writing, revising, or reviewing Opentrons Python protocols for OT-2 or Flex robots, including deck setup, labware loading, pipette usage, runtime parameters, and camera capture with ProtocolContext.capture_image().
+license: Apache-2.0
+compatibility: Requires Python 3.8+, uv for package management, and access to Opentrons protocol documentation.
 ---
 
 # Opentrons Protocol Author
