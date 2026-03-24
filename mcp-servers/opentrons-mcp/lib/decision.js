@@ -1015,6 +1015,15 @@ export function buildActionSummary({
       summary.if_fails = "human_clear_slot";
       break;
 
+    case "suggest_new_destination_slot":
+      summary.params = {
+        target_slot: recoverySuggestion?.slot_occupation?.slot_name || null,
+        candidate_destination_slots: recoverySuggestion?.candidate_destination_slots || [],
+      };
+      summary.then_resume = true;
+      summary.if_fails = "human_choose_destination_slot";
+      break;
+
     case "wait_and_poll_module_status":
       summary.params = {
         blockers: recoverySuggestion?.blockers || [],

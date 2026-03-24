@@ -55,6 +55,7 @@ It also exposes a compact set of live tools:
 - `get_protocols`
 - `upload_protocol`
 - `run_protocol`
+- `execute_protocol_recovery`
 - `recover_tip_pickup`
 - `create_run`
 - `control_run`
@@ -78,6 +79,7 @@ It also exposes a compact set of live tools:
 - Real-Flex validation also includes runtime error parsing for `TIP_PHYSICALLY_MISSING`, `PROTOCOL_SETUP_ERROR`, `DESTINATION_UNAVAILABLE`, and a software-occupied `DESTINATION_OCCUPIED` move failure.
 - Real-Flex validation now also includes `run_protocol` with `examples/flex_noop_protocol.py`, which completed `upload -> create_run -> play -> poll` and returned a final `succeeded` run snapshot.
 - Real-Flex validation now also includes `run_protocol` with `examples/flex_tip_recovery_validation.py`, which entered `awaiting-recovery` on `pickUpTip(A1)` and exposed a real `TIP_PHYSICALLY_MISSING` branch.
+- The server now exposes `execute_protocol_recovery` as the general protocol-run recovery executor for supported automatic branches.
 - Real-Flex validation now also includes `recover_tip_pickup`, which executed `pickUpTip(B1, intent="fixit")` and `resume-from-recovery`, then allowed the original protocol to finish with `status = succeeded`.
 - Phase 2 live read-only validation now confirms that `suggest_recovery_action(error_category="DESTINATION_OCCUPIED")` can return concrete alternative slots from the real deck layout while still escalating when those candidates are only low-confidence `unknown` slots.
 - Phase 3 negative validation now confirms that a broken local protocol is blocked at simulation time and never starts a real robot run.
@@ -116,6 +118,12 @@ It also exposes a compact set of live tools:
   }
 }
 ```
+
+`recover_tip_pickup` remains available as a compatibility wrapper. New integrations should prefer `execute_protocol_recovery`, which currently supports:
+
+- tip fallback with `pickUpTip(..., intent="fixit")`
+- alternative-slot retry for `moveLabware`
+- module-blocker recovery by waiting until blockers clear, then resuming the run
 
 ### `run_protocol` blocked by simulation gate (abbreviated)
 

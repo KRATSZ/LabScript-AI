@@ -736,6 +736,34 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "execute_protocol_recovery",
+    description:
+      "Execute a supported protocol recovery branch from live recovery guidance, then resume the run when appropriate.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        run_id: { type: "string" },
+        session_id: { type: "string" },
+        expected_action: { type: "string" },
+        tiprack_slots: {
+          type: "array",
+          items: { type: "string" },
+        },
+        recovery_well: { type: "string" },
+        tiprack_slot: { type: "string" },
+        destination_slot: { type: "string" },
+        allow_low_confidence_destination: { type: "boolean", default: false },
+        module_wait_timeout_ms: { type: "integer", default: 120000 },
+        module_poll_interval_ms: { type: "integer", default: 1000 },
+        timeout_ms: { type: "integer", default: 120000 },
+        poll_interval_ms: { type: "integer", default: 500 },
+        page_length: { type: "integer", default: 20 },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
     name: "recover_tip_pickup",
     description:
       "In protocol recovery state, enqueue a fixit pickUpTip on the next viable well and resume the run.",
@@ -1436,6 +1464,343 @@ async function enforceSimulationGate(args) {
     simulation,
     parsed,
   };
+}
+
+function getLatestFailedCommand(commandsPayload) {
+  if (!Array.isArray(unwrapData(commandsPayload))) {
+    return null;
+  }
+  return [...unwrapData(commandsPayload)].reverse().find(command => command?.status === "failed") || null;
+}
+
+async function waitForModuleRecoveryReady({
+  robotIp,
+  timeoutMs = 120000,
+  pollIntervalMs = 1000,
+} = {}) {
+  const startedAt = Date.now();
+  let latest = null;
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    latest = await readModuleStatus({ robot_ip: robotIp });
+    if ((latest?.data?.blockers || []).length === 0) {
+      return {
+        ready: true,
+        waited_ms: Date.now() - startedAt,
+        module_status: latest.data,
+      };
+    }
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  return {
+    ready: false,
+    waited_ms: Date.now() - startedAt,
+    module_status: latest?.data || null,
+  };
+}
+
+function selectRecoveryDestinationSlot({
+  recovery,
+  requestedDestinationSlot = null,
+  allowLowConfidence = false,
+} = {}) {
+  const candidates = Array.isArray(recovery?.candidate_destination_slots)
+    ? recovery.candidate_destination_slots
+    : [];
+  if (candidates.length === 0) {
+    throw new Error("execute_protocol_recovery did not receive any candidate destination slots.");
+  }
+
+  if (requestedDestinationSlot) {
+    const requested = String(requestedDestinationSlot).toUpperCase();
+    const matched =
+      candidates.find(candidate => String(candidate?.slot_name || "").toUpperCase() === requested) || null;
+    if (!matched) {
+      throw new Error(
+        `execute_protocol_recovery destination_slot ${requested} is not one of the suggested candidates.`,
+      );
+    }
+    return matched;
+  }
+
+  const highConfidenceCandidate = candidates.find(candidate => candidate?.confidence === "high") || null;
+  if (highConfidenceCandidate && recovery?.escalate_to_human !== true) {
+    return highConfidenceCandidate;
+  }
+  if (allowLowConfidence) {
+    return candidates[0];
+  }
+
+  throw new Error(
+    "execute_protocol_recovery requires destination_slot (or allow_low_confidence_destination) for this human-reviewed destination recovery branch.",
+  );
+}
+
+async function finalizeProtocolRecovery({
+  args,
+  sessionId,
+  executionResult = {},
+} = {}) {
+  const resumeAction = await requestRobotJson("POST", args.robot_ip, `/runs/${args.run_id}/actions`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: {
+        actionType: "resume-from-recovery",
+      },
+    }),
+  });
+
+  await pollRunToTerminal({
+    robotIp: args.robot_ip,
+    runId: args.run_id,
+    timeoutMs: args.timeout_ms ?? 120000,
+    pollIntervalMs: args.poll_interval_ms ?? 500,
+  });
+
+  const snapshot = await collectRunExecutionSnapshot({
+    robotIp: args.robot_ip,
+    runId: args.run_id,
+    pageLength: args.page_length ?? 20,
+  });
+  const finalStatus = snapshot.runHistoryResult.data?.status || null;
+  let postRecoveryGuidance = null;
+  if (shouldAttachRecoveryGuidance(finalStatus)) {
+    postRecoveryGuidance = await readRunFailureGuidance(args, args.run_id, sessionId);
+  }
+
+  const finalSessionId = postRecoveryGuidance?.sessionId || sessionId;
+  let reconciliation = null;
+  let homeSafety = null;
+  const { state } = mutateSessionState(finalSessionId, sessionState => {
+    ({ reconciliation, homeSafety } = syncSessionStateFromExecution({
+      sessionState,
+      robotStatusResult: snapshot.robotStatusResult,
+      moduleStatusResult: snapshot.moduleStatusResult,
+      contextDetail: snapshot.runHistoryResult.hardwareSnapshot.run,
+      contextRunId: args.run_id,
+      forceCommit: true,
+    }));
+    return sessionState;
+  });
+
+  return {
+    data: {
+      executed_action: executionResult.executedAction || null,
+      executed_params: executionResult.executedParams || {},
+      fixit_command: executionResult.fixitCommand || null,
+      module_wait: executionResult.moduleWait || null,
+      resume_action: resumeAction,
+      final_run_history: snapshot.runHistoryResult.data,
+      parsed_error: postRecoveryGuidance?.parsedError || null,
+      recovery: postRecoveryGuidance?.recovery || null,
+      reconciliation,
+      home_safety: homeSafety,
+    },
+    hardwareSnapshot:
+      postRecoveryGuidance?.hardwareSnapshot && Object.keys(postRecoveryGuidance.hardwareSnapshot).length > 0
+        ? postRecoveryGuidance.hardwareSnapshot
+        : {
+            ...snapshot.robotStatusResult.hardwareSnapshot,
+            ...snapshot.moduleStatusResult.hardwareSnapshot,
+            ...snapshot.runHistoryResult.hardwareSnapshot,
+          },
+    stateRevision: state.state_revision,
+    sessionId: finalSessionId,
+    runId: args.run_id,
+  };
+}
+
+async function executeProtocolRecovery(args, { expectedAction = null } = {}) {
+  const sessionId = args.session_id || args.run_id;
+  const guidance = await readRunFailureGuidance(args, args.run_id, sessionId);
+  const parsedError = guidance.parsedError || {};
+  const recovery = guidance.recovery?.recovery || guidance.recovery || {};
+  const actionSummary = guidance.recovery?.action_summary || null;
+  const action = recovery.action || null;
+  const guardedExpectedAction = expectedAction || args.expected_action || null;
+
+  if (guardedExpectedAction && action !== guardedExpectedAction) {
+    throw new Error(
+      `execute_protocol_recovery expected ${guardedExpectedAction}, got ${action || "unknown"}.`,
+    );
+  }
+
+  const context = await readExecutionContext(args.robot_ip, "protocol", args.run_id, {
+    includeCommands: true,
+    pageLength: args.page_length ?? 20,
+  });
+  const runStatus = readNested(unwrapData(context.detail) || {}, [["status"]], null);
+  if (String(runStatus || "").toLowerCase() !== "awaiting-recovery") {
+    throw new Error(`execute_protocol_recovery requires run status awaiting-recovery, got ${runStatus || "unknown"}.`);
+  }
+
+  const failedCommand = getLatestFailedCommand(context.commands);
+  let executionResult = {
+    executedAction: action,
+    executedParams: {},
+    fixitCommand: null,
+    moduleWait: null,
+  };
+
+  switch (action) {
+    case "retry_pick_up_tip_with_next_candidate": {
+      if (parsedError.error_category !== "TIP_PHYSICALLY_MISSING") {
+        throw new Error(
+          `execute_protocol_recovery expected TIP_PHYSICALLY_MISSING, got ${parsedError.error_category || "unknown"}.`,
+        );
+      }
+      const labwareId = readNested(failedCommand, [["params", "labwareId"]], null);
+      const pipetteId = readNested(failedCommand, [["params", "pipetteId"]], null);
+      if (!labwareId || !pipetteId) {
+        throw new Error("execute_protocol_recovery could not resolve labwareId/pipetteId from failed pickUpTip.");
+      }
+
+      const nextWell =
+        args.recovery_well ||
+        readNested(recovery, [["suggested_tip", "well_name"]], null) ||
+        readNested(actionSummary, [["params", "well"]], null);
+      const nextTiprackSlot =
+        args.tiprack_slot ||
+        readNested(recovery, [["suggested_tip", "tiprack_slot"]], null) ||
+        readNested(actionSummary, [["params", "tiprack_slot"]], null);
+      if (!nextWell) {
+        throw new Error("execute_protocol_recovery could not determine the next recovery well.");
+      }
+
+      const fixitCommand = await enqueueAndPollCommand({
+        robotIp: args.robot_ip,
+        contextType: "protocol",
+        contextId: args.run_id,
+        commandPayload: buildCommandPayload({
+          commandType: "pickUpTip",
+          intent: "fixit",
+          params: {
+            pipetteId,
+            labwareId,
+            wellName: nextWell,
+          },
+        }),
+        timeoutMs: args.timeout_ms ?? 120000,
+        pollIntervalMs: args.poll_interval_ms ?? 500,
+      });
+
+      executionResult = {
+        executedAction: action,
+        executedParams: {
+          well: nextWell,
+          tiprack_slot: nextTiprackSlot,
+          pipette_id: pipetteId,
+          labware_id: labwareId,
+        },
+        fixitCommand: fixitCommand.terminal,
+        moduleWait: null,
+      };
+      break;
+    }
+
+    case "suggest_new_destination_slot": {
+      const selectedDestination = selectRecoveryDestinationSlot({
+        recovery,
+        requestedDestinationSlot: args.destination_slot,
+        allowLowConfidence: args.allow_low_confidence_destination === true,
+      });
+      const labwareId = readNested(failedCommand, [["params", "labwareId"]], null);
+      if (!labwareId) {
+        throw new Error("execute_protocol_recovery could not resolve labwareId from failed moveLabware.");
+      }
+
+      const fixitCommand = await enqueueAndPollCommand({
+        robotIp: args.robot_ip,
+        contextType: "protocol",
+        contextId: args.run_id,
+        commandPayload: buildMoveLabwareCommand({
+          labwareId,
+          newLocation: { slotName: selectedDestination.slot_name },
+          strategy: readNested(failedCommand, [["params", "strategy"]], "usingGripper"),
+          pickUpOffset: readNested(failedCommand, [["params", "pickUpOffset"]], null),
+          dropOffset: readNested(failedCommand, [["params", "dropOffset"]], null),
+          intent: "fixit",
+        }),
+        timeoutMs: args.timeout_ms ?? 120000,
+        pollIntervalMs: args.poll_interval_ms ?? 500,
+      });
+
+      executionResult = {
+        executedAction: action,
+        executedParams: {
+          destination_slot: selectedDestination.slot_name,
+          destination_confidence: selectedDestination.confidence || null,
+          labware_id: labwareId,
+        },
+        fixitCommand: fixitCommand.terminal,
+        moduleWait: null,
+      };
+      break;
+    }
+
+    case "wait_and_poll_module_status": {
+      const moduleWait = await waitForModuleRecoveryReady({
+        robotIp: args.robot_ip,
+        timeoutMs: args.module_wait_timeout_ms ?? args.timeout_ms ?? 120000,
+        pollIntervalMs: args.module_poll_interval_ms ?? 1000,
+      });
+      if (!moduleWait.ready) {
+        throw new Error("execute_protocol_recovery timed out waiting for modules to become ready.");
+      }
+
+      executionResult = {
+        executedAction: action,
+        executedParams: {
+          blockers_cleared: true,
+        },
+        fixitCommand: null,
+        moduleWait,
+      };
+      break;
+    }
+
+    case "reconcile_state_first": {
+      const diffs = Array.isArray(recovery?.diffs) ? recovery.diffs : [];
+      const onlyModuleBlockers =
+        diffs.length > 0 && diffs.every(diff => diff?.type === "module_blockers");
+      if (!onlyModuleBlockers) {
+        throw new Error(
+          "execute_protocol_recovery only supports automatic reconcile_state_first when the pending diffs are module blockers.",
+        );
+      }
+
+      const moduleWait = await waitForModuleRecoveryReady({
+        robotIp: args.robot_ip,
+        timeoutMs: args.module_wait_timeout_ms ?? args.timeout_ms ?? 120000,
+        pollIntervalMs: args.module_poll_interval_ms ?? 1000,
+      });
+      if (!moduleWait.ready) {
+        throw new Error("execute_protocol_recovery timed out waiting for module blockers to clear.");
+      }
+
+      executionResult = {
+        executedAction: action,
+        executedParams: {
+          diffs_resolved: diffs.map(diff => diff.type),
+        },
+        fixitCommand: null,
+        moduleWait,
+      };
+      break;
+    }
+
+    default:
+      throw new Error(
+        `execute_protocol_recovery does not support automatic execution for action ${action || "unknown"}.`,
+      );
+  }
+
+  return finalizeProtocolRecovery({
+    args,
+    sessionId,
+    executionResult,
+  });
 }
 
 const TOOL_HANDLERS = {
@@ -2920,139 +3285,21 @@ const TOOL_HANDLERS = {
     };
   },
 
+  async execute_protocol_recovery(args) {
+    return executeProtocolRecovery(args);
+  },
+
   async recover_tip_pickup(args) {
-    const sessionId = args.session_id || args.run_id;
-    const guidance = await readRunFailureGuidance(args, args.run_id, sessionId);
-    const parsedError = guidance.parsedError || {};
-    const recovery = guidance.recovery?.recovery || guidance.recovery || {};
-    const actionSummary = guidance.recovery?.action_summary || null;
-    if (parsedError.error_category !== "TIP_PHYSICALLY_MISSING") {
-      throw new Error(
-        `recover_tip_pickup only supports TIP_PHYSICALLY_MISSING, got ${parsedError.error_category || "unknown"}.`,
-      );
-    }
-    if (recovery.action !== "retry_pick_up_tip_with_next_candidate") {
-      throw new Error(
-        `recover_tip_pickup expected retry_pick_up_tip_with_next_candidate, got ${recovery.action || "unknown"}.`,
-      );
-    }
-
-    const context = await readExecutionContext(args.robot_ip, "protocol", args.run_id, {
-      includeCommands: true,
-      pageLength: args.page_length ?? 20,
+    const result = await executeProtocolRecovery(args, {
+      expectedAction: "retry_pick_up_tip_with_next_candidate",
     });
-    const runStatus = readNested(unwrapData(context.detail) || {}, [["status"]], null);
-    if (String(runStatus || "").toLowerCase() !== "awaiting-recovery") {
-      throw new Error(`recover_tip_pickup requires run status awaiting-recovery, got ${runStatus || "unknown"}.`);
-    }
-
-    const failedCommand =
-      Array.isArray(unwrapData(context.commands))
-        ? [...unwrapData(context.commands)].reverse().find(command => command?.status === "failed") || null
-        : null;
-    const labwareId = readNested(failedCommand, [["params", "labwareId"]], null);
-    const pipetteId = readNested(failedCommand, [["params", "pipetteId"]], null);
-    if (!labwareId) {
-      throw new Error("recover_tip_pickup could not resolve labwareId from the failed pickUpTip command.");
-    }
-    if (!pipetteId) {
-      throw new Error("recover_tip_pickup could not resolve pipetteId from the failed pickUpTip command.");
-    }
-
-    const nextWell =
-      args.recovery_well ||
-      readNested(recovery, [["suggested_tip", "well_name"]], null) ||
-      readNested(actionSummary, [["params", "well"]], null);
-    const nextTiprackSlot =
-      args.tiprack_slot ||
-      readNested(recovery, [["suggested_tip", "tiprack_slot"]], null) ||
-      readNested(actionSummary, [["params", "tiprack_slot"]], null);
-    if (!nextWell) {
-      throw new Error("recover_tip_pickup could not determine the next recovery well.");
-    }
-
-    const fixitCommand = await enqueueAndPollCommand({
-      robotIp: args.robot_ip,
-      contextType: "protocol",
-      contextId: args.run_id,
-      commandPayload: buildCommandPayload({
-        commandType: "pickUpTip",
-        intent: "fixit",
-        params: {
-          pipetteId,
-          labwareId,
-          wellName: nextWell,
-        },
-      }),
-      timeoutMs: args.timeout_ms ?? 120000,
-      pollIntervalMs: args.poll_interval_ms ?? 500,
-    });
-
-    const resumeAction = await requestRobotJson("POST", args.robot_ip, `/runs/${args.run_id}/actions`, {
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data: {
-          actionType: "resume-from-recovery",
-        },
-      }),
-    });
-
-    await pollRunToTerminal({
-      robotIp: args.robot_ip,
-      runId: args.run_id,
-      timeoutMs: args.timeout_ms ?? 120000,
-      pollIntervalMs: args.poll_interval_ms ?? 500,
-    });
-
-    const snapshot = await collectRunExecutionSnapshot({
-      robotIp: args.robot_ip,
-      runId: args.run_id,
-      pageLength: args.page_length ?? 20,
-    });
-    const finalStatus = snapshot.runHistoryResult.data?.status || null;
-    let postRecoveryGuidance = null;
-    if (shouldAttachRecoveryGuidance(finalStatus)) {
-      postRecoveryGuidance = await readRunFailureGuidance(args, args.run_id, sessionId);
-    }
-
-    const finalSessionId = postRecoveryGuidance?.sessionId || sessionId;
-    let reconciliation = null;
-    let homeSafety = null;
-    const { state } = mutateSessionState(finalSessionId, sessionState => {
-      ({ reconciliation, homeSafety } = syncSessionStateFromExecution({
-        sessionState,
-        robotStatusResult: snapshot.robotStatusResult,
-        moduleStatusResult: snapshot.moduleStatusResult,
-        contextDetail: snapshot.runHistoryResult.hardwareSnapshot.run,
-        contextRunId: args.run_id,
-        forceCommit: true,
-      }));
-      return sessionState;
-    });
-
     return {
+      ...result,
       data: {
-        recovered_well: nextWell,
-        recovered_tiprack_slot: nextTiprackSlot,
-        fixit_command: fixitCommand.terminal,
-        resume_action: resumeAction,
-        final_run_history: snapshot.runHistoryResult.data,
-        parsed_error: postRecoveryGuidance?.parsedError || null,
-        recovery: postRecoveryGuidance?.recovery || null,
-        reconciliation,
-        home_safety: homeSafety,
+        recovered_well: result.data.executed_params?.well || null,
+        recovered_tiprack_slot: result.data.executed_params?.tiprack_slot || null,
+        ...result.data,
       },
-      hardwareSnapshot:
-        postRecoveryGuidance?.hardwareSnapshot && Object.keys(postRecoveryGuidance.hardwareSnapshot).length > 0
-          ? postRecoveryGuidance.hardwareSnapshot
-          : {
-              ...snapshot.robotStatusResult.hardwareSnapshot,
-              ...snapshot.moduleStatusResult.hardwareSnapshot,
-              ...snapshot.runHistoryResult.hardwareSnapshot,
-            },
-      stateRevision: state.state_revision,
-      sessionId: finalSessionId,
-      runId: args.run_id,
     };
   },
 

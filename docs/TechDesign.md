@@ -15,6 +15,7 @@ This repository tracks the implementation-facing subset of the workspace `TechDe
   - it still escalates when those candidates are only low-confidence `unknown` slots
 - Phase 2 also now has an executable protocol-recovery tool:
   - `recover_tip_pickup` performs `pickUpTip(..., intent="fixit") -> resume-from-recovery`
+  - `execute_protocol_recovery` generalizes that path into a protocol-run recovery executor for multiple supported branches
 - Phase 3 is now stricter at the real-run boundary:
   - `run_protocol` must pass local doctor + simulation + parsed gate checks before it can upload or start a run
 
@@ -26,6 +27,10 @@ This repository tracks the implementation-facing subset of the workspace `TechDe
   - first `pickUpTip(A1)` entered `awaiting-recovery`
   - `recover_tip_pickup` then succeeded with `B1`
   - `resume-from-recovery` let the original protocol end in `succeeded`
+- The generalized recovery executor is now covered by local tests for:
+  - tip fallback
+  - occupied-destination alternative slot retry
+  - module-blocker wait-and-resume
 - A deliberately broken local protocol is now blocked by the simulation gate before any real robot action begins.
 
 For the full roadmap and design rationale, keep using the workspace root `TechDesign.md`. This file exists so the repo branch can carry the key design updates that were implemented here.

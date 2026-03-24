@@ -389,6 +389,32 @@ test("buildActionSummary extracts actionable parameters from recovery", () => {
   assert.equal(summary.escalate_to_human, false);
 });
 
+test("buildActionSummary includes candidate slots for destination recovery", () => {
+  const recoverySuggestion = {
+    error_category: "DESTINATION_OCCUPIED",
+    action: "suggest_new_destination_slot",
+    escalate_to_human: true,
+    rationale: "protocol_context_destination_occupied",
+    slot_occupation: {
+      slot_name: "B1",
+    },
+    candidate_destination_slots: [
+      { slot_name: "C2", confidence: "high" },
+      { slot_name: "D2", confidence: "low" },
+    ],
+  };
+
+  const summary = buildActionSummary({
+    recoverySuggestion,
+  });
+
+  assert.equal(summary.do_what, "suggest_new_destination_slot");
+  assert.equal(summary.params.target_slot, "B1");
+  assert.equal(summary.params.candidate_destination_slots[0].slot_name, "C2");
+  assert.equal(summary.then_resume, true);
+  assert.equal(summary.if_fails, "human_choose_destination_slot");
+});
+
 test("suggestAlternativeSlots returns addressable non-occupied slots with confidence", () => {
   const sessionState = buildSessionState();
   const observed = buildObservedDeckState({
