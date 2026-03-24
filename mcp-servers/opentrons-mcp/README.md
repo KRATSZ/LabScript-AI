@@ -71,5 +71,6 @@ npm test
 
 If your simulation environment is not on the default `python3`, either:
 
+- rely on the repository-local `./.venv/bin/python` auto-detection, or
 - set `OPENTRONS_PYTHON`, or
 - pass `python_executable` to the simulation tools.

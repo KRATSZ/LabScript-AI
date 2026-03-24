@@ -39,3 +39,14 @@ test("parseSimulationLog passes clean output", () => {
   assert.equal(result.issue_count, 0);
   assert.equal(result.suggested_next_step, "simulation_passed_ready_for_execution");
 });
+
+test("parseSimulationLog does not misclassify successful trash drop logs", () => {
+  const result = parseSimulationLog({
+    stdout: "Dropping tip into Trash Bin on slot A3\n",
+    stderr: "",
+    exit_code: 0,
+  });
+
+  assert.equal(result.success, true);
+  assert.equal(result.issue_count, 0);
+});

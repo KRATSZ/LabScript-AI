@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
@@ -5,6 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const helperScriptPath = path.resolve(__dirname, "../scripts/local_simulation.py");
+const repoLocalPythonPath = path.resolve(__dirname, "../../../.venv/bin/python");
 const DEFAULT_MAX_LOG_CHARS = 20000;
 
 function truncateLog(text = "", maxChars = DEFAULT_MAX_LOG_CHARS) {
@@ -43,7 +45,17 @@ function runCommand(command, args) {
 
 async function runHelper(args, preferredPython) {
   const candidates = [];
-  for (const candidate of [preferredPython, process.env.OPENTRONS_PYTHON, "python3", "python"]) {
+  const detectedLocalPython = fs.existsSync(repoLocalPythonPath)
+    ? repoLocalPythonPath
+    : null;
+
+  for (const candidate of [
+    preferredPython,
+    process.env.OPENTRONS_PYTHON,
+    detectedLocalPython,
+    "python3",
+    "python",
+  ]) {
     if (candidate && !candidates.includes(candidate)) {
       candidates.push(candidate);
     }
@@ -156,7 +168,7 @@ export function parseSimulationLog({
     {
       category: "MISSING_TRASH_OR_SETUP",
       severity: "error",
-      regex: /(NoTrashDefinedError|trash bin|load_trash_bin\(|drop_tip\(\) without)/i,
+      regex: /(NoTrashDefinedError|No trash container has been defined|drop_tip\(\) without)/i,
       message: "协议缺少垃圾槽或必要 deck setup。",
       fixable_by_edit: true,
       suggested_edit_direction: "在 `run()` 开头显式声明 trash，例如 Flex 使用 `protocol.load_trash_bin(\"A3\")`，再调用 `drop_tip()`。",

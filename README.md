@@ -19,6 +19,8 @@ This project assumes Python is managed with `uv`.
 
 If you want the project-local interpreter explicitly, activate `.venv` created by `uv`, but the default examples below assume `uv run`.
 
+The local MCP server also auto-detects `./.venv/bin/python` when present, so once `opentrons` is installed into the project environment, `doctor_local_runtime` and `simulate_protocol` can usually run without an extra Python path argument.
+
 ## Included Skills
 
 - `skills/opentrons-protocol-author`
