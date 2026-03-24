@@ -736,6 +736,29 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "recover_tip_pickup",
+    description:
+      "In protocol recovery state, enqueue a fixit pickUpTip on the next viable well and resume the run.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        run_id: { type: "string" },
+        session_id: { type: "string" },
+        tiprack_slots: {
+          type: "array",
+          items: { type: "string" },
+        },
+        recovery_well: { type: "string" },
+        tiprack_slot: { type: "string" },
+        timeout_ms: { type: "integer", default: 120000 },
+        poll_interval_ms: { type: "integer", default: 500 },
+        page_length: { type: "integer", default: 20 },
+      },
+      required: ["run_id"],
+    },
+  },
+  {
     name: "get_runs",
     description: "List runs on the robot.",
     inputSchema: {
@@ -1368,6 +1391,50 @@ async function readRunFailureGuidance(args, runId, sessionId = null) {
     hardwareSnapshot: recoveryResult.hardwareSnapshot || parseResult.hardwareSnapshot || {},
     sessionId: recoveryResult.sessionId || parseResult.sessionId || sessionId,
     stateRevision: recoveryResult.stateRevision ?? parseResult.stateRevision ?? 0,
+  };
+}
+
+async function enforceSimulationGate(args) {
+  const doctor = await runDoctorTool(args);
+  if (!doctor?.ok || !doctor?.opentrons_simulate?.ok) {
+    const error = new Error("Simulation gate blocked real execution because the local runtime is not ready.");
+    error.toolContext = {
+      data: {
+        blocked_real_execution: true,
+        gate_stage: "doctor_local_runtime",
+        doctor_local_runtime: doctor,
+      },
+    };
+    throw error;
+  }
+
+  const simulation = await runSimulationTool({
+    ...args,
+    protocol_path: args.file_path,
+  });
+  const parsed = parseSimulationLog({
+    simulation_output_json: simulation,
+    protocol_path: simulation.protocol || args.file_path,
+  });
+
+  if (!simulation?.ok || parsed?.success === false) {
+    const error = new Error("Simulation gate blocked real execution because the protocol did not pass local simulation.");
+    error.toolContext = {
+      data: {
+        blocked_real_execution: true,
+        gate_stage: "simulate_protocol",
+        doctor_local_runtime: doctor,
+        simulation_output: simulation,
+        parsed_simulation_output: parsed,
+      },
+    };
+    throw error;
+  }
+
+  return {
+    doctor,
+    simulation,
+    parsed,
   };
 }
 
@@ -2697,6 +2764,7 @@ const TOOL_HANDLERS = {
   },
 
   async run_protocol(args) {
+    const simulationGate = await enforceSimulationGate(args);
     const uploaded = await uploadProtocol(args);
     const protocolId = readNested(unwrapData(uploaded) || {}, [["id"]], null);
     if (!protocolId) {
@@ -2757,6 +2825,7 @@ const TOOL_HANDLERS = {
         final_run_history: snapshot.runHistoryResult.data,
         parsed_error: failureGuidance?.parsedError || null,
         recovery: failureGuidance?.recovery || null,
+        simulation_gate: simulationGate,
       }),
       hardwareSnapshot:
         failureGuidance?.hardwareSnapshot && Object.keys(failureGuidance.hardwareSnapshot).length > 0
@@ -2851,6 +2920,142 @@ const TOOL_HANDLERS = {
     };
   },
 
+  async recover_tip_pickup(args) {
+    const sessionId = args.session_id || args.run_id;
+    const guidance = await readRunFailureGuidance(args, args.run_id, sessionId);
+    const parsedError = guidance.parsedError || {};
+    const recovery = guidance.recovery?.recovery || guidance.recovery || {};
+    const actionSummary = guidance.recovery?.action_summary || null;
+    if (parsedError.error_category !== "TIP_PHYSICALLY_MISSING") {
+      throw new Error(
+        `recover_tip_pickup only supports TIP_PHYSICALLY_MISSING, got ${parsedError.error_category || "unknown"}.`,
+      );
+    }
+    if (recovery.action !== "retry_pick_up_tip_with_next_candidate") {
+      throw new Error(
+        `recover_tip_pickup expected retry_pick_up_tip_with_next_candidate, got ${recovery.action || "unknown"}.`,
+      );
+    }
+
+    const context = await readExecutionContext(args.robot_ip, "protocol", args.run_id, {
+      includeCommands: true,
+      pageLength: args.page_length ?? 20,
+    });
+    const runStatus = readNested(unwrapData(context.detail) || {}, [["status"]], null);
+    if (String(runStatus || "").toLowerCase() !== "awaiting-recovery") {
+      throw new Error(`recover_tip_pickup requires run status awaiting-recovery, got ${runStatus || "unknown"}.`);
+    }
+
+    const failedCommand =
+      Array.isArray(unwrapData(context.commands))
+        ? [...unwrapData(context.commands)].reverse().find(command => command?.status === "failed") || null
+        : null;
+    const labwareId = readNested(failedCommand, [["params", "labwareId"]], null);
+    const pipetteId = readNested(failedCommand, [["params", "pipetteId"]], null);
+    if (!labwareId) {
+      throw new Error("recover_tip_pickup could not resolve labwareId from the failed pickUpTip command.");
+    }
+    if (!pipetteId) {
+      throw new Error("recover_tip_pickup could not resolve pipetteId from the failed pickUpTip command.");
+    }
+
+    const nextWell =
+      args.recovery_well ||
+      readNested(recovery, [["suggested_tip", "well_name"]], null) ||
+      readNested(actionSummary, [["params", "well"]], null);
+    const nextTiprackSlot =
+      args.tiprack_slot ||
+      readNested(recovery, [["suggested_tip", "tiprack_slot"]], null) ||
+      readNested(actionSummary, [["params", "tiprack_slot"]], null);
+    if (!nextWell) {
+      throw new Error("recover_tip_pickup could not determine the next recovery well.");
+    }
+
+    const fixitCommand = await enqueueAndPollCommand({
+      robotIp: args.robot_ip,
+      contextType: "protocol",
+      contextId: args.run_id,
+      commandPayload: buildCommandPayload({
+        commandType: "pickUpTip",
+        intent: "fixit",
+        params: {
+          pipetteId,
+          labwareId,
+          wellName: nextWell,
+        },
+      }),
+      timeoutMs: args.timeout_ms ?? 120000,
+      pollIntervalMs: args.poll_interval_ms ?? 500,
+    });
+
+    const resumeAction = await requestRobotJson("POST", args.robot_ip, `/runs/${args.run_id}/actions`, {
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        data: {
+          actionType: "resume-from-recovery",
+        },
+      }),
+    });
+
+    await pollRunToTerminal({
+      robotIp: args.robot_ip,
+      runId: args.run_id,
+      timeoutMs: args.timeout_ms ?? 120000,
+      pollIntervalMs: args.poll_interval_ms ?? 500,
+    });
+
+    const snapshot = await collectRunExecutionSnapshot({
+      robotIp: args.robot_ip,
+      runId: args.run_id,
+      pageLength: args.page_length ?? 20,
+    });
+    const finalStatus = snapshot.runHistoryResult.data?.status || null;
+    let postRecoveryGuidance = null;
+    if (shouldAttachRecoveryGuidance(finalStatus)) {
+      postRecoveryGuidance = await readRunFailureGuidance(args, args.run_id, sessionId);
+    }
+
+    const finalSessionId = postRecoveryGuidance?.sessionId || sessionId;
+    let reconciliation = null;
+    let homeSafety = null;
+    const { state } = mutateSessionState(finalSessionId, sessionState => {
+      ({ reconciliation, homeSafety } = syncSessionStateFromExecution({
+        sessionState,
+        robotStatusResult: snapshot.robotStatusResult,
+        moduleStatusResult: snapshot.moduleStatusResult,
+        contextDetail: snapshot.runHistoryResult.hardwareSnapshot.run,
+        contextRunId: args.run_id,
+        forceCommit: true,
+      }));
+      return sessionState;
+    });
+
+    return {
+      data: {
+        recovered_well: nextWell,
+        recovered_tiprack_slot: nextTiprackSlot,
+        fixit_command: fixitCommand.terminal,
+        resume_action: resumeAction,
+        final_run_history: snapshot.runHistoryResult.data,
+        parsed_error: postRecoveryGuidance?.parsedError || null,
+        recovery: postRecoveryGuidance?.recovery || null,
+        reconciliation,
+        home_safety: homeSafety,
+      },
+      hardwareSnapshot:
+        postRecoveryGuidance?.hardwareSnapshot && Object.keys(postRecoveryGuidance.hardwareSnapshot).length > 0
+          ? postRecoveryGuidance.hardwareSnapshot
+          : {
+              ...snapshot.robotStatusResult.hardwareSnapshot,
+              ...snapshot.moduleStatusResult.hardwareSnapshot,
+              ...snapshot.runHistoryResult.hardwareSnapshot,
+            },
+      stateRevision: state.state_revision,
+      sessionId: finalSessionId,
+      runId: args.run_id,
+    };
+  },
+
   async get_runs(args) {
     const runs = await requestRobotJson("GET", args.robot_ip, "/runs");
     return {
@@ -2921,7 +3126,7 @@ class OpentronsLabMCP {
         const result = await handler(args);
         return successResponse(result);
       } catch (error) {
-        return errorResponse(name, error);
+        return errorResponse(name, error, error?.toolContext || {});
       }
     });
   }

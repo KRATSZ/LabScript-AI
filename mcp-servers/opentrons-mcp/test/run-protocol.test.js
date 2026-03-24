@@ -90,9 +90,51 @@ test("run_protocol uploads, plays, and returns final run snapshot", async () => 
     assert.equal(result.runId, "run-1");
     assert.equal(result.data.final_status, "succeeded");
     assert.equal(result.data.requires_attention, false);
+    assert.equal(result.data.simulation_gate.parsed.success, true);
     assert.equal(result.data.final_run_history.run_id, "run-1");
     assert.equal(result.hardwareSnapshot.run.data.id, "run-1");
     assert.equal(result.hardwareSnapshot.health.robot_serial, "FLX-1");
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("run_protocol blocks real execution when simulation fails", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "opentrons-run-fail-"));
+  const protocolPath = path.join(tempDir, "broken_protocol.py");
+  fs.writeFileSync(
+    protocolPath,
+    [
+      "from opentrons import protocol_api",
+      "",
+      'metadata = {"protocolName": "Broken"}',
+      'requirements = {"robotType": "Flex", "apiLevel": "2.22"}',
+      "",
+      "def run(protocol: protocol_api.ProtocolContext) -> None:",
+      "    pipette.pick_up_tip(",
+      "",
+    ].join("\n"),
+  );
+
+  const originalFetch = global.fetch;
+  let fetchCalled = false;
+  global.fetch = async () => {
+    fetchCalled = true;
+    throw new Error("fetch should not be called when simulation gate fails");
+  };
+
+  try {
+    await assert.rejects(
+      () =>
+        TOOL_HANDLERS.run_protocol({
+          robot_ip: "10.31.2.149:31950",
+          file_path: protocolPath,
+          timeout_ms: 10,
+          poll_interval_ms: 1,
+        }),
+      /Simulation gate blocked real execution/,
+    );
+    assert.equal(fetchCalled, false);
   } finally {
     global.fetch = originalFetch;
   }

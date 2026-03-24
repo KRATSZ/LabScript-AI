@@ -23,12 +23,14 @@ export function buildRunProtocolResult({
   created_run,
   play_action = null,
   final_run_history,
+  simulation_gate = null,
   parsed_error = null,
   recovery = null,
 } = {}) {
   const finalStatus = final_run_history?.status || null;
   const normalizedStatus = normalizeRunStatus(finalStatus);
   return {
+    simulation_gate,
     protocol,
     created_run,
     play_action,

@@ -13,10 +13,19 @@ This repository tracks the implementation-facing subset of the workspace `TechDe
 - Phase 2 is now stronger for occupied-destination recovery:
   - `suggest_recovery_action` can return alternative destination slots
   - it still escalates when those candidates are only low-confidence `unknown` slots
+- Phase 2 also now has an executable protocol-recovery tool:
+  - `recover_tip_pickup` performs `pickUpTip(..., intent="fixit") -> resume-from-recovery`
+- Phase 3 is now stricter at the real-run boundary:
+  - `run_protocol` must pass local doctor + simulation + parsed gate checks before it can upload or start a run
 
 ## Real validation notes
 
 - Real Flex `run_protocol` validation passed with `mcp-servers/opentrons-mcp/examples/flex_noop_protocol.py`.
 - Live read-only `DESTINATION_OCCUPIED` suggestion validation returned concrete candidate slots from the current deck layout.
+- Real Flex `TIP_PHYSICALLY_MISSING` recovery validation passed with `mcp-servers/opentrons-mcp/examples/flex_tip_recovery_validation.py`:
+  - first `pickUpTip(A1)` entered `awaiting-recovery`
+  - `recover_tip_pickup` then succeeded with `B1`
+  - `resume-from-recovery` let the original protocol end in `succeeded`
+- A deliberately broken local protocol is now blocked by the simulation gate before any real robot action begins.
 
 For the full roadmap and design rationale, keep using the workspace root `TechDesign.md`. This file exists so the repo branch can carry the key design updates that were implemented here.
