@@ -40,7 +40,7 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
 
 - `mcp-servers/opentrons-mcp`
   - A compact MCP server for practical Claude Code orchestration.
-  - Includes live robot tools such as `robot_health`, `upload_protocol`, `create_run`, and `get_run_status`.
+  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `run_history`, `upload_protocol`, `create_run`, and `control_run`.
   - Adds local tools `doctor_local_runtime`, `simulate_protocol`, and `parse_simulation_output` for simulation-first repair.
 
 ## Repository Layout
@@ -127,6 +127,76 @@ Recommended Claude Code tool order:
 4. edit protocol
 5. `simulate_protocol` again
 
+### Phase 1 live-state workflow
+
+Recommended Claude Code tool order before and during live execution:
+
+1. `robot_status`
+2. `module_status`
+3. `reconcile_state`
+4. `get_slot_occupation` / `list_tip_candidates` / `is_home_safe`
+5. `create_run_context`
+6. `load_pipette` / `load_labware` / `move_labware`
+7. `cleanup_motion`
+8. `upload_protocol`
+9. `create_run`
+10. `control_run`
+11. `run_history`
+12. `suggest_recovery_action`
+13. `parse_error` when a live command or run fails
+
+Recent real-Flex validation now also covers a physical gripper move:
+
+- `create_run_context` in `maintenance` mode
+- `load_labware("corning_96_wellplate_360ul_flat", "C3")`
+- `move_labware` from `C3` to `B3`
+- `cleanup_motion` returning the gripper and gantry to a clean state
+- `parse_error` and `suggest_recovery_action` on real failure cases including:
+  - `TIP_PHYSICALLY_MISSING`
+  - `PROTOCOL_SETUP_ERROR`
+  - `DESTINATION_UNAVAILABLE`
+  - `DESTINATION_OCCUPIED` in a software-occupied destination test
+
+All MCP tools now return a common response envelope with:
+
+- `success`
+- `data`
+- `error`
+- `hardware_snapshot`
+- `state_revision`
+- `run_id`
+- `session_id`
+- `timestamp`
+
+## Vision Integration
+
+The repository already contains two useful layers for vision-related work:
+
+- Robot-side camera control in `src/opentrons_lab_agent/robot_api.py` for `GET /camera`, `POST /camera`, `POST /camera/cameraSettings`, and `POST /camera/capturePreviewImage`.
+- MCP-side camera tools in `mcp-servers/opentrons-mcp` for:
+  - `camera_status`
+  - `configure_camera`
+  - `capture_preview_image`
+  - `capture_run_image`
+  - `list_data_files`
+  - `download_data_file`
+  - `analyze_image_with_kimi`
+
+Design rule:
+
+- keep image acquisition inside the robot MCP
+- keep image interpretation in a separate analyzer step or future MCP
+- pass around a saved `image_path` artifact instead of stuffing binary blobs into tool output
+
+That split makes it easy to start with human inspection now, then later plug in a multimodal model or an external CV service without coupling perception logic to robot control.
+
+Practical note from the current Flex:
+
+- `GET /camera` works
+- `/camera/capturePreviewImage` currently returns `404`
+- `captureImage` through command queue succeeds, but maintenance-context capture may still fail to expose a downloadable `fileId`
+- historical real robot images are still retrievable through `dataFiles`, so `download_data_file` + `analyze_image_with_kimi` is already a usable real-image workflow
+
 ## Source Mapping
 
 These skills were written against the Opentrons code that is present in the same workspace:
@@ -144,7 +214,7 @@ The Python helper modules are covered with lightweight unit tests that do not re
 PYTHONPATH=src uv run python -m unittest discover -s tests -v
 ```
 
-The MCP simulation parser also has lightweight Node tests:
+The MCP server has lightweight Node tests for simulation parsing, HTTP URL normalization, live-state normalization, and decision helpers:
 
 ```bash
 cd mcp-servers/opentrons-mcp

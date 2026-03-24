@@ -6,3 +6,4 @@ __pycache__/
 artifacts/
 node_modules/
 mcp-servers/**/node_modules/
+mcp-servers/opentrons-mcp/data/session-state/

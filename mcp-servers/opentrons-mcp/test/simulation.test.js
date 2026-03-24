@@ -50,3 +50,25 @@ test("parseSimulationLog does not misclassify successful trash drop logs", () =>
   assert.equal(result.success, true);
   assert.equal(result.issue_count, 0);
 });
+
+test("parseSimulationLog classifies OutOfTipsError", () => {
+  const result = parseSimulationLog({
+    stderr: "OutOfTipsError [line 26]: ",
+    exit_code: 1,
+  });
+
+  assert.equal(result.success, false);
+  assert.equal(result.issues[0].category, "OUT_OF_TIPS");
+  assert.equal(result.issues[0].fixable_by_edit, true);
+});
+
+test("parseSimulationLog classifies TipNotAttachedError", () => {
+  const result = parseSimulationLog({
+    stderr: 'ProtocolCommandFailedError [line 22]: TipNotAttachedError: Pipette should have a tip attached, but does not.',
+    exit_code: 1,
+  });
+
+  assert.equal(result.success, false);
+  assert.equal(result.issues[0].category, "OUT_OF_TIPS");
+  assert.equal(result.issues[0].fixable_by_edit, true);
+});

@@ -205,6 +205,14 @@ export function parseSimulationLog({
       fixable_by_edit: true,
       suggested_edit_direction: "检查移液器量程和 transfer 体积，必要时拆分步骤或更换 pipette。",
     },
+    {
+      category: "OUT_OF_TIPS",
+      severity: "error",
+      regex: /(OutOfTipsError|no tips available|tip rack is empty|TipNotAttachedError.*should have a tip attached)/i,
+      message: "tip 未加载或 tip rack 已用完。",
+      fixable_by_edit: true,
+      suggested_edit_direction: "在 transfer 或 aspirate 之前先调用 pick_up_tip(tip_rack[well])，或者添加更多 tip rack。",
+    },
   ];
 
   for (const pattern of patterns) {

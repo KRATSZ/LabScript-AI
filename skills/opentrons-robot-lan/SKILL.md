@@ -12,11 +12,14 @@ Prefer running the helper through a `uv` virtual environment: `uv run python ...
 ## Workflow
 
 1. Start with a read-only call such as `health`, `list-runs`, or `get-camera`.
-2. For protocol execution, use the safe order:
+2. Prefer the MCP live-state order when available:
+   `robot_status` -> `module_status` -> `reconcile_state` -> `get_slot_occupation` / `list_tip_candidates` / `is_home_safe` -> `create_run_context` -> command tools (`load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`) -> `camera_status` / `capture_run_image` / `list_data_files` / `download_data_file` / `analyze_image_with_kimi` when visual confirmation is needed -> `run_history` -> `suggest_recovery_action`
+3. For protocol execution, use the safe order:
    upload protocol -> analyze protocol -> create run -> run action
-3. Use the provided script instead of ad hoc `curl` so payloads stay consistent.
-4. For preview images, always save to a file path and then reference that file in the response.
-5. If the user wants local dry-run verification instead of robot API analysis, switch to `opentrons-protocol-verify`.
+4. Use the provided script instead of ad hoc `curl` so payloads stay consistent.
+5. For preview images, always save to a file path and then reference that file in the response.
+6. Treat robot camera output as acquisition only: do not infer liquid state from the preview unless a separate human or analyzer step has been added.
+7. If the user wants local dry-run verification instead of robot API analysis, switch to `opentrons-protocol-verify`.
 
 ## Commands
 
