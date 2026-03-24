@@ -760,6 +760,7 @@ export function buildRecoverySuggestion({
   nextTipSuggestion,
   slotOccupation,
   reconciliation,
+  alternativeSlots = [],
 } = {}) {
   const normalizedRun = normalizeRunRecord(run) || {};
   const runStatus = readNested(normalizedRun, [["status"]], null);
@@ -820,6 +821,19 @@ export function buildRecoverySuggestion({
       };
 
     case "DESTINATION_OCCUPIED":
+      if (alternativeSlots.length > 0) {
+        const hasConfidentCandidate = alternativeSlots.some(slot => slot.confidence === "high");
+        return {
+          error_category: errorCategory,
+          action: "suggest_new_destination_slot",
+          escalate_to_human: awaitingRecovery || !hasConfidentCandidate,
+          rationale: awaitingRecovery
+            ? "protocol_context_destination_occupied"
+            : "alternative_destination_slots_available",
+          slot_occupation: slotOccupation,
+          candidate_destination_slots: alternativeSlots,
+        };
+      }
       return {
         error_category: errorCategory,
         action: "choose_new_slot_or_escalate",
@@ -892,6 +906,28 @@ export function buildRecoverySuggestion({
         rationale: "no_safe_automatic_branch",
       };
   }
+}
+
+export function suggestAlternativeSlots({
+  observedDeckState,
+  sessionState,
+  targetSlot = null,
+  limit = 5,
+} = {}) {
+  const excludedSlots = new Set(
+    [targetSlot].filter(Boolean).map(slotName => String(slotName).toUpperCase()),
+  );
+  return listAvailableSlots({
+    observedDeckState,
+    sessionState,
+    filter: "all",
+  }).all_slots
+    .filter(slot => slot.addressable && slot.status !== "occupied" && !excludedSlots.has(slot.slot_name))
+    .map(slot => ({
+      ...slot,
+      confidence: slot.status === "empty" ? "high" : "low",
+    }))
+    .slice(0, limit);
 }
 
 export function listAvailableSlots({ observedDeckState, sessionState, filter = "all" } = {}) {

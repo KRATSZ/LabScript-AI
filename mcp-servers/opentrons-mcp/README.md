@@ -54,6 +54,7 @@ It also exposes a compact set of live tools:
 - `analyze_image_with_kimi`
 - `get_protocols`
 - `upload_protocol`
+- `run_protocol`
 - `create_run`
 - `control_run`
 - `get_runs`
@@ -62,6 +63,7 @@ It also exposes a compact set of live tools:
 
 ## Notes
 
+- This folder is the canonical `opentrons-lab-mcp` implementation for the repository. Community MCP projects such as `yerbymatey/opentrons-mcp` are reference material only.
 - The tool surface is inspired by the community project `yerbymatey/opentrons-mcp`, but reduced to the parts that are most useful for this repository's simulation-first workflow.
 - For API documentation lookup, pair this server with `opentrons-document-mcp-server`.
 - Live-state tools return a common envelope with `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, and `timestamp`.
@@ -72,6 +74,48 @@ It also exposes a compact set of live tools:
 - On the current validated Flex (`10.31.2.149:31950`, API `8.8.1`), `GET /camera` is available, while the POST camera endpoints currently return `404`; the MCP therefore reports these as capability/version gaps instead of silently pretending preview capture is supported everywhere.
 - Real-Flex validation now includes a physical gripper move of `corning_96_wellplate_360ul_flat` from `C3` to `B3`, followed by successful `cleanup_motion`.
 - Real-Flex validation also includes runtime error parsing for `TIP_PHYSICALLY_MISSING`, `PROTOCOL_SETUP_ERROR`, `DESTINATION_UNAVAILABLE`, and a software-occupied `DESTINATION_OCCUPIED` move failure.
+- Real-Flex validation now also includes `run_protocol` with `examples/flex_noop_protocol.py`, which completed `upload -> create_run -> play -> poll` and returned a final `succeeded` run snapshot.
+- Phase 2 live read-only validation now confirms that `suggest_recovery_action(error_category="DESTINATION_OCCUPIED")` can return concrete alternative slots from the real deck layout while still escalating when those candidates are only low-confidence `unknown` slots.
+
+## Real Response Samples
+
+### `run_protocol` (abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "final_status": "succeeded",
+    "requires_attention": false,
+    "final_run_history": {
+      "command_counts": {
+        "total": 3,
+        "succeeded": 3,
+        "failed": 0
+      }
+    }
+  }
+}
+```
+
+### `suggest_recovery_action` for occupied destination (abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovery": {
+      "action": "suggest_new_destination_slot",
+      "escalate_to_human": true,
+      "candidate_destination_slots": [
+        { "slot_name": "A2", "confidence": "low" },
+        { "slot_name": "B2", "confidence": "low" },
+        { "slot_name": "C2", "confidence": "low" }
+      ]
+    }
+  }
+}
+```
 
 ## Install
 

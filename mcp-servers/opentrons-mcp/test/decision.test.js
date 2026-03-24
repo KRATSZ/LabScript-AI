@@ -13,6 +13,7 @@ import {
   listAvailableSlots,
   listTipCandidates,
   parseRuntimeError,
+  suggestAlternativeSlots,
   suggestNextTipWell,
 } from "../lib/decision.js";
 
@@ -386,4 +387,59 @@ test("buildActionSummary extracts actionable parameters from recovery", () => {
   assert.equal(summary.then_resume, true);
   assert.equal(summary.if_fails, "escalate_tip_search_exhausted");
   assert.equal(summary.escalate_to_human, false);
+});
+
+test("suggestAlternativeSlots returns addressable non-occupied slots with confidence", () => {
+  const sessionState = buildSessionState();
+  const observed = buildObservedDeckState({
+    deckConfiguration: {
+      data: {
+        cutoutFixtures: [
+          { cutoutFixtureId: "singleCenterSlot", cutoutId: "cutoutA1" },
+          { cutoutFixtureId: "singleCenterSlot", cutoutId: "cutoutA2" },
+          { cutoutFixtureId: "singleCenterSlot", cutoutId: "cutoutB1" },
+        ],
+      },
+    },
+    run: {
+      data: {
+        labware: [{ id: "plate-1", loadName: "plate_96", location: { slotName: "A1" } }],
+      },
+    },
+  });
+
+  const alternatives = suggestAlternativeSlots({
+    observedDeckState: observed,
+    sessionState,
+    targetSlot: "A1",
+  });
+
+  assert.equal(alternatives[0].slot_name, "A2");
+  assert.equal(alternatives[0].confidence, "low");
+  assert.ok(alternatives.every(slot => slot.slot_name !== "A1"));
+});
+
+test("buildRecoverySuggestion recommends alternative destination slots when available", () => {
+  const suggestion = buildRecoverySuggestion({
+    errorCategory: "DESTINATION_OCCUPIED",
+    run: { data: { status: "running" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    slotOccupation: {
+      slot_name: "B1",
+      status: "occupied",
+      occupant_type: "labware",
+      occupant_name: "plate_96",
+    },
+    reconciliation: { diffs: [] },
+    alternativeSlots: [
+      { slot_name: "C2", status: "empty", addressable: true, confidence: "high" },
+      { slot_name: "D2", status: "unknown", addressable: true, confidence: "low" },
+    ],
+  });
+
+  assert.equal(suggestion.action, "suggest_new_destination_slot");
+  assert.equal(suggestion.escalate_to_human, false);
+  assert.equal(suggestion.candidate_destination_slots[0].slot_name, "C2");
 });
