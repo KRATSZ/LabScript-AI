@@ -199,6 +199,124 @@ cp -r skills/opentrons-protocol-library ~/.claude/skills/
 xcopy /E /I skills\opentrons-protocol-author %USERPROFILE%\.claude\skills\
 ```
 
+## 在其他项目中使用此项目
+
+有多种方式可以在您的其他项目中使用 Opentrons-Lab-Agent 的技能和 MCP 服务器。
+
+### 方式 1：Git Submodule（推荐用于长期维护）
+
+```bash
+# 在您的项目中添加为 submodule
+git submodule add https://github.com/SmartisanNaive/Opentrons-Lab-Agent.git opentrons-lab-agent
+
+# 初始化 submodule
+git submodule update --init --recursive
+
+# 更新到最新版本
+cd opentrons-lab-agent && git pull origin main && cd .. && git add opentrons-lab-agent && git commit -m "更新 opentrons-lab-agent"
+```
+
+**优点：** 可追踪版本变化，易于更新
+**注意：** 需要在 `.gitmodules` 中配置技能路径
+
+### 方式 2：直接复制 Skills 文件夹
+
+```bash
+# 在您的项目目录结构
+your-project/
+├── your_protocols/
+├── skills/                    # 复制 skills 目录到这里
+│   ├── opentrons-protocol-author/
+│   ├── opentrons-simulation-repair/
+│   ├── opentrons-protocol-verify/
+│   ├── opentrons-robot-lan/
+│   └── opentrons-protocol-library/
+├── .claude/
+└── pyproject.toml
+```
+
+```bash
+# 克隆或复制 skills 到目标项目
+cp -r /path/to/Opentrons-Lab-Agent/skills ./skills
+```
+
+### 方式 3：使用 MCP 服务器
+
+在 Claude Code 的 MCP 配置中添加 MCP 服务器：
+
+**macOS/Linux:** `~/.claude/settings.json` 或项目级 `.claude/mcp.json`
+**Windows:** `%USERPROFILE%\.claude\settings.json`
+
+```json
+{
+  "mcpServers": {
+    "opentrons-lab": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/Opentrons-Lab-Agent/mcp-servers/opentrons-mcp/index.js"],
+      "env": {
+        "OPENTRONS_PYTHON": "/ABSOLUTE/PATH/TO/.venv/bin/python"
+      }
+    }
+  }
+}
+```
+
+### 方式 4：通过 uv 依赖引用
+
+如果您使用 Python 和 uv 作为包管理器，可以创建一个包装包：
+
+```bash
+# 在 pyproject.toml 中添加
+[tool.uv]
+packages = [
+    { path = "/path/to/Opentrons-Lab-Agent/src" }
+]
+```
+
+### 方式 5：创建符号链接
+
+```bash
+# 创建符号链接而非复制
+ln -s /path/to/Opentrons-Lab-Agent/skills ./skills
+ln -s /path/to/Opentrons-Lab-Agent/mcp-servers ./mcp-servers
+```
+
+### 环境变量配置
+
+无论使用哪种方式，您可能需要配置以下环境变量：
+
+```bash
+# 协议库路径（可选）
+export OPENTRONS_PROTOCOL_LIBRARY_PATH="/path/to/Opentrons-Lab-Agent/reference-code/Protocols-develop"
+
+# MCP 服务器的 Python 路径（可选）
+export OPENTRONS_PYTHON="/path/to/your-project/.venv/bin/python"
+```
+
+### 快速开始
+
+1. **克隆此仓库**
+```bash
+git clone https://github.com/SmartisanNaive/Opentrons-Lab-Agent.git
+```
+
+2. **在目标项目中创建 skills 目录并链接**
+```bash
+mkdir -p your-project/skills
+ln -s /path/to/Opentrons-Lab-Agent/skills/* your-project/skills/
+```
+
+3. **启动 Claude Code**
+```bash
+cd your-project
+claude
+```
+
+4. **使用技能**
+```
+编写一个 Flex 协议，进行 1:2 系列稀释。
+```
+
 ## Python 环境
 
 这些技能假设使用 `uv` 管理 Python 以实现可重现的环境。
