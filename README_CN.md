@@ -21,6 +21,105 @@
 | `opentrons-robot-lan` | 通过 LAN HTTP API 与机器人交互 | 查询机器人状态、查看摄像头、上传协议、控制运行 |
 | `opentrons-protocol-library` | 参考内置协议库与代码片段 | 搜索现有协议、查看协议元数据、提取参考代码片段 |
 
+## MCP 服务器
+
+本项目包含一个实用的 MCP 服务器 `mcp-servers/opentrons-mcp/`，提供紧凑的本地仿真和实时机器人控制工具。
+
+### MCP 工具列表
+
+**本地仿真工具：**
+- `doctor_local_runtime` - 检查本地 Opentrons 运行时就绪状态
+- `simulate_protocol` - 在本地运行协议仿真
+- `parse_simulation_output` - 解析仿真输出，提取问题分类
+
+**机器人状态工具：**
+- `robot_status` / `robot_health` - 获取机器人健康状态
+- `module_status` - 获取模块状态
+- `get_slot_occupation` - 获取槽位占用情况
+- `list_available_slots` - 列出可用槽位
+- `list_tip_candidates` - 列出可用针头候选
+- `suggest_next_tip_well` - 建议下一个针头位置
+- `is_home_safe` - 检查是否可安全归位
+
+**运行控制工具：**
+- `create_run_context` - 创建运行上下文（维护模式）
+- `load_pipette` - 加载移液器
+- `load_labware` - 加载实验器皿
+- `load_module` - 加载模块
+- `move_labware` - 移动实验器皿
+- `cleanup_motion` - 清理运动状态，归位机械臂和抓取器
+- `create_run` - 创建协议运行
+- `control_run` - 控制运行（播放/暂停/停止）
+- `get_runs` - 获取运行列表
+- `run_history` - 获取运行历史
+- `get_run_status` - 获取运行状态
+
+**协议工具：**
+- `get_protocols` - 获取协议列表
+- `upload_protocol` - 上传协议到机器人
+- `run_protocol` - 执行协议（含本地仿真门控）
+- `execute_protocol_recovery` - 执行协议恢复
+- `recover_tip_pickup` - 恢复针头拾取
+
+**错误恢复工具：**
+- `reconcile_state` - 协调机器人状态
+- `parse_error` - 解析错误
+- `suggest_recovery_action` - 建议恢复动作
+
+**视觉工具：**
+- `camera_status` - 获取摄像头状态
+- `configure_camera` - 配置摄像头
+- `capture_preview_image` - 捕获预览图像
+- `capture_run_image` - 捕获运行图像
+- `list_data_files` - 列出数据文件
+- `download_data_file` - 下载数据文件
+- `analyze_image_with_kimi` - 使用 Kimi 分析图像
+
+### 启动 MCP 服务器
+
+```bash
+cd mcp-servers/opentrons-mcp
+npm install
+node index.js
+```
+
+### MCP 配置示例
+
+```json
+{
+  "mcpServers": {
+    "opentrons-lab": {
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/Opentrons-Lab-Agent/mcp-servers/opentrons-mcp/index.js"]
+    }
+  }
+}
+```
+
+### 仿真优先工作流
+
+```text
+1. doctor_local_runtime  # 检查环境就绪
+2. simulate_protocol     # 运行本地仿真
+3. parse_simulation_output  # 解析仿真输出
+4. 编辑协议
+5. 重复直到仿真通过
+```
+
+### run_protocol 安全门控
+
+`run_protocol` 工具现在强制执行本地仿真门控：
+
+```text
+doctor_local_runtime → simulate_protocol → parse_simulation_output
+                                                      ↓
+                                          仿真通过？──否→ 阻止真机执行
+                                                      ↓是
+                                              开始真机执行
+```
+
+如果仿真失败，工具返回 `blocked_real_execution: true`，不会启动真机运行。
+
 ## 与 Codex 一起使用
 
 Codex 的主入口是仓库根目录下的 `AGENTS.md`。在仓库根目录启动 Codex 时，它会同时看到：
@@ -239,6 +338,133 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py cate
 - "查看 00222e 的源码和运行时元数据"
 - "从 00222e 提取和 plasma 或 serial 相关的代码片段"
 
+## 视觉集成
+
+本项目提供两层视觉相关功能：
+
+**机器人端摄像头控制**（`src/opentrons_lab_agent/robot_api.py`）：
+- `GET /camera` - 获取摄像头状态
+- `POST /camera` - 配置摄像头
+- `POST /camera/cameraSettings` - 设置摄像头参数
+- `POST /camera/capturePreviewImage` - 捕获预览图像
+
+**MCP 端视觉工具**：
+- `camera_status` - 摄像头状态
+- `configure_camera` - 配置摄像头
+- `capture_preview_image` - 捕获预览图像
+- `capture_run_image` - 捕获运行图像
+- `list_data_files` - 列出数据文件
+- `download_data_file` - 下载数据文件
+- `analyze_image_with_kimi` - 使用 Kimi 分析图像
+
+**设计原则**：
+- 图像采集保留在机器人 MCP 端
+- 图像分析在独立步骤或未来的 MCP 中进行
+- 使用 `image_path` 路径而非将二进制嵌入工具输出
+
+**当前 Flex 限制**：
+- `GET /camera` 可用
+- `/camera/capturePreviewImage` 当前返回 `404`
+- `captureImage` 通过命令队列可成功执行
+- 历史图像可通过 `dataFiles` 获取
+
+## 真实响应示例
+
+### `robot_status`（Flex 真机，缩写）
+
+```json
+{
+  "success": true,
+  "data": {
+    "ready_for_physical_action": true,
+    "blockers": [],
+    "health_summary": {
+      "robot_model": "OT-3 Standard",
+      "api_version": "8.8.1",
+      "robot_serial": "FLXA2020240921002"
+    }
+  }
+}
+```
+
+### `run_protocol`（Flex 空协议验证，缩写）
+
+```json
+{
+  "success": true,
+  "data": {
+    "final_status": "succeeded",
+    "requires_attention": false,
+    "final_run_history": {
+      "command_counts": {
+        "total": 3,
+        "succeeded": 3,
+        "failed": 0
+      }
+    }
+  },
+  "run_id": "5b6cc2d2-ef50-4da6-9f9f-090fc243ccfe",
+  "session_id": "5b6cc2d2-ef50-4da6-9f9f-090fc243ccfe"
+}
+```
+
+### `recover_tip_pickup`（真机修复恢复，缩写）
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovered_well": "B1",
+    "resume_action": {
+      "data": {
+        "actionType": "resume-from-recovery"
+      }
+    },
+    "final_run_history": {
+      "status": "succeeded",
+      "has_ever_entered_error_recovery": true
+    }
+  }
+}
+```
+
+### `run_protocol` 被仿真门控拦截（缩写）
+
+```json
+{
+  "success": false,
+  "data": {
+    "blocked_real_execution": true,
+    "gate_stage": "simulate_protocol",
+    "parsed_simulation_output": {
+      "success": false,
+      "issues": [
+        { "category": "SYNTAX_OR_IMPORT" }
+      ]
+    }
+  }
+}
+```
+
+### `suggest_recovery_action` 目标槽位被占用（缩写）
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovery": {
+      "action": "suggest_new_destination_slot",
+      "escalate_to_human": true,
+      "candidate_destination_slots": [
+        { "slot_name": "A2", "confidence": "low" },
+        { "slot_name": "B2", "confidence": "low" },
+        { "slot_name": "C2", "confidence": "low" }
+      ]
+    }
+  }
+}
+```
+
 ## 本地 Opentrons 运行时假设
 
 验证技能对本地 Opentrons 运行时就绪性采取了谨慎的态度：
@@ -249,6 +475,59 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py cate
 - 缺失依赖会被明确报告，而不是假装验证成功
 
 这确保 Claude Code 提供关于本地可以执行什么和不能执行什么的准确反馈。
+
+## 测试
+
+### Python 单元测试
+
+```bash
+# 运行所有单元测试
+PYTHONPATH=src uv run python -m unittest discover -s tests -v
+```
+
+### MCP 服务器测试
+
+```bash
+cd mcp-servers/opentrons-mcp
+npm test
+```
+
+### 技能结构验证
+
+```bash
+skills-ref validate ./skills/opentrons-protocol-author
+skills-ref validate ./skills/opentrons-simulation-repair
+skills-ref validate ./skills/opentrons-protocol-verify
+skills-ref validate ./skills/opentrons-robot-lan
+skills-ref validate ./skills/opentrons-protocol-library
+```
+
+### 协议验证命令
+
+```bash
+# 检查 Opentrons 运行时就绪状态
+uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py doctor
+
+# 分析协议
+uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py \
+  analyze path/to/protocol.py -- --check
+
+# 模拟协议
+uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py \
+  simulate path/to/protocol.py
+```
+
+### 机器人 API 命令
+
+```bash
+# 健康检查
+uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py \
+  --host 192.168.1.50 health
+
+# 捕获摄像头预览
+uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py \
+  --host 192.168.1.50 capture-preview --output /tmp/preview.png
+```
 
 ## 贡献
 
