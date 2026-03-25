@@ -5,9 +5,9 @@
 - writing and revising Python protocols
 - checking whether a local Opentrons runtime is able to analyze or simulate a protocol
 - iteratively repairing protocols through a simulation-first loop
-- driving an OT-2 or Flex robot over the LAN HTTP API, including camera-related actions
+- driving an OT-2 or Flex robot over the LAN HTTP API, with camera-related actions treated as optional capability extensions
 
-The layout follows Anthropic's public skills conventions: each skill lives in its own folder with a `SKILL.md`, optional `scripts/`, `references/`, and `assets/`, and the repository also includes `.claude-plugin/plugin.json` so the repo can be treated as a Claude Code plugin root.
+The layout follows Anthropic's public skills conventions: each skill lives in its own folder with a `SKILL.md`, optional `scripts/`, `references/`, and `assets/`, and the repository also includes `.claude-plugin/plugin.json`, `.mcp.json`, and `CLAUDE.md` so the repo can be treated as a Claude Code plugin root.
 
 ## Python Environment
 
@@ -35,12 +35,15 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
 - `skills/opentrons-simulation-repair`
   - Runs a multi-round `simulate -> parse -> edit -> simulate` loop.
   - Keeps Claude Code honest about what can be fixed by code edit vs what is a runtime blocker.
+- `skills/opentrons-experiment-run`
+  - High-level MCP orchestration: verify → gated `run_protocol` → monitor → `experiment_history` / `restart_review` → recovery.
+  - Does not duplicate robot I/O; use MCP tools as the runtime source of truth.
 
 ## Included MCP Server
 
 - `mcp-servers/opentrons-mcp`
   - A compact MCP server for practical Claude Code orchestration.
-  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `run_history`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, `create_run`, and `control_run`.
+  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `run_history`, `experiment_history`, `restart_review`, `probe_wells`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, `create_run`, and `control_run`.
   - Adds local tools `doctor_local_runtime`, `simulate_protocol`, and `parse_simulation_output` for simulation-first repair.
 
 This repository's `mcp-servers/opentrons-mcp` is the canonical `opentrons-lab-mcp` implementation. Community MCP servers in the broader workspace are reference material only; they are useful for HTTP surface comparison, but this repo's tool names, recovery rules, and response envelope are defined here.
@@ -50,13 +53,19 @@ This repository's `mcp-servers/opentrons-mcp` is the canonical `opentrons-lab-mc
 ```text
 Opentrons-Lab-Agent/
 ├── .claude-plugin/plugin.json
+├── .mcp.json
+├── CLAUDE.md
 ├── mcp-servers/
 │   └── opentrons-mcp/
+├── docs/
+│   ├── restart-review-runbook.md
+│   └── probe-wells-live-validation.md
 ├── skills/
 │   ├── opentrons-protocol-author/
 │   ├── opentrons-protocol-verify/
 │   ├── opentrons-robot-lan/
-│   └── opentrons-simulation-repair/
+│   ├── opentrons-simulation-repair/
+│   └── opentrons-experiment-run/
 ├── src/opentrons_lab_agent/
 └── tests/
 ```
@@ -66,10 +75,27 @@ Opentrons-Lab-Agent/
 This repository is already shaped like a Claude Code plugin:
 
 - plugin metadata lives at `.claude-plugin/plugin.json`
+- plugin-owned MCP configuration lives at `.mcp.json`
+- plugin-local instructions live at `CLAUDE.md`
 - skills live under `skills/`
 - helper code lives under `src/`
 
 If you distribute skills through a Claude Code plugin or marketplace workflow, this repo is ready for that structure. If you use direct skills folders, you can also copy the individual skill directories under `skills/` into the Claude Code skills location used in your environment.
+
+## Developer Docs
+
+**In this repository:**
+
+- `docs/restart-review-runbook.md` — operator checklist after MCP/host restart (`restart_review`, reconcile, live polls).
+- `docs/probe-wells-live-validation.md` — prerequisites and minimal scope before live `probe_wells`.
+
+When cloned inside the broader Flexagent workspace, also read:
+
+- `../CLAUDE.md` for workspace-level guidance
+- `../Developdocs/TechDesign.md` for the top-level design overview
+- `../Developdocs/design/plugin-packaging.md` for Claude Code plugin packaging decisions
+- `../Developdocs/design/mcp-surface.md` for MCP tool boundary decisions
+- `../Developdocs/design/phase-2-3-acceptance.md` for frozen Phase 2/3 rules and Phase 4 minimal scope
 
 ## Local Opentrons Runtime Assumptions
 
@@ -119,6 +145,8 @@ npm install
 node index.js
 ```
 
+**Run snapshots:** use **`run_history`** only (`robot_ip`, `run_id`, optional `page_length`). The duplicate `get_run_status` tool was removed from this MCP to avoid two names for the same behavior.
+
 ### Local simulation-first repair workflow
 
 Recommended Claude Code tool order:
@@ -149,6 +177,26 @@ Recommended Claude Code tool order before and during live execution:
 
 For the common "upload + create run + play + poll" path, prefer the single `run_protocol` tool. It now enforces a local `doctor_local_runtime -> simulate_protocol -> parse_simulation_output` gate before any real upload or run start, so a simulation failure blocks physical execution immediately.
 
+### Phase 2/3 acceptance (frozen rules)
+
+Canonical spec: `../Developdocs/design/phase-2-3-acceptance.md`. Summary:
+
+1. **`DESTINATION_OCCUPIED`** — In protocol error recovery, alternative destination suggestions are always **human-reviewed** (`escalate_to_human: true`). Outside recovery, **high-confidence** empty slots can avoid escalation; **low-confidence / unknown** slots stay human-reviewed. **No** automatic reroute outside `execute_protocol_recovery` with an explicit chosen slot.
+2. **`is_home_safe` / safe-home** — Automatic `home` is allowed only when there are **no** robot blockers, **no** tip cleanup pending, **no** non-empty cleanup chain, and **`needs_reconciliation` is false**. Otherwise cleanup first and/or run `reconcile_state` before homing.
+3. **Hard stops** — `HARDWARE_FAULT`, `DECK_COLLISION`, and **`UNKNOWN`** (unresolved ambiguity): **no** autonomous continuation; escalate for human review.
+
+Phase 3: protocol/source problems stay on the **simulation-edit** loop; physical failures stay on the **recovery** loop (`run_protocol` remains simulation-gated).
+
+### Phase 4 minimal delivery (three pillars)
+
+Scope is intentionally narrow:
+
+1. **Result log** — append-only JSONL under `mcp-servers/opentrons-mcp/data/result-logs/` (override with `OPENTRONS_RESULT_LOG_DIR` in tests).
+2. **`experiment_history`** — query logs by `session_id`, `run_id`, `tool_name`, `status`, `limit`, and optional `event_kind`.
+3. **Restart / reconcile review** — MCP tool **`restart_review`**: loads persisted **session state** and recent **result logs**, returns **`guidance`** (`reconcile_first`, `suggested_tool_order`, `logs_are_historical_only`). Optional **`robot_ip`** adds a live **home-safety preview**. Same data paths as above (`OPENTRONS_SESSION_STATE_DIR` / `OPENTRONS_RESULT_LOG_DIR` in tests). If `needs_reconciliation` is set, **reconcile before** trusting autonomous motion — logs record history, **not** current deck truth.
+
+**`probe_wells`** writes experimental log lines only; it does not define committed deck state or default recovery.
+
 Recent real-Flex validation now also covers a physical gripper move:
 
 - `create_run_context` in `maintenance` mode
@@ -166,6 +214,8 @@ Recent real-Flex validation now also covers a physical gripper move:
 - `recover_tip_pickup` on that same run, which executed `pickUpTip(B1, intent="fixit") -> resume-from-recovery` and let the original protocol finish with `status = succeeded`
 - live read-only Phase 2 validation for `suggest_recovery_action(error_category="DESTINATION_OCCUPIED", target_slot="C1")`, which returned concrete alternative slots from the real deck layout and still marked the branch as human-reviewed because the candidates were only low-confidence `unknown` slots
 - negative Phase 3 gate validation with a deliberately broken local protocol, where `run_protocol` stopped at simulation parsing and never started a real robot run
+- explicit Phase 2/3 rule hardening, where collision-class and unresolved-ambiguity failures remain hard stops, and destination-occupied recovery in protocol context stays human-reviewed
+- experimental `probe_wells`, which currently generates a temporary probe protocol and simulates it locally by default; live robot probing remains operator-gated
 
 All MCP tools now return a common response envelope with:
 
@@ -177,6 +227,20 @@ All MCP tools now return a common response envelope with:
 - `run_id`
 - `session_id`
 - `timestamp`
+
+Phase 4 MVP uses the separate result-log layer under `mcp-servers/opentrons-mcp/data/result-logs/` for **audit and replay**, retrieved through `experiment_history`. Committed deck truth remains in session state and live API polls — see `../Developdocs/design/phase-2-3-acceptance.md` when present, otherwise `docs/restart-review-runbook.md` for the operator path.
+
+### Restart / reconcile runbook (operator)
+
+1. `restart_review` (`session_id`, optional `robot_ip`, optional `limit`).
+2. If `guidance.reconcile_first` → `reconcile_state` before other autonomous motion.
+3. `robot_status` → `module_status` → if a run matters, `run_history` / `parse_error`.
+4. `experiment_history` for audit only — not current deck truth.
+5. `is_home_safe` before homing (or use `home_safety_preview` from `restart_review` when `robot_ip` was set).
+
+Full wording: `docs/restart-review-runbook.md`.
+
+The safe-home rule matches Phase 2 acceptance: `home` only when `is_home_safe()` reports no blockers, no cleanup backlog, and no reconciliation flag.
 
 ## Real Response Examples
 
@@ -327,13 +391,15 @@ The Python helper modules are covered with lightweight unit tests that do not re
 PYTHONPATH=src uv run python -m unittest discover -s tests -v
 ```
 
-The MCP server has lightweight Node tests for simulation parsing, HTTP URL normalization, live-state normalization, and decision helpers:
+The MCP server uses Node's built-in test runner. Run:
 
 ```bash
 cd mcp-servers/opentrons-mcp
 npm test
 ```
 
-The repository also now includes mocked unit tests for `run_protocol` and `recover_tip_pickup`, plus safe real-Flex validation protocols at `mcp-servers/opentrons-mcp/examples/flex_noop_protocol.py` and `mcp-servers/opentrons-mcp/examples/flex_tip_recovery_validation.py`.
+**What the MCP tests prove** (mapped to acceptance): see `../Developdocs/design/phase-2-3-acceptance.md` — in short, `test/decision.test.js` covers `DESTINATION_OCCUPIED`, safe-home, and hard stops; `test/run-protocol.test.js` and `test/experiment-history.test.js` cover the simulation gate; `test/experiment-history.test.js`, `test/restart-reconcile.test.js`, and `test/restart-review.test.js` cover log query, restart guidance, and restart-vs-log truth boundaries; `test/probe-wells.test.js` covers experimental probing only.
+
+The repository also includes mocked HTTP tests for `run_protocol`, `execute_protocol_recovery`, and `recover_tip_pickup`, plus safe real-Flex validation protocols at `mcp-servers/opentrons-mcp/examples/flex_noop_protocol.py` and `mcp-servers/opentrons-mcp/examples/flex_tip_recovery_validation.py`.
 
 Repository: https://github.com/SmartisanNaive/Opentrons-Lab-Agent

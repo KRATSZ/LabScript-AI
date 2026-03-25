@@ -10,6 +10,7 @@ import {
   buildRecoverySuggestion,
   classifyRecoveryError,
   getSlotOccupationSummary,
+  isHardStopErrorCategory,
   listAvailableSlots,
   listTipCandidates,
   parseRuntimeError,
@@ -142,6 +143,23 @@ test("buildHomeSafetyResult blocks home when tip attached or reconciliation pend
   assert.equal(result.auto_home_allowed, false);
   assert.deepEqual(result.minimum_cleanup_actions, ["drop_tip:left"]);
   assert.ok(result.blockers.includes("needs_reconciliation"));
+});
+
+test("buildHomeSafetyResult keeps a clear safe-home matrix with deduped cleanup actions", () => {
+  const sessionState = buildSessionState();
+  sessionState.cleanup.pending_actions = ["drop_tip:left", "move_to_maintenance_position", "drop_tip:left"];
+  const result = buildHomeSafetyResult({
+    sessionState,
+    robotStatusSnapshot: {
+      blockers: ["door_open"],
+      instruments_summary: [{ mount: "left", tip_detected: true }],
+    },
+  });
+
+  assert.equal(result.auto_home_allowed, false);
+  assert.ok(result.blockers.includes("door_open"));
+  assert.ok(result.blockers.includes("tip_attached:left"));
+  assert.deepEqual(result.minimum_cleanup_actions, ["drop_tip:left", "move_to_maintenance_position"]);
 });
 
 test("buildReconciliationResult reports tip mismatch and can apply observed state", () => {
@@ -299,6 +317,7 @@ test("parseRuntimeError extracts move destination and escalation", () => {
   assert.equal(parsed.target_slot, "B1");
   assert.equal(parsed.source_labware_id, "labware-1");
   assert.equal(parsed.escalate_to_human, true);
+  assert.equal(parsed.hard_stop, false);
 });
 
 test("listAvailableSlots groups slots by availability", () => {
@@ -468,4 +487,102 @@ test("buildRecoverySuggestion recommends alternative destination slots when avai
   assert.equal(suggestion.action, "suggest_new_destination_slot");
   assert.equal(suggestion.escalate_to_human, false);
   assert.equal(suggestion.candidate_destination_slots[0].slot_name, "C2");
+  assert.equal(suggestion.hard_stop, false);
+});
+
+test("buildRecoverySuggestion keeps protocol destination recovery human-reviewed even with confident slot", () => {
+  const suggestion = buildRecoverySuggestion({
+    errorCategory: "DESTINATION_OCCUPIED",
+    run: { data: { status: "awaiting-recovery", currentlyRecoveringFrom: "cmd-1" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    slotOccupation: {
+      slot_name: "B1",
+      status: "occupied",
+      occupant_type: "labware",
+      occupant_name: "plate_96",
+    },
+    reconciliation: { diffs: [] },
+    alternativeSlots: [{ slot_name: "C2", status: "empty", addressable: true, confidence: "high" }],
+  });
+
+  assert.equal(suggestion.action, "suggest_new_destination_slot");
+  assert.equal(suggestion.escalate_to_human, true);
+  assert.equal(suggestion.rationale, "protocol_context_destination_occupied");
+  assert.equal(suggestion.hard_stop, false);
+});
+
+test("buildRecoverySuggestion escalates when destination recovery has no candidates", () => {
+  const suggestion = buildRecoverySuggestion({
+    errorCategory: "DESTINATION_OCCUPIED",
+    run: { data: { status: "running" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    slotOccupation: {
+      slot_name: "B1",
+      status: "occupied",
+      occupant_type: "labware",
+      occupant_name: "plate_96",
+    },
+    reconciliation: { diffs: [] },
+    alternativeSlots: [],
+  });
+
+  assert.equal(suggestion.action, "choose_new_slot_or_escalate");
+  assert.equal(suggestion.escalate_to_human, true);
+  assert.equal(suggestion.hard_stop, false);
+});
+
+test("collision and unknown classes are explicit hard stops", () => {
+  const collisionSuggestion = buildRecoverySuggestion({
+    errorCategory: "DECK_COLLISION",
+    run: { data: { status: "failed" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    reconciliation: { diffs: [] },
+  });
+  const unknownSuggestion = buildRecoverySuggestion({
+    errorCategory: "UNKNOWN",
+    run: { data: { status: "failed" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    reconciliation: { diffs: [] },
+  });
+
+  assert.equal(isHardStopErrorCategory("DECK_COLLISION"), true);
+  assert.equal(isHardStopErrorCategory("UNKNOWN"), true);
+  assert.equal(isHardStopErrorCategory("DESTINATION_OCCUPIED"), false);
+  assert.equal(collisionSuggestion.hard_stop, true);
+  assert.equal(collisionSuggestion.escalate_to_human, true);
+  assert.equal(unknownSuggestion.hard_stop, true);
+  assert.equal(unknownSuggestion.escalate_to_human, true);
+});
+
+test("parseRuntimeError marks collision-class failures as hard stops", () => {
+  const parsed = parseRuntimeError({
+    run: { data: { id: "run-collision", status: "failed" } },
+    commands: {
+      data: [
+        {
+          id: "cmd-collision-1",
+          commandType: "moveLabware",
+          status: "failed",
+          error: {
+            errorType: "StallOrCollisionError",
+            detail: "stallOrCollision while moving labware",
+          },
+        },
+      ],
+    },
+    moduleStatusSnapshot: { blockers: [] },
+    robotStatusSnapshot: { blockers: [] },
+  });
+
+  assert.equal(parsed.error_category, "DECK_COLLISION");
+  assert.equal(parsed.hard_stop, true);
+  assert.equal(parsed.escalate_to_human, true);
 });

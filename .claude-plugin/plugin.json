@@ -1,7 +1,7 @@
 {
   "name": "opentrons-lab-agent",
   "version": "0.1.0",
-  "description": "Claude Code skills for Opentrons protocol authoring, local verification, and LAN robot control.",
+  "description": "Claude Code skills for Opentrons protocol authoring, local verification, MCP-orchestrated robot runs, and optional LAN script fallback.",
   "author": {
     "name": "SmartisanNaive",
     "url": "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
@@ -17,13 +17,7 @@
     "ot-2",
     "flex"
   ],
-  "components": {
-    "skills": [
-      "opentrons-protocol-author",
-      "opentrons-protocol-verify",
-      "opentrons-robot-lan",
-      "opentrons-simulation-repair"
-    ]
-  }
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
 }
 

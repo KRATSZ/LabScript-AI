@@ -61,16 +61,26 @@ It also exposes a compact set of live tools:
 - `control_run`
 - `get_runs`
 - `run_history`
-- `get_run_status` (compatibility alias)
+- `experiment_history`
+- `restart_review`
+- `probe_wells`
+
+## Operator runbooks (this repo)
+
+- Restart / reconcile: `../../docs/restart-review-runbook.md`
+- Live `probe_wells` validation: `../../docs/probe-wells-live-validation.md`
 
 ## Notes
 
+- **Breaking note:** older integrations that called `get_run_status` must switch to **`run_history`** (same inputs: `robot_ip`, `run_id`, optional `page_length`). The duplicate alias was removed to avoid two names for one behavior.
 - This folder is the canonical `opentrons-lab-mcp` implementation for the repository. Community MCP projects such as `yerbymatey/opentrons-mcp` are reference material only.
 - The tool surface is inspired by the community project `yerbymatey/opentrons-mcp`, but reduced to the parts that are most useful for this repository's simulation-first workflow.
 - For API documentation lookup, pair this server with `opentrons-document-mcp-server`.
 - Live-state tools return a common envelope with `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, and `timestamp`.
 - `run_protocol` now hard-gates real execution with `doctor_local_runtime -> simulate_protocol -> parse_simulation_output`; if simulation fails, the tool returns a blocked response and does not start a real run.
 - Session-level `DeckState` snapshots are persisted under `data/session-state/` so tip bookkeeping and reconciliation survive MCP restarts.
+- Phase 4 MVP persists compact result logs under `data/result-logs/`. `experiment_history` filters: `session_id`, `run_id`, `tool_name`, `status`, `limit`, and optional `event_kind`. **Logs are historical evidence;** committed deck truth stays in `data/session-state/` and live `robot_status` / `reconcile_state`.
+- Tests may set `OPENTRONS_RESULT_LOG_DIR` and `OPENTRONS_SESSION_STATE_DIR` to isolate JSONL session and log files (see `test/experiment-history.test.js`, `test/restart-reconcile.test.js`).
 - `capture_preview_image` saves the preview locally and returns the artifact path so a later human step or vision analyzer can consume it without embedding binary image data into MCP responses.
 - `capture_run_image` uses the robot command queue (`captureImage`) and attempts to download the generated data file immediately; on the current Flex software, maintenance-context captures may succeed without returning a downloadable `fileId`, so the server also exposes `list_data_files` and `download_data_file` for working with historical robot images.
 - `analyze_image_with_kimi` calls SiliconFlow's OpenAI-compatible chat API and is intended for deck-level visual analysis, not liquid-volume truth.
@@ -83,6 +93,24 @@ It also exposes a compact set of live tools:
 - Real-Flex validation now also includes `recover_tip_pickup`, which executed `pickUpTip(B1, intent="fixit")` and `resume-from-recovery`, then allowed the original protocol to finish with `status = succeeded`.
 - Phase 2 live read-only validation now confirms that `suggest_recovery_action(error_category="DESTINATION_OCCUPIED")` can return concrete alternative slots from the real deck layout while still escalating when those candidates are only low-confidence `unknown` slots.
 - Phase 3 negative validation now confirms that a broken local protocol is blocked at simulation time and never starts a real robot run.
+- Phase 2 and 3 closeout now also harden the rule boundary: collision-class and unresolved-ambiguity failures are explicit hard stops, and `is_home_safe` keeps `home` blocked whenever tips, pending cleanup, or reconciliation blockers remain.
+- `probe_wells` is now available as an experimental helper that generates a temporary protocol and simulates it locally by default. Live robot probing stays disabled unless the operator explicitly enables `OPENTRONS_ENABLE_PROBE_WELLS=1`.
+
+## Phase 2/3 acceptance (frozen) and Phase 4 minimal scope
+
+Canonical wording lives in `Developdocs/design/phase-2-3-acceptance.md` (workspace root). This server implements:
+
+**Phase 2 — three rules**
+
+1. **`DESTINATION_OCCUPIED`** — Protocol error recovery: destination changes stay **human-reviewed** (`escalate_to_human: true`). Outside recovery: escalation is **off** only when at least one alternative has `confidence: "high"`; unknown/low-confidence slots still escalate. Automatic `moveLabware` fixit only through `execute_protocol_recovery` with an explicit slot.
+2. **`is_home_safe`** — `auto_home_allowed` only with **no** robot blockers, **no** tip/cleanup backlog, **no** `needs_reconciliation`.
+3. **Hard stops** — `HARDWARE_FAULT`, `DECK_COLLISION`, `UNKNOWN`: **no** autonomous continuation; escalate.
+
+**Phase 4 — three pillars only**
+
+1. Append-only **result logs** for: `run_protocol`, `control_run`, `reconcile_state`, `execute_protocol_recovery`, `recover_tip_pickup`, plus experimental `probe_wells` lines (`probe_preview` / `probe_execution`).
+2. **`experiment_history`** query API (see Notes).
+3. **`restart_review`** — read session file + recent result logs + structured guidance; optional `robot_ip` for live home-safety preview. If `needs_reconciliation`, follow `guidance` and run `reconcile_state` before autonomous motion.
 
 ## Real Response Samples
 
@@ -174,6 +202,22 @@ npm install
 ```bash
 npm test
 ```
+
+### What the tests prove (Phase 2/3 and Phase 4)
+
+Full mapping: `Developdocs/design/phase-2-3-acceptance.md`.
+
+| Area | Primary test files |
+|------|-------------------|
+| `DESTINATION_OCCUPIED` decision + summaries | `test/decision.test.js` |
+| `moveLabware` recovery execution | `test/recover-tip-pickup.test.js` |
+| Safe-home / `is_home_safe` inputs | `test/decision.test.js` |
+| Hard stops (`DECK_COLLISION`, `UNKNOWN`, collision parse) | `test/decision.test.js` |
+| Simulation gate (`run_protocol`) | `test/run-protocol.test.js`, `test/experiment-history.test.js` |
+| Log query (`experiment_history`) | `test/experiment-history.test.js` |
+| Restart: reconcile flag vs historical log | `test/restart-reconcile.test.js` |
+| `restart_review` bundle + optional live preview + suggested tool order + handler-level ordering | `test/restart-review.test.js` |
+| Experimental `probe_wells` | `test/probe-wells.test.js` |
 
 ## Example MCP config
 

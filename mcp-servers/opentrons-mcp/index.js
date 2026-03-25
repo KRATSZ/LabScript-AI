@@ -57,6 +57,7 @@ import {
   shouldRetryHeaterShakerAfterLatchError,
 } from "./lib/execution.js";
 import { parseSimulationLog, runDoctorTool, runSimulationTool } from "./lib/simulation.js";
+import { buildProbeWellsProtocol, extractProbeResultsFromCommands } from "./lib/probe.js";
 import {
   DEFAULT_SESSION_ID,
   ensureTiprackState,
@@ -66,6 +67,12 @@ import {
   setPipetteState,
   uniqueSessionStrings,
 } from "./lib/state.js";
+import {
+  appendResultLogEntry,
+  readResultLogEntries,
+  summarizeResultLogEntries,
+} from "./lib/result-log.js";
+import { buildRestartReview } from "./lib/restart-review.js";
 import {
   buildCaptureImageParams,
   buildCameraControlBody,
@@ -88,6 +95,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_CAMERA_ARTIFACT_DIR = path.resolve(__dirname, "../../artifacts/camera-captures");
+const DEFAULT_PROBE_PROTOCOL_DIR = path.resolve(__dirname, "../artifacts/probe-protocols");
 
 const TOOL_DEFINITIONS = [
   {
@@ -700,6 +708,50 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "probe_wells",
+    description:
+      "Experimental liquid probing helper that generates a temporary protocol, simulates it locally, and can be explicitly enabled for live robot execution later.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL. Required only for live execution." },
+        pipette_name: { type: "string", description: "Flex pipette load name such as flex_1channel_1000" },
+        mount: { type: "string", enum: ["left", "right"] },
+        tiprack_load_name: { type: "string" },
+        tiprack_slot: { type: "string" },
+        labware_load_name: { type: "string" },
+        labware_slot: { type: "string" },
+        trash_slot: { type: "string" },
+        wells: {
+          type: "array",
+          items: { type: "string" },
+        },
+        mode: {
+          type: "string",
+          enum: ["detect_presence", "require_presence", "measure_height"],
+          default: "detect_presence",
+        },
+        api_level: { type: "string", default: "2.20" },
+        liquid_presence_detection: { type: "boolean", default: true },
+        execute_on_robot: { type: "boolean", default: false },
+        output_path: { type: "string" },
+        timeout_ms: { type: "integer", default: 1800000 },
+        poll_interval_ms: { type: "integer", default: 1000 },
+        page_length: { type: "integer", default: 50 },
+        session_id: { type: "string" },
+      },
+      required: [
+        "pipette_name",
+        "mount",
+        "tiprack_load_name",
+        "tiprack_slot",
+        "labware_load_name",
+        "labware_slot",
+        "wells",
+      ],
+    },
+  },
+  {
     name: "create_run",
     description: "Create a run for a protocol already on the robot.",
     inputSchema: {
@@ -810,6 +862,37 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "experiment_history",
+    description: "Query persisted run, recovery, and reconciliation result logs for recent experiment history.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+        run_id: { type: "string" },
+        tool_name: { type: "string" },
+        event_kind: { type: "string" },
+        status: { type: "string" },
+        limit: { type: "integer", default: 20 },
+      },
+    },
+  },
+  {
+    name: "restart_review",
+    description:
+      "After MCP or host restart: summarize persisted session state plus recent result logs with structured guidance. suggested_tool_order includes run_history and parse_error when session last_run_id is set. Logs are historical only; pass robot_ip optionally to include a live is_home_safe preview (narrative warns if auto-home is blocked).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+        limit: { type: "integer", default: 20 },
+        robot_ip: {
+          type: "string",
+          description: "Optional; when set, fetches robot_status to preview home safety alongside session state",
+        },
+      },
+    },
+  },
+  {
     name: "parse_error",
     description: "Parse run or maintenance command failures into structured runtime error categories.",
     inputSchema: {
@@ -825,19 +908,6 @@ const TOOL_DEFINITIONS = [
         session_id: { type: "string" },
         page_length: { type: "integer", default: 20 },
       },
-    },
-  },
-  {
-    name: "get_run_status",
-    description: "Compatibility alias for run_history.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        robot_ip: { type: "string", description: "Robot IP or full base URL" },
-        run_id: { type: "string" },
-        page_length: { type: "integer", default: 10 },
-      },
-      required: ["run_id"],
     },
   },
   {
@@ -1053,6 +1123,68 @@ function resolveSessionId(args, robotStatusResult) {
   );
 }
 
+function recordResultLog(entry) {
+  try {
+    appendResultLogEntry(entry);
+  } catch {
+    // Result logging must never break the main MCP flow.
+  }
+}
+
+function resolveLoggedStatus({ result = null, error = null, fallback = "completed" } = {}) {
+  return (
+    result?.data?.final_status ||
+    result?.data?.final_run_history?.status ||
+    result?.data?.run_history?.status ||
+    result?.data?.status ||
+    (error?.toolContext?.data?.blocked_real_execution ? "blocked" : null) ||
+    (error ? "error" : null) ||
+    fallback
+  );
+}
+
+function resolveLoggedSessionId({ args = {}, result = null, error = null, fallback = DEFAULT_SESSION_ID } = {}) {
+  return result?.sessionId || error?.toolContext?.sessionId || args.session_id || fallback;
+}
+
+function resolveLoggedRunId({ result = null, error = null } = {}) {
+  return result?.runId || error?.toolContext?.runId || null;
+}
+
+function recordToolResultLog({
+  toolName,
+  eventKind,
+  args = {},
+  result = null,
+  error = null,
+  summary = null,
+  data = {},
+  fallbackSessionId = DEFAULT_SESSION_ID,
+  fallbackStatus = "completed",
+} = {}) {
+  recordResultLog({
+    session_id: resolveLoggedSessionId({ args, result, error, fallback: fallbackSessionId }),
+    run_id: resolveLoggedRunId({ result, error }),
+    tool_name: toolName,
+    event_kind: eventKind || toolName,
+    status: resolveLoggedStatus({ result, error, fallback: fallbackStatus }),
+    summary,
+    protocol_path: args.file_path || null,
+    robot_ip: args.robot_ip || null,
+    state_revision: result?.stateRevision ?? error?.toolContext?.stateRevision ?? 0,
+    requires_attention:
+      result?.data?.requires_attention ??
+      error?.toolContext?.data?.requires_attention ??
+      null,
+    data,
+    error: error
+      ? {
+          message: error instanceof Error ? error.message : String(error),
+        }
+      : null,
+  });
+}
+
 function resolvePreviewOutputPath(args, contentType) {
   if (args.output_path) {
     return path.resolve(args.output_path);
@@ -1082,6 +1214,28 @@ function resolveCapturedImageOutputPath(args, { contentType, fileName = null } =
     );
   }
   return resolvePreviewOutputPath(args, contentType);
+}
+
+function sanitizeProbeFilenamePart(value, fallback = "probe") {
+  const normalized = String(value || fallback)
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return normalized || fallback;
+}
+
+function resolveProbeProtocolOutputPath(args) {
+  if (args.output_path) {
+    return path.resolve(args.output_path);
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const baseName = [
+    "probe-wells",
+    sanitizeProbeFilenamePart(args.mode || "detect_presence"),
+    sanitizeProbeFilenamePart(args.labware_slot || "unknown-slot"),
+    timestamp,
+  ].join("_");
+  return path.join(DEFAULT_PROBE_PROTOCOL_DIR, `${baseName}.py`);
 }
 
 function rewriteVisionEndpointError(error, endpoint) {
@@ -2015,7 +2169,7 @@ const TOOL_HANDLERS = {
       return sessionState;
     });
 
-    return {
+    const result = {
       data: reconciliation,
       hardwareSnapshot: {
         ...robotStatusResult.hardwareSnapshot,
@@ -2026,6 +2180,24 @@ const TOOL_HANDLERS = {
       sessionId,
       runId: runContext.runId || null,
     };
+    recordToolResultLog({
+      toolName: "reconcile_state",
+      eventKind: "reconciliation",
+      args,
+      result,
+      fallbackSessionId: sessionId,
+      summary:
+        reconciliation?.diffs?.length > 0
+          ? `Reconciliation found ${reconciliation.diffs.length} diff(s).`
+          : "Reconciliation found no actionable deck diffs.",
+      data: {
+        diff_count: Array.isArray(reconciliation?.diffs) ? reconciliation.diffs.length : 0,
+        escalate_to_human: reconciliation?.escalate_to_human || false,
+        needs_reconciliation: reconciliation?.proposed_commit?.needs_reconciliation ?? false,
+        auto_home_allowed: reconciliation?.proposed_commit?.cleanup?.auto_home_allowed ?? null,
+      },
+    });
+    return result;
   },
 
   async suggest_recovery_action(args) {
@@ -3129,81 +3301,243 @@ const TOOL_HANDLERS = {
   },
 
   async run_protocol(args) {
-    const simulationGate = await enforceSimulationGate(args);
-    const uploaded = await uploadProtocol(args);
-    const protocolId = readNested(unwrapData(uploaded) || {}, [["id"]], null);
-    if (!protocolId) {
-      throw new Error("Protocol upload did not return a protocol id.");
-    }
+    try {
+      const simulationGate = await enforceSimulationGate(args);
+      const uploaded = await uploadProtocol(args);
+      const protocolId = readNested(unwrapData(uploaded) || {}, [["id"]], null);
+      if (!protocolId) {
+        throw new Error("Protocol upload did not return a protocol id.");
+      }
 
-    const createdRun = await requestRobotJson("POST", args.robot_ip, "/runs", {
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data: {
-          protocolId,
-          ...(args.run_time_parameters
-            ? { runTimeParameterValues: args.run_time_parameters }
-            : {}),
-        },
-      }),
-    });
-    const runId = readNested(unwrapData(createdRun) || {}, [["id"]], null);
-    if (!runId) {
-      throw new Error("Run creation did not return a run id.");
-    }
-
-    const autoPlay = args.auto_play ?? true;
-    let playAction = null;
-    if (autoPlay) {
-      playAction = await requestRobotJson("POST", args.robot_ip, `/runs/${runId}/actions`, {
+      const createdRun = await requestRobotJson("POST", args.robot_ip, "/runs", {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           data: {
-            actionType: "play",
+            protocolId,
+            ...(args.run_time_parameters
+              ? { runTimeParameterValues: args.run_time_parameters }
+              : {}),
           },
         }),
       });
-      await pollRunToTerminal({
+      const runId = readNested(unwrapData(createdRun) || {}, [["id"]], null);
+      if (!runId) {
+        throw new Error("Run creation did not return a run id.");
+      }
+
+      const autoPlay = args.auto_play ?? true;
+      let playAction = null;
+      if (autoPlay) {
+        playAction = await requestRobotJson("POST", args.robot_ip, `/runs/${runId}/actions`, {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            data: {
+              actionType: "play",
+            },
+          }),
+        });
+        await pollRunToTerminal({
+          robotIp: args.robot_ip,
+          runId,
+          timeoutMs: args.timeout_ms ?? 1800000,
+          pollIntervalMs: args.poll_interval_ms ?? 1000,
+        });
+      }
+
+      const snapshot = await collectRunExecutionSnapshot({
         robotIp: args.robot_ip,
         runId,
-        timeoutMs: args.timeout_ms ?? 1800000,
-        pollIntervalMs: args.poll_interval_ms ?? 1000,
+        pageLength: args.page_length ?? 20,
       });
+      const finalStatus = snapshot.runHistoryResult.data?.status || null;
+      let failureGuidance = null;
+      if (shouldAttachRecoveryGuidance(finalStatus)) {
+        failureGuidance = await readRunFailureGuidance(args, runId, args.session_id || runId);
+      }
+
+      const result = {
+        data: buildRunProtocolResult({
+          protocol: uploaded,
+          created_run: createdRun,
+          play_action: playAction,
+          final_run_history: snapshot.runHistoryResult.data,
+          parsed_error: failureGuidance?.parsedError || null,
+          recovery: failureGuidance?.recovery || null,
+          simulation_gate: simulationGate,
+        }),
+        hardwareSnapshot:
+          failureGuidance?.hardwareSnapshot && Object.keys(failureGuidance.hardwareSnapshot).length > 0
+            ? failureGuidance.hardwareSnapshot
+            : {
+                ...snapshot.robotStatusResult.hardwareSnapshot,
+                ...snapshot.moduleStatusResult.hardwareSnapshot,
+                ...snapshot.runHistoryResult.hardwareSnapshot,
+              },
+        stateRevision: failureGuidance?.stateRevision ?? 0,
+        sessionId: failureGuidance?.sessionId || args.session_id || runId,
+        runId,
+      };
+      recordToolResultLog({
+        toolName: "run_protocol",
+        eventKind: "protocol_run",
+        args,
+        result,
+        fallbackSessionId: args.session_id || runId,
+        summary: `Protocol run finished with status ${result.data.final_status || "unknown"}.`,
+        data: {
+          simulation_gate_success: result.data.simulation_gate?.parsed?.success ?? null,
+          parsed_error_category: result.data.parsed_error?.error_category || null,
+          recovery_action:
+            result.data.recovery?.recovery?.action || result.data.recovery?.action || null,
+          command_total: result.data.final_run_history?.command_counts?.total ?? null,
+        },
+      });
+      return result;
+    } catch (error) {
+      recordToolResultLog({
+        toolName: "run_protocol",
+        eventKind: "protocol_run",
+        args,
+        error,
+        fallbackSessionId: args.session_id || DEFAULT_SESSION_ID,
+        fallbackStatus: error?.toolContext?.data?.blocked_real_execution ? "blocked" : "error",
+        summary: error?.toolContext?.data?.blocked_real_execution
+          ? "Simulation gate blocked real execution."
+          : "Protocol run failed before completion.",
+        data: {
+          blocked_real_execution: error?.toolContext?.data?.blocked_real_execution || false,
+          gate_stage: error?.toolContext?.data?.gate_stage || null,
+          parsed_simulation_output: error?.toolContext?.data?.parsed_simulation_output || null,
+        },
+      });
+      throw error;
+    }
+  },
+
+  async probe_wells(args) {
+    const wells = Array.isArray(args.wells)
+      ? args.wells.map(well => String(well || "").trim().toUpperCase()).filter(Boolean)
+      : [];
+    if (wells.length === 0) {
+      throw new Error("probe_wells requires at least one target well.");
     }
 
-    const snapshot = await collectRunExecutionSnapshot({
-      robotIp: args.robot_ip,
-      runId,
-      pageLength: args.page_length ?? 20,
+    const outputPath = resolveProbeProtocolOutputPath(args);
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    const protocolText = buildProbeWellsProtocol({
+      pipetteName: args.pipette_name,
+      mount: args.mount,
+      tiprackLoadName: args.tiprack_load_name,
+      tiprackSlot: args.tiprack_slot,
+      labwareLoadName: args.labware_load_name,
+      labwareSlot: args.labware_slot,
+      trashSlot: args.trash_slot || null,
+      wells,
+      mode: args.mode || "detect_presence",
+      apiLevel: args.api_level || "2.20",
+      liquidPresenceDetection: args.liquid_presence_detection ?? true,
     });
-    const finalStatus = snapshot.runHistoryResult.data?.status || null;
-    let failureGuidance = null;
-    if (shouldAttachRecoveryGuidance(finalStatus)) {
-      failureGuidance = await readRunFailureGuidance(args, runId, args.session_id || runId);
+    fs.writeFileSync(outputPath, `${protocolText}\n`);
+
+    const simulation = await runSimulationTool({
+      protocol_path: outputPath,
+      max_log_chars: 12000,
+    });
+    const parsedSimulationOutput = parseSimulationLog({
+      stdout: simulation.stdout,
+      stderr: simulation.stderr,
+      exit_code: simulation.exit_code,
+      file_path: outputPath,
+    });
+    const executeOnRobot = args.execute_on_robot === true;
+
+    if (!executeOnRobot) {
+      const result = {
+        data: {
+          mode: args.mode || "detect_presence",
+          generated_protocol_path: outputPath,
+          wells,
+          execute_on_robot: false,
+          simulation,
+          parsed_simulation_output: parsedSimulationOutput,
+        },
+      };
+      recordToolResultLog({
+        toolName: "probe_wells",
+        eventKind: "probe_preview",
+        args: { ...args, file_path: outputPath },
+        result,
+        fallbackSessionId: args.session_id || DEFAULT_SESSION_ID,
+        fallbackStatus: parsedSimulationOutput.success ? "simulated" : "simulation_failed",
+        summary: parsedSimulationOutput.success
+          ? "Probe wells protocol generated and simulated locally."
+          : "Probe wells protocol generation succeeded, but local simulation failed.",
+        data: {
+          mode: args.mode || "detect_presence",
+          well_count: wells.length,
+          simulation_success: parsedSimulationOutput.success,
+        },
+      });
+      return result;
     }
 
-    return {
-      data: buildRunProtocolResult({
-        protocol: uploaded,
-        created_run: createdRun,
-        play_action: playAction,
-        final_run_history: snapshot.runHistoryResult.data,
-        parsed_error: failureGuidance?.parsedError || null,
-        recovery: failureGuidance?.recovery || null,
-        simulation_gate: simulationGate,
-      }),
-      hardwareSnapshot:
-        failureGuidance?.hardwareSnapshot && Object.keys(failureGuidance.hardwareSnapshot).length > 0
-          ? failureGuidance.hardwareSnapshot
-          : {
-              ...snapshot.robotStatusResult.hardwareSnapshot,
-              ...snapshot.moduleStatusResult.hardwareSnapshot,
-              ...snapshot.runHistoryResult.hardwareSnapshot,
-            },
-      stateRevision: failureGuidance?.stateRevision ?? 0,
-      sessionId: failureGuidance?.sessionId || args.session_id || runId,
-      runId,
+    if (process.env.OPENTRONS_ENABLE_PROBE_WELLS !== "1") {
+      throw new Error(
+        "Live probe_wells execution is disabled by default. Before real robot probing, confirm with the operator and set OPENTRONS_ENABLE_PROBE_WELLS=1 explicitly.",
+      );
+    }
+    if (!parsedSimulationOutput.success) {
+      throw new Error("probe_wells will not execute on the robot because local simulation did not pass.");
+    }
+    if (!args.robot_ip) {
+      throw new Error("probe_wells requires robot_ip when execute_on_robot is true.");
+    }
+
+    const runResult = await TOOL_HANDLERS.run_protocol({
+      robot_ip: args.robot_ip,
+      file_path: outputPath,
+      timeout_ms: args.timeout_ms,
+      poll_interval_ms: args.poll_interval_ms,
+      page_length: args.page_length,
+      session_id: args.session_id,
+    });
+    const rawCommands = await requestRobotJson("GET", args.robot_ip, `/runs/${runResult.runId}/commands`, {
+      searchParams: {
+        pageLength: args.page_length ?? 50,
+      },
+    });
+    const probeResults = extractProbeResultsFromCommands(rawCommands);
+    const result = {
+      data: {
+        mode: args.mode || "detect_presence",
+        generated_protocol_path: outputPath,
+        wells,
+        execute_on_robot: true,
+        simulation,
+        parsed_simulation_output: parsedSimulationOutput,
+        run_protocol: runResult.data,
+        probe_results: probeResults,
+      },
+      hardwareSnapshot: runResult.hardwareSnapshot,
+      stateRevision: runResult.stateRevision,
+      sessionId: runResult.sessionId,
+      runId: runResult.runId,
     };
+    recordToolResultLog({
+      toolName: "probe_wells",
+      eventKind: "probe_execution",
+      args: { ...args, file_path: outputPath },
+      result,
+      fallbackSessionId: args.session_id || runResult.sessionId || DEFAULT_SESSION_ID,
+      summary: `Probe wells run finished with ${probeResults.length} parsed probe result(s).`,
+      data: {
+        mode: args.mode || "detect_presence",
+        well_count: wells.length,
+        probe_result_count: probeResults.length,
+        final_status: runResult.data?.final_status || null,
+      },
+    });
+    return result;
   },
 
   async create_run(args) {
@@ -3264,7 +3598,7 @@ const TOOL_HANDLERS = {
       failureGuidance = await readRunFailureGuidance(args, args.run_id, args.session_id || args.run_id);
     }
 
-    return {
+    const result = {
       data: {
         action: actionResult,
         run_history: snapshot.runHistoryResult.data,
@@ -3283,17 +3617,47 @@ const TOOL_HANDLERS = {
       sessionId: failureGuidance?.sessionId || args.session_id || args.run_id,
       runId: args.run_id,
     };
+    recordToolResultLog({
+      toolName: "control_run",
+      eventKind: "run_action",
+      args,
+      result,
+      fallbackSessionId: args.session_id || args.run_id,
+      summary: `Run action ${args.action} ended with status ${result.data.run_history?.status || "unknown"}.`,
+      data: {
+        action_type: args.action,
+        parsed_error_category: result.data.parsed_error?.error_category || null,
+        recovery_action: result.data.recovery?.recovery?.action || result.data.recovery?.action || null,
+      },
+    });
+    return result;
   },
 
   async execute_protocol_recovery(args) {
-    return executeProtocolRecovery(args);
+    const result = await executeProtocolRecovery(args);
+    recordToolResultLog({
+      toolName: "execute_protocol_recovery",
+      eventKind: "protocol_recovery",
+      args,
+      result,
+      fallbackSessionId: args.session_id || args.run_id,
+      summary: `Recovery executed action ${result.data.executed_action || "unknown"}.`,
+      data: {
+        executed_action: result.data.executed_action || null,
+        error_category:
+          result.data.recovery?.error_category || result.data.parsed_error?.error_category || null,
+        destination_slot: result.data.executed_params?.destination_slot || null,
+        recovery_well: result.data.executed_params?.well || null,
+      },
+    });
+    return result;
   },
 
   async recover_tip_pickup(args) {
     const result = await executeProtocolRecovery(args, {
       expectedAction: "retry_pick_up_tip_with_next_candidate",
     });
-    return {
+    const wrappedResult = {
       ...result,
       data: {
         recovered_well: result.data.executed_params?.well || null,
@@ -3301,6 +3665,20 @@ const TOOL_HANDLERS = {
         ...result.data,
       },
     };
+    recordToolResultLog({
+      toolName: "recover_tip_pickup",
+      eventKind: "protocol_recovery",
+      args,
+      result: wrappedResult,
+      fallbackSessionId: args.session_id || args.run_id,
+      summary: `Tip recovery retried well ${wrappedResult.data.recovered_well || "unknown"}.`,
+      data: {
+        executed_action: wrappedResult.data.executed_action || null,
+        recovery_well: wrappedResult.data.recovered_well || null,
+        tiprack_slot: wrappedResult.data.recovered_tiprack_slot || null,
+      },
+    });
+    return wrappedResult;
   },
 
   async get_runs(args) {
@@ -3316,8 +3694,55 @@ const TOOL_HANDLERS = {
     return readRunHistory(args);
   },
 
-  async get_run_status(args) {
-    return readRunHistory(args);
+  async experiment_history(args) {
+    const entries = readResultLogEntries(args);
+    return {
+      data: {
+        entries,
+        summary: summarizeResultLogEntries(entries),
+        filters: {
+          session_id: args.session_id || null,
+          run_id: args.run_id || null,
+          tool_name: args.tool_name || null,
+          event_kind: args.event_kind || null,
+          status: args.status || null,
+          limit: Math.max(1, Math.min(Number(args.limit || 20), 200)),
+        },
+      },
+    };
+  },
+
+  async restart_review(args) {
+    const limit = Math.max(1, Math.min(Number(args.limit || 20), 200));
+    const hardwareSnapshot = {};
+    let sessionId = args.session_id || DEFAULT_SESSION_ID;
+    let sessionState = readSessionState(sessionId);
+    let homeSafety = null;
+
+    if (args.robot_ip) {
+      const robotStatusResult = await readRobotStatus(args);
+      Object.assign(hardwareSnapshot, robotStatusResult.hardwareSnapshot);
+      sessionId = resolveSessionId(args, robotStatusResult);
+      sessionState = readSessionState(sessionId);
+      homeSafety = buildHomeSafetyResult({
+        robotStatusSnapshot: robotStatusResult.data,
+        sessionState,
+      });
+    }
+
+    const logEntries = readResultLogEntries({ session_id: sessionId, limit });
+    const data = buildRestartReview({
+      sessionState,
+      logEntries,
+      homeSafety,
+    });
+
+    return {
+      data,
+      hardwareSnapshot,
+      stateRevision: sessionState.state_revision,
+      sessionId,
+    };
   },
 
   async doctor_local_runtime(args) {
