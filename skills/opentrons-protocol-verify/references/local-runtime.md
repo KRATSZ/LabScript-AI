@@ -2,16 +2,18 @@
 
 ## What The Wrapper Expects
 
-The helper script looks for a workspace containing:
+By default the helper script uses the current Python environment and checks whether it can import:
 
-- `opentrons/api/src/opentrons`
-- `opentrons/shared-data/python`
+- `opentrons.cli`
+- `opentrons.simulate`
 
-By default it prefers:
+If you want to validate against an external source checkout instead, pass one of:
 
-- `opentrons/api/.venv/bin/python`
+- `--workspace-root /path/to/source-root`
+- `--api-root /path/to/opentrons/api`
+- `--shared-data-root /path/to/opentrons/shared-data`
 
-If that interpreter does not exist, it falls back to the current Python.
+In source-checkout mode it prefers `opentrons/api/.venv/bin/python` when that interpreter exists. Otherwise it falls back to the current Python.
 
 ## Preferred Python Tooling
 
@@ -23,7 +25,7 @@ Use `uv` as the default environment manager for this repository.
 
 ## Why The Wrapper Injects `opentrons._version`
 
-In source checkouts, the Opentrons package may expect a generated `_version.py` file that only exists after packaging or installation. The wrapper injects a minimal module at runtime so import resolution can proceed without mutating the vendored source tree.
+The shim is only needed in source-checkout mode. Some raw Opentrons source trees expect a generated `_version.py` file that only exists after packaging or installation. The wrapper injects a minimal module at runtime so import resolution can proceed without mutating that external source tree.
 
 ## What It Does Not Hide
 
@@ -32,7 +34,7 @@ The wrapper still fails fast when real dependencies are missing. Examples includ
 - `typing_extensions`
 - `click`
 - `anyio`
-- incomplete local source trees missing sibling packages
+- incomplete external source trees missing sibling packages
 
 That behavior is intentional. A failed import means the protocol was not actually analyzed or simulated.
 

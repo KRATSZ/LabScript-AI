@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 
@@ -104,6 +105,24 @@ def list_categories(library_path: Path) -> list[str]:
     return sorted(categories)
 
 
+def resolve_library_path(explicit_path: Path | None) -> Path:
+    if explicit_path is not None:
+        library_path = explicit_path.expanduser().resolve()
+    else:
+        configured_path = os.environ.get("OPENTRONS_PROTOCOL_LIBRARY_PATH")
+        if not configured_path:
+            raise SystemExit(
+                "protocol library path is not configured; pass --library /path/to/Protocols-develop "
+                "or set OPENTRONS_PROTOCOL_LIBRARY_PATH"
+            )
+        library_path = Path(configured_path).expanduser().resolve()
+
+    if not library_path.exists():
+        raise SystemExit(f"protocol library path does not exist: {library_path}")
+
+    return library_path
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Search Opentrons Protocol Library"
@@ -111,8 +130,8 @@ def main() -> int:
     parser.add_argument(
         "--library",
         type=Path,
-        default=Path(__file__).parent.parent.parent.parent / "Protocols-develop",
-        help="Path to Protocols-develop directory",
+        default=None,
+        help="Path to an external Protocols-develop directory",
     )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -132,6 +151,7 @@ def main() -> int:
     categories_cmd.set_defaults(handler=lambda args: list_categories(args.library))
 
     args = parser.parse_args()
+    args.library = resolve_library_path(args.library)
     result = args.handler(args)
 
     print(json.dumps(result, indent=2, ensure_ascii=False))

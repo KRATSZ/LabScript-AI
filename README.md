@@ -10,6 +10,8 @@
 
 The repository follows Anthropic's public skills conventions: each skill lives in its own folder with a `SKILL.md`, optional `scripts/`, `references/`, and `assets/`, and the repository also includes `.claude-plugin/plugin.json` so the repo can be treated as a Claude Code plugin root.
 
+This repository is intentionally scoped to its own `skills/`, `mcp-servers/`, `src/`, and `tests/` directories. External checkouts such as `Protocols-develop` or an upstream `opentrons` source tree are optional reference inputs, not part of this project's required layout.
+
 ## Python Environment
 
 This project assumes Python is managed with `uv`.
@@ -37,7 +39,7 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
   - Runs a multi-round `simulate -> parse -> edit -> simulate` loop.
   - Keeps Claude Code honest about what can be fixed by code edit vs what is a runtime blocker.
 - `skills/opentrons-protocol-library`
-  - References validated protocols and Cookbook patterns from `Protocols-develop/`.
+  - References validated protocols and Cookbook patterns from an explicitly configured external protocol-library checkout.
   - Useful when the user needs an existing example protocol, a known liquid-handling pattern, or a template to adapt.
 
 ## Included MCP Server
@@ -66,6 +68,13 @@ Opentrons-Lab-Agent/
 └── tests/
 ```
 
+## External References
+
+- `Opentrons-Lab-Agent` does not require sibling repositories in the same parent directory.
+- `opentrons-protocol-verify` and the MCP simulation helper use the installed `opentrons` runtime by default.
+- If you want to validate against an external source checkout, pass `--workspace-root` or explicit `--api-root` / `--shared-data-root`.
+- If you want to query an external protocol library, pass `--library /path/to/Protocols-develop` or set `OPENTRONS_PROTOCOL_LIBRARY_PATH`.
+
 ## Using It In Claude Code
 
 This repository is already shaped like a Claude Code plugin:
@@ -80,11 +89,13 @@ If you use direct skills folders instead of the plugin flow, you can also copy t
 
 The verification skill is intentionally defensive.
 
-It assumes the Opentrons source tree may be vendored into the same workspace, but not necessarily installed as a working Python package. In the current workspace snapshot, the available `opentrons/` tree contains `api/`, `api-client/`, and `shared-data/`, but it does not include a fully usable local development environment. Because of that:
+By default it checks the currently selected Python environment and tries to import `opentrons.cli` and `opentrons.simulate` from the installed runtime there.
+
+If you want to validate against an external Opentrons source checkout instead, pass `--workspace-root` or explicit `--api-root` / `--shared-data-root`. In that source-layout mode:
 
 - the verification wrapper injects a minimal `opentrons._version` module at runtime
-- the wrapper checks whether Python can import the modules needed for `opentrons.cli` and `opentrons.simulate`
-- if third-party dependencies or sibling packages are missing, it exits with a clear diagnostic instead of pretending validation succeeded
+- the wrapper prepends `opentrons/api/src` and `opentrons/shared-data/python`
+- if third-party dependencies are missing, it exits with a clear diagnostic instead of pretending validation succeeded
 
 This keeps Claude Code honest about what can and cannot be executed locally.
 
@@ -101,6 +112,14 @@ uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py doctor
 
 ```bash
 uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py analyze path/to/protocol.py -- --check
+```
+
+### Search an external protocol library
+
+```bash
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  --library /path/to/Protocols-develop \
+  search "magnetic beads" "DNA cleanup"
 ```
 
 ### Query a robot on the LAN
@@ -299,7 +318,11 @@ Practical note from the current Flex:
 
 ## Protocol Library Knowledge Base
 
-The `opentrons-protocol-library` skill references the `Protocols-develop` directory, which contains:
+The `opentrons-protocol-library` skill can query an external `Protocols-develop` checkout when you provide its path explicitly with `--library` or `OPENTRONS_PROTOCOL_LIBRARY_PATH`.
+
+That external repository is reference-only and is not part of `Opentrons-Lab-Agent`'s own directory layout.
+
+When configured, the skill can reference:
 
 - validated example protocols with README documentation
 - `Cookbook.md` with common code patterns such as liquid level tracking, wash steps, loops, CSV handling, and tip tracking
@@ -312,9 +335,9 @@ Example queries:
 - "Find me a protocol that does serial dilution"
 - "What's the pattern for CSV-based plate layout?"
 
-## Source Mapping
+## Optional Source Mapping
 
-These skills were written against the Opentrons code that is present in the same workspace:
+If you intentionally point the verification tools at an external Opentrons source checkout, these are the most useful reference locations:
 
 - protocol analysis entry point: `opentrons/api/src/opentrons/cli/analyze.py`
 - protocol simulation entry point: `opentrons/api/src/opentrons/simulate.py`

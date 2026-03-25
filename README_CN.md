@@ -16,6 +16,7 @@
 | 技能 | 描述 | 使用场景 |
 |------|------|----------|
 | `opentrons-protocol-author` | 为 Opentrons 机器人起草或重构 Python 协议 | 编写新协议、编辑现有协议或审查协议代码 |
+| `opentrons-simulation-repair` | 通过 simulate -> parse -> edit 循环修复协议 | 仿真报错后逐轮修复、定位最高优先级 blocker |
 | `opentrons-protocol-verify` | 使用本地 Opentrons 运行时分析和模拟协议 | 检查协议是否有效、模拟执行、诊断环境问题 |
 | `opentrons-robot-lan` | 通过 LAN HTTP API 与机器人交互 | 查询机器人状态、查看摄像头、上传协议、控制运行 |
 | `opentrons-protocol-library` | 参考经过验证的协议和 Cookbook 模式 | 搜索现有协议、查找代码示例、参考协议模式 |
@@ -64,8 +65,10 @@ Claude 将自动使用 `opentrons-protocol-author` 技能。
 ```bash
 # Linux/macOS
 cp -r skills/opentrons-protocol-author ~/.claude/skills/
+cp -r skills/opentrons-simulation-repair ~/.claude/skills/
 cp -r skills/opentrons-protocol-verify ~/.claude/skills/
 cp -r skills/opentrons-robot-lan ~/.claude/skills/
+cp -r skills/opentrons-protocol-library ~/.claude/skills/
 
 # Windows
 xcopy /E /I skills\opentrons-protocol-author %USERPROFILE%\.claude\skills\
@@ -130,6 +133,7 @@ skill-name/
 ```bash
 # 验证技能结构
 skills-ref validate ./skills/opentrons-protocol-author
+skills-ref validate ./skills/opentrons-simulation-repair
 skills-ref validate ./skills/opentrons-protocol-verify
 skills-ref validate ./skills/opentrons-robot-lan
 skills-ref validate ./skills/opentrons-protocol-library
@@ -139,11 +143,14 @@ skills-ref validate ./skills/opentrons-protocol-library
 
 ```
 Opentrons-Lab-Agent/
+├── mcp-servers/
+│   └── opentrons-mcp/                # MCP 服务
 ├── skills/
 │   ├── opentrons-protocol-author/    # 协议编写技能
+│   ├── opentrons-simulation-repair/  # 仿真修复技能
 │   ├── opentrons-protocol-verify/    # 协议验证技能
 │   ├── opentrons-robot-lan/         # 机器人 API 控制技能
-│   └── opentrons-protocol-library/  # 协议知识库（需要 Protocols-develop/）
+│   └── opentrons-protocol-library/  # 外部协议知识库引用
 ├── src/opentrons_lab_agent/             # 辅助模块
 ├── tests/                               # 单元测试
 ├── README.md                            # 英文文档
@@ -154,7 +161,14 @@ Opentrons-Lab-Agent/
 
 ## 协议库知识库
 
-`opentrons-protocol-library` 技能引用 `Protocols-develop` 目录，其中包含：
+`opentrons-protocol-library` 技能可以在显式提供路径时查询外部 `Protocols-develop` 仓库：
+
+- 通过 `--library /path/to/Protocols-develop`
+- 或设置 `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+
+该外部仓库只是参考输入，不属于 `Opentrons-Lab-Agent` 自身目录结构的一部分。
+
+配置后可引用：
 
 - **800+ 经过验证的协议**，附带 README 文档
 - **Cookbook.md**，包含常用代码模式（液位跟踪、清洗步骤、循环、CSV 处理等）
@@ -166,13 +180,18 @@ Opentrons-Lab-Agent/
 ```bash
 # 按关键字搜索协议
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  --library /path/to/Protocols-develop \
   search "magnetic beads" "DNA cleanup"
 
 # 列出 Cookbook 模式
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py cookbook
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  --library /path/to/Protocols-develop \
+  cookbook
 
 # 列出协议分类
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py categories
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  --library /path/to/Protocols-develop \
+  categories
 ```
 
 ### 示例查询
@@ -186,9 +205,10 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py cate
 
 验证技能对本地 Opentrons 运行时就绪性采取了谨慎的态度：
 
-- 检查 Python 是否可以导入 `opentrons.cli` 和 `opentrons.simulate`
-- 如果需要，注入最小的 `opentrons._version` 垫片
-- 清晰报告缺失的依赖项，而不是假装验证成功
+- 默认检查当前 Python 环境是否可以导入 `opentrons.cli` 和 `opentrons.simulate`
+- 只有在显式提供 `--workspace-root` / `--api-root` / `--shared-data-root` 时，才会进入外部源码树模式
+- 在外部源码树模式下，如有需要会注入最小的 `opentrons._version` 垫片
+- 缺失依赖会被明确报告，而不是假装验证成功
 
 这确保 Claude Code 提供关于本地可以执行什么和不能执行什么的准确反馈。
 
@@ -198,7 +218,7 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py cate
 
 ## 许可证
 
-Apache 2.0 - 详情请参阅 [LICENSE](LICENSE)。
+MIT
 
 ## 参考资料
 

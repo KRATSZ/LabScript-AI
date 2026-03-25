@@ -1,0 +1,15 @@
+{
+  "skill_name": "opentrons-simulation-repair",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "My Flex protocol fails simulation because the trash setup is missing. Repair it through a simulate -> parse -> edit loop and stop if the next blocker is not code-editable.",
+      "expected_output": "Uses the simulation-first loop, fixes only the highest-priority issue, reruns simulation, and reports whether the latest simulation passed or what blocker remains.",
+      "assertions": [
+        "Runs doctor or checks runtime readiness before guessing.",
+        "Fixes one issue at a time instead of rewriting the full protocol.",
+        "Does not claim success until simulation actually passes."
+      ]
+    }
+  ]
+}

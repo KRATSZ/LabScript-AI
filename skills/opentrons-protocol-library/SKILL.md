@@ -2,7 +2,7 @@
 name: opentrons-protocol-library
 description: Use when searching for existing validated Opentrons protocols, referencing protocol patterns from the Cookbook, or looking for code examples from the protocol library. This skill provides access to 800+ validated protocols, common patterns (liquid level tracking, wash steps, CSV handling, tip tracking, etc.), and protocol templates.
 license: Apache-2.0
-compatibility: Requires access to Protocols-develop directory with protocol examples, Cookbook.md, and templates.
+compatibility: Requires an external Protocols-develop checkout provided through --library or OPENTRONS_PROTOCOL_LIBRARY_PATH.
 ---
 
 # Opentrons Protocol Library
@@ -22,9 +22,18 @@ Trigger this skill when the user mentions:
 - Similar applications that may already have solutions
 - Need for validated code snippets
 
+## External Library Configuration
+
+Before using this skill, point the helper script at an external `Protocols-develop` checkout:
+
+- pass `--library /path/to/Protocols-develop`, or
+- set `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+
+That external checkout is reference-only and is not part of this repository's own directory layout.
+
 ## Available Resources
 
-### Protocol Library (`../../Protocols-develop/protocols/`)
+### Protocol Library (`<configured-library>/protocols/`)
 
 Contains 800+ validated protocols organized by application. Each protocol folder includes:
 - `README.md` - Protocol description, categories, labware, reagents, deck setup, and process notes
@@ -37,7 +46,7 @@ Contains 800+ validated protocols organized by application. Each protocol folder
 2. Browse protocol folders by name and README descriptions
 3. Read relevant protocol files for code patterns to adapt
 
-### Cookbook (`../../Protocols-develop/Cookbook.md`)
+### Cookbook (`<configured-library>/Cookbook.md`)
 
 Comprehensive collection of reusable code patterns including:
 
@@ -54,12 +63,12 @@ Comprehensive collection of reusable code patterns including:
 | Tip Tracking with Refills | Advanced tip management | Complex multi-refill protocols |
 | Flash Robot Lights | Robot status indication | User feedback during runs |
 
-### Templates (`../../Protocols-develop/Template/`)
+### Templates (`<configured-library>/Template/`)
 
 - `protocol_template.py` - Basic protocol structure
 - `README.md` - Template documentation
 
-### Protocol Library Tools (`../../Protocols-develop/protolib/`)
+### Protocol Library Tools (`<configured-library>/protolib/`)
 
 Helper functions for protocol development:
 - `merge.py` - Protocol merging utilities
@@ -120,6 +129,6 @@ Helper functions for protocol development:
 
 ## Reference Files
 
-- Complete protocol library: `../../Protocols-develop/`
-- Cookbook patterns: `../../Protocols-develop/Cookbook.md`
-- Protocol template: `../../Protocols-develop/Template/protocol_template.py`
+- Complete protocol library: `<configured-library>/`
+- Cookbook patterns: `<configured-library>/Cookbook.md`
+- Protocol template: `<configured-library>/Template/protocol_template.py`

@@ -13,29 +13,31 @@ from typing import Any, Sequence
 
 @dataclass(frozen=True)
 class WorkspacePaths:
-    workspace_root: Path
-    api_root: Path
-    shared_data_root: Path
+    workspace_root: Path | None
+    api_root: Path | None
+    shared_data_root: Path | None
 
     @property
-    def api_src(self) -> Path:
-        return self.api_root / "src"
+    def api_src(self) -> Path | None:
+        return None if self.api_root is None else self.api_root / "src"
 
     @property
-    def shared_data_python(self) -> Path:
-        return self.shared_data_root / "python"
+    def shared_data_python(self) -> Path | None:
+        return None if self.shared_data_root is None else self.shared_data_root / "python"
 
     @property
-    def default_python(self) -> Path:
-        return self.api_root / ".venv" / "bin" / "python"
+    def default_python(self) -> Path | None:
+        return None if self.api_root is None else self.api_root / ".venv" / "bin" / "python"
 
-
-def discover_workspace_root(start: Path | None = None) -> Path | None:
-    current = (start or Path.cwd()).resolve()
-    for candidate in (current, *current.parents):
-        if (candidate / "opentrons" / "api" / "src" / "opentrons").exists():
-            return candidate
-    return None
+    @property
+    def source_layout_ready(self) -> bool:
+        return bool(
+            self.api_src
+            and self.api_src.exists()
+            and (self.api_src / "opentrons").exists()
+            and self.shared_data_python
+            and self.shared_data_python.exists()
+        )
 
 
 def resolve_workspace_paths(
@@ -43,23 +45,36 @@ def resolve_workspace_paths(
     api_root: Path | None = None,
     shared_data_root: Path | None = None,
 ) -> WorkspacePaths:
-    root = workspace_root or discover_workspace_root()
-    if root is None:
-        raise SystemExit(
-            "could not locate workspace root containing opentrons/api/src/opentrons"
-        )
+    root = workspace_root.resolve() if workspace_root else None
+    resolved_api_root = api_root
+    resolved_shared_data_root = shared_data_root
 
-    resolved_api_root = api_root or (root / "opentrons" / "api")
-    resolved_shared_data_root = shared_data_root or (root / "opentrons" / "shared-data")
+    if root is not None:
+        resolved_api_root = resolved_api_root or (root / "opentrons" / "api")
+        resolved_shared_data_root = resolved_shared_data_root or (
+            root / "opentrons" / "shared-data"
+        )
 
     return WorkspacePaths(
         workspace_root=root,
-        api_root=resolved_api_root.resolve(),
-        shared_data_root=resolved_shared_data_root.resolve(),
+        api_root=resolved_api_root.resolve() if resolved_api_root else None,
+        shared_data_root=resolved_shared_data_root.resolve()
+        if resolved_shared_data_root
+        else None,
     )
 
 
-def build_bootstrap_code(module_name: str) -> str:
+def build_bootstrap_code(module_name: str, use_source_layout: bool) -> str:
+    if not use_source_layout:
+        return f"""
+import runpy
+import sys
+
+forwarded_argv = sys.argv[1:]
+sys.argv = ["{module_name}"] + forwarded_argv
+runpy.run_module("{module_name}", run_name="__main__")
+""".strip()
+
     return f"""
 import runpy
 import sys
@@ -81,12 +96,34 @@ runpy.run_module("{module_name}", run_name="__main__")
 """.strip()
 
 
-def probe_module(
-    python_executable: str,
-    paths: WorkspacePaths,
-    module_name: str,
-) -> dict[str, Any]:
-    probe_code = f"""
+def build_probe_code(module_name: str, use_source_layout: bool) -> str:
+    if not use_source_layout:
+        return f"""
+import importlib
+import json
+import sys
+import traceback
+
+try:
+    importlib.import_module("{module_name}")
+except Exception as exc:
+    print(json.dumps({{
+        "ok": False,
+        "python": sys.executable,
+        "module": "{module_name}",
+        "error_type": type(exc).__name__,
+        "error": str(exc),
+        "traceback": traceback.format_exc(),
+    }}))
+else:
+    print(json.dumps({{
+        "ok": True,
+        "python": sys.executable,
+        "module": "{module_name}",
+    }}))
+""".strip()
+
+    return f"""
 import importlib
 import json
 import sys
@@ -122,18 +159,19 @@ else:
     }}))
 """.strip()
 
-    result = subprocess.run(
-        [
-            python_executable,
-            "-c",
-            probe_code,
-            str(paths.api_src),
-            str(paths.shared_data_python),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+
+def probe_module(
+    python_executable: str,
+    paths: WorkspacePaths,
+    module_name: str,
+) -> dict[str, Any]:
+    use_source_layout = paths.source_layout_ready
+    probe_code = build_probe_code(module_name, use_source_layout)
+    args = [python_executable, "-c", probe_code]
+    if use_source_layout:
+        args.extend([str(paths.api_src), str(paths.shared_data_python)])
+
+    result = subprocess.run(args, capture_output=True, text=True, check=False)
     payload = result.stdout.strip() or result.stderr.strip()
     if not payload:
         return {
@@ -144,7 +182,18 @@ else:
             "error": "probe produced no output",
             "traceback": result.stderr,
         }
-    return json.loads(payload)
+
+    try:
+        return json.loads(payload)
+    except json.JSONDecodeError:
+        return {
+            "ok": False,
+            "python": python_executable,
+            "module": module_name,
+            "error_type": "InvalidProbeOutput",
+            "error": payload,
+            "traceback": result.stderr,
+        }
 
 
 def run_module(
@@ -153,25 +202,20 @@ def run_module(
     module_name: str,
     forwarded_argv: Sequence[str],
 ) -> int:
-    bootstrap_code = build_bootstrap_code(module_name)
-    completed = subprocess.run(
-        [
-            python_executable,
-            "-c",
-            bootstrap_code,
-            str(paths.api_src),
-            str(paths.shared_data_python),
-            *forwarded_argv,
-        ],
-        check=False,
-    )
+    use_source_layout = paths.source_layout_ready
+    bootstrap_code = build_bootstrap_code(module_name, use_source_layout)
+    args = [python_executable, "-c", bootstrap_code]
+    if use_source_layout:
+        args.extend([str(paths.api_src), str(paths.shared_data_python)])
+    args.extend(forwarded_argv)
+    completed = subprocess.run(args, check=False)
     return completed.returncode
 
 
 def choose_python(paths: WorkspacePaths, explicit_python: str | None) -> str:
     if explicit_python:
         return explicit_python
-    if paths.default_python.exists():
+    if paths.default_python and paths.default_python.exists():
         return str(paths.default_python)
     return sys.executable
 
@@ -188,9 +232,12 @@ def handle_doctor(args: argparse.Namespace) -> int:
     analyze_probe = probe_module(python_executable, paths, "opentrons.cli")
     simulate_probe = probe_module(python_executable, paths, "opentrons.simulate")
     summary = {
-        "workspace_root": str(paths.workspace_root),
-        "api_root": str(paths.api_root),
-        "shared_data_root": str(paths.shared_data_root),
+        "workspace_root": str(paths.workspace_root) if paths.workspace_root else None,
+        "api_root": str(paths.api_root) if paths.api_root else None,
+        "shared_data_root": str(paths.shared_data_root)
+        if paths.shared_data_root
+        else None,
+        "source_layout_ready": paths.source_layout_ready,
         "python": python_executable,
         "opentrons_cli": analyze_probe,
         "opentrons_simulate": simulate_probe,
@@ -274,4 +321,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
