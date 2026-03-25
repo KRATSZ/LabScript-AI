@@ -13,6 +13,7 @@ import {
   listAvailableSlots,
   listTipCandidates,
   parseRuntimeError,
+  suggestAlternativeSlots,
   suggestNextTipWell,
 } from "../lib/decision.js";
 
@@ -386,4 +387,85 @@ test("buildActionSummary extracts actionable parameters from recovery", () => {
   assert.equal(summary.then_resume, true);
   assert.equal(summary.if_fails, "escalate_tip_search_exhausted");
   assert.equal(summary.escalate_to_human, false);
+});
+
+test("buildActionSummary includes candidate slots for destination recovery", () => {
+  const recoverySuggestion = {
+    error_category: "DESTINATION_OCCUPIED",
+    action: "suggest_new_destination_slot",
+    escalate_to_human: true,
+    rationale: "protocol_context_destination_occupied",
+    slot_occupation: {
+      slot_name: "B1",
+    },
+    candidate_destination_slots: [
+      { slot_name: "C2", confidence: "high" },
+      { slot_name: "D2", confidence: "low" },
+    ],
+  };
+
+  const summary = buildActionSummary({
+    recoverySuggestion,
+  });
+
+  assert.equal(summary.do_what, "suggest_new_destination_slot");
+  assert.equal(summary.params.target_slot, "B1");
+  assert.equal(summary.params.candidate_destination_slots[0].slot_name, "C2");
+  assert.equal(summary.then_resume, true);
+  assert.equal(summary.if_fails, "human_choose_destination_slot");
+});
+
+test("suggestAlternativeSlots returns addressable non-occupied slots with confidence", () => {
+  const sessionState = buildSessionState();
+  const observed = buildObservedDeckState({
+    deckConfiguration: {
+      data: {
+        cutoutFixtures: [
+          { cutoutFixtureId: "singleCenterSlot", cutoutId: "cutoutA1" },
+          { cutoutFixtureId: "singleCenterSlot", cutoutId: "cutoutA2" },
+          { cutoutFixtureId: "singleCenterSlot", cutoutId: "cutoutB1" },
+        ],
+      },
+    },
+    run: {
+      data: {
+        labware: [{ id: "plate-1", loadName: "plate_96", location: { slotName: "A1" } }],
+      },
+    },
+  });
+
+  const alternatives = suggestAlternativeSlots({
+    observedDeckState: observed,
+    sessionState,
+    targetSlot: "A1",
+  });
+
+  assert.equal(alternatives[0].slot_name, "A2");
+  assert.equal(alternatives[0].confidence, "low");
+  assert.ok(alternatives.every(slot => slot.slot_name !== "A1"));
+});
+
+test("buildRecoverySuggestion recommends alternative destination slots when available", () => {
+  const suggestion = buildRecoverySuggestion({
+    errorCategory: "DESTINATION_OCCUPIED",
+    run: { data: { status: "running" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    slotOccupation: {
+      slot_name: "B1",
+      status: "occupied",
+      occupant_type: "labware",
+      occupant_name: "plate_96",
+    },
+    reconciliation: { diffs: [] },
+    alternativeSlots: [
+      { slot_name: "C2", status: "empty", addressable: true, confidence: "high" },
+      { slot_name: "D2", status: "unknown", addressable: true, confidence: "low" },
+    ],
+  });
+
+  assert.equal(suggestion.action, "suggest_new_destination_slot");
+  assert.equal(suggestion.escalate_to_human, false);
+  assert.equal(suggestion.candidate_destination_slots[0].slot_name, "C2");
 });

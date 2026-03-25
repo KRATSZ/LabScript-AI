@@ -44,8 +44,10 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
 
 - `mcp-servers/opentrons-mcp`
   - A compact MCP server for practical Claude Code orchestration.
-  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_available_slots`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `configure_camera`, `capture_preview_image`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `run_history`, `upload_protocol`, `create_run`, and `control_run`.
+  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_available_slots`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `configure_camera`, `capture_preview_image`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `run_history`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, `create_run`, and `control_run`.
   - Adds local tools `doctor_local_runtime`, `simulate_protocol`, and `parse_simulation_output` for simulation-first repair.
+
+This repository's `mcp-servers/opentrons-mcp` is the canonical `opentrons-lab-mcp` implementation. Community MCP servers in the broader workspace are reference material only; they are useful for HTTP surface comparison, but this repo's tool names, recovery rules, and response envelope are defined here.
 
 ## Repository Layout
 
@@ -152,13 +154,128 @@ Recommended Claude Code tool order before and during live execution:
 
 Recent real-Flex validation also covers a physical gripper move:
 
+For the common "upload + create run + play + poll" path, prefer the single `run_protocol` tool. It now enforces a local `doctor_local_runtime -> simulate_protocol -> parse_simulation_output` gate before any real upload or run start, so a simulation failure blocks physical execution immediately.
+
 - `create_run_context` in `maintenance` mode
 - `load_labware("corning_96_wellplate_360ul_flat", "C3")`
 - `move_labware` from `C3` to `B3`
 - `cleanup_motion` returning the gripper and gantry to a clean state
-- `parse_error` and `suggest_recovery_action` on real failure cases including `TIP_PHYSICALLY_MISSING`, `PROTOCOL_SETUP_ERROR`, `DESTINATION_UNAVAILABLE`, and `DESTINATION_OCCUPIED`
+- `parse_error` and `suggest_recovery_action` on real failure cases including:
+  - `TIP_PHYSICALLY_MISSING`
+  - `PROTOCOL_SETUP_ERROR`
+  - `DESTINATION_UNAVAILABLE`
+  - `DESTINATION_OCCUPIED` in a software-occupied destination test
+- `run_protocol` using `mcp-servers/opentrons-mcp/examples/flex_noop_protocol.py`, which completed `upload -> create_run -> play -> poll` on the real Flex and returned `status = succeeded`
+- `run_protocol` using `mcp-servers/opentrons-mcp/examples/flex_tip_recovery_validation.py`, which passed local simulation, then entered real `awaiting-recovery` on `pickUpTip(A1)` with `TIP_PHYSICALLY_MISSING`
+- `execute_protocol_recovery`, which is now the general protocol-recovery executor for supported live recovery branches
+- `recover_tip_pickup` on that same run, which executed `pickUpTip(B1, intent="fixit") -> resume-from-recovery` and let the original protocol finish with `status = succeeded`
+- live read-only Phase 2 validation for `suggest_recovery_action(error_category="DESTINATION_OCCUPIED", target_slot="C1")`, which returned concrete alternative slots from the real deck layout and still marked the branch as human-reviewed because the candidates were only low-confidence `unknown` slots
+- negative Phase 3 gate validation with a deliberately broken local protocol, where `run_protocol` stopped at simulation parsing and never started a real robot run
 
 All MCP tools return a common response envelope with `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, and `timestamp`.
+
+## Real Response Examples
+
+### `robot_status` (real Flex, abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "ready_for_physical_action": true,
+    "blockers": [],
+    "health_summary": {
+      "robot_model": "OT-3 Standard",
+      "api_version": "8.8.1",
+      "robot_serial": "FLXA2020240921002"
+    }
+  }
+}
+```
+
+### `run_protocol` (real Flex noop validation, abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "final_status": "succeeded",
+    "requires_attention": false,
+    "final_run_history": {
+      "command_counts": {
+        "total": 3,
+        "succeeded": 3,
+        "failed": 0
+      }
+    }
+  },
+  "run_id": "5b6cc2d2-ef50-4da6-9f9f-090fc243ccfe",
+  "session_id": "5b6cc2d2-ef50-4da6-9f9f-090fc243ccfe"
+}
+```
+
+### `recover_tip_pickup` (real fixit recovery, abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovered_well": "B1",
+    "resume_action": {
+      "data": {
+        "actionType": "resume-from-recovery"
+      }
+    },
+    "final_run_history": {
+      "status": "succeeded",
+      "has_ever_entered_error_recovery": true
+    }
+  }
+}
+```
+
+`recover_tip_pickup` is now kept as a compatibility wrapper around the more general `execute_protocol_recovery` tool. The general executor currently supports:
+
+- `retry_pick_up_tip_with_next_candidate`
+- `suggest_new_destination_slot`
+- module-blocker `reconcile_state_first` by waiting for blockers to clear before resuming
+
+### `run_protocol` blocked by simulation gate (abbreviated)
+
+```json
+{
+  "success": false,
+  "data": {
+    "blocked_real_execution": true,
+    "gate_stage": "simulate_protocol",
+    "parsed_simulation_output": {
+      "success": false,
+      "issues": [
+        { "category": "SYNTAX_OR_IMPORT" }
+      ]
+    }
+  }
+}
+```
+
+### `suggest_recovery_action` for `DESTINATION_OCCUPIED` (real deck snapshot, abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovery": {
+      "action": "suggest_new_destination_slot",
+      "escalate_to_human": true,
+      "candidate_destination_slots": [
+        { "slot_name": "A2", "confidence": "low" },
+        { "slot_name": "B2", "confidence": "low" },
+        { "slot_name": "C2", "confidence": "low" }
+      ]
+    }
+  }
+}
+```
 
 ## Vision Integration
 
@@ -219,6 +336,8 @@ cd mcp-servers/opentrons-mcp
 npm test
 ```
 
+The repository also now includes mocked unit tests for `run_protocol` and `recover_tip_pickup`, plus safe real-Flex validation protocols at `mcp-servers/opentrons-mcp/examples/flex_noop_protocol.py` and `mcp-servers/opentrons-mcp/examples/flex_tip_recovery_validation.py`.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on developing and validating new skills.
@@ -233,3 +352,4 @@ MIT
 - [Adding Skills Support](https://agentskills.io/docs/client-implementation/adding-skills-support)
 - [Example Skills](https://github.com/anthropics/skills)
 - [Opentrons Protocol API Documentation](https://docs.opentrons.com/)
+Repository: https://github.com/SmartisanNaive/Opentrons-Lab-Agent

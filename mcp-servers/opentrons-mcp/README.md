@@ -54,6 +54,9 @@ It also exposes a compact set of live tools:
 - `analyze_image_with_kimi`
 - `get_protocols`
 - `upload_protocol`
+- `run_protocol`
+- `execute_protocol_recovery`
+- `recover_tip_pickup`
 - `create_run`
 - `control_run`
 - `get_runs`
@@ -62,9 +65,11 @@ It also exposes a compact set of live tools:
 
 ## Notes
 
+- This folder is the canonical `opentrons-lab-mcp` implementation for the repository. Community MCP projects such as `yerbymatey/opentrons-mcp` are reference material only.
 - The tool surface is inspired by the community project `yerbymatey/opentrons-mcp`, but reduced to the parts that are most useful for this repository's simulation-first workflow.
 - For API documentation lookup, pair this server with `opentrons-document-mcp-server`.
 - Live-state tools return a common envelope with `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, and `timestamp`.
+- `run_protocol` now hard-gates real execution with `doctor_local_runtime -> simulate_protocol -> parse_simulation_output`; if simulation fails, the tool returns a blocked response and does not start a real run.
 - Session-level `DeckState` snapshots are persisted under `data/session-state/` so tip bookkeeping and reconciliation survive MCP restarts.
 - `capture_preview_image` saves the preview locally and returns the artifact path so a later human step or vision analyzer can consume it without embedding binary image data into MCP responses.
 - `capture_run_image` uses the robot command queue (`captureImage`) and attempts to download the generated data file immediately; on the current Flex software, maintenance-context captures may succeed without returning a downloadable `fileId`, so the server also exposes `list_data_files` and `download_data_file` for working with historical robot images.
@@ -72,6 +77,90 @@ It also exposes a compact set of live tools:
 - On the current validated Flex (`10.31.2.149:31950`, API `8.8.1`), `GET /camera` is available, while the POST camera endpoints currently return `404`; the MCP therefore reports these as capability/version gaps instead of silently pretending preview capture is supported everywhere.
 - Real-Flex validation now includes a physical gripper move of `corning_96_wellplate_360ul_flat` from `C3` to `B3`, followed by successful `cleanup_motion`.
 - Real-Flex validation also includes runtime error parsing for `TIP_PHYSICALLY_MISSING`, `PROTOCOL_SETUP_ERROR`, `DESTINATION_UNAVAILABLE`, and a software-occupied `DESTINATION_OCCUPIED` move failure.
+- Real-Flex validation now also includes `run_protocol` with `examples/flex_noop_protocol.py`, which completed `upload -> create_run -> play -> poll` and returned a final `succeeded` run snapshot.
+- Real-Flex validation now also includes `run_protocol` with `examples/flex_tip_recovery_validation.py`, which entered `awaiting-recovery` on `pickUpTip(A1)` and exposed a real `TIP_PHYSICALLY_MISSING` branch.
+- The server now exposes `execute_protocol_recovery` as the general protocol-run recovery executor for supported automatic branches.
+- Real-Flex validation now also includes `recover_tip_pickup`, which executed `pickUpTip(B1, intent="fixit")` and `resume-from-recovery`, then allowed the original protocol to finish with `status = succeeded`.
+- Phase 2 live read-only validation now confirms that `suggest_recovery_action(error_category="DESTINATION_OCCUPIED")` can return concrete alternative slots from the real deck layout while still escalating when those candidates are only low-confidence `unknown` slots.
+- Phase 3 negative validation now confirms that a broken local protocol is blocked at simulation time and never starts a real robot run.
+
+## Real Response Samples
+
+### `run_protocol` (abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "final_status": "succeeded",
+    "requires_attention": false,
+    "final_run_history": {
+      "command_counts": {
+        "total": 3,
+        "succeeded": 3,
+        "failed": 0
+      }
+    }
+  }
+}
+```
+
+### `recover_tip_pickup` (abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovered_well": "B1",
+    "final_run_history": {
+      "status": "succeeded"
+    }
+  }
+}
+```
+
+`recover_tip_pickup` remains available as a compatibility wrapper. New integrations should prefer `execute_protocol_recovery`, which currently supports:
+
+- tip fallback with `pickUpTip(..., intent="fixit")`
+- alternative-slot retry for `moveLabware`
+- module-blocker recovery by waiting until blockers clear, then resuming the run
+
+### `run_protocol` blocked by simulation gate (abbreviated)
+
+```json
+{
+  "success": false,
+  "data": {
+    "blocked_real_execution": true,
+    "gate_stage": "simulate_protocol",
+    "parsed_simulation_output": {
+      "success": false,
+      "issues": [
+        { "category": "SYNTAX_OR_IMPORT" }
+      ]
+    }
+  }
+}
+```
+
+### `suggest_recovery_action` for occupied destination (abbreviated)
+
+```json
+{
+  "success": true,
+  "data": {
+    "recovery": {
+      "action": "suggest_new_destination_slot",
+      "escalate_to_human": true,
+      "candidate_destination_slots": [
+        { "slot_name": "A2", "confidence": "low" },
+        { "slot_name": "B2", "confidence": "low" },
+        { "slot_name": "C2", "confidence": "low" }
+      ]
+    }
+  }
+}
+```
 
 ## Install
 
