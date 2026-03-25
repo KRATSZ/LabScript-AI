@@ -21,7 +21,8 @@
     "skills": [
       "opentrons-protocol-author",
       "opentrons-protocol-verify",
-      "opentrons-robot-lan"
+      "opentrons-robot-lan",
+      "opentrons-simulation-repair"
     ]
   }
 }

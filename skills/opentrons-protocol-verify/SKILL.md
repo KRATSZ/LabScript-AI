@@ -18,6 +18,7 @@ Prefer a `uv`-managed Python environment. In normal use, run this skill's script
 3. Use `analyze` for parser and command graph checks.
 4. Use `simulate` when the user wants a stronger dry run and the environment can support it.
 5. Pass extra CLI flags after `--`.
+6. If the goal is to keep editing until simulation passes, hand off to `opentrons-simulation-repair`.
 
 ## Commands
 

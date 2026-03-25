@@ -4,3 +4,6 @@ __pycache__/
 .venv/
 .DS_Store
 artifacts/
+node_modules/
+mcp-servers/**/node_modules/
+mcp-servers/opentrons-mcp/data/session-state/
