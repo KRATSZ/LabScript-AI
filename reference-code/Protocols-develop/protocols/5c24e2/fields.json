@@ -1,0 +1,44 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "pip_type",
+    "options": [
+      {"label": "P20-Multi", "value": "p20_multi_gen2 opentrons_96_tiprack_20ul"},
+      {"label": "P300-Multi (GEN2)", "value": "p300_multi_gen2 opentrons_96_tiprack_300ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipmnt",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Sample Volume (uL)",
+    "name": "s_vol",
+    "default": 2.5
+  },
+  {
+    "type": "dropDown",
+    "label": "How many 384-well plates",
+    "name": "sec_plate",
+    "options": [
+      {"label": "1", "value": "no"},
+      {"label": "2", "value": "yes"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Plate (384-Well) Type",
+    "name": "p384",
+    "options": [
+      {"label": "Applied Biosystems", "value": "appliedbiosystemsmicroampoptical384wellreactionplatewithbarcode_384_wellplate_30ul"},
+      {"label": "SSI", "value": "ssi_384_wellplate_50ul"}
+    ]
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "type": "float",
+    "label": "Height of Tip Above Bottom of Source Well During Aspiration (mm)",
+    "name": "clearance_source",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Height of Tip Above Bottom of Destination Well During Dispense (mm)",
+    "name": "clearance_dest",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "384-Well Labware",
+    "name": "labware_384",
+    "options": [
+      { "label": "corning_384_wellplate_112ul_flat", "value": "corning_384_wellplate_112ul_flat" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "24-Well Labware",
+    "name": "labware_24",
+    "options": [
+      { "label": "corning_24_wellplate_3.4ml_flat", "value": "corning_24_wellplate_3.4ml_flat" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "96-Well Labware",
+    "name": "labware_96",
+    "options": [
+      { "label": "corning_96_wellplate_360ul_flat", "value": "corning_96_wellplate_360ul_flat" }
+    ]
+  },
+  {
+    "type": "textFile",
+    "label": "Upload CSV Input File (Upload CSV-formatted Excel File-with formatting of data values and file identical to example)",
+    "name": "uploaded_csv",
+    "default": "Source Slot,Source Plate Barcode,Source Plate Type,Source Well,Dest Slot,Dest Plate Barcode,Dest Plate Type,Dest Well,Volume Transfer\n1,xyz123,96,B2,1,xyz321,384,A1,6\n1,xyz123,96,B12,1,xyz321,384,A2,6\n2,xyz124,384,P18,1,xyz321,384,B1,10\n3,xyz125,24,A6,1,xyz321,384,B2,10\n"
+  }
+]

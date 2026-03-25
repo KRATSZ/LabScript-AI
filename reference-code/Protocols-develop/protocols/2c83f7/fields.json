@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "number_of_samples_to_process",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "p300_multi_mount",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Volume of Beads (in µL)",
+    "name": "volume_of_beads_in_ul",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Bead separation time (in minutes)",
+    "name": "bead_separation_time_in_minutes",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Mix repetitions",
+    "name": "mix_repetitions",
+    "default": 5
+  }
+]

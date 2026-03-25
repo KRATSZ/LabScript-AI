@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples + controls (1-96)",
+    "name": "num_samples",
+    "default": 24
+  },
+  {
+    "type": "dropDown",
+    "label": "track tips across protocol runs",
+    "name": "tip_track",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  }
+]

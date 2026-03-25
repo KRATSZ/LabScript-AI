@@ -1,0 +1,92 @@
+[
+  {
+    "type": "int",
+    "label": "Number of columns (1-12)",
+    "name": "num_col",
+    "default": 12
+  },
+  {
+    "type": "int",
+    "label": "Sample and lysis buffer mix repetitions",
+    "name": "samp_and_lys_rep",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Mix repetitions before first magnetic engage",
+    "name": "shake_well",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Incubation time (minutes)",
+    "name": "incubate_bind_time",
+    "default": 5.0
+  },
+  {
+    "type": "float",
+    "label": "Magnetic bead engagement time (minutes)",
+    "name": "mag_engage_time",
+    "default": 7.0
+  },
+  {
+    "type": "float",
+    "label": "Aspiration height from bottom of well (mm)",
+    "name": "asp_height",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Multi-channel pippette aspiration flow rate (ul/s)",
+    "name": "asp_flow_rate",
+    "default": 96.0
+  },
+  {
+    "type": "float",
+    "label": "Multi-channel pippette dispense flow rate (ul/s)",
+    "name": "disp_flow_rate",
+    "default": 96.0
+  },
+  {
+  "type": "float",
+  "label": "Distance from side of well (1mm - 4.15mm)",
+  "name": "length_from_side",
+  "default": 1.0125
+  },
+  {
+    "type": "float",
+    "label": "Bead drying time (minutes)",
+    "name": "bead_dry_time",
+    "default": 5.0
+  },
+  {
+    "type": "float",
+    "label": "Bead drying time with nuclease free water (minutes)",
+    "name": "bead_dry_time_nuc_water",
+    "default": 10.0
+  },
+  {
+    "type": "int",
+    "label": "Nuclease-free water volume to add (30-100ul)",
+    "name": "nuc_free_water_vol_well",
+    "default": 100
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi GEN2 mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

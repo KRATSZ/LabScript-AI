@@ -1,0 +1,41 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Lysis Type (Salmonella/Listeria)",
+    "name": "lysis",
+    "options": [
+      {"label": "Salmonella (90µL)", "value": "180"},
+      {"label": "Listeria (70µL)", "value": "140"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "pip_type",
+    "options": [
+      {"label": "Single Channel", "value": "p300_single"},
+      {"label": "Multi Channel", "value": "p300_multi"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pip_mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Plates",
+    "name": "no_plates",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Tip Pick-Up at (Row A)",
+    "name": "tip_no",
+    "default": 1
+  }
+]

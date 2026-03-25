@@ -1,0 +1,53 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Sample Rows",
+    "name": "sample_rows",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Number of Sample Columns",
+    "name": "sample_columns",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "sample_number",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Pool Size",
+    "name": "pool_size",
+    "options": [
+      { "label": "Pool Size of 3", "value": "3" },
+      { "label": "Pool Size of 2", "value": "2" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Pool Rows",
+    "name": "pool_rows",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Number of Pool Columns",
+    "name": "pool_columns",
+    "default": 5
+  },
+  {
+    "type": "str",
+    "label": "(comma-delimited) Sample Rack Slot Order",
+    "name": "sample_slots",
+    "default": "1,3,4,6,7,9,10"
+  },
+  {
+    "type": "str",
+    "label": "(comma-delimited) Pool Rack Slot Order",
+    "name": "pool_slots",
+    "default": "2,5,8"
+  }
+]

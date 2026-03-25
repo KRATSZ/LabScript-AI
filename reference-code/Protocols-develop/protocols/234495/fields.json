@@ -1,0 +1,97 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (Total Number of Pooled and or Patient Samples 12-27)",
+    "name": "count_samples",
+    "default": 27
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Full Volumes?",
+    "name": "full_volume",
+    "options": [
+      { "label": "Use Full Volumes", "value": true },
+      { "label": "Use Half Volumes", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "TFA Volume",
+    "name": "tfa_540",
+    "options": [
+      { "label": "270ul TFA", "value": false },
+      { "label": "540ul TFA", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Samples (Pooled Samples and or Patient Samples)?",
+    "name": "include_standards_only",
+    "options": [
+      { "label": "YES - Standards and Samples", "value": false },
+      { "label": "NO - Standards Only", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Tube Rack",
+    "name": "labware_tuberack",
+    "options": [
+      { "label": "filters_and_eppendorfs_24_tuberack_1500ul", "value": "filters_and_eppendorfs_24_tuberack_1500ul" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Aspirate and Dispense Height for MeOH:Water Tube (mm)",
+    "name": "clearance_meoh_water",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Dispense Height for Serial Dilutions (mm)",
+    "name": "clearance_dil_dispense",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Touch Tip Radius for Serial Dilutions (fraction of a radius)",
+    "name": "touch_radius",
+    "default": 0.3
+  },
+  {
+    "type": "float",
+    "label": "Touch Tip Vertical Offset for Serial Dilutions (mm from top)",
+    "name": "touch_v_offset",
+    "default": -16
+  },
+  {
+    "type": "int",
+    "label": "Starting Aspirate Height for Golden Plasma (mm)",
+    "name": "track_start",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for TFA in Reservoir (mm)",
+    "name": "clearance_tfa",
+    "default": 3
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Acetonitrile in Reservoir (mm)",
+    "name": "clearance_mecn",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Number of Mix Repetitions for Serial Dilutions",
+    "name": "mix_reps",
+    "default": 10
+  },
+  {
+    "type": "int",
+    "label": "Volume at Which to Move on to Next Reservoir Well (uL)",
+    "name": "vol_dead",
+    "default": 2000
+  }
+]

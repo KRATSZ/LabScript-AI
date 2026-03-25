@@ -1,0 +1,15 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-12)",
+    "name": "sample_count",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Volume of input samples (1ul-7.5ul)",
+    "name": "sample_vol",
+    "default": 2.5
+  }
+]
+

@@ -1,0 +1,72 @@
+[
+  {
+    "type": "textFile",
+    "label": "Volumes CSV",
+    "name": "volumes_csv",
+    "default": "1,2,3"
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Model",
+    "name": "pip_model",
+    "options": [
+      {"label": "P300 Single GEN2", "value": "p300_single_gen2"},
+      {"label": "P300 Single GEN1", "value": "p300_single"},
+      {"label": "P20 Single GEN2", "value": "p20_single_gen2"},
+      {"label": "P50 Single GEN1", "value": "p50_single"},
+      {"label": "P10 Single GEN1", "value": "p10_single"},
+      {"label": "P1000 Single GEN2", "value": "p1000_single_gen2"},
+      {"label": "P1000 Single GEN1", "value": "p1000_single"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pip_mount",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Source Labware Type",
+    "name": "sp_type",
+    "options": [
+      {"label": "Starlab 96-Deepwell, 2.4mL", "value": "starlab_96_wellplate_2200ul"},
+      {"label": "Eppendorf 2mL Tube in Tube Rack", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap"},
+      {"label": "Eppendorf 1.5mL Tube in Tube Rack", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"},
+      {"label": "NEST 96-Well, 200µL Flat", "value": "nest_96_wellplate_200ul_flat"},
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "BioRad 96-Well, 200µL PCR", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "Corning 96-Well, 360µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      {"label": "Corning 384-Well, 112µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      {"label": "USA Scientific 96-Deepwell, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination Labware Type",
+    "name": "dp_type",
+    "options": [
+      {"label": "Starlab 96-Deepwell, 2.4mL", "value": "starlab_96_wellplate_2200ul"},
+      {"label": "Eppendorf 2mL Tube in Tube Rack", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap"},
+      {"label": "Eppendorf 1.5mL Tube in Tube Rack", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"},
+      {"label": "NEST 96-Well, 200µL Flat", "value": "nest_96_wellplate_200ul_flat"},
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "BioRad 96-Well, 200µL PCR", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "Corning 96-Well, 360µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      {"label": "Corning 384-Well, 112µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      {"label": "USA Scientific 96-Deepwell, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Usage Strategy",
+    "name": "tip_reuse",
+    "options": [
+      {"label": "Use a new tip for each transfer", "value": "always"},
+      {"label": "Reuse tip for each transfer", "value": "never"}
+    ]
+  }
+]

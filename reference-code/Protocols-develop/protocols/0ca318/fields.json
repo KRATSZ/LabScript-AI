@@ -1,0 +1,52 @@
+[
+
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "num_samp",
+    "default": 24
+  },
+
+  {
+    "type": "dropDown",
+    "label": "Where are the samples?",
+    "name": "source_type",
+    "options": [
+      {"label": "In tube racks", "value": "tuberack"},
+      {"label": "Already in the 96 well plate on thermocycler", "value": "wellplate"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "What is the mastermix in in slot 3 temperature module?",
+    "name": "mmx_type",
+    "options": [
+      {"label": "Nest 1.5mL in a 24 aluminum block", "value": "mmx_tuberack"},
+      {"label": "In a 96 wellplate aluminum block", "value": "mmx_wellplate"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Tip pick up start (by column, 1-192)",
+    "name": "start_tip",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

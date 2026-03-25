@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Volume (ul)",
+    "name": "sample_volume",
+    "default": 75
+  },
+  {
+  "type": "dropDown",
+  "label": "Use middle two columns?",
+  "name": "use_middle_2",
+  "options": [
+    {"label": "Yes, use middle 2", "value": true},
+    {"label": "No, ignore middle 2", "value": false}
+  ]
+  },
+  {
+    "type": "int",
+    "label": "Antibody Volume (ul)",
+    "name": "antibody_vol",
+    "default": 60
+  },
+  {
+    "type": "int",
+    "label": "SA-PE Volume (ul)",
+    "name": "sape_vol",
+    "default": 75
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

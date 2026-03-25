@@ -1,0 +1,17 @@
+[
+    {
+      "type": "textFile",
+      "label": "input .csv file",
+      "name": "input_csv",
+      "default": "Sample Location,Qubits,Volume (ul) for ng: 70,Sample Destination\nA1,3.5,20.0,A1\nA2,15,4.7,A2"
+    },
+    {
+      "type": "dropDown",
+      "label": "P20 Single GEN2 Mount",
+      "name": "p20_mount",
+      "options": [
+         { "label": "right", "value": "right" },
+         { "label": "left", "value": "left" }
+       ]
+    }
+]  

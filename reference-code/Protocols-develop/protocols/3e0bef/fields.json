@@ -1,0 +1,89 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "_m300_mount",
+    "options": [
+      { "label": "Right", "value": "right" },
+      { "label": "Left", "value": "left" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "_num_samps",
+    "default": 8
+  },
+  {
+    "type": "int",
+    "label": "Binding Time (minutes)",
+    "name": "_inc_time",
+    "default": 10
+  },
+  {
+    "type": "int",
+    "label": "MagDeck Incubation (minutes)",
+    "name": "_mag_time",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Air Dry Time (minutes)",
+    "name": "_air_dry",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "Add Water Before Air Dry",
+    "name": "_add_water",
+    "options": [
+      { "label": "Yes", "value": 1 },
+      { "label": "No", "value": 0 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Samples Input",
+    "name": "_samp_labware",
+    "options": [
+      { "label": "QIAGEN 96 Tube Rack, 1.2mL", "value": "qiagen_96_tuberack_1200ul" },
+      { "label": "NEST 96 Well Plate, 2mL", "value": "nest_96_wellplate_2ml_deep" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "[QIAGEN ONLY] Aspiration Height (From Top, in mm)",
+    "name": "_asp_ht",
+    "default": 33
+  },
+  {
+    "type": "int",
+    "label": "Final Wash Removal (in µL)",
+    "name": "_fin_wash",
+    "default": 600
+  },
+  {
+    "type": "int",
+    "label": "Elution Volume (in µL)",
+    "name": "_elution_vol",
+    "default": 100
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform Resuspension Off-Deck",
+    "name": "_off_deck",
+    "options": [
+      { "label": "Yes", "value": 1 },
+      { "label": "No", "value": 0 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Play Custom Music at Pause",
+    "name": "_music",
+    "options": [
+      { "label": "No", "value": 0 },
+      { "label": "Yes", "value": 1 }
+    ]
+  }
+]

@@ -1,0 +1,32 @@
+[
+    {
+        "type": "int",
+        "label": "Test wells (Sample Size)",
+        "name": "samples",
+        "default": 384
+    },
+    {
+        "type": "float",
+        "label": "Liquid A Volume (uL)",
+        "name": "liquid_A_vol",
+        "default": 2
+    },
+    {
+        "type": "float",
+        "label": "Liquid B Volume (uL)",
+        "name": "liquid_B_vol",
+        "default": 2
+    },
+    {
+        "type": "float",
+        "label": "Liquid C Volume (uL)",
+        "name": "liquid_C_vol",
+        "default": 5
+    },
+    {
+        "type": "float",
+        "label": "Liquid D Volume (uL)",
+        "name": "liquid_D_vol",
+        "default": 10
+    }
+]

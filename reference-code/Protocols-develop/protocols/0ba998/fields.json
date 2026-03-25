@@ -1,0 +1,15 @@
+[
+    {
+        "type": "int",
+        "label": "number of samples (1-96)",
+        "name": "num_samples",
+        "default": 96
+    },
+    {
+        "type": "float",
+        "label": "volume of DNA (in ul, 2-30)",
+        "name": "vol_dna",
+        "default": 30.0
+    }
+]
+  

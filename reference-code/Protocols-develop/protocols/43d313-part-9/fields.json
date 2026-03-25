@@ -1,0 +1,44 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "count_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Reservoir (mm)",
+    "name": "clearance_reservoir",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Engage Height for Magnetic Module (mm from base of labware)",
+    "name": "height_engage",
+    "default": 11.5
+  },
+  {
+    "type": "int",
+    "label": "Engage Time for Magnetic Module (minutes)",
+    "name": "time_engage",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Move to Avoid or Target Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Dry Time for Bead Pellet (minutes)",
+    "name": "time_dry",
+    "default": 3
+  },
+  {
+    "type": "textFile",
+    "label": "Upload CSV Input File (Upload CSV-formatted Excel File-with formatting of data values and file identical to example)",
+    "name": "uploaded_csv",
+    "default": "well,aspiration vol (uL)\nA1,2\nB1,3\nC1,4\nD1,2\nE1,3\nF1,4\nG1,2\nH1,3\nA2,4\nB2,2\nC2,3\nD2,4\nE2,2\nF2,3\nG2,4\nH2,2\nA3,3\nB3,4\nC3,2\nD3,3\nE3,4\nF3,2\nG3,3\nH3,4\nA4,2\nB4,3\nC4,4\nD4,2\nE4,3\nF4,4\nG4,2\nH4,3\nA5,4\nB5,2\nC5,3\nD5,4\nE5,2\nF5,3\nG5,4\nH5,2\nA6,3\nB6,4\nC6,2\nD6,3\nE6,4\nF6,2\nG6,3\nH6,4\nA7,2\nB7,3\nC7,4\nD7,2\nE7,3\nF7,4\nG7,2\nH7,3\nA8,4\nB8,2\nC8,3\nD8,4\nE8,2\nF8,3\nG8,4\nH8,2\nA9,3\nB9,4\nC9,2\nD9,3\nE9,4\nF9,2\nG9,3\nH9,4\nA10,2\nB10,3\nC10,4\nD10,2\nE10,3\nF10,4\nG10,2\nH10,3\nA11,4\nB11,2\nC11,3\nD11,4\nE11,2\nF11,3\nG11,4\nH11,2\nA12,3\nB12,4\nC12,2\nD12,3\nE12,4\nF12,2\nG12,3\nH12,4\n"
+  }
+]

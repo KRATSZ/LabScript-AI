@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 multi-channel mount",
+    "name": "m300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

@@ -1,0 +1,42 @@
+[
+    {
+      "type": "int",
+      "label": "Total samples (tubes)",
+      "name": "total_samples",
+      "default": 42
+    },
+    {
+        "type": "int",
+        "label": "Pool Size",
+        "name": "pool_size",
+        "default": 5
+      },
+      {
+        "type": "dropDown",
+        "label": "Deep Well Plate",
+        "name": "deepwell_plate_type",
+        "options": [
+          {"label": "Thermofisher Nunc 96 Well Plate 2mL", "value": "thermofisher_nunc_96_wellplate_2ml"},
+          {"label": "NEST 96 Deep Well Plate 2mL", "value": "nest_96_dwp_2ml"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300-single GEN2 mount",
+        "name": "p300s_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300-multi GEN2 mount",
+        "name": "p300m_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    }
+
+  ]

@@ -1,0 +1,36 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "_csv",
+    "default": "SlotSource,SourceWell,TransferVol H2O,TransferVol RNA,SlotDest (7 for TC),DestWell\n4,A1,x,5,3,A1\n4,B1,x,5,3,B1"
+  },
+  {
+    "type": "dropDown",
+    "label": "Sample Source Type",
+    "name": "_source_type",
+    "options": [
+      {"label": "Tube racks (slots 1, 2, 4, 5)", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"},
+      {"label": "Kingfisher 96 well plate (slot 1)", "value": "kingfisher_96_wellplate_600ul"}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "_p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "_m20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,92 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ]
+    ],
+    "brand": {
+        "brand": "Agilent",
+        "brandId": [
+            "204249-100"
+        ]
+    },
+    "metadata": {
+        "displayName": "Agilent 3 Reservoir 94630 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.47,
+        "zDimension": 44.04
+    },
+    "wells": {
+        "A1": {
+            "depth": 39.22,
+            "totalLiquidVolume": 94630,
+            "shape": "rectangular",
+            "xDimension": 38,
+            "yDimension": 82,
+            "x": 26,
+            "y": 42.77,
+            "z": 4.82
+        },
+        "A2": {
+            "depth": 39.22,
+            "totalLiquidVolume": 94630,
+            "shape": "rectangular",
+            "xDimension": 38,
+            "yDimension": 82,
+            "x": 64,
+            "y": 42.77,
+            "z": 4.82
+        },
+        "A3": {
+            "depth": 39.22,
+            "totalLiquidVolume": 94630,
+            "shape": "rectangular",
+            "xDimension": 38,
+            "yDimension": 82,
+            "x": 102,
+            "y": 42.77,
+            "z": 4.82
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "agilent_3_reservoir_95ml"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

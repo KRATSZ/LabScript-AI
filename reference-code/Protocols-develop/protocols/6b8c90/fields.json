@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Single Mount",
+    "name": "mnt300",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples (1-48)",
+    "name": "num_samps",
+    "default": 48
+  }
+]

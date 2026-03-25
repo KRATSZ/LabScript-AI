@@ -1,0 +1,72 @@
+[
+  {
+    "type": "textFile",
+    "label": "Volumes CSV",
+    "name": "volumes_csv",
+    "default": "sample,vol_dna,vol_water\nA1,23.4,11.6\nB1,4.9,21.1\nC1,21.6,4.4\nD1,15.1,10.9\nE1,19.1,6.9\nF1,18.6,7.4\nG1,10.7,15.3\nH1,21.9,4.1\nA2,19.1,6.9\nB2,0.4,25.6\nC2,24.0,2.0\nD2,6.1,19.9\nE2,10.7,15.3\nF2,24.2,1.8\nG2,6.1,19.9\nH2,3.0,23.0"
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel GEN2 pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "Right", "value": "right"},
+      { "label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel GEN2 pipette Mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "Left", "value": "left"},
+      { "label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Plate Type",
+    "name": "plate_type",
+    "options": [
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "NEST 96-Well, 200µL Flat", "value": "nest_96_wellplate_200ul_flat"},
+      {"label": "BioRad 96-Well, 200µL PCR", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "USA Scientific 96-Deepwell, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"},
+      {"label": "Corning 96-Well, 360µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      {"label": "Corning 384-Well, 112µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      {"label": "Corning Falcon 384-Well, 130 µL Square, Flat", "value": "corning_falcon_384_well_plate_130ul_square_flat"},
+      {"label": "Greiner Bio-One 96-well 392 µL Flat", "value": "greinerbioone_96_wellplate_392ul_flat"},
+      {"label": "PerkinElmer PhenoPlate 96-well 300 µL flat", "value": "perkinelmer_phenoplate_96_wellplate_300ul_circular_flat"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reservoir Type",
+    "name": "res_type",
+    "options": [
+      {"label": "USA Scientific 12-Well, 22mL", "value": "usascientific_12_reservoir_22ml"},
+      {"label": "NEST 1-Well, 195mL", "value": "nest_1_reservoir_195ml"},
+      {"label": "NEST 12-Well, 15mL", "value": "nest_12_reservoir_15ml"},
+      {"label": "Agilent 1-Well, 290mL", "value": "agilent_1_reservoir_290ml"},
+      {"label": "Axygen 1-Well, 90mL", "value": "axygen_1_reservoir_90ml"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Filter Tips?",
+    "name": "filter_tip",
+    "options": [
+      {"label": "No", "value": false},
+      {"label": "Yes", "value": true}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Usage Strategy",
+    "name": "tip_reuse",
+    "options": [
+      {"label": "Use a new tip for each transfer", "value": "never"},
+      {"label": "Reuse tip for each transfer", "value": "always"}
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi GEN2 mount",
+    "name": "m20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Flash on Protocol Completion?",
+    "name": "flash",
+    "options": [
+       { "label": "Yes", "value": "True" },
+       { "label": "No", "value": "False" }
+     ]
+  }
+]

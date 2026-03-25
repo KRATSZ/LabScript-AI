@@ -1,0 +1,113 @@
+[
+  {
+    "type": "int",
+    "label": "Create mastermix for how many numbers of samples",
+    "name": "n_samples",
+    "default": 96
+  },
+  {
+    "type": "str",
+    "label": "Binding buffer wells",
+    "name": "bindbuf_source_well_indices",
+    "default": "1-4"
+  },
+  {
+    "type": "str",
+    "label": "Bead mix well(s)",
+    "name": "bead_mix_source_well_indices",
+    "default": "5"
+  },
+  {
+    "type": "float",
+    "label": "Volume of binding buffer per source well (mL)",
+    "name": "vol_source_bb_per_well",
+    "default": 15.0
+  },
+  {
+    "type": "float",
+    "label": "Volume of bead mix per source well (mL)",
+    "name": "vol_source_bead_mix_per_well",
+    "default": 2.5
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "Left", "value": "left"},
+      { "label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi channel pipette mount",
+    "name": "m300_mount",
+    "options": [
+      { "label": "Right", "value": "right"},
+      { "label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Mastermix tuberack (Optional, only for small volumes of mastermix)",
+    "name": "mastermix_tuberack_lname",
+    "options": [
+      { "label": "None", "value": false},
+      { "label": "Opentrons 10 Tube Rack with Falcon 4x50 mL, 6x15 mL Conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical" },
+      { "label": "Opentrons 10 Tube Rack with NEST 4x50 mL, 6x15 mL Conical", "value": "opentrons_10_tuberack_nest_4x50ml_6x15ml_conical" },
+      { "label": "Opentrons 15 Tube Rack with Falcon 15 mL Conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+      { "label": "Opentrons 15 Tube Rack with NEST 15 mL Conical", "value": "opentrons_15_tuberack_nest_15ml_conical" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Binding buffer aspiration flow rate multiplier",
+    "name": "bb_asp_rate_multiplier",
+    "default": 0.3
+  },
+  {
+    "type": "float",
+    "label": "Binding buffer dispensing flow rate multiplier",
+    "name": "bb_disp_rate_multipler",
+    "default": 0.3
+  },
+  {
+    "type": "float",
+    "label": "Bead solution aspiration flow rate multiplier",
+    "name": "bead_asp_rate_multiplier",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Bead solution dispensing flow rate multiplier",
+    "name": "bead_disp_rate_multiplier",
+    "default": 1.0
+  },
+  {
+    "type": "int",
+    "label": "How many times do you want to mix the mastermix?",
+    "name": "n_mm_mixes",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Mastermix mixing rate multiplier",
+    "name": "mastermix_mix_rate_multiplier",
+    "default": 0.5
+  },
+  {
+    "type": "float",
+    "label": "Offsets from the edges of the reservoir wells for bead mix dispenses (mm)",
+    "name": "resv_well_edge_offset",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "Verbose protocol output?",
+    "name": "is_verbose",
+    "options": [
+      { "label": "Yes", "value": true},
+      { "label": "No", "value": false}
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+    {
+        "type": "float",
+        "label": "Aspiration Speed (µL/s)",
+        "name": "asp_speed",
+        "default": 100
+    },
+    {
+        "type": "float",
+        "label": "Dispensing Speed (µL/s)",
+        "name": "disp_speed",
+        "default": 100
+    },
+    {
+        "type": "float",
+        "label": "Aspiration Height (mm)",
+        "name": "asp_height",
+        "default": 10
+    },
+    {
+        "type": "float",
+        "label": "Dispense Height (mm)",
+        "name": "disp_height",
+        "default": 10
+    }
+  ]

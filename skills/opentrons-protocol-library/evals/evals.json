@@ -10,13 +10,13 @@
     {
       "id": 2,
       "prompt": "Show me how to implement liquid level tracking in an Opentrons protocol.",
-      "expected_output": "A reference to the Cookbook section on liquid level tracking with code examples showing simple, complex, and API 2.13+ implementations.",
+      "expected_output": "A reference to relevant bundled protocol folders or snippets that show liquid-height or volume-tracking logic, and a clear note that the current snapshot may not include Cookbook.md.",
       "files": []
     },
     {
       "id": 3,
       "prompt": "I'm starting a new PCR plate preparation protocol. What are the common patterns I should know?",
-      "expected_output": "Relevant Cookbook sections for PCR preparation, sample protocol examples for PCR, and tips for plate handling with multi-channel pipettes.",
+      "expected_output": "Relevant bundled protocol examples for PCR preparation, their README/protocol paths, and practical notes on multi-channel handling inferred from those references.",
       "files": []
     },
     {
@@ -28,7 +28,7 @@
     {
       "id": 5,
       "prompt": "What's the pattern for handling CSV files to define plate layouts?",
-      "expected_output": "A reference to the Cookbook's 'Using CSVs' section with code examples showing how to parse CSV input and map wells.",
+      "expected_output": "A focused answer based on bundled protocol-library references or snippets that show CSV handling patterns, with file paths and code locations where possible.",
       "files": []
     }
   ]

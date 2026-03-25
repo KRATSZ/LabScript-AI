@@ -1,0 +1,33 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "num_samples",
+    "options": [
+      {"label": "8", "value": "1"},
+      {"label": "16", "value": "2"},
+      {"label": "24", "value": "3"},
+      {"label": "32", "value": "4"},
+      {"label": "40", "value": "5"},
+      {"label": "48", "value": "6"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi Mount",
+    "name": "m_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Mount",
+    "name": "s_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

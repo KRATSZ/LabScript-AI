@@ -1,0 +1,218 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ],
+        [
+            "A4"
+        ],
+        [
+            "A5"
+        ],
+        [
+            "A6"
+        ],
+        [
+            "A7"
+        ],
+        [
+            "A8"
+        ],
+        [
+            "A9"
+        ],
+        [
+            "A10"
+        ],
+        [
+            "A11"
+        ],
+        [
+            "A12"
+        ]
+    ],
+    "brand": {
+        "brand": "NEST",
+        "brandId": [
+            "360102"
+        ]
+    },
+    "metadata": {
+        "displayName": "NEST 12 Reservoir 15 mL with Icetray",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 49.9
+    },
+    "wells": {
+        "A1": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 14.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A2": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 23.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A3": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 32.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A4": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 41.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A5": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 50.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A6": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 59.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A7": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 68.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A8": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 77.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A9": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 86.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A10": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 95.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A11": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 104.38,
+            "y": 42.78,
+            "z": 23.05
+        },
+        "A12": {
+            "depth": 26.85,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 113.38,
+            "y": 42.78,
+            "z": 23.05
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8",
+                "A9",
+                "A10",
+                "A11",
+                "A12"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "nest_12_reservoir_15ml_icetray"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

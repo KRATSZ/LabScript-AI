@@ -1,0 +1,77 @@
+[
+  {
+    "type": "int",
+    "label": "Aliquot Volume (5-20ul)",
+    "name": "aliquot_vol",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Single Source Well (this should always be A1 in slot 3)?",
+    "name": "use_single_source",
+    "options": [
+      {"label": "No, iterate through samples", "value": false},
+      {"label": "Yes, always pull from A1 on slot 3", "value": true}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples (1-24)",
+    "name": "num_samp",
+    "default": 24
+  },
+  {
+    "type": "int",
+    "label": "Digestion Temperature (in C)",
+    "name": "digestion_temp",
+    "default": 95
+  },
+  {
+    "type": "int",
+    "label": "Digestion Incubation Time (minutes)",
+    "name": "digestion_time",
+    "default": 720
+  },
+  {
+    "type": "int",
+    "label": "Sample Aliquot Volume from Digestion to Analysis Plate (step 11, 5-20ul)",
+    "name": "sample_vol",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Transfer to Storage Block?",
+    "name": "transfer_to_storage",
+    "options": [
+      {"label": "Yes, transfer", "value": true},
+      {"label": "No, do not transfer", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Test Mode? (skip temperature changes and hour delays)",
+    "name": "test_mode",
+    "options": [
+      {"label": "No, real run", "value": false},
+      {"label": "Yes, test mode (skip delays)", "value": true}
+    ]
+  }
+]

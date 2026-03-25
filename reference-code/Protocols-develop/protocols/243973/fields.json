@@ -1,0 +1,44 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "mnt300",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20-Multi Mount",
+    "name": "mnt20",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Destination Plates",
+    "name": "numPlates",
+    "default": 7
+  },
+  {
+    "type": "textFile",
+    "label": "Transfer CSV",
+    "name": "t_csv",
+    "default": "1, 2, 3, 4, 5\nA1, 1, A1, 7, 63\nA2, 1, A2, 14, 56\nA1, 2, A1, 20, 0"
+  },
+  {
+    "type": "str",
+    "label": "Email (if notifying)",
+    "name": "em",
+    "default": "your@email.com"
+  },
+  {
+    "type": "str",
+    "label": "Email Password",
+    "name": "pw",
+    "default": "********"
+  }
+]

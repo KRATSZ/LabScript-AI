@@ -1,0 +1,40 @@
+[
+  {
+    "type": "textFile",
+    "label": "input .csv file",
+    "name": "input_csv",
+    "default": "Sample number,Source Slot,Source well,Destination well,Start Concentration (ug/uL) Source,Final Concentraion (ug/ml) Destination,Sample volume (uL),Diluent Volume(ul),Total Volume(ul) Destination\n1,4,A1,A1,5,2,40,60,100.0\n2,4,C1,B1,3,2,67,33,100.0\n3,4,D1,C1,10,2,20,80,100.0\n4,4,E3,D1,20,2,10,90,100.0\n"
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette type",
+    "name": "pipette_type",
+    "options": [
+      {"label": "P50 Single GEN1", "value": "p50_single"},
+      {"label": "P300 Single GEN2", "value": "p300_single_gen2"},
+      {"label": "P300 Single GEN1", "value": "p300_single"},
+      {"label": "P20 Single GEN2", "value": "p20_single_gen2"},
+      {"label": "P10 Single GEN1", "value": "p10_single"},
+      {"label": "P1000 Single GEN2", "value": "p1000_single_gen2"},
+      {"label": "P1000 Single GEN1", "value": "p1000_single"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette mount",
+    "name": "pipette_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "source labware type",
+    "name": "source_type",
+    "options": [
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "Opentrons 24 Tube Rack with NEST 1.5 mL Snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap"}
+    ]
+  }
+]

@@ -1,0 +1,83 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Count (up to 96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Initial Sample Volume (ul)",
+    "name": "starting_vol",
+    "default": 30
+  },
+  {
+    "type": "float",
+    "label": "Binding Buffer Volume Per Sample (ul)",
+    "name": "binding_buffer_vol",
+    "default": 466
+  },
+  {
+    "type": "float",
+    "label": "Wash1 Volume Per Sample (ul)",
+    "name": "wash1_vol",
+    "default": 500
+  },
+  {
+    "type": "float",
+    "label": "Volume of Wash2 Per Sample (ul)",
+    "name": "wash2_vol",
+    "default": 500
+  },
+  {
+    "type": "float",
+    "label": "Volume of Wash3 Per Sample (ul)",
+    "name": "wash3_vol",
+    "default": 500
+  },
+  {
+    "type": "float",
+    "label": "Volume of Elution Buffer Per Sample (ul)",
+    "name": "elution_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Number of Mix Repetitions (Bead Washes)",
+    "name": "mix_reps",
+    "default": 10
+  },
+  {
+    "type": "int",
+    "label": "Magnet Engage Time (minutes)",
+    "name": "settling_time",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Park Tips? (yes or no)",
+    "name": "park_tips",
+    "options": [
+      { "label": "YES", "value": true },
+      { "label": "NO", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Keep Track of Starting Tip for the Next Protocol Run? (yes or no)",
+    "name": "tip_track",
+    "options": [
+      { "label": "NO", "value": false },
+      { "label": "YES", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Flash Deck Lights? (Notification to Empty Tip Waste-yes or no)",
+    "name": "flash",
+    "options": [
+      { "label": "NO", "value": false },
+      { "label": "YES", "value": true }
+    ]
+  }
+]

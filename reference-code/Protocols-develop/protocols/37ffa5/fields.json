@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples in Row A of Tube Rack (1-5)",
+    "name": "count_samples_rowa",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples in Row B of Tube Rack (0-5)",
+    "name": "count_samples_rowb",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples in Row C of Tube Rack (0-5)",
+    "name": "count_samples_rowc",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples in Row D of Tube Rack (0-5)",
+    "name": "count_samples_rowd",
+    "default": 5
+  }
+]

@@ -1,0 +1,84 @@
+[
+  {
+    "type": "int",
+    "label": "Fill Volume (215-250 uL)",
+    "name": "fill_volume",
+    "default": 250
+  },
+  {
+    "type": "int",
+    "label": "Number of Caps (up to 96)",
+    "name": "cap_count",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Racks (1-4 with slot fill order 4,1,5,2)",
+    "name": "rack_count",
+    "options": [
+      { "label": "Four Custom Racks (slots 4,1,5,2)", "value": 4 },
+      { "label": "Three Custom Racks (slots 4,1,5)", "value": 3 },
+      { "label": "Two Custom Racks (slots 4,1)", "value": 2 },
+      { "label": "One Custom Rack (slot 4)", "value": 1 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Do you Plan to Have All Four Custom Racks on Deck (even in runs with fewer than 96 caps)? (yes or no)",
+    "name": "remove_empty_racks",
+    "options": [
+      { "label": "YES - Keep All Four Custom Racks on Deck", "value": false },
+      { "label": "NO - Calculate the Number of Custom Racks on Deck Based on the Number of Caps", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include a Step to Custom Arrange Tips at the Start of This Run (by default keep this set to no)? (yes or no)",
+    "name": "arrange_tips",
+    "options": [
+      { "label": "NO - tips are already in place", "value": false },
+      { "label": "YES - place a full box in slot 10 and an empty box in slot 11", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Keep Track of the Starting Tip from One Protocol Run to the Next? (yes or no)",
+    "name": "track_tips",
+    "options": [
+      { "label": "YES", "value": true },
+      { "label": "NO - user will add fresh tip boxes at the start of each run", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Change Tips After Every Dispense? (yes or no)",
+    "name": "change_tips",
+    "options": [
+      { "label": "NO - change tips after every rack", "value": false },
+      { "label": "YES", "value": true }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Height of Tip Above Bottom of Reservoir During Aspiration (mm)",
+    "name": "clearance_reservoir",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "Restart Tip Tracking (by default keep this set to no)? (yes or no)",
+    "name": "tracking_reset",
+    "options": [
+      { "label": "NO - continue tracking tips as usual", "value": false },
+      { "label": "YES - restart tip tracking at A1 slot 10 and add fresh tip boxes", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Custom Rack Labware Definition",
+    "name": "labware_rack",
+    "options": [
+      { "label": "Custom 24-Well Rack", "value": "custom_24_well_rack" }
+    ]
+  }
+]

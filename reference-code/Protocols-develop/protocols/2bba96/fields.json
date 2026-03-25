@@ -1,0 +1,88 @@
+[
+  {
+    "type": "float",
+    "label": "Aspiration Flow Rate for Mixing (use 0.3-3) (for 0.3-3 times the default rate)",
+    "name": "mix_asp_rate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Dispense Flow Rate for Mixing (use 0.3-3) (for 0.3-3 times the default rate)",
+    "name": "mix_disp_rate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Dead Volume in Reservoir Wells (volume in ul at which to move on to next source well)",
+    "name": "dead_vol",
+    "default": 3000
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Parent Plate",
+    "name": "labware_parent",
+    "options": [
+      { "label": "thermo_96_wellplate_ab_0800_200ul", "value": "thermo_96_wellplate_ab_0800_200ul" },
+      { "label": "brand_96_wellplate_360ul", "value": "brand_96_wellplate_360ul" },
+      { "label": "brooksframestar_96_wellplate_200ul", "value": "brooksframestar_96_wellplate_200ul" },
+      { "label": "biorad_96_wellplate_200ul_pcr", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "axygen_96_wellplate_500ul", "value": "axygen_96_wellplate_500ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Child Plates",
+    "name": "labware_child",
+    "options": [
+      { "label": "thermo_96_wellplate_ab_0800_200ul", "value": "thermo_96_wellplate_ab_0800_200ul" },
+      { "label": "brand_96_wellplate_360ul", "value": "brand_96_wellplate_360ul" },
+      { "label": "brooksframestar_96_wellplate_200ul", "value": "brooksframestar_96_wellplate_200ul" },
+      { "label": "axygen_96_wellplate_500ul", "value": "axygen_96_wellplate_500ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reservoir",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "usascientific_12_reservoir_22ml", "value": "usascientific_12_reservoir_22ml" },
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Buffer Dispenses (mm)",
+    "name": "clearance_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Minimum Well Bottom Clearance for Reservoir (mm)",
+    "name": "clearance_reservoir",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Aspiration from Parent Plate (mm)",
+    "name": "clearance_aspirate",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Dispense of Parent Volume to Child Plate (mm)",
+    "name": "clearance_dispense",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Count of Mix Repetitions to Perform (0-5)",
+    "name": "mix_reps",
+    "default": 3
+  },
+  {
+    "type": "textFile",
+    "label": "Upload CSV Input File (Upload CSV-formatted Excel File-with formatting of data values and file identical to example)",
+    "name": "uploaded_csv",
+    "default": "Parent Plate Location,Parent Well Location,Child Plate Location,Child Well Location,Concentration Parent (mg/mL),Concentration Child (mg/mL),Volume in Child (ul),Volume from Parent (ul),Volume Buffer (ul)\n4,A1,5,A1,1,0.1,110,11,99\n4,B2,5,A2,1.1,0.1,110,10,100\n4,B4,5,A3,1.5,0.1,110,7.3,102.7\n4,A4,5,A4,1.2,0.1,110,9.2,100.8\n4,A5,5,A5,0.9,0.1,110,12.2,97.8\n4,A6,5,A6,0.5,0.1,110,22,88\n4,A7,5,A7,,,,,\n4,A8,5,A8,,,,,\n4,A9,5,A9,,,,,\n4,A10,5,A10,,,,,\n4,A11,5,A11,,,,,\n4,A12,5,A12,,,,,\n4,B1,5,B1,,,,,\n4,B2,5,B2,1,0.1,110,11,99\n4,B3,5,B3,1.1,0.1,110,10,100\n4,B4,5,B4,1.5,0.1,110,7.3,102.7\n4,B5,5,B5,1.2,0.1,110,9.2,100.8\n4,B6,5,B6,0.9,0.1,110,12.2,97.8\n4,B7,5,B7,0.5,0.1,110,22,88\n7,B8,5,B8,,,,,\n7,B9,5,B9,,,,,\n7,C10,5,B10,,,,,\n7,C1,5,B11,,,,,\n8,C3,5,B12,,,,,\n8,C1,5,C1,,,,,\n8,C2,5,C2,1,0.1,110,11,99\n8,C3,5,C3,1.1,0.1,110,10,100\n10,C4,5,C4,1.5,0.1,110,7.3,102.7\n10,D1,5,C5,1.2,0.1,110,9.2,100.8\n10,D2,5,C6,1,0.1,110,11,99\n10,D6,5,C7,1.1,0.1,110,10,100\n11,C8,5,C8,1.5,0.1,110,7.3,102.7\n11,B2,5,C9,1.2,0.1,110,9.2,100.8\n11,A11,5,C10,0.1,0.1,110,110,0\n11,A12,5,C11,0.1,0.1,110,110,0\n"
+  }
+]

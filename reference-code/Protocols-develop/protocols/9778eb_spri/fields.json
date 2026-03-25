@@ -1,0 +1,95 @@
+[
+    {
+      "type": "int",
+      "label": "Number of Samples, 1-96",
+      "name": "num_samples",
+      "default": 96
+    },
+    {
+      "type": "int",
+      "label": "Initial Sample Volume (uL)",
+      "name": "vol_start",
+      "default": 50
+    },
+    {
+      "type": "float",
+      "label": "Bead Ratio 1",
+      "name": "bead_ratio_1",
+      "default": 0.6
+    },
+    {
+      "type": "float",
+      "label": "Bead Ratio 2 for Size Selection",
+      "name": "bead_ratio_2",
+      "default": 0.8
+    },
+    {
+      "type": "int",
+      "label": "Transfer Volume Post-Bead Addition (uL)",
+      "name": "vol_trans",
+      "default": 75
+    },
+    {
+      "type": "int",
+      "label": "Bead Air Dry Time (Minutes)",
+      "name": "air_dry_time",
+      "default": 10
+    },
+    {
+      "type": "int",
+      "label": "Bead Incubation Time (Minutes)",
+      "name": "incubation_delay_time",
+      "default": 5
+    },
+    {
+      "type": "int",
+      "label": "Bead Separation Time (Minutes)",
+      "name": "bead_delay_time",
+      "default": 5
+    },
+    {
+      "type": "int",
+      "label": "Elution Solution Volume (uL)",
+      "name": "elution_vol",
+      "default": 50
+    },
+    {
+      "type": "int",
+      "label": "Elution Time (Minutes)",
+      "name": "elution_time",
+      "default": 10
+    },
+    {
+      "type": "int",
+      "label": "Final Plate Volume",
+      "name": "vol_final_plate",
+      "default": 50
+    },
+    {
+      "type": "dropDown",
+      "label": "Flash Robot on Pause",
+      "name": "flash",
+      "options": [
+        {"label": "yes", "value": true},
+        {"label": "no", "value": false}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 Multi Channel Pipette Mount",
+        "name": "p300_mount",
+        "options": [
+          {"label": "Left", "value": "left"},
+          {"label": "Right", "value": "right"}
+        ]
+      },
+      {
+        "type": "dropDown",
+        "label": "Size Selection or Single Purification?",
+        "name": "size_select",
+        "options": [
+          {"label": "Size Selection", "value": true},
+          {"label": "Single Purification", "value": false}
+          ]
+      }
+  ]

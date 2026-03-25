@@ -1,0 +1,74 @@
+[
+    {
+        "type": "dropDown",
+        "label": "Debug Mode",
+        "name": "debug",
+        "options": [
+          {"label": "Enable", "value": "True"},
+          {"label": "Disable", "value": "False"}
+        ]
+    },
+    {
+        "type": "int",
+        "label": "Sample Number (Multiples of 8)",
+        "name": "samples",
+        "default": 96
+    },
+    {
+        "type": "dropDown",
+        "label": "P300-multichannel GEN2 mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20-multichannel GEN2 mount",
+        "name": "m20_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 Tip Type",
+        "name": "tip_type",
+        "options": [
+          {"label": "standard", "value": "standard"},
+          {"label": "filter", "value": "filter"}
+        ]
+    },
+    {
+        "type": "float",
+        "label": "Master Mix 2 Volume",
+        "name": "mm2_vol",
+        "default": 300
+    },
+    {
+        "type": "float",
+        "label": "VHB Buffer Volume",
+        "name": "vhb_vol",
+        "default": 300
+    },
+    {
+        "type": "float",
+        "label": "Elution Buffer Volume",
+        "name": "elution_buffer_vol",
+        "default": 100
+    },
+    {
+        "type": "int",
+        "label": "Magnetic Module Bead Settling Time (Minutes)",
+        "name": "settling_time",
+        "default": 5
+    },
+    {
+        "type": "int",
+        "label": "Trash Tip Threshold (number of tips before emptying)",
+        "name": "tip_threshold",
+        "default": 288
+    }
+]

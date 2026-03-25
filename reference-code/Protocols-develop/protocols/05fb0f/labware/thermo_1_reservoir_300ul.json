@@ -1,0 +1,64 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "Thermo",
+        "brandId": [
+            "1200-1301"
+        ]
+    },
+    "metadata": {
+        "displayName": "Thermo 1 Reservoir 300 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 128,
+        "yDimension": 86,
+        "zDimension": 40
+    },
+    "wells": {
+        "A1": {
+            "depth": 36.8,
+            "totalLiquidVolume": 300,
+            "shape": "rectangular",
+            "xDimension": 121,
+            "yDimension": 79,
+            "x": 64,
+            "y": 43,
+            "z": 3.2
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "thermo_1_reservoir_300ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

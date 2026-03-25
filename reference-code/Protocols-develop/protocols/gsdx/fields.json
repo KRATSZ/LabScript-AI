@@ -1,0 +1,59 @@
+[
+  {
+    "type": "int",
+    "label": "number of listeria wells to run (including +/- controls)",
+    "name": "num_samples_listeria",
+    "default": 48
+  },
+  {
+    "type": "int",
+    "label": "number of salmonella wells to run (including +/- controls)",
+    "name": "num_samples_salmonella",
+    "default": 48
+  },
+  {
+    "type": "int",
+    "label": "number of listeria wells in kit remaining",
+    "name": "num_samples_listeria_remaining",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "number of salmonella wells in kit remaining",
+    "name": "num_samples_salmonella_remaining",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "sample rack format",
+    "name": "sample_rack_type",
+    "options": [
+      {
+        "label": "KingFisher 96 Tube Rack with GoldStandard 1.1 mL",
+        "value": "kingfisher_96_tuberack_1100ul"
+      },
+      {
+        "label": "BIOPlastics BV 96 Aluminum Block 200 µL",
+        "value": "bioplasticsbv_96_aluminumblock_200ul"
+      }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "running salmonella meat",
+    "name": "salmonella_meat",
+    "options": [
+      { "label": "no", "value": false },
+      { "label": "yes", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "flash on completion",
+    "name": "do_flash",
+    "options": [
+      { "label": "no", "value": false },
+      { "label": "yes", "value": true }
+    ]
+  }
+]

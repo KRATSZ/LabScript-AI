@@ -1,0 +1,165 @@
+[
+  {
+    "type": "int",
+    "label": "Number of samples",
+    "name": "n_samples",
+    "default": 384
+  },
+  {
+      "type": "int",
+      "label": "Number of mixes",
+      "name": "n_mixes",
+      "default": 5
+  },
+  {
+      "type": "float",
+      "label": "Aspiration rate multiplier",
+      "name": "aspiration_rate_multiplier",
+      "default": 1
+  },
+  {
+      "type": "float",
+      "label": "Dispensation rate multiplier",
+      "name": "dispensation_rate_multiplier",
+      "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Left pipette type",
+    "name": "left_pipette_lname",
+    "options": [
+      { "label": "P20 Multi GEN2", "value": "p20_multi_gen2" },
+      { "label": "P300 Multi GEN2", "value": "p300_multi_gen2" },
+      { "label": "P1000 Single GEN2", "value": "p1000_single_gen2"},
+      { "label": "P300 Single GEN2", "value": "p300_single_gen2"},
+      { "label": "P20 Single GEN2", "value": "p20_single_gen2"},
+      { "label": "P10 Multi", "value": "p10_multi" },
+      { "label": "P50 Multi", "value": "p50_multi" },
+      { "label": "P300 Multi", "value": "p300_multi" },
+      { "label": "P1000 Single", "value": "p1000_single"},
+      { "label": "P300 Single", "value": "p300_single"},
+      { "label": "P50 Single", "value": "p50_single"},
+      { "label": "P20 Single", "value": "p20_single"},
+      { "label": "None", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Right pipette type",
+    "name": "right_pipette_lname",
+    "options": [
+      { "label": "P300 Multi GEN2", "value": "p300_multi_gen2" },
+      { "label": "P20 Multi GEN2", "value": "p20_multi_gen2" },
+      { "label": "P1000 Single GEN2", "value": "p1000_single_gen2"},
+      { "label": "P300 Single GEN2", "value": "p300_single_gen2"},
+      { "label": "P20 Single GEN2", "value": "p20_single_gen2"},
+      { "label": "P10 Multi", "value": "p10_multi" },
+      { "label": "P50 Multi", "value": "p50_multi" },
+      { "label": "P300 Multi", "value": "p300_multi" },
+      { "label": "P1000 Single", "value": "p1000_single"},
+      { "label": "P300 Single", "value": "p300_single"},
+      { "label": "P50 Single", "value": "p50_single"},
+      { "label": "P20 Single", "value": "p20_single"},
+      { "label": "None", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Filtered or unfiltered tips for the left pipette?",
+    "name": "use_filter_tips_left",
+    "options": [
+      { "label": "Filter tips", "value": true },
+      { "label": "Regular tips", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Filtered or unfiltered tips for the right pipette?",
+    "name": "use_filter_tips_right",
+    "options": [
+      { "label": "Filter tips", "value": true },
+      { "label": "Regular tips", "value": false }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Mastermix volume (in ul)",
+    "name": "mastermix_volume",
+    "default": 18
+  },
+  {
+    "type": "float",
+    "label": "DNA volume (in ul)",
+    "name": "DNA_volume",
+    "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "Mastermix reservoir",
+    "name": "mastermix_reservoir_lname",
+    "options": [
+      { "label": "NEST 12 Well Reservoir 15 mL", "value": "nest_12_reservoir_15ml" },
+      { "label": "NEST 1 Well Reservoir 195 mL", "value": "nest_1_reservoir_195ml" },
+      { "label": "NEST 96 Deepwell plate 2 mL", "value": "nest_96_wellplate_2ml_deep" },
+      { "label": "USA Scientific 12 Well Reservoir 22 mL", "value": "usascientific_12_reservoir_22ml" },
+      { "label": "Agilent 1 Well Reservoir 290 mL", "value": "agilent_1_reservoir_290ml" },
+      { "label": "Axygen 1 Well Reservoir 90 mL", "value": "axygen_1_reservoir_90ml" },
+      { "label": "USA Scientific 96 Deep well Plate 2.4 mL", "value": "usascientific_96_wellplate_2.4ml_deep" },
+      { "label": "Stellar Scientific 96 Deep well Plate 1.1 mL", "value": "stellarscientific_96_wellplate_1100ul"}
+    ]
+  },
+  {
+  "type": "dropDown",
+  "label": "PCR well plate (or PCR strips) containing template DNA",
+  "name": "DNA_well_plate_lname",
+  "options": [
+      { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "Bio-Rad 96 well 200 µL PCR plate", "value": "biorad_96_wellplate_200ul_pcr"},
+      { "label": "Corning 384 Well Plate 112 µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      { "label": "Corning 96 Well Plate 360 µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      { "label": "Stellar Scientific 96 Well Plate 100 µL PCR Raised Skirt", "value": "stellarscientific_96_wellplate_100ul"},
+      { "label": "Stellar Scientific 384 Well Plate 50 µL PCR Full Skirt", "value": "stellarscientific_384_wellplate_50ul"},
+      { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+      { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 uL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+      { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+      { "label": "Opentrons 96 Well Aluminum Block with Stellar Scientific Well Plate 100 µL PCR Raised Skirt", "value": "stellarscientific_96_aluminumblock_100ul"}
+    ]
+  },
+  {
+  "type": "dropDown",
+  "label": "Destination PCR well plate or PCR strips",
+  "name": "destination_well_plate_lname",
+  "options": [
+      { "label": "Corning 384 Well Plate 112 µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "Bio-Rad 96 well 200 uL PCR plate", "value": "biorad_96_wellplate_200ul_pcr"},
+      { "label": "Corning 96 Well Plate 360 µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      { "label": "Stellar Scientific 96 Well Plate 100 µL PCR Raised Skirt", "value": "stellarscientific_96_wellplate_100ul"},
+      { "label": "Stellar Scientific 384 Well Plate 50 µL PCR Full Skirt", "value": "stellarscientific_384_wellplate_50ul"},
+      { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+      { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 uL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+      { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+      { "label": "Opentrons 96 Well Aluminum Block with Stellar Scientific Well Plate 100 µL PCR Raised Skirt", "value": "stellarscientific_96_aluminumblock_100ul"}
+    ]
+  },
+  {
+  "type": "dropDown",
+  "label": "Temperature module for the template sample well plate",
+  "name": "DNA_well_plate_tmod",
+  "options": [
+      { "label": "None", "value": false },
+      { "label": "Temperature module Gen2", "value": "temperature module gen2" },
+      { "label": "Temperature module Gen1", "value": "temperature module" }
+    ]
+  },
+  {
+  "type": "dropDown",
+  "label": "Temperature module for the destination well plate",
+  "name": "dest_well_plate_tmod",
+  "options": [
+      { "label": "None", "value": false },
+      { "label": "Temperature module Gen2", "value": "temperature module gen2" },
+      { "label": "Temperature module Gen1", "value": "temperature module" }
+    ]
+  }
+]

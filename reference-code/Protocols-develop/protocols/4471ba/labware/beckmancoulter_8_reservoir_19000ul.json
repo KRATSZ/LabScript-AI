@@ -1,0 +1,162 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ],
+        [
+            "A4"
+        ],
+        [
+            "A5"
+        ],
+        [
+            "A6"
+        ],
+        [
+            "A7"
+        ],
+        [
+            "A8"
+        ]
+    ],
+    "brand": {
+        "brand": "Beckman Coulter",
+        "brandId": [
+            "Biomek® Modular Reservoirs 8 positions"
+        ]
+    },
+    "metadata": {
+        "displayName": "Beckman Coulter 8 Reservoir 19000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 38
+    },
+    "wells": {
+        "A1": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 18,
+            "y": 42.74,
+            "z": 2
+        },
+        "A2": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 31,
+            "y": 42.74,
+            "z": 2
+        },
+        "A3": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 44,
+            "y": 42.74,
+            "z": 2
+        },
+        "A4": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 57,
+            "y": 42.74,
+            "z": 2
+        },
+        "A5": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 70,
+            "y": 42.74,
+            "z": 2
+        },
+        "A6": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 83,
+            "y": 42.74,
+            "z": 2
+        },
+        "A7": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 96,
+            "y": 42.74,
+            "z": 2
+        },
+        "A8": {
+            "depth": 36,
+            "totalLiquidVolume": 19000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 68,
+            "x": 109,
+            "y": 42.74,
+            "z": 2
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "beckmancoulter_8_reservoir_19000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

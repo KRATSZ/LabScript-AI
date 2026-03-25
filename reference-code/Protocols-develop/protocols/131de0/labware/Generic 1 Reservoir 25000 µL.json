@@ -1,0 +1,64 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "Generic",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Generic 1 Reservoir 25000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.8,
+        "yDimension": 85.5,
+        "zDimension": 27
+    },
+    "wells": {
+        "A1": {
+            "depth": 21.5,
+            "totalLiquidVolume": 25000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 25,
+            "y": 65.5,
+            "z": 5.5
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "displayName": "Generic 1 Reservoir 25000 µL",
+                "displayCategory": "reservoir",
+                "wellBottomShape": "v"
+            },
+            "brand": {
+                "brand": "Generic",
+                "brandId": []
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "generic_1_reservoir_25000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

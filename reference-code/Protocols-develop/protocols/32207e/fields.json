@@ -1,0 +1,42 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": "Well,initial conc (ng/μL),initial volume (μL),final conc (ng/μL),volume to add (μL),Name,Pipette\nA1,1385,10,100,129,R1125 LBCC 1035 mix,P200"
+  },
+  {
+    "type": "float",
+    "label": "DNA Aspiration Flow Rate",
+    "name": "dna_asp_rate",
+    "default": 0.5
+  },
+  {
+    "type": "dropDown",
+    "label": "Track tips?",
+    "name": "tip_track",
+    "options": [
+      {"label": "No, start at A1", "value": false},
+      {"label": "Yes, start from where the last protocol left off", "value": true}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

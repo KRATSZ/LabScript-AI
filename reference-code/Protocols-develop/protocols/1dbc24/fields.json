@@ -1,0 +1,14 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "tip starting column (1-12)",
+    "name": "_tip_start_column",
+    "default": 1
+  }
+]

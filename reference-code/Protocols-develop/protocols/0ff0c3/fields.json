@@ -1,0 +1,17 @@
+[
+    {
+      "type": "int",
+      "label": "Number of Samples",
+      "name": "num_samp",
+      "default": 96
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 multi-channel pipette mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    }
+  ]

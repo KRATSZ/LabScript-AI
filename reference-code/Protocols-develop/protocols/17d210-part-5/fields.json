@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples per plate (1-96)",
+    "name": "num_samples_per_plate",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 multi-channel GEN2 pipette mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "sample volume (in µl)",
+    "name": "sample_vol",
+    "default": 5.0
+  },
+  {
+    "type": "float",
+    "label": "number of source plates (1-5)",
+    "name": "num_plates",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "transfer scheme",
+    "name": "transfer_scheme",
+    "options": [
+      {"label": "same tip for each sample", "value": "same"},
+      {"label": "new tip for each transfer", "value": "change"}
+    ]
+  }
+]

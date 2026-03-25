@@ -1,0 +1,50 @@
+[
+    {
+        "type": "float",
+        "label": "transfer volume (in ul)",
+        "name": "vol_transfer",
+        "default": 100.0
+      },
+      {
+      "type": "dropDown",
+      "label": "destination quadrant",
+      "name": "quadrant",
+      "options": [
+        {"label": "plate 1, top left (1A1)", "value": "1A1"},
+        {"label": "plate 1, top right (1A7)", "value": "1A7"},
+        {"label": "plate 1, bottom left (1E1)", "value": "1E1"},
+        {"label": "plate 1, bottom right (1E7)", "value": "1E7"},
+        {"label": "plate 1, top left (2A1)", "value": "2A1"},
+        {"label": "plate 1, top right (2A7)", "value": "2A7"},
+        {"label": "plate 1, bottom left (2E1)", "value": "2E1"},
+        {"label": "plate 1, bottom right (2E7)", "value": "2E7"}
+      ]
+    },
+    {
+      "type": "dropDown",
+      "label": "P1000 single-channel GEN2 pipette mount",
+      "name": "mount_p1000",
+      "options": [
+        {"label": "left", "value": "left"},
+        {"label": "right", "value": "right"}
+      ]
+    },
+    {
+      "type": "dropDown",
+      "label": "P1000 starting tiprack",
+      "name": "tiprack_start",
+      "options": [
+        {"label": "5", "value": "5"},
+        {"label": "6", "value": "6"},
+        {"label": "8", "value": "8"},
+        {"label": "9", "value": "9"}
+      ]
+    },
+    {
+        "type": "str",
+        "label": "P1000 starting tip well (A1-H12",
+        "name": "tipwell_start",
+        "default": "A1"
+    }
+]
+  

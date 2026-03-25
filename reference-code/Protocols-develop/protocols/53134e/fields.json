@@ -1,0 +1,23 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-24)",
+    "name": "num_samples",
+    "default": 24
+  },
+  {
+    "type": "float",
+    "label": "transfer volume (100-1000, in µl)",
+    "name": "transfer_vol",
+    "default": 925.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 single-channel (GEN2) pipette mount",
+    "name": "p1000_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

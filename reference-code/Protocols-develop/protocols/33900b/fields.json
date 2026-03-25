@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "sample_num",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN1 multi-channel mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

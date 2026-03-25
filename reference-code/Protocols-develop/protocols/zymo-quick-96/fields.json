@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "numSamps",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Generation",
+    "name": "p300m",
+    "options": [
+      {"label": "GEN 2", "value": "p300_multi_gen2"},
+      {"label": "GEN 1", "value": "p300_multi"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "pipMnt",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Magnetic Module Generation",
+    "name": "mag_gen",
+    "options": [
+      {"label": "GEN 2", "value": "magnetic module gen2"},
+      {"label": "GEN 1", "value": "magdeck"}
+    ]
+  }
+]

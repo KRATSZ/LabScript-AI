@@ -1,0 +1,53 @@
+[
+    {
+      "type": "textFile",
+      "label": ".CSV File",
+      "name": "transfer_csv",
+      "default": "DNA Normalization,RNA Concentration,Goal Concentration,Total Volume\n4,27.6,5.7,30.5"
+    },
+    {
+      "type": "dropDown",
+      "label": "pipette type 1",
+      "name": "pipette_type_1",
+      "options": [
+        {"label": "p20_single_gen2", "value": "p20_single_gen2"},
+        {"label": "p300_single_gen2", "value": "p300_single_gen2"}
+      ]
+    },
+    {
+      "type": "dropDown",
+      "label": "Pipette Mount 1",
+      "name": "pipette_mount_1",
+      "options": [
+        {"label": "Left", "value": "left"},
+        {"label": "Right", "value": "right"}
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "pipette type 2",
+        "name": "pipette_type_2",
+        "options": [
+          {"label": "p300_single_gen2", "value": "p300_single_gen2"},
+          {"label": "p20_single_gen2", "value": "p20_single_gen2"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Pipette Mount 2",
+        "name": "pipette_mount_2",
+        "options": [
+          {"label": "Right", "value": "right"},
+          {"label": "Left", "value": "left"}
+        ]
+    },
+    {
+      "type": "dropDown",
+      "label": "P300_used?",
+      "name": "p300_used",
+      "options": [
+        {"label": "Yes", "value": "yes"},
+        {"label": "No", "value": "no"}
+      ]
+    }
+  ]

@@ -1,0 +1,27 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "sample_count",
+    "default": 48
+  },
+  {
+    "type": "int",
+    "label": "volume to transfer",
+    "name": "volume",
+    "default": 100
+  },
+  {
+    "type": "string",
+    "label": "input labware",
+    "name": "input_labware",
+    "default": "corning_24_wellplate_3.4ml_flat"
+  },
+  {
+    "type": "string",
+    "label": "output labware",
+    "name": "output_labware",
+    "default": "corning_24_wellplate_3.4ml_flat"
+  }
+]
+

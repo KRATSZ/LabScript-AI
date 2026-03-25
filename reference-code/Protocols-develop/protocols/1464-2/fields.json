@@ -1,0 +1,14 @@
+[
+    {
+        "type": "int",
+        "label": "number of standards",
+        "name": "number_of_standards",
+        "default": 6
+    },
+    {
+        "type": "textFile",
+        "label": "concentration .csv file",
+        "name": "concentration_csv",
+        "default": "50,500,5000\n10,10000,100000\n100,,\n5,,"
+    }
+]

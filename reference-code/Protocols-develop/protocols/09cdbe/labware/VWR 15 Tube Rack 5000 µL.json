@@ -1,0 +1,230 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1",
+            "C1"
+        ],
+        [
+            "A2",
+            "B2",
+            "C2"
+        ],
+        [
+            "A3",
+            "B3",
+            "C3"
+        ],
+        [
+            "A4",
+            "B4",
+            "C4"
+        ],
+        [
+            "A5",
+            "B5",
+            "C5"
+        ]
+    ],
+    "brand": {
+        "brand": "VWR",
+        "brandId": [
+            "10002-731"
+        ]
+    },
+    "metadata": {
+        "displayName": "VWR 15 Tube Rack 5000 µL",
+        "displayCategory": "tubeRack",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 81
+    },
+    "wells": {
+        "A1": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 13.88,
+            "y": 67.74,
+            "z": 25
+        },
+        "B1": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 13.88,
+            "y": 42.74,
+            "z": 25
+        },
+        "C1": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 13.88,
+            "y": 17.74,
+            "z": 25
+        },
+        "A2": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 38.88,
+            "y": 67.74,
+            "z": 25
+        },
+        "B2": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 38.88,
+            "y": 42.74,
+            "z": 25
+        },
+        "C2": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 38.88,
+            "y": 17.74,
+            "z": 25
+        },
+        "A3": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 63.88,
+            "y": 67.74,
+            "z": 25
+        },
+        "B3": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 63.88,
+            "y": 42.74,
+            "z": 25
+        },
+        "C3": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 63.88,
+            "y": 17.74,
+            "z": 25
+        },
+        "A4": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 88.88,
+            "y": 67.74,
+            "z": 25
+        },
+        "B4": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 88.88,
+            "y": 42.74,
+            "z": 25
+        },
+        "C4": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 88.88,
+            "y": 17.74,
+            "z": 25
+        },
+        "A5": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 113.88,
+            "y": 67.74,
+            "z": 25
+        },
+        "B5": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 113.88,
+            "y": 42.74,
+            "z": 25
+        },
+        "C5": {
+            "depth": 56,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 16,
+            "x": 113.88,
+            "y": 17.74,
+            "z": 25
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "displayName": "VWR 15 Tube Rack 5000 µL",
+                "displayCategory": "tubeRack",
+                "wellBottomShape": "v"
+            },
+            "brand": {
+                "brand": "VWR",
+                "brandId": [
+                    "10002-731"
+                ]
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "C1",
+                "A2",
+                "B2",
+                "C2",
+                "A3",
+                "B3",
+                "C3",
+                "A4",
+                "B4",
+                "C4",
+                "A5",
+                "B5",
+                "C5"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "vwr_15_tuberack_5000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

@@ -1,0 +1,40 @@
+[
+
+  {
+    "type": "int",
+    "label": "Number of cDNA (1-24)",
+    "name": "num_gene",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Number of mastermix tubes (1-24)",
+    "name": "num_mastermix",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "cDNA Volume (ul)",
+    "name": "cdna_vol",
+    "default": 8
+  },
+
+  {
+  "type": "dropDown",
+  "label": "Reset Tipracks?",
+  "name": "reset_tipracks",
+  "options": [
+     { "label": "Yes", "value": true },
+     { "label": "No", "value": false }
+   ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single channel mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "sample volume (in µL)",
+    "name": "sample_vol",
+    "default": 200
+  },
+  {
+    "type": "float",
+    "label": "aspiration height from bottom of source tube (in mm)",
+    "name": "asp_height",
+    "default": 5.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel GEN2 pipette mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 tip type",
+    "name": "tip_type",
+    "options": [
+      {"label": "200µl filter", "value": "opentrons_96_filtertiprack_200ul"},
+      {"label": "300µl standard", "value": "opentrons_96_tiprack_300ul"}
+    ]
+  }
+]

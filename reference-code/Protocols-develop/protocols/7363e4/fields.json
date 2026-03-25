@@ -1,0 +1,55 @@
+[
+  {
+    "type": "int",
+    "label": "In Deck Slot 8 - Count of Clinical Sample Tubes (0-15 or 0-40 depending on slot 8 rack) (max 48 combined total in slots 8 and 9)",
+    "name": "sample_count_1",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "In Deck Slot 9 - Count of Clinical Sample Tubes (0-15 or 0-40 depending on slot 9 rack) (max 48 combined total in slots 8 and 9)",
+    "name": "sample_count_2",
+    "default": 0
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware (Rack and Tubes) for Clinical Samples in Deck Slot 8",
+    "name": "labware_clinical_samples_1",
+    "options": [
+      { "label": "large tubes in Opentrons 3 x 5 15-tube rack", "value": "opentrons_15_tuberack_14000ul" },
+      { "label": "small tubes in custom 5 x 8 40-tube rack", "value": "custom_40_tuberack_6500ul" },
+      { "label": "None - Deck Slot 8 Empty", "value": null }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware (Rack and Tubes) for Clinical Samples in Deck Slot 9",
+    "name": "labware_clinical_samples_2",
+    "options": [
+      { "label": "None - Deck Slot 9 Empty", "value": null },
+      { "label": "large tubes in Opentrons 3 x 5 15-tube rack", "value": "opentrons_15_tuberack_14000ul" },
+      { "label": "small tubes in custom 5 x 8 40-tube rack", "value": "custom_40_tuberack_6500ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware (Rack and Tubes) for Aliquots",
+    "name": "labware_aliquots",
+    "options": [
+      { "label": "opentrons_24_tuberack_nest_1.5ml_snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_tuberack_nest_2ml_snapcap", "value": "opentrons_24_tuberack_nest_2ml_snapcap" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Minimum Tube Bottom Clearance for Clinical Sample Tubes (mm)",
+    "name": "clearance_clinical_samples",
+    "default": 2
+  },
+   {
+    "type": "int",
+    "label": "Minimum Tube Bottom Clearance for Aliquot Tubes (mm)",
+    "name": "clearance_aliquots",
+    "default": 2
+  }
+]

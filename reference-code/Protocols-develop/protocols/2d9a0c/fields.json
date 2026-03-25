@@ -1,0 +1,51 @@
+[
+  {
+    "type": "int",
+    "label": "Set Lid Temperature",
+    "name": "lid_temp",
+    "default": 105
+  },
+  {
+    "type": "dropDown",
+    "label": "Tube Rack Used",
+    "name": "tube_rack",
+    "options": [
+       { "label": "Opentrons 24 Tube Rack Eppendorf 1.5mL", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+       { "label": "Opentrons 24 Tube Rack Eppendorf 2mL", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap" }
+     ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples in Plate B (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of tip racks",
+    "name": "num_tipracks",
+    "options": [
+       { "label": "1", "value": "1" },
+       { "label": "2", "value": "2" },
+       { "label": "3", "value": "3" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single GEN2 mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

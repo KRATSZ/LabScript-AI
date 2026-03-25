@@ -1,0 +1,92 @@
+[
+  {
+    "type": "int",
+    "label": "Number of 384 well plates (1-3)",
+    "name": "num_plates",
+    "default": 3
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 1 (Slot 1) Urea Volumes",
+  "name": "csv1_urea",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0,4,27,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 2 (Slot 2) Urea Volumes",
+  "name": "csv2_urea",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0,4,27,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 2 (Slot 3) Urea Volumes",
+  "name": "csv3_urea",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0,4,27,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 1 (Slot 1) Buffer Volumes",
+  "name": "csv1_buff",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0,4,27,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 2 (Slot 2) Buffer Volumes",
+  "name": "csv2_buff",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0,4,27,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 2 (Slot 3) Buffer Volumes",
+  "name": "csv3_buff",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0,4,27,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 1 (Slot 1) Sample Volumes",
+  "name": "csv1_samp",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,4/B1,5/D1,6/D4"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 2 (Slot 2) Sample Volumes",
+  "name": "csv2_samp",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,4/B1,5/D1,6/D4"
+  },
+  {
+  "type": "textFile",
+  "label": "CSV Plate 3 (Slot 3) Sample Volumes",
+  "name": "csv3_samp",
+  "default": "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nA,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,0/A1,1/A1,2/A1,3/B1,4/B1,5/D1,6/D4,4/B1,5/D1,6/D4"
+  },
+  {
+    "type": "int",
+    "label": "Initial Urea Volume (mL)",
+    "name": "start_urea_vol",
+    "default": 40
+  },
+  {
+    "type": "int",
+    "label": "Initial Buffer Volume (mL)",
+    "name": "start_buff_vol",
+    "default": 30
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

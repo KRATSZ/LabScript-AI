@@ -1,0 +1,137 @@
+{
+  "wells": {
+    "A1": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 17.38,
+      "y": 62.85,
+      "z": 0
+    },
+    "B1": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 17.38,
+      "y": 22.85,
+      "z": 0
+    },
+    "A2": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 48.38,
+      "y": 62.85,
+      "z": 0
+    },
+    "B2": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 48.38,
+      "y": 22.85,
+      "z": 0
+    },
+    "A3": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 79.38,
+      "y": 62.85,
+      "z": 0
+    },
+    "B3": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 79.38,
+      "y": 22.85,
+      "z": 0
+    },
+    "A4": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 110.38,
+      "y": 62.85,
+      "z": 0
+    },
+    "B4": {
+      "totalLiquidVolume": 10000,
+      "diameter": 28.6,
+      "shape": "circular",
+      "depth": 56,
+      "x": 110.38,
+      "y": 22.85,
+      "z": 0
+    }
+  },
+  "groups": [
+    {
+      "metadata": {},
+      "wells": [
+        "A1",
+        "B1",
+        "A2",
+        "B2",
+        "A3",
+        "B3",
+        "A4",
+        "B4"
+      ]
+    }
+  ],
+  "brand": {
+    "brand": "generic"
+  },
+  "metadata": {
+    "displayName": "8x20mL Vial Rack",
+    "displayCategory": "tubeRack",
+    "displayVolumeUnits": "mL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 127.75,
+    "yDimension": 85.7,
+    "zDimension": 58.5
+  },
+  "parameters": {
+    "format": "irregular",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "vial_rack_8x20ml_vials"
+  },
+  "ordering": [
+    [
+      "A1",
+      "B1"
+    ],
+    [
+      "A2",
+      "B2"
+    ],
+    [
+      "A3",
+      "B3"
+    ],
+    [
+      "A4",
+      "B4"
+    ]
+  ],
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

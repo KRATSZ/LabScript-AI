@@ -1,0 +1,71 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Using Tuberack A (tubes (T1, T2, T3) or T7)?",
+    "name": "use_tuberack_A",
+    "options": [
+      { "label": "Yes", "value": true },
+      { "label": "No", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tuberack A tubes",
+    "name": "tuberackA_tube",
+    "options": [
+      { "label": "T1, T2, T3", "value": "6x5_half_inch_t1_t3" },
+      { "label": "T7", "value": "6x5_halfinch_7" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of pooling rows for Tuberack A",
+    "name": "num_rows_A",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "Using Tuberack B (tubes T4 and T5, or T6)?",
+    "name": "use_tuberack_B",
+    "options": [
+      { "label": "Yes", "value": true },
+      { "label": "No", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tuberack B tubes",
+    "name": "tuberackB_tube",
+    "options": [
+      { "label": "T4, T5", "value": "opentrons_24_tuberack_t4_t5" },
+      { "label": "T6", "value": "opentrons_24_tuberack_t6" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of pooling rows for Tuberack B",
+    "name": "num_rows_B",
+    "default": 4
+  },
+  {
+    "type": "int",
+    "label": "Delay Time after Aspirating (in seconds)",
+    "name": "delay",
+    "default": 3
+  },
+  {
+  "type": "int",
+  "label": "Aspiration Height (in mm)",
+  "name": "asp_height",
+  "default": 3
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single GEN2 Mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

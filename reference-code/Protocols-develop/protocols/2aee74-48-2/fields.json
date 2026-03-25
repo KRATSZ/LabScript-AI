@@ -1,0 +1,20 @@
+[
+    {
+        "type": "dropDown",
+        "label": "PCR plate type",
+        "name": "plate_type",
+        "options": [
+          { "label": "NEST", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+          { "label": "Custom on aluminum block", "value": "generic_96_aluminumblock_350ul" }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 multi-channel pipette mount",
+        "name": "m300_mount",
+        "options": [
+          { "label": "left", "value": "left" },
+          { "label": "right", "value": "right" }
+        ]
+    }
+]

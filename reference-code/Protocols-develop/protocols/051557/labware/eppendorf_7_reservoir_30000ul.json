@@ -1,0 +1,148 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ],
+        [
+            "A4"
+        ],
+        [
+            "A5"
+        ],
+        [
+            "A6"
+        ],
+        [
+            "A7"
+        ]
+    ],
+    "brand": {
+        "brand": "Eppendorf",
+        "brandId": [
+            "960051009"
+        ]
+    },
+    "metadata": {
+        "displayName": "Eppendorf 7 Reservoir 30000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 128,
+        "yDimension": 86,
+        "zDimension": 55
+    },
+    "wells": {
+        "A1": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 9.14,
+            "y": 43,
+            "z": 2
+        },
+        "A2": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 27.39,
+            "y": 43,
+            "z": 2
+        },
+        "A3": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 45.64,
+            "y": 43,
+            "z": 2
+        },
+        "A4": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 63.89,
+            "y": 43,
+            "z": 2
+        },
+        "A5": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 82.14,
+            "y": 43,
+            "z": 2
+        },
+        "A6": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 100.39,
+            "y": 43,
+            "z": 2
+        },
+        "A7": {
+            "depth": 53,
+            "totalLiquidVolume": 30000,
+            "shape": "rectangular",
+            "xDimension": 18,
+            "yDimension": 80,
+            "x": 118.64,
+            "y": 43,
+            "z": 2
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "eppendorf_7_reservoir_30000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

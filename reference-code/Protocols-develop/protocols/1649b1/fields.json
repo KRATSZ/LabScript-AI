@@ -1,0 +1,11 @@
+[
+    {
+        "type": "dropDown",
+        "label": "P300-multi GEN2 mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    }
+  ]

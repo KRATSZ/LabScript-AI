@@ -1,0 +1,56 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Use 24 Agar Plates?",
+    "name": "omni_tray_24",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use 96 Agar Plate?",
+    "name": "omni_tray_96",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Heat Shock",
+    "name": "heat_shock",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+     ]
+  },
+  {
+    "type": "float",
+    "label": "Volume to Distribute on Agar",
+    "name": "agar_volume",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "Add to Deep Well Plate",
+    "name": "dwp",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+     ]
+  },
+  {
+    "type": "float",
+    "label": "Volume to Add to Deep Well Plate",
+    "name": "dwp_volume",
+    "default": 10
+  }
+]

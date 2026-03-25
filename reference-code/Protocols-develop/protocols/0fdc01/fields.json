@@ -1,0 +1,26 @@
+[
+    {
+        "type": "int",
+        "label": "number of PCR plates to prep",
+        "name": "num_plates",
+        "default": 4
+    },
+    {
+        "type": "int",
+        "label": "mixing repetitions",
+        "name": "reps_mix",
+        "default": 3
+    },
+    {
+        "type": "float",
+        "label": "mastermix volume (in uL)",
+        "name": "vol_mm",
+        "default": 23.0
+    },
+    {
+        "type": "float",
+        "label": "sample volume (in uL)",
+        "name": "vol_sample",
+        "default": 2.0
+    }
+]

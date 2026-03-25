@@ -1,0 +1,26 @@
+[
+  {
+    "type": "float",
+    "label": "SiRNA volume",
+    "name": "vol_sirna",
+    "default": 40.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 mount",
+    "name": "mount_p300",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 mount",
+    "name": "mount_p20",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

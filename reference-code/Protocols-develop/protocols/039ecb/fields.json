@@ -1,0 +1,38 @@
+[
+    {
+        "type": "int",
+        "label": "number of samples (1-24)",
+        "name": "num_samples",
+        "default": 24
+    },
+    {
+        "type": "dropDown",
+        "label": "Starting step of protocol?",
+        "name": "start_place",
+        "options": [
+            {"label": "End Preparation", "value": 0},
+            {"label": "Adaptor Ligation", "value": 1},
+            {"label": "Cleanup of Adaptor - Ligated DNA", "value": 2},
+            {"label": "PCR Amplification", "value": 3},
+            {"label": "Cleanup of PCR reaction", "value": 4}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 8-channel GEN2 pipette mount",
+        "name": "mount_m300",
+        "options": [
+            {"label": "right", "value": "right"},
+            {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 single-channel GEN2 pipette mount",
+        "name": "mount_p20",
+        "options": [
+            {"label": "left", "value": "left"},
+            {"label": "right", "value": "right"}
+        ]
+    }
+]

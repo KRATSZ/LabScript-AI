@@ -1,0 +1,8 @@
+[
+    {
+        "type": "int",
+        "label": "number of columns",
+        "name": "number_of_columns",
+        "default": 12
+    }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "type": "textFile",
+    "label": ".csv input file (include header line)",
+    "name": "input_file",
+    "default": "Lable,Pos,nM,FC,Rxn,Vol,h2O,Tube\nP_F3,A1,28.9,0.8,100,10,30,T1\nP_B3,A2,28.32,0.8,100,10,,T1\nP_FIP,A3,53.8,1.6,100,20,,T1\nP_BIP,A4,82,1.6,100,20,,T1\nP_LF,A5,32.5,0.4,100,5,,T1\nP_LB,A6,29.4,0.4,100,5,,T1\nP_F3,A7,28.9,0.8,100,10,35,T2\nP_B3,A8,28.32,0.8,100,10,,T2\nP_FIP,A9,53.8,1.6,100,20,,T2\nP_BIP,A10,82,1.6,100,20,,T2\nP_LF,A11,32.5,0.4,100,5,,T2\nP_LB,A12,29.4,0.4,100,5,,T2"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 single-channel mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

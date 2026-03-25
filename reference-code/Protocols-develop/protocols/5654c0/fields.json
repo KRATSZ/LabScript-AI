@@ -1,0 +1,26 @@
+[
+    {
+        "type": "textFile",
+        "label": "DNA Norm .csv File",
+        "name": "dna_csv",
+        "default": "Plate LC (Source),Source Well #,ID ,concentration (ug/ml),yield (ug),Destination 1 volume (ul),Destination 1 (Dil),Destination 1 (Dil Plate) Well,concentration dil (ug/ml),yield (ug),Destination 2 volume (ul),Destination 2 (final norm plate),Destination 2 (well #)\nLC 96-well plate,A1,pET4286,3000.00,6.00,10,LC Dil Plate,A1,300.00,6.00,20.00,Norm Plate,A1\nLC 96-well plate,G3,pET4016,3000,6.00,10,LC Dil Plate,G3,300.00,6.00,20.00,Norm Plate,G3\nLC 96-well plate,H3,pET4017,3300,6.00,10,LC Dil Plate,H3,330.00,6.00,18.18,Norm Plate,H3\nHC 96-well plate,F3,pET4308,3000,6.00,10,HC Dil Plate,F3,300,6.00,20.00,Norm Plate,F3\nHC 96-well plate,G3,pET4308,3000,6.00,10,HC Dil Plate,G3,300,6.00,20.00,Norm Plate,G3\nHC 96-well plate,H3,pET4308,3000,6.00,10,HC Dil Plate,H3,300,6.00,20.00,Norm Plate,H3\nwater,F3,,,,,,,,,81.82,Norm Plate,F3\nwater,G3,,,,,,,,,80.00,Norm Plate,G3\nwater,H3,,,,,,,,,81.82,Norm Plate,H3"
+    },
+    {
+        "type": "dropDown",
+        "label": "P300-single GEN2 mount",
+        "name": "p300_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20-single GEN2 mount",
+        "name": "p20_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    }
+]

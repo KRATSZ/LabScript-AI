@@ -1,0 +1,65 @@
+[
+  {
+    "type": "int",
+    "label": "Slow Flow Rate for Master Mix Aspiration and Dispense (ul/sec)",
+    "name": "flow_rate_mm",
+    "default": 40
+  },
+  {
+    "type": "int",
+    "label": "Delay After Aspirate and Dispense for Master Mix Distribution Steps (seconds)",
+    "name": "delay_distribute",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Delay After Aspirate and Dispense for Reagent Mixing Steps (seconds)",
+    "name": "delay_reagent_prep",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Master Mix Distribution Steps (mm)",
+    "name": "clearance_distribute",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Reagent Mixing Steps (mm)",
+    "name": "clearance_reagent_prep",
+    "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "Mount for p300 multi",
+    "name": "p300m_side",
+    "options": [
+      { "label": "Left Side", "value": "left" },
+      { "label": "Right Side", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "PCR Plate Labware",
+    "name": "labware_pcr_plate",
+    "options": [
+      { "label": "nest_96_wellplate_100ul_pcr_full_skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "200 ul Tips Labware",
+    "name": "labware_200ul_tips",
+    "options": [
+      { "label": "opentrons_96_filtertiprack_200ul", "value": "opentrons_96_filtertiprack_200ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reagent Reservoir Labware",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" }
+    ]
+  }
+]

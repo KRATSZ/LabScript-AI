@@ -1,0 +1,32 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P50-multi mount",
+    "name": "p50_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "destination plate type",
+    "name": "dest_plate_type",
+    "options": [
+      {"label": "Corning 384 Well Plate 20 µL", "value": "corning_384_wellplate_20ul"},
+      {"label": "Bio-Rad 384 Well Plate 50 µL", "value": "biorad_384_wellplate_50ul"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples to transfer (1-384)",
+    "name": "num_samples",
+    "default": 384
+  },
+  {
+    "type": "float",
+    "label": "transfer volume (in µl)",
+    "name": "transfer_vol",
+    "default": 8.0
+  }
+]

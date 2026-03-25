@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+      "type": "dropDown",
+      "label": "P20 multi-channel GEN2 mount",
+      "name": "m20_mount",
+      "options": [
+        {"label": "right", "value": "right"},
+        {"label": "left", "value": "left"}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "P300 multi-channel GEN2 mount",
+      "name": "m300_mount",
+      "options": [
+        {"label": "left", "value": "left"},
+        {"label": "right", "value": "right"}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "track tips across protocol runs",
+      "name": "tip_track",
+      "options": [
+        {"label": "yes", "value": true},
+        {"label": "no", "value": false}
+      ]
+  }
+]

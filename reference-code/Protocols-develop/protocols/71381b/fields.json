@@ -1,0 +1,38 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P20-Multi Mount",
+    "name": "mnt20",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "mnt300",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labelling Step",
+    "name": "label",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Purification Step",
+    "name": "purify",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  }
+]

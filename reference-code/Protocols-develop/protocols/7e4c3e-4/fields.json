@@ -1,0 +1,33 @@
+[
+  {
+    "type": "int",
+    "label": "Volume (mL) in tube A1",
+    "name": "a1_init_vol",
+    "default": 15
+  },
+  {
+    "type": "int",
+    "label": "Volume (mL) in tube A3",
+    "name": "a3_init_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Volume (mL) in tube A4",
+    "name": "a4_init_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Volume (mL) in tube B3",
+    "name": "b3_init_vol",
+    "default": 50
+  },
+  {
+    "type": "string",
+    "label": "Start of tips",
+    "name": "tip_start",
+    "default": "A1"
+  }
+]
+

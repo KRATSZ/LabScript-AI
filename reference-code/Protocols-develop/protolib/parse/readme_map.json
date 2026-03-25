@@ -1,0 +1,66 @@
+{
+  "pipettes": {
+    "p20_multi_gen2": {
+        "displayText": "Opentrons P20 8 Channel Electronic Pipette (GEN2)",
+        "link": "https://shop.opentrons.com/8-channel-electronic-pipette/"
+    },
+    "p300_multi_gen2": {
+        "displayText": "Opentrons P300 8 Channel Electronic Pipette (GEN2)",
+        "link": "https://shop.opentrons.com/8-channel-electronic-pipette/"
+    },
+    "p20_single_gen2": {
+        "displayText": "Opentrons P20 Single Channel Electronic Pipette (GEN2)",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    },
+    "p300_single_gen2": {
+        "displayText": "Opentrons P300 Single Channel Electronic Pipette (GEN2)",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    },
+    "p1000_single_gen2": {
+        "displayText": "Opentrons P1000 Single Channel Electronic Pipette (GEN2)",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    },
+    "p10_multi": {
+        "displayText": "Opentrons P10 8 Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/8-channel-electronic-pipette/"
+    },
+    "p50_multi": {
+        "displayText": "Opentrons P50 8 Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/8-channel-electronic-pipette/"
+    },
+    "p300_multi": {
+        "displayText": "Opentrons P300 8 Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/8-channel-electronic-pipette/"
+    },
+    "p10_single": {
+        "displayText": "Opentrons P10 Single Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    },
+    "p50_single": {
+        "displayText": "Opentrons P50 Single Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    },
+    "p300_single": {
+        "displayText": "Opentrons P300 Single Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    },
+    "p1000_single": {
+        "displayText": "Opentrons P1000 Single Channel Electronic Pipette",
+        "link": "https://shop.opentrons.com/single-channel-electronic-pipette-p20/"
+    }
+  },
+  "modules": {
+    "magdeck": {
+        "displayText": "Opentrons Magnetic Module (GEN2)",
+        "link": "https://shop.opentrons.com/magnetic-module-gen2/"
+    },
+    "tempdeck": {
+      "displayText": "Opentrons Temperature Module (GEN2)",
+      "link": "https://shop.opentrons.com/temperature-module-gen2/"
+    },
+    "thermocycler": {
+      "displayText": "Opentrons Thermocycler Module",
+      "link": "https://shop.opentrons.com/thermocycler-module-1/"
+    }
+  }
+}

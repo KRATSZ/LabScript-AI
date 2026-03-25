@@ -1,0 +1,21 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Plates (1 or 2)",
+    "name": "num_plates",
+    "options": [
+      {"label": "One (1)", "value": 1},
+      {"label": "Two (2)", "value": 2}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Deep Well Plate Type",
+    "name": "deep_plate",
+    "options": [
+      {"label": "NEST 96-Deep Well Plate, 2mL", "value": "nest_96_wellplate_2ml_deep"},
+      {"label": "OMNI 96-Deep Well Plate, 2mL", "value": "omni_96_wellplate_2000ul"},
+      {"label": "USA Scientific 96-Deep Well Plate, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"}
+    ]
+  }
+]

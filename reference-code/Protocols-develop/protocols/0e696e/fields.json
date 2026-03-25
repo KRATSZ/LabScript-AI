@@ -1,0 +1,75 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer .csv File",
+    "name": "transfer_csv",
+    "default": "Source Labware,Source Slot,Source Well,Source Aspiration Height Above Bottom (in mm),Dest Well\ncustom_96_striptubes_350ul,1,A1,1,A1\ncustom_96_striptubes_350ul,1,A2,1,A2\ncustom_96_striptubes_350ul,1,A3,1,A3\ncustom_96_striptubes_350ul,1,A4,1,A4\ncustom_96_striptubes_350ul,2,A5,1,A5\ncustom_96_striptubes_350ul,2,A6,1,A6\ncustom_96_striptubes_350ul,2,A7,1,A7\ncustom_96_striptubes_350ul,2,A8,1,A8\ncustom_96_striptubes_350ul,3,A9,1,A9\ncustom_96_striptubes_350ul,3,A10,1,A10\ncustom_96_striptubes_350ul,3,A11,1,A11\ncustom_96_striptubes_350ul,3,A12,1,A12"
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Model",
+    "name": "pipette_type",
+    "options": [
+      {"label": "P20 Multi (GEN 2)", "value": "p20_multi_gen2"},
+      {"label": "P10 Single (GEN 1)", "value": "p10_single"},
+      {"label": "P50 Single (GEN 1)", "value": "p50_single"},
+      {"label": "P300 Single (GEN 1)", "value": "p300_single"},
+      {"label": "P1000 Single (GEN 1)", "value": "p1000_single"},
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P300 Single (GEN 2)", "value": "p300_single_gen2"},
+      {"label": "P1000 Single (GEN 2)", "value": "p1000_single_gen2"},
+      {"label": "P10 Multi (GEN 1)", "value": "p10_multi"},
+      {"label": "P50 Multi (GEN 1)", "value": "p50_multi"},
+      {"label": "P300 Multi (GEN 1)", "value": "p300_multi"},
+      {"label": "P300 Multi (GEN 2)", "value": "p300_single_gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipette_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Type",
+    "name": "tip_type",
+    "options": [
+      {"label": "standard", "value": "standard"},
+      {"label": "filter", "value": "filter"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tuberack type for mastermix (position A1)",
+    "name": "primer_lw",
+    "options": [
+      {"label": "1.5ml microcentrifuge tubes", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap"},
+      {"label": "2ml screwcap tubes", "value": "opentrons_24_tuberack_nest_2ml_screwcap"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Sample volume (in µl)",
+    "name": "sample_vol",
+    "default": 2.0
+  },
+  {
+    "type": "float",
+    "label": "Primer volume (in µl)",
+    "name": "primer_vol",
+    "default": 2.0
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Usage Strategy",
+    "name": "tip_reuse",
+    "options": [
+      {"label": "Use a new tip for each transfer", "value": "always"},
+      {"label": "Reuse tip for each transfer", "value": "never"}
+    ]
+  }
+]

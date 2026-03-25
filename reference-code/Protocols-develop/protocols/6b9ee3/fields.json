@@ -1,0 +1,23 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer CSV",
+    "name": "p_csv",
+    "default": "A1,A2"
+  },
+  {
+    "type": "int",
+    "label": "Number of Mastermix(es)",
+    "name": "num_samples",
+    "default": 8
+  },
+  {
+    "type": "dropDown",
+    "label": "Extra OptiMEM",
+    "name": "ex_opti",
+    "options": [
+      {"label": "31.7µL", "value": "31.7"},
+      {"label": "5.3µL", "value": "5.3"}
+    ]
+  }
+]

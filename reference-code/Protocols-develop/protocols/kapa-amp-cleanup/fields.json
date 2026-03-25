@@ -1,0 +1,27 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "num_col",
+    "options": [
+      {"label": "8", "value": 1},
+      {"label": "16", "value": 2},
+      {"label": "24", "value": 3}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Bead dry time after ethanol wash (minutes)",
+    "name": "bead_dry_time",
+    "default": 3
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

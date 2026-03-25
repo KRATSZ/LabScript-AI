@@ -1,0 +1,58 @@
+[
+  {
+      "type": "int",
+      "label": "number of samples (if 1 plate)",
+      "name": "num_samples",
+      "default": 16
+  },
+  {
+      "type": "int",
+      "label": "number of plates",
+      "name": "num_plates",
+      "default": 12
+  },
+  {
+      "type": "int",
+      "label": "number of primers",
+      "name": "num_primers",
+      "default": 1
+  },
+  {
+      "type": "int",
+      "label": "primer starting column (1-12)",
+      "name": "primer_start",
+      "default": 1
+  },
+  {
+     "type": "dropDown",
+     "label": "reservoir type",
+     "name": "res_type",
+     "options": [
+       { "label": "NEST 12-channel", "value": "nest_12_reservoir_15ml"}
+     ]
+   },
+   {
+      "type": "dropDown",
+      "label": "tip type",
+      "name": "tip_type",
+      "options": [
+        { "label": "Opentrons", "value": "opentrons_96_tiprack_20ul"},
+        { "label": "Biotix", "value": "biotix_96_tiprack_20ul"}
+      ]
+    },
+  {
+     "type": "dropDown",
+     "label": "P20 GEN2 Multi mount",
+     "name": "p20_multi_mount",
+     "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+   },
+   {
+       "type": "float",
+       "label": "dispense height above well bottom (in mm)",
+       "name": "height_dispense",
+       "default": 2.0
+   }
+]

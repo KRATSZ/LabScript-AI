@@ -1,0 +1,115 @@
+{
+  "ordering": [
+    [
+      "A1",
+      "B1"
+    ],
+    [
+      "A2",
+      "B2"
+    ],
+    [
+      "A3",
+      "B3"
+    ]
+  ],
+  "brand": {
+    "brand": "generic"
+  },
+  "metadata": {
+    "displayName": "Custom 6 Tube Rack 100 mL",
+    "displayCategory": "tubeRack",
+    "displayVolumeUnits": "mL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 127.76,
+    "yDimension": 85.47,
+    "zDimension": 106.5
+  },
+  "wells": {
+    "A1": {
+      "depth": 100,
+      "shape": "circular",
+      "diameter": 37.2,
+      "totalLiquidVolume": 100000,
+      "x": 21.31,
+      "y": 64.12,
+      "z": 6.5
+    },
+    "B1": {
+      "depth": 100,
+      "shape": "circular",
+      "diameter": 37.2,
+      "totalLiquidVolume": 100000,
+      "x": 21.31,
+      "y": 21.56,
+      "z": 6.5
+    },
+    "A2": {
+      "depth": 100,
+      "shape": "circular",
+      "diameter": 37.2,
+      "totalLiquidVolume": 100000,
+      "x": 64.31,
+      "y": 64.12,
+      "z": 6.5
+    },
+    "B2": {
+      "depth": 100,
+      "shape": "circular",
+      "diameter": 37.2,
+      "totalLiquidVolume": 100000,
+      "x": 64.31,
+      "y": 21.56,
+      "z": 6.5
+    },
+    "A3": {
+      "depth": 100,
+      "shape": "circular",
+      "diameter": 37.2,
+      "totalLiquidVolume": 100000,
+      "x": 107.31,
+      "y": 64.12,
+      "z": 6.5
+    },
+    "B3": {
+      "depth": 100,
+      "shape": "circular",
+      "diameter": 37.2,
+      "totalLiquidVolume": 100000,
+      "x": 107.31,
+      "y": 21.56,
+      "z": 6.5
+    }
+  },
+  "groups": [
+    {
+      "metadata": {
+        "wellBottomShape": "flat"
+      },
+      "wells": [
+        "A1",
+        "B1",
+        "A2",
+        "B2",
+        "A3",
+        "B3"
+      ]
+    }
+  ],
+  "parameters": {
+    "format": "irregular",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "custom_6_tuberack_100ml"
+  },
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

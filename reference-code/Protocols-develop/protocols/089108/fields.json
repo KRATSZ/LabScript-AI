@@ -1,0 +1,121 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Plates",
+    "name": "num_plates",
+    "options": [
+      {"label": "1", "value": "1"},
+      {"label": "2", "value": "2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Samples Plate 1",
+    "name": "num_samp_p1",
+    "options": [
+      {"label": "8", "value": "8"},
+      {"label": "16", "value": "16"},
+      {"label": "24", "value": "24"},
+      {"label": "32", "value": "32"},
+      {"label": "40", "value": "40"},
+      {"label": "48", "value": "48"},
+      {"label": "56", "value": "56"},
+      {"label": "64", "value": "64"},
+      {"label": "72", "value": "72"},
+      {"label": "80", "value": "80"},
+      {"label": "88", "value": "88"},
+      {"label": "96", "value": "96"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Samples Plate 2",
+    "name": "num_samp_p2",
+    "options": [
+      {"label": "8", "value": "8"},
+      {"label": "16", "value": "16"},
+      {"label": "24", "value": "24"},
+      {"label": "32", "value": "32"},
+      {"label": "40", "value": "40"},
+      {"label": "48", "value": "48"},
+      {"label": "56", "value": "56"},
+      {"label": "64", "value": "64"},
+      {"label": "72", "value": "72"},
+      {"label": "80", "value": "80"},
+      {"label": "88", "value": "88"},
+      {"label": "96", "value": "96"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including adding buffer A1 step?",
+    "name": "include_buffer_a1",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including adding buffer A2 step?",
+    "name": "include_buffer_a2",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including adding buffer N3 step?",
+    "name": "include_buffer_n3",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including moving to fresh plate step?",
+    "name": "include_moving_fresh_plate",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including adding isopropanol + transferring step?",
+    "name": "include_isoprop",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including wash buffer step?",
+    "name": "include_wash_buffer",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Including adding elution buffer step?",
+    "name": "include_elution",
+    "options": [
+      {"label": "Yes, include", "value": true},
+      {"label": "No, skip", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

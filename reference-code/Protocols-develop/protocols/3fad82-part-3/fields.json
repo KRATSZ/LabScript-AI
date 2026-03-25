@@ -1,0 +1,76 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Count (between 1 and 96)",
+    "name": "sample_count",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of p300 Tips",
+    "name": "labware_tips300",
+    "options": [
+      { "label": "Opentrons 200 ul Filter Tips", "value": "opentrons_96_filtertiprack_200ul" },
+      { "label": "Opentrons 300 ul Tips", "value": "opentrons_96_tiprack_300ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of p20 Tips",
+    "name": "labware_tips20",
+    "options": [
+      { "label": "Opentrons p20 Filter Tips", "value": "opentrons_96_filtertiprack_20ul" },
+      { "label": "Opentrons p20 Tips", "value": "opentrons_96_tiprack_20ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of PCR Plate",
+    "name": "labware_pcr_plate",
+    "options": [
+      { "label": "biorad_96_wellplate_200ul_pcr", "value": "biorad_96_wellplate_200ul_pcr" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Reservoir (millimeters)",
+    "name": "clearance_reservoir",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Sample Plate (millimeters)",
+    "name": "clearance_samp_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Reduced Flow Rate for Beads (ul/sec)",
+    "name": "flow_rate_beads",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Delay After Aspirate and Dispense for Beads (seconds)",
+    "name": "delay_beads",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Magnet Engage Height for BioRad Plate (millimeters)",
+    "name": "engage_height",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Engage Time for Magnet (minutes)",
+    "name": "engage_time",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Dry Time for Beads (minutes)",
+    "name": "dry_time",
+    "default": 5
+  }
+]

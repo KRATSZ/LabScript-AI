@@ -1,0 +1,28 @@
+[
+
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "_csv",
+    "default": "Source ID,Source Tube type,Source Slot (1 - 11),Source Tube,Transfer Volume (µL),Destination Slot (1 - 11),Destination Tube,Destination ID,Destination Tube Type,Mix repetitions,Mix volume,Mix at Source (S)/Destination (D)?,Aspiration Height %,Dispense Height %\nSolvent,50 mL Falcon,3,A3,750,1,A1,W1,2 mL Eppendorf,0,100,S,10,10"
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single-Channel Mount",
+    "name": "_p1000_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "_p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of slides to process",
+    "name": "number_of_slides_to_process",
+    "default": 4
+  },
+  {
+    "type": "dropDown",
+    "label": "sample addition",
+    "name": "sample_addition",
+    "options": [
+      { "label": "manually add samples", "value": "manually add samples" },
+      { "label": "automatically add samples from PCR plate", "value": "automatically add samples from PCR plate" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

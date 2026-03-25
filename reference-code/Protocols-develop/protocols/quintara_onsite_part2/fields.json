@@ -1,0 +1,23 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Sets (1-8)",
+    "name": "num_sets",
+    "default": 8
+  },
+  {
+    "type": "int",
+    "label": "Destination Start Column",
+    "name": "dest_start_col",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "textFile",
+    "label": "input file",
+    "name": "input_file",
+    "default": "1,A1,300\n2,A1,300\n3,A1,300\n4,A1,300\n10,B1,300\n12,B1,300\n13,B1,300\n14,B1,\n"
+  },
+  {
+    "type": "float",
+    "label": "default transfer volume (µl)",
+    "name": "default_transfer_vol",
+    "default": 300.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

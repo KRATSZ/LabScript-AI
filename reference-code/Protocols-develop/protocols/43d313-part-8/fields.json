@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "count_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Reservoir (mm)",
+    "name": "clearance_reservoir",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Engage Height for Magnetic Module (mm from base of labware)",
+    "name": "height_engage",
+    "default": 11.5
+  },
+  {
+    "type": "int",
+    "label": "Engage Time for Magnetic Module (minutes)",
+    "name": "time_engage",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Move to Avoid or Target Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Dry Time for Bead Pellet (minutes)",
+    "name": "time_dry",
+    "default": 3
+  }
+]

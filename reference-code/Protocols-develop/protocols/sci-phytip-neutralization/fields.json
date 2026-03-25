@@ -1,0 +1,14 @@
+[
+    {
+        "type": "int",
+        "label": "number of samples (1-96)",
+        "name": "num_samples",
+        "default": 96
+    },
+    {
+        "type": "float",
+        "label": "volume of neutralization buffer",
+        "name": "vol_neutralization_buffer",
+        "default": 20.0
+    }
+]

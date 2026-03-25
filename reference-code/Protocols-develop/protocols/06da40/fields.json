@@ -1,0 +1,23 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV Input File",
+    "name": "_input_csv",
+    "default": "source plate well,volume sample (µl),volume diluent (µl)\nA1,5,100\nB1,10,101\nC1,10,102\nD1,20,103"
+  },
+  {
+    "type": "dropDown",
+    "label": "Automate Reaction Mix Creation",
+    "name": "_reaction_mix",
+    "options": [
+      { "label": "Yes", "value": true },
+      { "label": "No", "value": false }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Replicates",
+    "name": "_replicates",
+    "default": 3
+  }
+]

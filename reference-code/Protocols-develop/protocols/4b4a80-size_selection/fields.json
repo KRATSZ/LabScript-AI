@@ -1,0 +1,83 @@
+[
+  {
+    "type": "dropDown",
+    "label": "PCR labware",
+    "name": "pcr_labware",
+    "options": [
+      { "label": "(Magnetic Module compatible) Nest 96 wellplate 100ul pcr full skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "Abgene AB-0800", "value": "thermofast_96_wellplate_200ul" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Sample Count (up to 24)",
+    "name": "sample_count",
+    "default": 24
+  },
+  {
+    "type": "float",
+    "label": "Sample Volume After User Enzyme",
+    "name": "post_user_sample_volume",
+    "default": 71.5
+  },
+  {
+    "type": "float",
+    "label": "Water Volume (per sample)",
+    "name": "water_volume",
+    "default": 28.5
+  },
+  {
+    "type": "str",
+    "label": "Water Well Location",
+    "name": "water_well",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "1st Bead Volume (per sample)",
+    "name": "spri_beads_right_volume",
+    "default": 20.0
+  },
+  {
+    "type": "float",
+    "label": "2nd Bead Volume (per sample)",
+    "name": "spri_beads_left_volume",
+    "default": 10.0
+  },
+  {
+    "type": "str",
+    "label": "SPRI Beads Well Location",
+    "name": "spri_beads_well",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "80% Ethanol Volume (per sample)",
+    "name": "etoh_volume",
+    "default": 160.0
+  },
+  {
+    "type": "str",
+    "label": "80% Ethanol Well Location",
+    "name": "etoh_well",
+    "default": "A2"
+  },
+  {
+    "type": "float",
+    "label": "0.1X TE Volume (per sample)",
+    "name": "te_volume",
+    "default": 17.0
+  },
+  {
+    "type": "str",
+    "label": "0.1X TE Well Location",
+    "name": "te_well",
+    "default": "A3"
+  },
+  {
+    "type": "float",
+    "label": "Eluate Volume (per sample)",
+    "name": "eluate_volume",
+    "default": 15.0
+  }
+]

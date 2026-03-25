@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples per plate (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi GEN2 mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

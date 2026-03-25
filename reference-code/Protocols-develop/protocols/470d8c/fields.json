@@ -1,0 +1,20 @@
+[
+    {
+        "type": "dropDown",
+        "label": "P300-single GEN2 mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20-single GEN2 mount",
+        "name": "m20_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    }
+]

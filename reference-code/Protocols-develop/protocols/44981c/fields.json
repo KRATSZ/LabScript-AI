@@ -1,0 +1,47 @@
+[
+  {
+    "type": "textFile",
+    "label": "Cherrypicking Transfer CSV",
+    "name": "transfer_csv",
+    "default": "source deck,Source well,volume,Destination deck,Destination well,mixing volume,mixing cycle\n4,A1,10,1,A12,20, 1\n5,D7,40,1,D12,40, 2\n6,C3,70,2,G8,10, 3"
+  },
+  {
+    "type": "dropDown",
+    "label": "Source Plate Type",
+    "name": "src_labware",
+    "options": [
+      {"label": "Bio-Rad Hardshell 96-Well Plate", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "Opentrons Tuberack with 2mL Tubes", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap"},
+      {"label": "Corning 384-Well Plate", "value": "corning_384_wellplate_112ul_flat"},
+      {"label": "Echo Qualified 384-Well Plate", "value": "echoqualified_384_wellplate_65ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination Plate Type",
+    "name": "dest_labware",
+    "options": [
+      {"label": "Bio-Rad Hardshell 96-Well Plate", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "Opentrons Tuberack with 2mL Tubes", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Selection",
+    "name": "pipettes",
+    "options": [
+      {"label": "P10 and P50", "value": "p10_single p50_single 10ul 300ul"},
+      {"label": "P10 and P300(GEN1)", "value": "p10_single p300_single 10ul 300ul"},
+      {"label": "P50 and P300(GEN1)", "value": "p50_single p300_single 300ul 300ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Tip Type",
+    "name": "tiptype",
+    "options": [
+      {"label": "Opentrons", "value": "opentrons_96_tiprack_"},
+      {"label": "TipOne", "value": "tipone_96_tiprack_"}
+    ]
+  }
+]

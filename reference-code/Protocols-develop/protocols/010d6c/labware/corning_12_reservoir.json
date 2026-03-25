@@ -1,0 +1,216 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ],
+        [
+            "A4"
+        ],
+        [
+            "A5"
+        ],
+        [
+            "A6"
+        ],
+        [
+            "A7"
+        ],
+        [
+            "A8"
+        ],
+        [
+            "A9"
+        ],
+        [
+            "A10"
+        ],
+        [
+            "A11"
+        ],
+        [
+            "A12"
+        ]
+    ],
+    "brand": {
+        "brand": "corning",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Corning 12 Reservoir 2000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 44.04
+    },
+    "wells": {
+        "A1": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 14.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A2": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 23.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A3": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 32.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A4": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 41.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A5": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 50.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A6": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 59.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A7": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 68.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A8": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 77.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A9": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 86.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A10": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 95.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A11": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 104.38,
+            "y": 42.78,
+            "z": 4.82
+        },
+        "A12": {
+            "depth": 39.22,
+            "totalLiquidVolume": 2000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 71.2,
+            "x": 113.38,
+            "y": 42.78,
+            "z": 4.82
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8",
+                "A9",
+                "A10",
+                "A11",
+                "A12"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "corning_12_reservoir"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

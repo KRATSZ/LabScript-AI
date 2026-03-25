@@ -1,0 +1,8 @@
+[
+    {
+        "type":"textFile",
+        "label": "Volume Transfers",
+        "name": "volume_transfers",
+        "default":"source_well,destination_well,transfer_volume\nA1,A1,546\nA1,A2,700\nA1,A3,300\nA1,A4,300\nA1,A4,100\nA1,A5,255\nA1,A6,267\nA2,D6,250"
+    }
+]

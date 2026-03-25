@@ -1,0 +1,216 @@
+{
+  "ordering": [
+    [
+      "A1",
+      "B1",
+      "C1"
+    ],
+    [
+      "A2",
+      "B2",
+      "C2"
+    ],
+    [
+      "A3",
+      "B3",
+      "C3"
+    ],
+    [
+      "A4",
+      "B4",
+      "C4"
+    ],
+    [
+      "A5",
+      "B5",
+      "C5"
+    ]
+  ],
+  "brand": {
+    "brand": "iClean"
+  },
+  "metadata": {
+    "displayName": "iClean Sample Tubes",
+    "displayCategory": "tubeRack",
+    "displayVolumeUnits": "mL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 121,
+    "yDimension": 79,
+    "zDimension": 109.5
+  },
+  "wells": {
+    "A1": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 10.5,
+      "y": 65,
+      "z": 11.8
+    },
+    "B1": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 10.5,
+      "y": 40,
+      "z": 11.8
+    },
+    "C1": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 10.5,
+      "y": 15,
+      "z": 11.8
+    },
+    "A2": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 35.5,
+      "y": 65,
+      "z": 11.8
+    },
+    "B2": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 35.5,
+      "y": 40,
+      "z": 11.8
+    },
+    "C2": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 35.5,
+      "y": 15,
+      "z": 11.8
+    },
+    "A3": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 60.5,
+      "y": 65,
+      "z": 11.8
+    },
+    "B3": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 60.5,
+      "y": 40,
+      "z": 11.8
+    },
+    "C3": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 60.5,
+      "y": 15,
+      "z": 11.8
+    },
+    "A4": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 85.5,
+      "y": 65,
+      "z": 11.8
+    },
+    "B4": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 85.5,
+      "y": 40,
+      "z": 11.8
+    },
+    "C4": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 85.5,
+      "y": 15,
+      "z": 11.8
+    },
+    "A5": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 110.5,
+      "y": 65,
+      "z": 11.8
+    },
+    "B5": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 110.5,
+      "y": 40,
+      "z": 11.8
+    },
+    "C5": {
+      "totalLiquidVolume": 1500,
+      "diameter": 14.3,
+      "shape": "circular",
+      "depth": 97.7,
+      "x": 110.5,
+      "y": 15,
+      "z": 11.8
+    }
+  },
+  "groups": [
+    {
+      "metadata": {},
+      "wells": [
+        "A1",
+        "B1",
+        "C1",
+        "A2",
+        "B2",
+        "C2",
+        "A3",
+        "B3",
+        "C3",
+        "A4",
+        "B4",
+        "C4",
+        "A5",
+        "B5",
+        "C5"
+      ]
+    }
+  ],
+  "parameters": {
+    "format": "irregular",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "iclean_15_tuberack"
+  },
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

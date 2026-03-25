@@ -1,0 +1,17 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer CSV",
+    "name": "transferCSV",
+    "default": "SourcePos,SampleID,PreampPos,LoadPos1,LoadPos2\nA1,1,A1,A1,B1\nB1,2,B1,C1,D1\nC1,3,C1,A2,B2\nD1,4,D1,C2,D2"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Mount",
+    "name": "pipMnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  }
+]

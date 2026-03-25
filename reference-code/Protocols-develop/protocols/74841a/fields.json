@@ -1,0 +1,89 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples + controls (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "magnetic engage height (in mm)",
+    "name": "mag_height",
+    "default": 18
+  },
+  {
+    "type": "float",
+    "label": "height offset from bottom of deepwell plate (in mm)",
+    "name": "z_offset",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "lateral offset (as fraction of deepwell radius)",
+    "name": "radial_offset",
+    "default": 0.8
+  },
+  {
+    "type": "float",
+    "label": "intitial volume (sample + lysis buffer, in ul)",
+    "name": "starting_vol",
+    "default": 28.5
+  },
+  {
+    "type": "float",
+    "label": "binding buffer volume (in ul)",
+    "name": "binding_buffer_vol",
+    "default": 30.0
+  },
+  {
+    "type": "float",
+    "label": "EtOH volume (in ul)",
+    "name": "wash1_vol",
+    "default": 180.0
+  },
+  {
+    "type": "float",
+    "label": "Post-PCR TE buffer volume",
+    "name": "elution_vol",
+    "default": 17.4
+  },
+  {
+    "type": "int",
+    "label": "mix repetitions for bead resuspension",
+    "name": "mix_reps",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "bead settling time (in minutes)",
+    "name": "settling_time",
+    "default": 2.0
+  },
+  {
+    "type": "dropDown",
+    "label": "park tips",
+    "name": "park_tips",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "track tips across protocol runs",
+    "name": "tip_track",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "flash robot on pause",
+    "name": "flash",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  }
+]

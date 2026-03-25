@@ -1,0 +1,54 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of tubes",
+    "name": "num_tubes",
+    "options": [
+      {"label": "8", "value": "8"},
+      {"label": "16", "value": "16"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Slides",
+    "name": "num_slides",
+    "default": 6
+  },
+  {
+    "type": "dropDown",
+    "label": "Spot Spacing (between dots)",
+    "name": "spot_labware",
+    "options": [
+      {"label": "2", "value": "two_spacing"},
+      {"label": "2.5", "value": "two_five_spacing"},
+      {"label": "3", "value": "three_spacing"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Spot Volume (1-20)",
+    "name": "spot_volume",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Aspirate Flow Rate",
+    "name": "asp_rate",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Dispense Flow Rate",
+    "name": "disp_rate",
+    "default": 1.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

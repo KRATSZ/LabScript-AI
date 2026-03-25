@@ -1,0 +1,23 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv",
+    "default": "Sample number,Plate number,Source well,Destination well,Start Concentration (ug/uL) Source,Final Concentration (ug/ml) Destination,Sample volume (uL),Diluent Volume(ul),Total Volume(ul) Destination\nn 1,1,A8,A1,200,30, 7.5, 42.5, 50\nn 2,2,B8,B1,200,30, 7.5, 42.5, 50"
+  },
+  {
+    "type": "int",
+    "label": "Number of Plates",
+    "name": "num_plates",
+    "default": 3
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

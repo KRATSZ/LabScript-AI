@@ -1,0 +1,158 @@
+[
+
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "SAMPLES",
+    "options": [
+      {"label": "8", "value": "8x"},
+      {"label": "16", "value": "16x"},
+      {"label": "24", "value": "24x"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Dry run?",
+    "name": "DRYRUN",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Modules or no modules?",
+    "name": "NOMODULES",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reuse tips?",
+    "name": "TIPREUSE",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Offset?",
+    "name": "OFFSET",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Step ERAT?",
+    "name": "STEP_ERAT",
+    "options": [
+      {"label": "Include ERAT step", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include ERAT deck steps?",
+    "name": "STEP_ERATDECK",
+    "options": [
+      {"label": "Include ERAT deck steps", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Ligation?",
+    "name": "STEP_LIG",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Ligation Deck Steps?",
+    "name": "STEP_LIGDECK",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Post-Ligation?",
+    "name": "STEP_POSTLIG",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include PCR?",
+    "name": "STEP_PCR",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include PCR Deck Step?",
+    "name": "STEP_PCRDECK",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Post PCR Step?",
+    "name": "STEP_POSTPCR",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount (GEN 2)",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount (GEN 2)",
+    "name": "p20_mount",
+    "options": [
+
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount (GEN 1)",
+    "name": "p300_mount_1",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 Multi-Channel Mount (GEN 1)",
+    "name": "p10_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

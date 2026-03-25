@@ -1,0 +1,53 @@
+[
+    {
+      "type": "dropDown",
+      "label": "P50 Single Channel Mount Position",
+      "name": "p50_mount",
+      "options": [
+        {"label": "Left", "value": "left"},
+        {"label": "Right", "value": "right"}
+      ]
+    },
+    {
+        "type": "textFile",
+        "label": "First Curve CSV File",
+        "name": "csv_file_1",
+        "default": "Stock1 Conc.,12120000,ng/ml,,,,,,,\nInts,Source starting Conc./Source name,,Source Vol (uL),Diluent vol (uL),Final Con (ng/ml),Final Vol (uL),Fold Dil of Source,,\n,,,,,,,,,\nInt1,12120000,stock1,8.3,41.7,2000000,50,6.06,,\nInt2,2000000, Int1,12.5,37.5,500000,50,4,,\nInt3,500000, Int2,5.0,45.0,50000,50,10,,\nInt4,50000, Int3,25.0,25.0,25000,50,2,,\n,,,,,,,,,\nStandard Curve Dilutions from the diluted stock solution,,,,,,,,,\nStd #,Source starting Conc./Source Name,,Source Vol (uL),Diluent vol (uL),Final Con (ng/ml),Final Vol (uL),Fold Dil of source,,\n,,,,,,,,,\nStd1,25000.0,Int4,5,45,2500,50,10,,\nStd2,2500.0,Std1,12.5,37.5,625,50,4,,\nStd3,625.0,Std2,12.5,37.5,156.3,50,4,,\nStd4,156.3,Std3,12.5,37.5,39.1,50,4,,\nStd5,39.1,Std4,12.5,37.5,9.8,50,4,,\nStd6,9.8,Std5,12.5,37.5,2.4,50,4,,\nStd7,2.4,Std6,12.5,37.5,0.6,50,4,,\nStd8,0.6,Std7,12.5,37.5,0.15,50,4,,\nBlank (Std9),,,,50,,50.0,,,\nQC Samples ,,,,,,,,,\nQC1,25000,Int4,5.2,59.8,2000,65,12.5,,\nQC2,2000,QC1,5,45,200,50,10,,\nQC3,200,QC2,5,45,20,50,10,,\nQC4,20,QC3,5,45,2,50,10,,\n,,,,,,,,,"
+      },
+      {
+        "type": "textFile",
+        "label": "Second Curve CSV File (Optional)",
+        "name": "csv_file_2",
+        "default": ",,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n,,,,,,,,,\n"
+      },
+      {
+        "type": "float",
+        "label": "Diluent Tube(s) Volume (uL)",
+        "name": "diluent_vol",
+        "default": 1000
+      },
+      {
+        "type": "float",
+        "label": "Aspirate Flow Rate (uL/s)",
+        "name": "asp_speed",
+        "default": 10
+      },
+      {
+        "type": "float",
+        "label": "Dispense Flow Rate (uL/s)",
+        "name": "disp_speed",
+        "default": 10
+      },
+      {
+        "type": "float",
+        "label": "Air Gap Volume (uL)",
+        "name": "air_gap_vol",
+        "default": 10
+      },
+      {
+        "type": "float",
+        "label": "Delay After Aspirate and Dispense (seconds)",
+        "name": "delay_time",
+        "default": 2
+      }
+  ]

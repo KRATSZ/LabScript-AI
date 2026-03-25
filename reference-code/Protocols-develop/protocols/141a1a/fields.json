@@ -1,0 +1,44 @@
+[
+  {
+    "type": "textFile",
+    "label": "Plasmid Mix CSV",
+    "name": "mm_csv",
+    "default": "1,2,3"
+  },
+  {
+    "type": "int",
+    "label": "Number of Replicates (1-3)",
+    "name": "noRep",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Number of Cell Extracts (1-24)",
+    "name": "noCe",
+    "default": 15
+  },
+  {
+    "type": "int",
+    "label": "Number of Blanks per Cell Extract (1, 2)",
+    "name": "noBlank",
+    "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Mount",
+    "name": "p20mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Mount",
+    "name": "p300mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  }
+]

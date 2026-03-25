@@ -1,0 +1,80 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Fragment Size (bp)",
+    "name": "size",
+    "options": [
+      { "label": "270 bp", "value": 270 },
+      { "label": "500 bp", "value": 500 },
+      { "label": "700 bp", "value": 700 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Input Samples (in multiples of 8, 48-96)",
+    "name": "sample_count",
+    "options": [
+      { "label": "Input Samples Filling All 12 Columns", "value": 96 },
+      { "label": "Input Samples Filling 11 Columns", "value": 88 },
+      { "label": "Input Samples Filling 10 Columns", "value": 80 },
+      { "label": "Input Samples Filling 9 Columns", "value": 72 },
+      { "label": "Input Samples Filling 8 Columns", "value": 64 },
+      { "label": "Input Samples Filling 7 Columns", "value": 56 },
+      { "label": "Input Samples Filling 6 Columns", "value": 48 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for 96-well Magnetic Module Plate ",
+    "name": "labware_plates",
+    "options": [
+      { "label": "vwr_96well_pcr_plate_200ul", "value": "vwr_96well_pcr_plate_200ul" },
+      { "label": "sarstedt_96well_pcr_plate_200ul", "value": "sarstedt_96well_pcr_plate_200ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reagent Tubes on the Temperature Module",
+    "name": "labware_tempmod",
+    "options": [
+      { "label": "sarstedt_24_aluminumblock_screwcap_tube_2ml", "value": "sarstedt_24_aluminumblock_screwcap_tube_2ml" },
+      { "label": "sarstedt_24_aluminumblock_hinged_screwcap_tube_2ml", "value": "sarstedt_24_aluminumblock_hinged_screwcap_tube_2ml" },
+      { "label": "sarstedt_24_aluminumblock_screwcap_tube_1.5ml", "value": "sarstedt_24_aluminumblock_screwcap_tube_1.5ml" },
+      { "label": "eppendorf_24_aluminumblock_lobind_tube_1.5ml", "value": "eppendorf_24_aluminumblock_lobind_tube_1.5ml" },
+      { "label": "eppendorf_24_aluminumblock_safelock_tube_1.5ml", "value": "eppendorf_24_aluminumblock_safelock_tube_1.5ml" },
+      { "label": "sarstedt_24_aluminumblock_safeseal_tube_2ml", "value": "sarstedt_24_aluminumblock_safeseal_tube_2ml" },
+      { "label": "vwr_24_aluminumblock_screwcap_tube_0.5ml", "value": "vwr_24_aluminumblock_screwcap_tube_0.5ml" },
+      { "label": "vwr_24_aluminumblock_wc_screwcap_tube_0.5ml", "value": "vwr_24_aluminumblock_wc_screwcap_tube_0.5ml" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Magnetic Module Engage Height (height from base of labware in millimeters)",
+    "name": "engage_height",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Magnetic Module Engage Time (minutes)",
+    "name": "engage_time",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Time for Bead Pellet Drying (minutes)",
+    "name": "dry_time",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Sideways Move to Avoid Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Sideways Move to Target Bead Pellet for Resuspension (mm)",
+    "name": "offset_x_resuspension",
+    "default": 1
+  }
+]

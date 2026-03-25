@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Plates (1-9)",
+    "name": "num_plates",
+    "default": 9
+  },
+  {
+    "type": "dropDown",
+    "label": "Reagent",
+    "name": "reagent",
+    "options": [
+       { "label": "Buffer", "value": "buffer" },
+       { "label": "Mastermix", "value": "mastermix" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi Channel Mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Channel Mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  }
+]

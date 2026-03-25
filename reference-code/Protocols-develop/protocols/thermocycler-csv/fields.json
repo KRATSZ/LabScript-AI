@@ -1,0 +1,44 @@
+[
+  {
+    "type": "float",
+    "label": "Sample Volume per Well",
+    "name": "well_vol",
+    "default": 50
+  },
+  {
+    "type": "float",
+    "label": "Lid Temperature (°C)",
+    "name": "lid_temp",
+    "default": 105
+  },
+  {
+    "type": "textFile",
+    "label": "profile .csv file",
+    "name": "input_csv",
+    "default": "cycle,repetitions,steps (temperature;time in minutes),,\n1,1,96;30,,\n2,30,96;15,60;30,74;30\n3,1,74;30,,\n"
+  },
+  {
+    "type": "float",
+    "label": "Final Hold Temperature (°C)",
+    "name": "final_temp",
+    "default": 4
+  },
+  {
+    "type": "dropDown",
+    "label": "open lid after profile executes",
+    "name": "open_lid",
+    "options": [
+      { "label": "yes", "value": true },
+      { "label": "no", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "deactivate module after profile executes",
+    "name": "deactivate_mod",
+    "options": [
+      { "label": "yes", "value": true },
+      { "label": "no", "value": false }
+    ]
+  }
+]

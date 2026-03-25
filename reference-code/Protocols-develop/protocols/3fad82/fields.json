@@ -1,0 +1,49 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Count (between 1 and 96)",
+    "name": "sample_count",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of p20 Tips",
+    "name": "labware_tips20",
+    "options": [
+      { "label": "Opentrons p20 Filter Tips", "value": "opentrons_96_filtertiprack_20ul" },
+      { "label": "Opentrons p20 Tips", "value": "opentrons_96_tiprack_20ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of PCR Plate",
+    "name": "labware_pcr_plate",
+    "options": [
+      { "label": "biorad_96_wellplate_200ul_pcr", "value": "biorad_96_wellplate_200ul_pcr" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Master Mix Plate (millimeters)",
+    "name": "clearance_mm_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Sample Plate (millimeters)",
+    "name": "clearance_samp_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Reduced Flow Rate for Ligation Mix (ul/sec)",
+    "name": "flow_rate_ligation_mx",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Delay After Aspirate and Dispense for Ligation Mix (seconds)",
+    "name": "delay_lig_mm",
+    "default": 1
+  }
+]

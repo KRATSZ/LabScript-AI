@@ -1,0 +1,8 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Columns (1-14)",
+    "name": "column_count",
+    "default": 14
+  }
+]

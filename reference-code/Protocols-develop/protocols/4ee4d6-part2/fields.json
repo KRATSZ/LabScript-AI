@@ -1,0 +1,14 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Count (between 1 and 12)",
+    "name": "sample_count",
+    "default": 12
+  },
+  {
+    "type": "int",
+    "label": "Engage Time (minutes) for Magnetic Module",
+    "name": "engage_time",
+    "default": 5
+  }
+]

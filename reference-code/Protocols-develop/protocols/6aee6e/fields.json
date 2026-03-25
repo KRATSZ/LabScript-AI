@@ -1,0 +1,9 @@
+[
+  {
+    "type": "int",
+    "label": "Volume of ammonia",
+    "name": "init_vol",
+    "default": 50
+  }
+]
+

@@ -1,0 +1,21 @@
+[
+    {
+      "type": "int",
+      "label": "number of samples (1-16)",
+      "name": "num_samples",
+      "default": 16
+    },
+    {
+      "type": "float",
+      "label": "volume of sample (in ul)",
+      "name": "vol_sample",
+      "default": 17.5
+    },
+    {
+      "type": "float",
+      "label": "beads ratio (x sample volume)",
+      "name": "ratio_beads",
+      "default": 1.0
+    }
+  ]
+  

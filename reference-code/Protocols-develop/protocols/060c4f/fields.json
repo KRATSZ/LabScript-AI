@@ -1,0 +1,20 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Destination Rows",
+    "name": "plate_cols",
+    "options": [
+      {"label": "Odd (A/C/E...)", "value": "A"},
+      {"label": "Even (B/D/F...)", "value": "B"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "pip_mount",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  }
+]

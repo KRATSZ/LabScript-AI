@@ -1,0 +1,56 @@
+[
+  {
+    "type": "int",
+    "label": "Number of samples",
+    "name": "n_samples",
+    "default": 32
+  },
+  {
+    "type": "int",
+    "label": "X offset for bead aspiration",
+    "name": "x_offset",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Magnet extension (mm)",
+    "name": "mag_height",
+    "default": 4.7
+  },
+  {
+    "type": "dropDown",
+    "label": "Blood cells or serum?",
+    "name": "is_blood_cells",
+    "options": [
+      {"label": "Blood cells", "value": true},
+      {"label": "Serum", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Proteinase K location",
+    "name": "is_protk_tube",
+    "options": [
+      {"label": "PK in tuberack", "value": true},
+      {"label": "EB in reservoir", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Elution buffer location",
+    "name": "is_eb_tube",
+    "options": [
+      {"label": "EB in tuberack", "value": true},
+      {"label": "EB in reservoir", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Liquid waste reservoir",
+    "name": "is_lwaste",
+    "options": [
+      {"label": "Use a liquid waste reservoir (slot 6)", "value": true},
+      {"label": "Use regular trash for liquid waste", "value": false}
+    ]
+  }
+]

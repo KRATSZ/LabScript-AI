@@ -1,0 +1,40 @@
+[
+    {
+      "type": "textFile",
+      "label": "Transfer .csv File",
+      "name": "transfer_csv",
+      "default": "Source Labware,Source Slot,Source Well,Source Aspiration Height Above Bottom (in mm),Dest Labware,Dest Slot,Dest Well,Volume (in ul)\\nopentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap,5,C1,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,A1,1\\nopentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap,5,C2,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,A2,1\\nopentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap,5,C3,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,A3,1\\ncorning_96_wellplate_360ul_flat,6,A1,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,B1,1\\ncorning_96_wellplate_360ul_flat,6,A2,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,B2,1\\ncorning_96_wellplate_360ul_flat,8,A1,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,C1,1\\ncorning_96_wellplate_360ul_flat,8,A2,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,C2,1\\nopentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap,11,A1,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,D1,1\\nopentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap,11,B3,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,D2,1\\nopentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap,11,C5,1,opentrons_96_aluminumblock_generic_pcr_strip_200ul,3,D3,1"
+    },
+    {
+      "type": "int",
+      "label": "Total PCR samples",
+      "name": "total_samples",
+      "default": 1
+    },
+    {
+      "type": "float",
+      "label": "Mastermix Volume",
+      "name": "mastermix_vol",
+      "default": 11.5
+    },
+    {
+        "type": "dropDown",
+        "label": "P20-single GEN2 mount",
+        "name": "p20_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+      {
+        "type": "dropDown",
+        "label": "PCR plate on top of Temperature Module",
+        "name": "pcr_labware",
+        "options": [
+          {"label": "Applied Biosystems 96 Well Plate 100 µL", "value": "appliedbiosystems_96_wellplate_100ul"},
+          {"label": "96 well PCR Strip (Aluminum Block)", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul"},
+          {"label": "96 well NEST 100uL PCR Plate", "value": "nest_96_wellplate_100ul_pcr_full_skirt"}
+        ]
+      }
+
+  ]

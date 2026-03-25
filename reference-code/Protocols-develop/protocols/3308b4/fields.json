@@ -1,0 +1,11 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount Side",
+    "name": "mount_m300",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+    {
+      "type": "dropDown",
+      "label": "P20 Multichannel GEN2 Mount Position",
+      "name": "m20_mount",
+      "options": [
+        { "label": "Left", "value": "left" },
+        { "label": "Right", "value": "right" }
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 Multichannel GEN2 Mount Position",
+        "name": "m300_mount",
+        "options": [
+          { "label": "Right", "value": "right" },
+          { "label": "Left", "value": "left" }
+        ]
+      },
+    {
+        "type": "int",
+        "label": "Number of Samples",
+        "name": "samples",
+        "default": 96
+      }
+  ]

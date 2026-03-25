@@ -1,0 +1,97 @@
+[
+  {
+    "type": "dropDown",
+    "label": "number of source plates (1-4)",
+    "name": "num_plates",
+    "options": [
+      {"label": "1", "value": 1},
+      {"label": "2", "value": 2},
+      {"label": "3", "value": 3},
+      {"label": "4", "value": 4}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples per plate (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "number of slides (1-4)",
+    "name": "num_slides",
+    "options": [
+      {"label": "1", "value": 1},
+      {"label": "2", "value": 2},
+      {"label": "3", "value": 3},
+      {"label": "4", "value": 4}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "array pattern",
+    "name": "array_pattern",
+    "options": [
+      {"label": "1", "value": 1},
+      {"label": "2", "value": 2},
+      {"label": "3", "value": 3}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "blot dwell time (in seconds)",
+    "name": "blot_dwell_time",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "wash scheme",
+    "name": "wash_scheme",
+    "options": [
+      {"label": "vertical movement", "value": "vertical movement"},
+      {"label": "dip and hold", "value": "dip and hold"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "slow vertical speed up (in mm/s)",
+    "name": "slow_speed_up",
+    "default": 10.0
+  },
+  {
+    "type": "float",
+    "label": "slow vertical speed down (in mm/s)",
+    "name": "slow_speed_down",
+    "default": 10.0
+  },
+  {
+    "type": "float",
+    "label": "sample height (in mm)",
+    "name": "sample_height",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "slide dwell time (in seconds)",
+    "name": "slide_dwell_time",
+    "default": 3.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel GEN2 pipette mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette attachment type",
+    "name": "tip_type",
+    "options": [
+      {"label": "custom pins", "value": "vpscientific_8_tiprack_10ul"},
+      {"label": "Opentrons 300µl tips", "value": "opentrons_96_tiprack_300ul"}
+    ]
+  }
+]

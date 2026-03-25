@@ -1,0 +1,20 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples + controls (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "starting volume (100-400µl)",
+    "name": "starting_vol",
+    "default": 200.0
+  },
+  {
+    "type": "int",
+    "label": "elution volume (40-100µl)",
+    "name": "elution_vol",
+    "default": 40.0
+  }
+]

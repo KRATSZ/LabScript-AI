@@ -1,0 +1,12 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Tip Racks to Arrange (2, 4 or 6)",
+    "name": "box_count",
+    "options": [
+      { "label": "Full Box in Slot 7 and Empty Box in Slot 4", "value": 2 },
+      { "label": "Full Boxes in Slots 7, 8 and Empty Boxes in Slots 4, 5", "value": 4 },
+      { "label": "Full Boxes in Slots 7, 8, 9 and Empty Boxes in Slots 4, 5, 6", "value": 6 }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "numSamps",
+    "options": [
+      { "label": "10", "value": 10 },
+      { "label": "20", "value": 20 },
+      { "label": "30", "value": 30 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Mount",
+    "name": "mnt",
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Right", "value": "right" }
+    ]
+  }
+]

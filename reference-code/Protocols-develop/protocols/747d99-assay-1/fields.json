@@ -1,0 +1,32 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 8
+  },
+  {
+    "type": "dropDown",
+    "label": "track tips across runs",
+    "name": "tip_track",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "add internal control during protocol",
+    "name": "add_ic",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "volume internal control to add to buffer (if necessary)",
+    "name": "vol_ic",
+    "default": 100
+  }
+]

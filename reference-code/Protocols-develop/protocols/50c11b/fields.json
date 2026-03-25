@@ -1,0 +1,44 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Protocol Type",
+    "name": "protoType",
+    "options": [
+      {"label": "Covid", "value": "5.3 12"},
+      {"label": "UTI & More", "value": "2 4"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Plate 1 Number of Samples",
+    "name": "p1num",
+    "default": 8
+  },
+  {
+    "type": "int",
+    "label": "Plate 2 Number of Samples",
+    "name": "p2num",
+    "default": 8
+  },
+  {
+    "type": "int",
+    "label": "Plate 3 Number of Samples",
+    "name": "p3num",
+    "default": 8
+  },
+  {
+    "type": "int",
+    "label": "Plate 4 Number of Samples",
+    "name": "p4num",
+    "default": 8
+  },
+  {
+    "type": "dropDown",
+    "label": "P20-Multi Mount",
+    "name": "mnt20",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

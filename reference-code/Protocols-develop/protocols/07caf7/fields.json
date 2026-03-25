@@ -1,0 +1,80 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 12
+  },
+  {
+    "type": "str",
+    "label": "sample starting tip (slot 4)",
+    "name": "tip_start_samples",
+    "default": "A1"
+  },
+  {
+    "type": "str",
+    "label": "sample starting well destination (slot 5)",
+    "name": "well_start_samples",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "initial sample volume (in ul)",
+    "name": "vol_sample",
+    "default": 300.0
+  },
+  {
+    "type": "float",
+    "label": "aspiration height samples (in mm, from bottom)",
+    "name": "height_sample",
+    "default": 15.0
+  },
+  {
+    "type": "str",
+    "label": "MeOH columns (separate by ,)",
+    "name": "col_meoh",
+    "default": "1,2,3,4"
+  },
+  {
+    "type": "str",
+    "label": "MQ columns (separate by ,)",
+    "name": "col_mq",
+    "default": "5,6"
+  },
+  {
+    "type": "float",
+    "label": "MeOH volume (in ul)",
+    "name": "vol_meoh",
+    "default": 200.0
+  },
+  {
+    "type": "float",
+    "label": "MQ volume (in ul)",
+    "name": "vol_mq",
+    "default": 300.0
+  },
+  {
+    "type": "float",
+    "label": "final redissoled sample volume (in ul)",
+    "name": "vol_sample_redissolved",
+    "default": 100.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel GEN2 pipette mount",
+    "name": "mount_p300",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 8-channel GEN2 pipette mount",
+    "name": "mount_m300",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

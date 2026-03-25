@@ -1,0 +1,50 @@
+[
+
+  {
+    "type": "dropDown",
+    "label": "Number of Samples Plate 1",
+    "name": "num_samp_plate1",
+    "options": [
+      {"label": "8", "value": 8},
+      {"label": "16", "value":16},
+      {"label": "24", "value":24},
+      {"label": "32", "value":32},
+      {"label": "40", "value":40},
+      {"label": "48", "value":48},
+      {"label": "56", "value":56},
+      {"label": "64", "value":64},
+      {"label": "72", "value":72},
+      {"label": "80", "value":80},
+      {"label": "88", "value":88},
+      {"label": "96", "value":96}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Samples Plate 2",
+    "name": "num_samp_plate2",
+    "options": [
+      {"label": "8", "value": 8},
+      {"label": "16", "value":16},
+      {"label": "24", "value":24},
+      {"label": "32", "value":32},
+      {"label": "40", "value":40},
+      {"label": "48", "value":48},
+      {"label": "56", "value":56},
+      {"label": "64", "value":64},
+      {"label": "72", "value":72},
+      {"label": "80", "value":80},
+      {"label": "88", "value":88},
+      {"label": "96", "value":96}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

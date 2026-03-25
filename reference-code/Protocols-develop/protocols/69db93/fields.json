@@ -1,0 +1,47 @@
+[
+  {
+    "type": "int",
+    "label": "Number of samples",
+    "name": "num_samp",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Aspiration height from bottom of well (mm)",
+    "name": "asp_height",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Multi-channel pippette aspiration flow rate (ul/s)",
+    "name": "asp_flow_rate",
+    "default": 150
+  },
+  {
+    "type": "float",
+    "label": "Multi-channel pippette dispense flow rate (ul/s)",
+    "name": "disp_flow_rate",
+    "default": 94.0
+  },
+  {
+  "type": "float",
+  "label": "Distance from side of well (1mm - 4.15mm)",
+  "name": "length_from_side",
+  "default": 1.0125
+  },
+  {
+  "type": "float",
+  "label": "Dispense height from top of liquid waste reservoir",
+  "name": "disp_height",
+  "default": 1.0125
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi GEN2 mount",
+    "name": "m300_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

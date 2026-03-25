@@ -1,0 +1,18 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Starting Tip Column",
+    "name": "start_tip",
+    "options": [
+      {"label": "1", "value": "1"},
+      {"label": "5", "value": "5"},
+      {"label": "9", "value": "9"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Runs",
+    "name": "run_number",
+    "default": 3
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "type": "int",
+    "label": "number of aliquots (1-96)",
+    "name": "num_aliquots",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "volume of aliquot",
+    "name": "vol_aliquot",
+    "default": 200
+  },
+  {
+    "type": "dropDown",
+    "label": "source container",
+    "name": "lw_source",
+    "options": [
+      {"label": "Opentrons 15 Tube Rack with Falcon 15 mL Conical", "value": "opentrons_15_tuberack_falcon_15ml_conical"},
+      {"label": "NEST 1 Well Reservoir 195 mL", "value": "nest_1_reservoir_195ml"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette type",
+    "name": "type_pip",
+    "options": [
+      {"label": "P300 single-channel GEN2", "value": "p300_single_gen2"},
+      {"label": "P20 single-channel GEN2", "value": "p20_single_gen2"},
+      {"label": "P1000 single-channel GEN2", "value": "p1000_single_gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette mount",
+    "name": "mount_pip",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  }
+]

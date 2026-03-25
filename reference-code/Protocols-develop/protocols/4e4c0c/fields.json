@@ -1,0 +1,54 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Columns to Fill in the Processing Plates (1-12)",
+    "name": "num_cols",
+    "default": 12
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the Processing Plates",
+    "name": "labware_processing_plate",
+    "options": [
+      { "label": "thermofisher_95040450_96_deepwell_2ml", "value": "thermofisher_95040450_96_deepwell_2ml" },
+      { "label": "nest_96_wellplate_2ml_deep", "value": "nest_96_wellplate_2ml_deep" },
+      { "label": "usascientific_96_wellplate_2.4ml_deep", "value": "usascientific_96_wellplate_2.4ml_deep" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the 12-Well Reagent Reservoir",
+    "name": "labware_reservoir_12well",
+    "options": [
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" },
+      { "label": "usascientific_12_reservoir_22ml", "value": "usascientific_12_reservoir_22ml" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the Wash Buffer Reservoir and 80 Percent EtOH Reservoir",
+    "name": "labware_reservoir_1well",
+    "options": [
+      { "label": "nest_1_reservoir_195ml", "value": "nest_1_reservoir_195ml" },
+      { "label": "agilent_1_reservoir_290ml", "value": "agilent_1_reservoir_290ml" }
+    ]
+  },
+  {
+  "type": "dropDown",
+  "label": "P300 Multi-Channel Mount",
+  "name": "m300_mount",
+  "options": [
+    {"label": "Left", "value": "left"},
+    {"label": "Right", "value": "right"}
+  ]
+},
+{
+  "type": "dropDown",
+  "label": "P20 Multi-Channel Mount",
+  "name": "m20_mount",
+  "options": [
+    {"label": "Right", "value": "right"},
+    {"label": "Left", "value": "left"}
+  ]
+}
+]

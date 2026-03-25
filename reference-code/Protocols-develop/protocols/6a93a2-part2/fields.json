@@ -1,0 +1,55 @@
+[
+
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "num_samp",
+    "options": [
+       { "label": "8", "value": "8" },
+       { "label": "16", "value": "16" },
+       { "label": "24", "value": "24" }
+     ]
+  },
+  {
+    "type": "float",
+    "label": "Adaptase Mastermix Overage Percent (0-10%)",
+    "name": "overage_percent",
+    "default": 7.5
+  },
+  {
+    "type": "dropDown",
+    "label": "Opentrons 96 Tip Rack 20ul Tip Type",
+    "name": "tip_type",
+    "options": [
+       { "label": "Filtertips", "value": "opentrons_96_filtertiprack_20ul" },
+       { "label": "Non-Filtertips", "value": "opentrons_96_tiprack_20ul" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Opentrons 96 Tip Rack 20ul Tip Type",
+    "name": "tip_type",
+    "options": [
+       { "label": "Filtertips", "value": "opentrons_96_filtertiprack_200ul" },
+       { "label": "Non-Filtertips", "value": "opentrons_96_tiprack_20ul" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi GEN2 Mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single GEN2 Mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

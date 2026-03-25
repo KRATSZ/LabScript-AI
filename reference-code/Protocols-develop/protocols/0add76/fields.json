@@ -1,0 +1,26 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer CSV",
+    "name": "v_csv",
+    "default": "samples, dna volume of stock, water stock, well\\n s1, 2, 98, A1"
+  },
+  {
+     "type": "dropDown",
+     "label": "P10 Single Mount",
+     "name": "p10_mount",
+     "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+   },
+   {
+      "type": "dropDown",
+      "label": "P300 GEN2 mount",
+      "name": "p300_mount",
+      "options": [
+        { "label": "left", "value": "left" },
+        { "label": "right", "value": "right" }
+      ]
+    }
+]

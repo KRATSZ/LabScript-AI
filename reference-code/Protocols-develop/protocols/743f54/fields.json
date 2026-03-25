@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "numSamps",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipMnt",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

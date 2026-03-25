@@ -1,0 +1,68 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "num_samp",
+    "options": [
+      {"label": "96", "value": "96"},
+      {"label": "88", "value": "88"},
+      {"label": "80", "value": "80"},
+      {"label": "72", "value": "72"},
+      {"label": "64", "value": "64"},
+      {"label": "56", "value": "56"},
+      {"label": "48", "value": "48"},
+      {"label": "40", "value": "40"},
+      {"label": "32", "value": "32"},
+      {"label": "24", "value": "24"},
+      {"label": "16", "value": "16"},
+      {"label": "8", "value": "8"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Sample/Destination/Temp mod plate",
+    "name": "barcode_sample_plate",
+    "options": [
+      {"label": "Fisher", "value": "fisher_96_wellplate_200ul"},
+      {"label": "Biorad", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "Bulldog", "value": "bulldog_96_wellplate_200ul"}
+
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Water Volume",
+    "name": "water_vol",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Barcode Volume",
+    "name": "barcode_vol",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Temperature Module Temperature (4-95)",
+    "name": "temp_mod_temp",
+    "default": 4
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

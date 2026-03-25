@@ -1,0 +1,38 @@
+[
+    {
+      "type": "dropDown",
+      "label": "P300 Multichannel GEN2 Mount Position",
+      "name": "m300_mount",
+      "options": [
+        { "label": "Left", "value": "left" },
+        { "label": "Right", "value": "right" }
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Reservoir Type",
+        "name": "reservoir_type",
+        "options": [
+          { "label": "NEST 12 Well Reservoir 15 mL", "value": "nest_12_reservoir_15ml" },
+          { "label": "USA Scientific 12 Well Reservoir 22 mL", "value": "usascientific_12_reservoir_22ml" }
+        ]
+      },
+      {
+        "type": "float",
+        "label": "Blowout Height from Well Bottom (mm)",
+        "name": "blowout_height",
+        "default": 5.2
+      },
+      {
+        "type": "float",
+        "label": "Mix Aspiration Flow Rate (uL/s)",
+        "name": "asp_rate",
+        "default": 100
+      },
+      {
+        "type": "float",
+        "label": "Mix Dispensing Flow Rate (uL/s)",
+        "name": "disp_rate",
+        "default": 100
+      }
+  ]

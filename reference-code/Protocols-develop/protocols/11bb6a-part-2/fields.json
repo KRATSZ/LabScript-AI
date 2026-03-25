@@ -1,0 +1,67 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Input Samples (in multiples of 8, 48-96)",
+    "name": "sample_count",
+    "options": [
+      { "label": "Input Samples Filling All 12 Columns", "value": 96 },
+      { "label": "Input Samples Filling 11 Columns", "value": 88 },
+      { "label": "Input Samples Filling 10 Columns", "value": 80 },
+      { "label": "Input Samples Filling 9 Columns", "value": 72 },
+      { "label": "Input Samples Filling 8 Columns", "value": 64 },
+      { "label": "Input Samples Filling 7 Columns", "value": 56 },
+      { "label": "Input Samples Filling 6 Columns", "value": 48 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for 96-well Magnetic Module Plate ",
+    "name": "labware_plates",
+    "options": [
+      { "label": "vwr_96well_pcr_plate_200ul", "value": "vwr_96well_pcr_plate_200ul" },
+      { "label": "sarstedt_96well_pcr_plate_200ul", "value": "sarstedt_96well_pcr_plate_200ul" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Sample Volume (30-50 uL)",
+    "name": "x",
+    "default": 50
+  },
+  {
+    "type": "float",
+    "label": "Bead Ratio (1.0-1.2)",
+    "name": "y",
+    "default": 1.2
+  },
+  {
+    "type": "float",
+    "label": "Magnetic Module Engage Height (height from base of labware in millimeters)",
+    "name": "engage_height",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Magnetic Module Engage Time (minutes)",
+    "name": "engage_time",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Time for Bead Pellet Drying (minutes)",
+    "name": "dry_time",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Sideways Move to Avoid Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Sideways Move to Target Bead Pellet for Resuspension (mm)",
+    "name": "offset_x_resuspension",
+    "default": 1
+  }
+]

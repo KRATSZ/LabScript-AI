@@ -1,0 +1,120 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1"
+        ],
+        [
+            "A2",
+            "B2"
+        ],
+        [
+            "A3",
+            "B3"
+        ]
+    ],
+    "brand": {
+        "brand": "Caplugs",
+        "brandId": [
+            "2223530G80"
+        ]
+    },
+    "metadata": {
+        "displayName": "Caplugs 6 Tube Rack 30 mL",
+        "displayCategory": "tubeRack",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 96
+    },
+    "wells": {
+        "A1": {
+            "depth": 93,
+            "totalLiquidVolume": 30000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 35.5,
+            "y": 60.24,
+            "z": 3
+        },
+        "B1": {
+            "depth": 93,
+            "totalLiquidVolume": 30000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 35.5,
+            "y": 25.24,
+            "z": 3
+        },
+        "A2": {
+            "depth": 93,
+            "totalLiquidVolume": 30000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 70.5,
+            "y": 60.24,
+            "z": 3
+        },
+        "B2": {
+            "depth": 93,
+            "totalLiquidVolume": 30000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 70.5,
+            "y": 25.24,
+            "z": 3
+        },
+        "A3": {
+            "depth": 93,
+            "totalLiquidVolume": 30000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 105.5,
+            "y": 60.24,
+            "z": 3
+        },
+        "B3": {
+            "depth": 93,
+            "totalLiquidVolume": 30000,
+            "shape": "circular",
+            "diameter": 30,
+            "x": 105.5,
+            "y": 25.24,
+            "z": 3
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v",
+                "displayCategory": "tubeRack"
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "A2",
+                "B2",
+                "A3",
+                "B3"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "caplugs_6_tuberack_30ml"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples to prcoess",
+    "name": "number_of_samples_to_process",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P50 single-channel mount",
+    "name": "p50_single_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

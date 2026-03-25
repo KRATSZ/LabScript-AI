@@ -1,0 +1,38 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "mount",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Type",
+    "name": "tiptype",
+    "options": [
+      {"label": "Opentrons 300µL Tips", "value": "opentrons_96_tiprack_300ul"},
+      {"label": "Opentrons 200µL Filter Tips", "value": "opentrons_96_filtertiprack_200ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "samps",
+    "options": [
+      {"label": "24 Samples", "value": "24"},
+      {"label": "48 Samples", "value": "48"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Dispense Liquid Waste in Reservoir",
+    "name": "lwaste",
+    "options": [
+      {"label": "Reservoir in slot 8", "value": "yes"},
+      {"label": "Fixed Trash", "value": "no"}
+    ]
+  }
+]

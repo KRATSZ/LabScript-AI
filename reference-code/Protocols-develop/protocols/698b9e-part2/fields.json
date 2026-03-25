@@ -1,0 +1,32 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samp",
+    "default": 15
+  },
+  {
+    "type": "int",
+    "label": "Aspirate Saliva Delay Time (in seconds)",
+    "name": "aspirate_delay_time",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single Channel Mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Channel Mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  }
+]

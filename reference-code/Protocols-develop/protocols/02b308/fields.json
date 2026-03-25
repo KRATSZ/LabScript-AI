@@ -1,0 +1,23 @@
+[
+  {
+    "type": "int",
+    "label": "number of qPCR plates (1-6)",
+    "name": "num_plates",
+    "default": 6
+  },
+  {
+    "type": "int",
+    "label": "number of primers (1-8)",
+    "name": "num_primers",
+    "default": 8
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 8-channel GEN2 pipette mount",
+    "name": "mount_m20",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

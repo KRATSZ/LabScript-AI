@@ -1,0 +1,71 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Choose Filtered or Standard Tips for P300 multi",
+    "name": "labware_p300_tips",
+    "options": [
+      { "label": "Filtered Tips", "value": "opentrons_96_filtertiprack_200ul" },
+      { "label": "Standard Tips", "value": "opentrons_96_tiprack_300ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for PCR Plate",
+    "name": "labware_pcr_plate",
+    "options": [
+      { "label": "nest_96_wellplate_100ul_pcr_full_skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reservoir",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "agilent_1_reservoir_290ml", "value": "agilent_1_reservoir_290ml" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Collect Plate (on Magnetic Module)",
+    "name": "labware_collect_plate",
+    "options": [
+      { "label": "usascientific_96_wellplate_2.4ml_deep", "value": "usascientific_96_wellplate_2.4ml_deep" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Engage Time for Magnetic Module (min)",
+    "name": "engage_time",
+    "default": 7
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Reservoirs (mm)",
+    "name": "clearance_reservoir",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for PCR Plates (mm)",
+    "name": "clearance_pcr_plate",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Collect Plate (mm)",
+    "name": "clearance_deep_well",
+    "default": 3
+  },
+  {
+    "type": "float",
+    "label": "Clearance to Aspirate Eluate and Avoid Bead Pellet (mm)",
+    "name": "clearance_eluate",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Set Max Aspirate Volume for p300 Tips (ul)",
+    "name": "set_tip_max",
+    "default": 150
+  }
+]

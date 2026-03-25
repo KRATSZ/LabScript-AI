@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel GEN2 pipette mount",
+    "name": "m300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 single-channel GEN2 pipette mount",
+    "name": "p1000_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

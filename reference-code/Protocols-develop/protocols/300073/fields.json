@@ -1,0 +1,86 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Is there a first set of tubes?",
+    "name": "has_first_tube_set",
+    "options": [
+      {"label": "Yes", "value": true},
+      {"label": "No", "value": false}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of tubes/samples in the first set of tubes",
+    "name": "n_samples_set1",
+    "default": 45
+  },
+  {
+    "type": "dropDown",
+    "label": "Is there a second set of tubes?",
+    "name": "has_second_tube_set",
+    "options": [
+      {"label": "Yes", "value": true},
+      {"label": "No", "value": false}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of tubes/samples in the second set of tubes",
+    "name": "n_samples_set2",
+    "default": 48
+  },
+  {
+    "type": "dropDown",
+    "label": "Sample volume (µL) to aspirate",
+    "name": "sample_aspiration_vol_ul",
+    "options": [
+      {"label": "50 µL", "value": 50},
+      {"label": "5 µL", "value": 5}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Aspiration flow rate (µL/s)",
+    "name": "aspirate_flow_rate",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Dispensation flow rate (µL/s)",
+    "name": "dispense_flow_rate",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Aspiration height from the bottom of the tubes (mm)",
+    "name": "aspiration_height_mm",
+    "default": 3
+  },
+  {
+    "type": "float",
+    "label": "Dispension height from the bottom of the plate wells (mm)",
+    "name": "dispension_height_mm",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "(Optional) Temperature module with aluminum block",
+    "name": "temp_mod_lname",
+    "options": [
+      {"label": "No temperature module", "value": false},
+      {"label": "Temperature module + aluminum block ", "value": true}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Set temperature of the temperature module",
+    "name": "temperature",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Amount of time to keep the pipette in the tube after aspiration (s)",
+    "name": "post_aspiration_wait",
+    "default": 5
+  }
+]

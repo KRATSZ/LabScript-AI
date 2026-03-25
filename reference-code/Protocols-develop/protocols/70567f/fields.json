@@ -1,0 +1,98 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel GEN2 pipette mount",
+    "name": "p300_multi_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "number_of_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "volume of beads (µl)",
+    "name": "volume_of_beads",
+    "default": 50.0
+  },
+  {
+    "type": "float",
+    "label": "bead incubation time (minutes)",
+    "name": "bead_incubation_time_in_minutes",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "initial/EtOH wash bead settling time on magnet (minutes)",
+    "name": "etoh_inc",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "bead drying time (minutes)",
+    "name": "drying_time_in_minutes",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "volume of ethanol (µl)",
+    "name": "vol_etoh",
+    "default": 100.0
+  },
+  {
+    "type": "dropDown",
+    "label": "mix after ethanol addition",
+    "name": "mix_etoh",
+    "options": [
+      { "label": "no", "value": false },
+      { "label": "yes", "value": true }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "volume of EB (µl)",
+    "name": "volume_EB_in_ul",
+    "default": 50.0
+  },
+  {
+    "type": "float",
+    "label": "elution bead settling time on magnet (minutes)",
+    "name": "elution_inc",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "volume of final elution (µl)",
+    "name": "volume_final_elution_in_ul",
+    "default": 40.0
+  },
+  {
+    "type": "dropDown",
+    "label": "park tips",
+    "name": "park_tips",
+    "options": [
+      { "label": "yes", "value": true },
+      { "label": "no", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "track tips across protocol runs",
+    "name": "tip_track",
+    "options": [
+      { "label": "no", "value": false },
+      { "label": "yes", "value": true }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "maximum tips allowed in trash",
+    "name": "drop_threshold",
+    "default": 200
+  }
+]

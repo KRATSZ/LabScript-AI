@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-24)",
+    "name": "num_samples",
+    "default": 24
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 single-channel GEN1 mount",
+    "name": "p10_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 multi-channel GEN1 mount",
+    "name": "m10_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

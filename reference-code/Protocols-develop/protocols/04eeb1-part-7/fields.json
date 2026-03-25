@@ -1,0 +1,20 @@
+[
+    {
+        "type": "dropDown",
+        "label": "P300 Multichannel GEN2 Pipette Mount",
+        "name": "m300_mount",
+        "options": [
+          { "label": "Left", "value": "left" },
+          { "label": "Right", "value": "right" }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 Multichannel GEN2 Pipette Mount",
+        "name": "m20_mount",
+        "options": [
+          { "label": "Right", "value": "right" },
+          { "label": "Left", "value": "left" }
+        ]
+    }
+]

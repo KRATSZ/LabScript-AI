@@ -1,0 +1,26 @@
+[
+  {
+    "type": "textFile",
+    "label": "input .csv file",
+    "name": "input_csv",
+    "default": "Sample Conc. (mg/ml),sample volume (µl),water volume (µl),buffer 1 (µl),probe volume (µl),probe tube location (C1-D6),total volume (µl)\n1,40,50,10,5,A3,105\n2.2,18.2,71.8,10,5,A3,105\n2.03,19.7,70.3,10,5,A4,105\n"
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single GEN2 mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

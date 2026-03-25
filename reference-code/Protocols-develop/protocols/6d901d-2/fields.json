@@ -1,0 +1,113 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer .csv File",
+    "name": "transfer_csv",
+    "default": "Source Well,Source Aspiration Height Above Bottom (in mm),Dest Well,Volume (in ul)\nA1,1,A11,1\nA1,1,A5,3\nA1,1,H12,7"
+  },
+  {
+    "type": "dropDown",
+    "label": "Source Plate Type",
+    "name": "lw_source_plate",
+    "options": [
+      {"label": "NEST 96-Well, 200µL Flat", "value": "nest_96_wellplate_200ul_flat"},
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "BioRad 96-Well, 200µL PCR", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "USA Scientific 96-Deepwell, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"},
+      {"label": "Corning 96-Well, 360µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      {"label": "Corning 384-Well, 112µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      {"label": "Corning Falcon 384-Well, 130 µL Square, Flat", "value": "corning_falcon_384_well_plate_130ul_square_flat"},
+      {"label": "Greiner Bio-One 96-well 392 µL Flat", "value": "greinerbioone_96_wellplate_392ul_flat"},
+      {"label": "PerkinElmer PhenoPlate 96-well 300 µL flat", "value": "perkinelmer_phenoplate_96_wellplate_300ul_circular_flat"}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "Source plate type (if not listed in dropdown above)",
+    "name": "lw_source_plate_open",
+    "default": ""
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination Plate Type",
+    "name": "lw_dest_plate",
+    "options": [
+      {"label": "NEST 96-Well, 200µL Flat", "value": "nest_96_wellplate_200ul_flat"},
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "BioRad 96-Well, 200µL PCR", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "USA Scientific 96-Deepwell, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"},
+      {"label": "Corning 96-Well, 360µL Flat", "value": "corning_96_wellplate_360ul_flat"},
+      {"label": "Corning 384-Well, 112µL Flat", "value": "corning_384_wellplate_112ul_flat"},
+      {"label": "Corning Falcon 384-Well, 130 µL Square, Flat", "value": "corning_falcon_384_well_plate_130ul_square_flat"},
+      {"label": "Greiner Bio-One 96-well 392 µL Flat", "value": "greinerbioone_96_wellplate_392ul_flat"},
+      {"label": "PerkinElmer PhenoPlate 96-well 300 µL flat", "value": "perkinelmer_phenoplate_96_wellplate_300ul_circular_flat"}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "Destination plate type (if not listed in dropdown above)",
+    "name": "lw_dest_plate_open",
+    "default": ""
+  },
+  {
+    "type": "dropDown",
+    "label": "Reservoir Type",
+    "name": "res_type",
+    "options": [
+      {"label": "USA Scientific 12-Well, 22mL", "value": "usascientific_12_reservoir_22ml"},
+      {"label": "NEST 1-Well, 195mL", "value": "nest_1_reservoir_195ml"},
+      {"label": "NEST 12-Well, 15mL", "value": "nest_12_reservoir_15ml"},
+      {"label": "Agilent 1-Well, 290mL", "value": "agilent_1_reservoir_290ml"},
+      {"label": "Axygen 1-Well, 90mL", "value": "axygen_1_reservoir_90ml"},
+      {"label": "None", "value": "none"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Model",
+    "name": "pipette_type",
+    "options": [
+      { "label": "P300 Multi GEN2", "value": "p300_multi_gen2"},
+      { "label": "P20 Multi GEN2", "value": "p20_multi_gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipette_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Type",
+    "name": "tip_type",
+    "options": [
+      {"label": "standard", "value": "standard"},
+      {"label": "filter", "value": "filter"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Usage Strategy",
+    "name": "tip_reuse",
+    "options": [
+      {"label": "Use a new tip for each transfer", "value": "never"},
+      {"label": "Reuse tip for each transfer", "value": "always"}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "Starting Tiprack Slot",
+    "name": "starting_tiprack_slot",
+    "default": "4"
+  },
+  {
+    "type": "str",
+    "label": "Starting Tip Well",
+    "name": "starting_tip_well",
+    "default": "H1"
+  }
+]

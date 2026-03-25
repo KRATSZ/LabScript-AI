@@ -1,0 +1,17 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": "Well,Dilution Volume\nA1,2\nD1,4"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

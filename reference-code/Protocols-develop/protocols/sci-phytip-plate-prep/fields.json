@@ -1,0 +1,41 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "_num_samples",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "Volume of Equilibration Buffer",
+    "name": "_vol_eql",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Volume of Wash Buffer 1",
+    "name": "_vol_wash1",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Volume of Wash Buffer 2",
+    "name": "_vol_wash2",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Volume of Elution Buffer",
+    "name": "_vol_eln",
+    "default": 100
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi Mount",
+    "name": "_p300mnt",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

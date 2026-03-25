@@ -1,0 +1,15 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "string",
+    "label": "Start of tips",
+    "name": "tip_start",
+    "default": "A1"
+  }
+]
+

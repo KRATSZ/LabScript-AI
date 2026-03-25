@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-384)",
+    "name": "num_samp",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "P20 Dispense Flow Rate",
+    "name": "p20_rate",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "P300 Dispense Flow Rate",
+    "name": "p300_rate",
+    "default": 1.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel GEN2 Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel GEN2 Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

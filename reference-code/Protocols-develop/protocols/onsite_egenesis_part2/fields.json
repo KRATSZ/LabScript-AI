@@ -1,0 +1,14 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (2-24)",
+    "name": "num_samp",
+    "default": 4
+  },
+  {
+    "type": "int",
+    "label": "Barcode Starting Well (count from A1 by column)",
+    "name": "barcode_well_start",
+    "default": 1
+  }
+]

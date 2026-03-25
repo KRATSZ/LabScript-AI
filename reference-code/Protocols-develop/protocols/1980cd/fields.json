@@ -1,0 +1,15 @@
+[
+  {
+    "type": "int",
+    "label": "Step",
+    "name": "step",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Number of test plates (Step 1 only)",
+    "name": "test_plates",
+    "default": 2
+  }
+]
+

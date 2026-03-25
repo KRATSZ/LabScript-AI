@@ -1,0 +1,39 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-24, including all controls)",
+    "name": "num_samples",
+    "default": 4
+  },
+  {
+    "type": "textFile",
+    "label": "cherrypicking input list",
+    "name": "cp_list",
+    "default": "A4,tc\nB4,tc\nC1,dil\nD1,dil\nB1,dil\n"
+  },
+  {
+    "type": "dropDown",
+    "label": "molecule type",
+    "name": "type_molecule",
+    "options": [
+      { "label": "401", "value": "401" },
+      { "label": "101", "value": "101" },
+      { "label": "pDNA", "value": "pDNA" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "sample rack type",
+    "name": "type_sample_rack",
+    "options": [
+      {
+        "label": "Opentrons 24 Well Aluminum Block with NEST 1.5 mL Snapcap",
+        "value": "opentrons_24_aluminumblock_nest_1.5ml_snapcap"
+      },
+      {
+        "label": "Opentrons 24 Tube Rack with Eppendorf 1.5 mL Safe-Lock Snapcap",
+        "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"
+      }
+    ]
+  }
+]

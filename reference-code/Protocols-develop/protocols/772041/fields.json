@@ -1,0 +1,34 @@
+[
+  {
+    "type": "int",
+    "label": "Number of wells to distribute mastermix to",
+    "name": "n_wells",
+    "default": 384
+  },
+  {
+    "type": "float",
+    "label": "Volume of mastermix",
+    "name": "mastermix_volume",
+    "default": 15
+  },
+  {
+    "type": "dropDown",
+    "label": "Reuse tips?",
+    "name": "is_reusing_tips",
+    "options": [
+      {"label": "Yes", "value": true},
+      {"label": "No", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination plate",
+    "name": "dest_plate_lname",
+    "options": [
+      { "label": "MicroAmp 384 optical well plate", "value": "appliedbiosystems_microamp_optical_384_wellplate_30ul"},
+      { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "48 well mic tube plate (not implemented)", "value": "x"}
+    ]
+  }
+]

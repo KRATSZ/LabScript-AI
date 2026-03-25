@@ -1,0 +1,118 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1"
+        ],
+        [
+            "A2",
+            "B2"
+        ],
+        [
+            "A3",
+            "B3"
+        ]
+    ],
+    "brand": {
+        "brand": "Corning",
+        "brandId": ["2341111"]
+    },
+    "metadata": {
+        "displayName": "Opentrons 6 Tube Rack with Corning 50 mL",
+        "displayCategory": "tubeRack",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 122
+    },
+    "wells": {
+        "A1": {
+            "depth": 114,
+            "totalLiquidVolume": 50000,
+            "shape": "circular",
+            "diameter": 28,
+            "x": 35.5,
+            "y": 60.24,
+            "z": 8
+        },
+        "B1": {
+            "depth": 114,
+            "totalLiquidVolume": 50000,
+            "shape": "circular",
+            "diameter": 28,
+            "x": 35.5,
+            "y": 25.24,
+            "z": 8
+        },
+        "A2": {
+            "depth": 114,
+            "totalLiquidVolume": 50000,
+            "shape": "circular",
+            "diameter": 28,
+            "x": 70.5,
+            "y": 60.24,
+            "z": 8
+        },
+        "B2": {
+            "depth": 114,
+            "totalLiquidVolume": 50000,
+            "shape": "circular",
+            "diameter": 28,
+            "x": 70.5,
+            "y": 25.24,
+            "z": 8
+        },
+        "A3": {
+            "depth": 114,
+            "totalLiquidVolume": 50000,
+            "shape": "circular",
+            "diameter": 28,
+            "x": 105.5,
+            "y": 60.24,
+            "z": 8
+        },
+        "B3": {
+            "depth": 114,
+            "totalLiquidVolume": 50000,
+            "shape": "circular",
+            "diameter": 28,
+            "x": 105.5,
+            "y": 25.24,
+            "z": 8
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v",
+                "displayCategory": "tubeRack"
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "A2",
+                "B2",
+                "A3",
+                "B3"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "opentrons_6_tuberack_50000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

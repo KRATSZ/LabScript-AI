@@ -1,0 +1,23 @@
+[
+  {
+    "type": "int",
+    "label": "number of master mixes (1-6)",
+    "name": "num_mm",
+    "default": 6
+  },
+  {
+    "type": "int",
+    "label": "number of cDNA samples (5-20)",
+    "name": "num_samples",
+    "default": 20
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel pipette mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

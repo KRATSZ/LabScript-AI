@@ -1,0 +1,41 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P1000 Single GEN2 Mount",
+    "name": "mnt1000",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Total Volume of Pooled Samples",
+    "name": "poolVol",
+    "default": 650
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Visbys",
+    "name": "numVisbys",
+    "options": [
+      {"label": "Six (6)", "value": 6},
+      {"label": "Five (5)", "value": 5},
+      {"label": "Four (4)", "value": 4},
+      {"label": "Three (3)", "value": 3},
+      {"label": "Two (2)", "value": 2},
+      {"label": "One (1)", "value": 1}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Samples per Pool",
+    "name": "numPools",
+    "options": [
+      {"label": "Five (5)", "value": 5},
+      {"label": "Four (4)", "value": 4},
+      {"label": "Three (3)", "value": 3},
+      {"label": "Two (2)", "value": 2}
+    ]
+  }
+]

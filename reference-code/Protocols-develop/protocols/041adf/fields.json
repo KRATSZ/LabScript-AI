@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 60
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 8-channel GEN2 pipette mount",
+    "name": "mount_m20",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 8-channel GEN2 pipette mount",
+    "name": "mount_m300",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

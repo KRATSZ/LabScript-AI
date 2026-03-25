@@ -1,0 +1,86 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1 - 30)",
+    "name": "num_samps",
+    "default": 20
+  },
+  {
+    "type": "int",
+    "label": "N correction",
+    "name": "n_cor",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "CD4 Dilution",
+    "name": "cd4_dil",
+    "default": 1000
+  },
+  {
+    "type": "int",
+    "label": "CD8 Dilution",
+    "name": "cd8_dil",
+    "default": 200
+  },
+  {
+    "type": "int",
+    "label": "FOXP3 Dilution",
+    "name": "fox_dil",
+    "default": 200
+  },
+  {
+    "type": "int",
+    "label": "PD-L1 EL13N Dilution",
+    "name": "pdl1_dil",
+    "default": 300
+  },
+  {
+    "type": "int",
+    "label": "PAN CK Dilution",
+    "name": "pan_dil",
+    "default": 400
+  },
+  {
+    "type": "int",
+    "label": "KI-67 Dilution",
+    "name": "ki_dil",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Opal 520 Dispense",
+    "name": "ds_520",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Opal 570 Dispense",
+    "name": "ds_570",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Opal 540 Dispense",
+    "name": "ds_540",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Opal 620 Dispense",
+    "name": "ds_620",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Opal 650 Dispense",
+    "name": "ds_650",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Opal 690 Dispense",
+    "name": "ds_690",
+    "default": 2
+  }
+]

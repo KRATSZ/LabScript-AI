@@ -1,0 +1,23 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P50-single GEN1 mount",
+    "name": "p50_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "textFile",
+    "label": "input .csv file",
+    "name": "input_csv",
+    "default": "source slot, source well, destination slot, destination well, volume\n1,A1,3,A1,5"
+  },
+  {
+    "type": "float",
+    "label": "air gap volume (in ul)",
+    "name": "air_gap",
+    "default": 5
+  }
+]

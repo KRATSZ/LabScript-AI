@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "sample_count",
+    "default": 90
+  },
+  {
+    "type": "int",
+    "label": "sample volume (in µl)",
+    "name": "sample_volume",
+    "default": 100
+  },
+  {
+    "type": "str",
+    "label": "sample deck slots (comma-separated)",
+    "name": "sample_deck_slots",
+    "default": "7,8,4,5,1,2"
+  },
+  {
+    "type": "str",
+    "label": "wells skipped (comma-separated)",
+    "name": "wells_skipped",
+    "default": "A1,B1,H1,A7,B7,H7"
+  }
+]

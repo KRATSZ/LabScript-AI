@@ -1,0 +1,85 @@
+[
+  {
+    "type": "textFile",
+    "label": ".csv input file",
+    "name": "input_csv",
+    "default": "source plate well,destination plate well,volume sample (µl),volume diluent (µl)\nA1, A1,5,100\nB1,B1,,101\nC1,C1,,102\nD1,D1,,103"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 type",
+    "name": "p20_type",
+    "options": [
+      { "label": "multi", "value": "p20_multi_gen2" },
+      { "label": "single", "value": "p20_single_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 type",
+    "name": "p300_type",
+    "options": [
+      { "label": "single", "value": "p300_single_gen2" },
+      { "label": "multi", "value": "p300_multi_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "source plate type",
+    "name": "source_type",
+    "options": [
+      { "label": "0.2 mL strip tubes (on aluminum block)", "value": "regeneron_96_aluminumblock_200ul"},
+      { "label": "Eppendorf (on aluminum block)", "value": "eppendorf_96_well_on_block" },
+      { "label": "Bio-Rad (on aluminum block)", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+      { "label": "Bio-Rad (off aluminum block)", "value": "biorad_96_wellplate_200ul_pcr" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "source plate on temperature module (GEN2)",
+    "name": "using_tempdeck",
+    "options": [
+      { "label": "yes", "value": true },
+      { "label": "no", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "destination plate type",
+    "name": "dest_type",
+    "options": [
+      { "label": "0.2 mL strip tubes on Aplifyt plate", "value": "amplifyt_96_tuberack_200ul" },
+      { "label": "Eppendorf (on aluminum block)", "value": "eppendorf_96_well_on_block" },
+      { "label": "Bio-Rad (on aluminum block)", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+      { "label": "Bio-Rad (off aluminum block)", "value": "biorad_96_wellplate_200ul_pcr" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "diluent type",
+    "name": "reservoir_type",
+    "options": [
+      { "label": "Opentrons 15 Tube Rack with Eppendorf 5 mL", "value": "opentrons_15_tuberack_5000ul"},
+      { "label": "NEST 12 Well Reservoir 15 mL", "value": "nest_12_reservoir_15ml" },
+      { "label": "USA Scientific 12 Well Reservoir 22 mL", "value": "usascientific_12_reservoir_22ml" }
+    ]
+  }
+]

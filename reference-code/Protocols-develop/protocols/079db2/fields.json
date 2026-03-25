@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-86)",
+    "name": "num_samp",
+    "default": 86
+  },
+  {
+    "type": "dropDown",
+    "label": "Transfer Volume",
+    "name": "volume",
+    "options": [
+      {"label": "25", "value": 25},
+      {"label": "50", "value": 50}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

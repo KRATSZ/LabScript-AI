@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samples",
+    "default": 48
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Illumina Barcoding Adapter Plate?",
+    "name": "perform_barcode",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+     ]
+  }
+]

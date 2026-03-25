@@ -1,0 +1,22 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "string",
+    "label": "Start of p20m tips",
+    "name": "tip_start_20",
+    "default": "A1"
+  },
+  {
+    "type": "string",
+    "label": "Start of p1000s tips",
+    "name": "tip_start_1000",
+    "default": "A1"
+  }
+
+]
+

@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "Columns with Samples",
+    "name": "_samp_cols",
+    "default": "3,10"
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi Mount",
+    "name": "_m300_mount",
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Right", "value": "right" }
+    ]
+  }
+]

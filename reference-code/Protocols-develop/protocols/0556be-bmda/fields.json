@@ -1,0 +1,143 @@
+[
+    {
+        "type": "dropDown",
+        "label": "P300-single GEN2 mount",
+        "name": "p300_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+      "type": "int",
+      "label": "Temperature in Celsius (Temperature Module)",
+      "name": "temperature",
+      "default": 8
+    },
+    {
+      "type": "int",
+      "label": "Final Tubes Number (Max: 32)",
+      "name": "final_tubes",
+      "default": 32
+    },
+    {
+      "type": "float",
+      "label": "Component Aspirate Flow Rate (uL/s)",
+      "name": "comp_asp_speed",
+      "default": 50
+    },
+    {
+      "type": "float",
+      "label": "Component Dispense Flow Rate (uL/s)",
+      "name": "comp_disp_speed",
+      "default": 50
+    },
+    {
+      "type": "float",
+      "label": "Component 1 Volume (uL)",
+      "name": "comp1_vol",
+      "default": 51
+    },
+    {
+      "type": "float",
+      "label": "Component 2 Volume (uL)",
+      "name": "comp2_vol",
+      "default": 85
+    },
+    {
+      "type": "float",
+      "label": "Component 3 Volume (uL)",
+      "name": "comp3_vol",
+      "default": 51
+    },
+    {
+      "type": "float",
+      "label": "Component 4 Volume (uL)",
+      "name": "comp4_vol",
+      "default": 119
+    },
+    {
+      "type": "float",
+      "label": "Component 5 Volume (uL)",
+      "name": "comp5_vol",
+      "default": 136
+    },
+    {
+      "type": "float",
+      "label": "Component 6 Volume (uL)",
+      "name": "comp6_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Component 7 Volume (uL)",
+      "name": "comp7_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Component 8 Volume (uL)",
+      "name": "comp8_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Component 9 Volume (uL)",
+      "name": "comp9_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Component 10 Volume (uL)",
+      "name": "comp10_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Component 11 Volume (uL)",
+      "name": "comp11_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Component 12 Volume (uL)",
+      "name": "comp12_vol",
+      "default": 34
+    },
+    {
+      "type": "float",
+      "label": "Master Mix Volume (uL)",
+      "name": "mm_vol",
+      "default": 20
+    },
+    {
+      "type": "int",
+      "label": "Mix Repititions",
+      "name": "mix_reps",
+      "default": 10
+    },
+    {
+      "type": "float",
+      "label": "Mixing Volume (uL)",
+      "name": "mix_vol",
+      "default": 200
+    },
+    {
+      "type": "float",
+      "label": "Delay After Aspirating (seconds)",
+      "name": "asp_delay",
+      "default": 2
+    },
+    {
+      "type": "float",
+      "label": "Delay After Dispensing (seconds)",
+      "name": "disp_delay",
+      "default": 2
+    },
+    {
+      "type": "float",
+      "label": "Air Gap Volume (Before and After Each Aspirate)",
+      "name": "air_gap_vol",
+      "default": 20
+    }
+  ]

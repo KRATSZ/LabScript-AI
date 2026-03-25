@@ -1,0 +1,55 @@
+[
+    {
+      "type": "int",
+      "label": "Number of Samples (Max: 94)",
+      "name": "samples",
+      "default": 94
+    },
+    {
+      "type": "str",
+      "label": "Starting Well Name",
+      "name": "starting_well",
+      "default": "A1"
+    },
+    {
+      "type": "dropDown",
+      "label": "P300 Single GEN2 Mount Position",
+      "name": "p300_mount",
+      "options": [
+        { "label": "Right", "value": "right" },
+        { "label": "Left", "value": "left" }
+      ]
+    },
+    {
+        "type": "float",
+        "label": "Thermocycler Hold Temperature (°C)",
+        "name": "tc_temp",
+        "default": 4
+    },
+    {
+        "type": "float",
+        "label": "Magnetic Module Engage Height (mm)",
+        "name": "engage_height",
+        "default": 5
+    },
+    {
+      "type": "float",
+      "label": "Supernatant Removal Radius (X-dimension) (mm)",
+      "name": "side_x_radius",
+      "default": 2
+    },
+    {
+      "type": "float",
+      "label": "Supernatant Removal Aspirate Flow Rate (uL/s)",
+      "name": "super_asp_rate",
+      "default": 10
+    },
+    {
+      "type": "float",
+      "label": "Supernatant Removal Dispense Flow Rate (uL/s)",
+      "name": "super_disp_rate",
+      "default": 30
+    }
+
+
+  ]

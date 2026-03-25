@@ -1,0 +1,86 @@
+[
+  {
+    "type": "int",
+    "label": "Number of samples in tuberack 1 slot 10-11",
+    "name": "n_samples_rack_1",
+    "default": 32
+  },
+  {
+    "type": "int",
+    "label": "Number of samples in tuberack 2 slot 7-8",
+    "name": "n_samples_rack_2",
+    "default": 32
+  },
+  {
+    "type": "int",
+    "label": "Number of samples in tuberack 3 slot 4-5",
+    "name": "n_samples_rack_3",
+    "default": 32
+  },
+  {
+    "type": "str",
+    "label": "Master mix wells location (starting from A1)",
+    "name": "master_mix_range",
+    "default": "1-5"
+  },
+  {
+    "type": "float",
+    "label": "Mastermix max volume per well (mL)",
+    "name": "mastermix_max_vol",
+    "default": 9.54
+  },
+  {
+    "type": "float",
+    "label": "Mastermix mixing rate multiplier",
+    "name": "mastermix_mix_rate_multiplier",
+    "default": 0.3
+  },
+  {
+    "type": "float",
+    "label": "mastermix aspiration flow rate multiplier",
+    "name": "mm_aspiration_flowrate_multiplier",
+    "default": 0.1
+  },
+  {
+    "type": "float",
+    "label": "mastermix dispension flow rate multiplier",
+    "name": "mm_dispense_flowrate_multiplier",
+    "default": 0.1
+  },
+  {
+    "type": "dropDown",
+    "label": "Mount for 300 uL single channel pipette",
+    "name": "p300_mount",
+    "options": [
+      { "label": "Left", "value": "left"},
+      { "label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Mount for 300 uL multi channel pipette",
+    "name": "m300_mount",
+    "options": [
+      { "label": "Right", "value": "right"},
+      { "label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pause after mixing the mastermix for vortex/resuspension?",
+    "name": "do_mm_resusp_pause",
+    "options": [
+      { "label": "Yes", "value": true},
+      { "label": "No", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Debug mode? (Shows extra output from the protocl)",
+    "name": "is_debug_mode",
+    "options": [
+      { "label": "Yes", "value": true},
+      { "label": "No", "value": false}
+    ]
+  }
+]

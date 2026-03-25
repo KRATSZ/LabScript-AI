@@ -1,0 +1,53 @@
+[
+    {
+      "type": "int",
+      "label": "Total Samples (Max: 48)",
+      "name": "sample_number",
+      "default": 48
+    },
+    {
+        "type": "dropDown",
+        "label": "P20-multi channel GEN2 mount",
+        "name": "m20_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300-multi channel GEN2 mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    },
+    {
+      "type": "dropDown",
+      "label": "Run PCR",
+      "name": "pcr",
+      "options": [
+        {"label": "Yes", "value": true},
+        {"label": "No", "value": false}
+      ]
+  },
+      {
+      "type": "dropDown",
+      "label": "Run Bead Clean Up",
+      "name": "bead_clean_up",
+      "options": [
+        {"label": "Yes", "value": true},
+        {"label": "No", "value": false}
+      ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run Elution",
+    "name": "elution",
+    "options": [
+      {"label": "Yes", "value": true},
+      {"label": "No", "value": false}
+    ]
+    }
+]

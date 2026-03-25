@@ -10,7 +10,7 @@ This project provides AI agents with specialized knowledge for:
 - **Protocol Validation** - Analyzing and simulating protocols locally
 - **Simulation Repair** - Iteratively fixing protocols through a simulation-first loop
 - **Robot Control** - Managing robots via LAN HTTP API
-- **Protocol Library** - Accessing externally provided validated protocols and code patterns
+- **Protocol Library** - Accessing bundled or overridden validated protocols and code patterns
 
 ## Available Skills
 
@@ -36,19 +36,54 @@ Use this flow to determine the appropriate skill:
 
 ## Protocol Library
 
-The `opentrons-protocol-library` skill can query an external `Protocols-develop` checkout when you provide it explicitly with `--library` or `OPENTRONS_PROTOCOL_LIBRARY_PATH`:
+The `opentrons-protocol-library` skill resolves `Protocols-develop` in this order:
+
+- `--library /path/to/Protocols-develop`
+- `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+- bundled `reference-code/Protocols-develop`
+- legacy sibling `../Protocols-develop`
+
+The bundled snapshot is read-only reference material for agents. It exposes:
 
 - **800+ validated protocols** with README documentation
-- **Cookbook.md** - Common patterns (liquid tracking, wash steps, loops, CSV, etc.)
-- **Templates** - Protocol starting points
+- **Protocol source files** - Reusable snippets and runtime metadata
+- **fields.json** - Parameter schema hints
+- **Cookbook.md** - Common patterns when the selected snapshot includes it
 - **protolib/** - Helper functions
 
 Search the library:
 ```bash
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
   search "magnetic beads" "DNA cleanup"
+
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  show 00222e
+
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  snippet 00222e serial plasma
 ```
+
+## Codex Workflow
+
+When using Codex, start from the repository root so `AGENTS.md` is in scope.
+
+Recommended order:
+
+1. Query `opentrons-protocol-library`
+2. Check `examples/reference-protocols/` for a minimal runnable baseline
+3. Draft or edit with `opentrons-protocol-author`
+4. Validate with `opentrons-protocol-verify`
+5. If needed, iterate with `opentrons-simulation-repair`
+6. Use live robot tooling only after local validation passes
+
+## Claude Code Workflow
+
+Recommended order:
+
+1. Search bundled references first
+2. Inspect one candidate with `show` or `snippet`
+3. Start from `examples/reference-protocols/` when a clean baseline is better than adapting a large library protocol
+4. Run authoring, verify, and repair skills before any live robot action
 
 ## Python Environment
 
@@ -102,10 +137,10 @@ skills-ref validate ./skills/opentrons-protocol-library
 ## Important Notes
 
 - Always verify API level compatibility (OT-2 vs Flex)
-- Protocols in the external library are validated and production-tested
+- The bundled library is reference material vendored into this repository for agent use
 - Local validation uses the installed Opentrons runtime by default; source checkouts are opt-in
 - Robot API requires network access to the robot on LAN
-- Cookbook contains production-tested code patterns - prefer using them
+- Prefer `show` and `snippet` against real protocol folders when `Cookbook.md` is absent
 
 ## References
 

@@ -1,0 +1,28 @@
+[
+    {
+        "type": "int",
+        "label": "number of plates (1-9)",
+        "name": "num_plates",
+        "default": 9
+    },
+    {
+        "type": "dropDown",
+        "label": "protocol selection",
+        "name": "protocol_selection",
+        "options": [
+            { "label": "protocol 1", "value": 1 },
+            { "label": "protocol 2", "value": 2 },
+            { "label": "protocol 3", "value": 3 },
+            { "label": "protocol 4", "value": 4 }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 GEN2 single-channel pipette mount",
+        "name": "mount_p300",
+        "options": [
+            { "label": "left", "value": "left" },
+            { "label": "right", "value": "right" }
+        ]
+    }
+]

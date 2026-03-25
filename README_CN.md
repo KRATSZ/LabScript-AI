@@ -9,7 +9,7 @@
 - **编写和修订 Python 协议**，为 OT-2 和 Flex 机器人提供正确的台面设置、实验器皿加载、移液器配置和摄像头捕获
 - **使用本地 Opentrons 运行时验证协议**，利用 Opentrons 的分析和模拟工具，以及环境就绪检查
 - **通过 LAN HTTP API 控制机器人**，用于健康检查、摄像头预览、协议上传、运行创建和播放控制
-- **参考经过验证的协议库**，包含 800+ 示例协议和常用代码模式
+- **参考经过验证的协议库**，包含 800+ 示例协议和可复用代码片段
 
 ## 包含的技能
 
@@ -19,7 +19,25 @@
 | `opentrons-simulation-repair` | 通过 simulate -> parse -> edit 循环修复协议 | 仿真报错后逐轮修复、定位最高优先级 blocker |
 | `opentrons-protocol-verify` | 使用本地 Opentrons 运行时分析和模拟协议 | 检查协议是否有效、模拟执行、诊断环境问题 |
 | `opentrons-robot-lan` | 通过 LAN HTTP API 与机器人交互 | 查询机器人状态、查看摄像头、上传协议、控制运行 |
-| `opentrons-protocol-library` | 参考经过验证的协议和 Cookbook 模式 | 搜索现有协议、查找代码示例、参考协议模式 |
+| `opentrons-protocol-library` | 参考内置协议库与代码片段 | 搜索现有协议、查看协议元数据、提取参考代码片段 |
+
+## 与 Codex 一起使用
+
+Codex 的主入口是仓库根目录下的 `AGENTS.md`。在仓库根目录启动 Codex 时，它会同时看到：
+
+- `AGENTS.md` 中的工作流规则
+- `skills/` 中的技能说明
+- `reference-code/Protocols-develop/` 中的内置参考协议库
+- `examples/reference-protocols/` 中的小型可运行参考 protocol
+
+推荐流程：
+
+1. 先用 `search_protocols.py search` 查内置参考库
+2. 用 `show` 查看候选 protocol 的 README、源码路径和元数据
+3. 用 `snippet` 抽取局部代码片段
+4. 参考 `examples/reference-protocols/` 或起草新协议
+5. 运行 `doctor`、`analyze` 或 `simulate`
+6. 只有本地验证通过后才进入 MCP 真机执行
 
 ## 与 Claude Code 一起使用
 
@@ -47,6 +65,14 @@
 ```
 
 Claude 将自动使用 `opentrons-protocol-author` 技能。
+
+推荐 Claude Code 工作流：
+
+1. 先用 `opentrons-protocol-library` 查内置参考库
+2. 再选择 `reference-code/Protocols-develop/` 或 `examples/reference-protocols/` 中的参考 protocol
+3. 使用 `opentrons-protocol-author` 起草或改写
+4. 使用 `opentrons-protocol-verify` 或 `opentrons-simulation-repair`
+5. 本地通过后再调用 `opentrons-mcp`
 
 ### 方式 2：作为 Claude Code 插件安装
 
@@ -145,12 +171,16 @@ skills-ref validate ./skills/opentrons-protocol-library
 Opentrons-Lab-Agent/
 ├── mcp-servers/
 │   └── opentrons-mcp/                # MCP 服务
+├── examples/
+│   └── reference-protocols/          # Codex / Claude Code 参考 protocol
+├── reference-code/
+│   └── Protocols-develop/            # 内置只读参考协议库
 ├── skills/
 │   ├── opentrons-protocol-author/    # 协议编写技能
 │   ├── opentrons-simulation-repair/  # 仿真修复技能
 │   ├── opentrons-protocol-verify/    # 协议验证技能
 │   ├── opentrons-robot-lan/         # 机器人 API 控制技能
-│   └── opentrons-protocol-library/  # 外部协议知识库引用
+│   └── opentrons-protocol-library/  # 协议知识库引用
 ├── src/opentrons_lab_agent/             # 辅助模块
 ├── tests/                               # 单元测试
 ├── README.md                            # 英文文档
@@ -161,18 +191,21 @@ Opentrons-Lab-Agent/
 
 ## 协议库知识库
 
-`opentrons-protocol-library` 技能可以在显式提供路径时查询外部 `Protocols-develop` 仓库：
+`opentrons-protocol-library` 默认会优先使用仓库内置的 `reference-code/Protocols-develop/`。解析顺序如下：
 
-- 通过 `--library /path/to/Protocols-develop`
-- 或设置 `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+1. `--library /path/to/Protocols-develop`
+2. `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+3. 仓库内 `reference-code/Protocols-develop`
+4. 兼容旧工作区的同级 `../Protocols-develop`
 
-该外部仓库只是参考输入，不属于 `Opentrons-Lab-Agent` 自身目录结构的一部分。
+内置参考库是只读参考资产，不属于本项目核心运行逻辑。
 
 配置后可引用：
 
 - **800+ 经过验证的协议**，附带 README 文档
-- **Cookbook.md**，包含常用代码模式（液位跟踪、清洗步骤、循环、CSV 处理等）
-- **协议模板**，用于新协议开发
+- **协议源码**，可直接抽取可复用代码片段
+- **fields.json** 参数定义
+- **Cookbook.md**，当所选快照包含该文件时可直接引用
 - **protolib/ 目录**中的辅助函数
 
 ### 搜索协议库
@@ -180,18 +213,21 @@ Opentrons-Lab-Agent/
 ```bash
 # 按关键字搜索协议
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
   search "magnetic beads" "DNA cleanup"
 
-# 列出 Cookbook 模式
+# 查看某个 protocol 的 README、源码和元数据
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
-  cookbook
+  show 00222e
+
+# 提取聚焦片段
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  snippet 00222e serial plasma
+
+# 列出 Cookbook 模式
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py cookbook
 
 # 列出协议分类
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
-  categories
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py categories
 ```
 
 ### 示例查询
@@ -200,6 +236,8 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
 - "向我展示如何实现液位跟踪"
 - "找一个进行系列稀释的协议"
 - "基于 CSV 的板布局的模式是什么？"
+- "查看 00222e 的源码和运行时元数据"
+- "从 00222e 提取和 plasma 或 serial 相关的代码片段"
 
 ## 本地 Opentrons 运行时假设
 

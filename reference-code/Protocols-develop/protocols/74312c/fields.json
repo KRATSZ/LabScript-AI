@@ -1,0 +1,35 @@
+[
+    {
+      "type": "float",
+      "label": "Transfer Volume (uL)",
+      "name": "volume",
+      "default": 10
+    },
+    {
+      "type": "int",
+      "label": "Number of Wells (Max: 250)",
+      "name": "samples",
+      "default": 250
+    },
+    {
+      "type": "dropDown",
+      "label": "P20 Mount",
+      "name": "p20_mount",
+      "options": [
+        { "label": "Right", "value": "right" },
+        { "label": "Left", "value": "left" }
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Trough Type",
+        "name": "trough_type",
+        "options": [
+          { "label": "Agilent 1 Well Reservoir 290 mL", "value": "agilent_1_reservoir_290ml" },
+          { "label": "Axygen 1 Well Reservoir 90 mL", "value": "axygen_1_reservoir_90ml" },
+          { "label": "NEST 12 Well Reservoir 15 mL", "value": "nest_12_reservoir_15ml" },
+          { "label": "NEST 1 Well Reservoir 195 mL", "value": "nest_1_reservoir_195ml" },
+          { "label": "USA Scientific 12 Well Reservoir 22 mL", "value": "usascientific_12_reservoir_22ml" }
+        ]
+      }
+  ]

@@ -1,0 +1,48 @@
+[
+  {
+  "type": "textFile",
+  "label": ".CSV File",
+  "name": "csv_samp",
+  "default": "plate, sample, qubit, dna, h20, inputDNA\nA1, test1, 12, 1, 5.0, 12.5\nA1, test1, 12, 1, 5.0, 12.5\nA1, test1, 12, 1, 5.0, 12.5"
+    },
+    {
+      "type": "dropDown",
+      "label": "DNA Plate Type on Slot 2",
+      "name": "dna_plate_type",
+      "options": [
+        {"label": "PCR PLATE", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+        {"label": "FLAT BOTTOM PLATE", "value": "corning_96_wellplate_360ul_flat"}
+      ]
+    },
+    {
+      "type": "dropDown",
+      "label": "Top 48 of plate, bottom 48 of plate, or full plate?",
+      "name": "if_48",
+      "options": [
+        {"label": "FULL PLATE", "value": "96"},
+        {"label": "TOP HALF (48) OF PLATE", "value": "top48"},
+        {"label": "BOTTOM HALF (48) OF PLATE", "value": "bottom48"}
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 Single Channel Pipette Mount",
+        "name": "p20_mount",
+        "options": [
+          {"label": "Left", "value": "left"},
+          {"label": "Right", "value": "right"}
+
+        ]
+      },
+
+    {
+        "type": "dropDown",
+        "label": "P20 Multi Channel Pipette Mount",
+        "name": "m20_mount",
+        "options": [
+          {"label": "Right", "value": "right"},
+          {"label": "Left", "value": "left"}
+
+        ]
+      }
+  ]

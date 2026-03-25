@@ -1,0 +1,42 @@
+[
+  {
+    "type": "int",
+    "label": "Volume of Water in Falcon Tube (mL)",
+    "name": "vol_water",
+    "default": 50
+  },
+  {
+    "type": "dropDown",
+    "label": "Source Plate Type",
+    "name": "src_plate",
+    "options": [
+       { "label": "NEST 100uL 96 Well Plate", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+       { "label": "NEST 96 Deepwell Plate 2mL", "value": "nest_96_wellplate_2ml_deep" },
+       { "label": "Thermofisher Semi-Skirted on Adapter 96 Well Plate", "value": "customadapter_96_wellplate_200ul" }
+     ]
+  },  {
+      "type": "dropDown",
+      "label": "Destination Plate Type",
+      "name": "dst_plate",
+      "options": [
+         { "label": "NEST 100uL 96 Well Plate", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+         { "label": "NEST 96 Deepwell Plate 2mL", "value": "nest_96_wellplate_2ml_deep" },
+         { "label": "Thermofisher Semi-Skirted on Adapter 96 Well Plate", "value": "customadapter_96_wellplate_200ul" }
+       ]
+    },
+  {
+    "type": "dropDown",
+    "label": "P20 Single GEN2 Mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  },
+  {
+    "type": "textFile",
+    "label": "Transfer .csv File",
+    "name": "file_input",
+    "default": "Well,nanograms,sample volume,goal concentration,normalized volume\\nA1,20,30,30,30\\nB1,6,30,5,30\\nC1,7,30,6,30"
+  }
+]

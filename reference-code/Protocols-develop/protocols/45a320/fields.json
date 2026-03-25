@@ -1,0 +1,44 @@
+[
+  {
+  "type": "int",
+  "label": "Number of samples (1-12)",
+  "name": "num_samp",
+  "default": 12
+  },
+  {
+  "type": "int",
+  "label": "Sample tube clearance (mm above bottom of tube)",
+  "name": "sample_tube_clearance",
+  "default": 20
+  },
+  {
+  "type": "float",
+  "label": "P20 Dispense Flow Rate",
+  "name": "p20_rate",
+  "default": 1.0
+},
+{
+  "type": "float",
+  "label": "P300 Dispense Flow Rate",
+  "name": "p1000_rate",
+  "default": 1.0
+},
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel GEN2 Mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single-Channel GEN2 Mount",
+    "name": "p1000_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

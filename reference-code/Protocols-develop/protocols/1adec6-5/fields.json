@@ -1,0 +1,26 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "mnt300",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Aspirate from Well Bottom Height",
+    "name": "cellHt",
+    "default": 5.0
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform 2nd aliquot",
+    "name": "transfer2",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  }
+]

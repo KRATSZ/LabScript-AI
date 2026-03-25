@@ -1,0 +1,237 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1"
+        ],
+        [
+            "A2",
+            "B2"
+        ],
+        [
+            "A3",
+            "B3"
+        ],
+        [
+            "A4",
+            "B4"
+        ],
+        [
+            "A5",
+            "B5"
+        ],
+        [
+            "A6",
+            "B6"
+        ],
+        [
+            "A7",
+            "B7"
+        ],
+        [
+            "A8",
+            "B8"
+        ]
+    ],
+    "brand": {
+        "brand": "Octea",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Octea 16 Well Plate 40 µL",
+        "displayCategory": "wellPlate",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.75,
+        "yDimension": 85.59,
+        "zDimension": 21.44
+    },
+    "wells": {
+        "A1": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 42.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B1": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 42.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A2": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 51.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B2": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 51.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A3": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 60.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B3": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 60.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A4": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 69.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B4": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 69.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A5": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 78.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B5": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 78.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A6": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 87.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B6": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 87.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A7": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 96.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B7": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 96.12,
+            "y": 22.89,
+            "z": 16.94
+        },
+        "A8": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 105.12,
+            "y": 56.11,
+            "z": 16.94
+        },
+        "B8": {
+            "depth": 4.5,
+            "totalLiquidVolume": 40,
+            "shape": "circular",
+            "diameter": 5,
+            "x": 105.12,
+            "y": 22.89,
+            "z": 16.94
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "A2",
+                "B2",
+                "A3",
+                "B3",
+                "A4",
+                "B4",
+                "A5",
+                "B5",
+                "A6",
+                "B6",
+                "A7",
+                "B7",
+                "A8",
+                "B8"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "octea_16_wellplate_40ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

@@ -1,0 +1,120 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of samples",
+    "name": "SAMPLES",
+    "options": [
+      {"label": "24 samples", "value": "24x"},
+      {"label": "16 samples", "value": "16x"},
+      {"label": "8 samples", "value": "8x"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Do a dry run?",
+    "name": "DRYRUN",
+    "options": [
+       {"label": "No", "value": "NO"},
+       {"label": "Yes", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use modules?",
+    "name": "NOMODULES",
+    "options": [
+       {"label": "Yes", "value": "NO"},
+        {"label": "No", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip reuse?",
+    "name": "TIPREUSE",
+    "options": [
+      { "label": "No", "value": "NO"},
+      {"label": "Yes", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Offset?",
+    "name": "OFFSET",
+    "options": [
+      { "label": "Yes", "value": "YES"},
+      { "label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include tagmentation step in protocol run?",
+    "name": "STEP_TAG",
+    "options": [
+      { "label": "Include", "value": 1},
+      { "label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run tagmentation incubation on the deck thermocycler?",
+    "name": "STEP_TAGDECK",
+    "options": [
+      { "label": "Yes", "value": 1},
+      { "label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run TSB step?",
+    "name": "STEP_TSB",
+    "options": [
+      { "label": "Include", "value": 1},
+      { "label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run TSB incubation step on the deck thermocycler",
+    "name": "STEP_TSBDECK",
+    "options": [
+      { "label": "Yes", "value": 1},
+      { "label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run tagmentation wash with TWB step",
+    "name": "STEP_WASH",
+    "options": [
+      { "label": "Include", "value": 1},
+      { "label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run PCR cycle step",
+    "name": "STEP_PCR",
+    "options": [
+      { "label": "Include", "value": 1},
+      { "label": "Skip", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run PCR step on deck thermocycler?",
+    "name": "STEP_PCRDECK",
+    "options": [
+      { "label": "Yes", "value": 1},
+      { "label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Run post PCR cleanup step",
+    "name": "STEP_POSTPCR",
+    "options": [
+      { "label": "Include", "value": 1},
+      { "label": "Skip", "value": 0}
+    ]
+  }
+]

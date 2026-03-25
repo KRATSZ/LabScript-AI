@@ -1,0 +1,221 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1",
+            "C1"
+        ],
+        [
+            "A2",
+            "B2",
+            "C2"
+        ],
+        [
+            "A3",
+            "B3",
+            "C3"
+        ],
+        [
+            "A4",
+            "B4",
+            "C4"
+        ],
+        [
+            "A5",
+            "B5",
+            "C5"
+        ]
+    ],
+    "brand": {
+        "brand": "Opentrons",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Opentrons 15 Tube Rack with eppendorf 5 mL",
+        "displayCategory": "tubeRack",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 124
+    },
+    "wells": {
+        "A1": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 13.88,
+            "y": 67.74,
+            "z": 57
+        },
+        "B1": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 13.88,
+            "y": 42.74,
+            "z": 57
+        },
+        "C1": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 13.88,
+            "y": 17.74,
+            "z": 57
+        },
+        "A2": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 38.88,
+            "y": 67.74,
+            "z": 57
+        },
+        "B2": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 38.88,
+            "y": 42.74,
+            "z": 57
+        },
+        "C2": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 38.88,
+            "y": 17.74,
+            "z": 57
+        },
+        "A3": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 63.88,
+            "y": 67.74,
+            "z": 57
+        },
+        "B3": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 63.88,
+            "y": 42.74,
+            "z": 57
+        },
+        "C3": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 63.88,
+            "y": 17.74,
+            "z": 57
+        },
+        "A4": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 88.88,
+            "y": 67.74,
+            "z": 57
+        },
+        "B4": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 88.88,
+            "y": 42.74,
+            "z": 57
+        },
+        "C4": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 88.88,
+            "y": 17.74,
+            "z": 57
+        },
+        "A5": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 113.88,
+            "y": 67.74,
+            "z": 57
+        },
+        "B5": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 113.88,
+            "y": 42.74,
+            "z": 57
+        },
+        "C5": {
+            "depth": 67,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 14.9,
+            "x": 113.88,
+            "y": 17.74,
+            "z": 57
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v",
+                "displayCategory": "tubeRack"
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "C1",
+                "A2",
+                "B2",
+                "C2",
+                "A3",
+                "B3",
+                "C3",
+                "A4",
+                "B4",
+                "C4",
+                "A5",
+                "B5",
+                "C5"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "opentrons_15_tuberack_5000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

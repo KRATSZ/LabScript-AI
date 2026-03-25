@@ -1,0 +1,65 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "Reagent",
+        "brandId": [
+            "Electron Microscopy Sciences",
+            "Cat# 70314-01"
+        ]
+    },
+    "metadata": {
+        "displayName": "Reagent 1 Reservoir 130000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127,
+        "yDimension": 85.8,
+        "zDimension": 40.15
+    },
+    "wells": {
+        "A1": {
+            "depth": 28,
+            "totalLiquidVolume": 130000,
+            "shape": "rectangular",
+            "xDimension": 58.75,
+            "yDimension": 79,
+            "x": 63.5,
+            "y": 42.9,
+            "z": 12.15
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "reagent_1_reservoir_130000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

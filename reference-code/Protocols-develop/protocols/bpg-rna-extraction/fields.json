@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "samps",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Mount",
+    "name": "mnt20",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single Mount",
+    "name": "m1k",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reagents",
+    "name": "reagent_labware",
+    "options": [
+      {"label": "NEST 12-Channel Reservoir", "value": "nest_12_reservoir_15ml"},
+      {"label": "Opentrons 24-Tuberack with 2mL Tubes", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap"}
+    ]
+  }
+]

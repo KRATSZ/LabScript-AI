@@ -1,0 +1,141 @@
+{
+  "ordering": [
+    [
+      "A1",
+      "B1",
+      "C1",
+      "D1",
+      "E1",
+      "F1",
+      "G1",
+      "H1"
+    ]
+  ],
+  "brand": {
+    "brand": "generic"
+  },
+  "metadata": {
+    "displayName": "EK Scientific 8 Row Reservoir",
+    "displayCategory": "wellPlate",
+    "displayVolumeUnits": "µL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 124.42,
+    "yDimension": 81.94,
+    "zDimension": 43.88
+  },
+  "wells": {
+    "A1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 71.95,
+      "z": 11.88
+    },
+    "B1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 63.1,
+      "z": 11.88
+    },
+    "C1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 54.25,
+      "z": 11.88
+    },
+    "D1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 45.4,
+      "z": 11.88
+    },
+    "E1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 36.55,
+      "z": 11.88
+    },
+    "F1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 27.69,
+      "z": 11.88
+    },
+    "G1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 18.84,
+      "z": 11.88
+    },
+    "H1": {
+      "depth": 32,
+      "shape": "rectangular",
+      "xDimension": 107.87,
+      "yDimension": 8.852,
+      "totalLiquidVolume": 36250,
+      "x": 62.21,
+      "y": 9.99,
+      "z": 11.88
+    }
+  },
+  "groups": [
+    {
+      "metadata": {
+        "wellBottomShape": "v"
+      },
+      "wells": [
+        "A1",
+        "B1",
+        "C1",
+        "D1",
+        "E1",
+        "F1",
+        "G1",
+        "H1"
+      ]
+    }
+  ],
+  "parameters": {
+    "format": "trough",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "ek_scientific_reservoir"
+  },
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

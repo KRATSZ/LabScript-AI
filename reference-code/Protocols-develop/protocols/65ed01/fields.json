@@ -1,0 +1,17 @@
+[
+  {
+    "type": "float",
+    "label": "Distance from side of well (1mm - 4.05mm)",
+    "name": "length_from_side",
+    "default": 1.0125
+  },
+  {
+     "type": "dropDown",
+     "label": "P300 GEN2 mount",
+     "name": "p300_mount",
+     "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+   }
+]

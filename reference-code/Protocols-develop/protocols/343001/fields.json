@@ -1,0 +1,38 @@
+[
+  {
+  "type": "int",
+  "label": "Number of Samples (1-48)",
+  "name": "samp_num",
+  "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P50 Single Mount",
+    "name": "p50mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single Mount",
+    "name": "p1kmnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  },
+  {
+  "type": "int",
+  "label": "MagDeck Incubation Time (mins)",
+  "name": "mag_time",
+  "default": 10
+  },
+  {
+  "type": "int",
+  "label": "Water Volume (for elution)",
+  "name": "water_vol",
+  "default": 40
+  }
+]

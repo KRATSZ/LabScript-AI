@@ -1,0 +1,32 @@
+[
+  {
+    "type": "textFile",
+    "label": "Source Plate CSV",
+    "name": "csv_sample",
+    "default": "Sample ID,sample type,ct_value,plate name,plate position,target,transfer\nV2107679,cDNA,28.0,210217-NGS-fresh,A:1,30,done\nV2107680,cDNA,26.0,210217-NGS-fresh,B:1,30,"
+  },
+  {
+    "type": "float",
+    "label": "transfer volume (in ul)",
+    "name": "transfer_vol",
+    "default": 2.5
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reset Counter?",
+    "name": "reset_counter",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No, use info from last run", "value": false }
+     ]
+  }
+]

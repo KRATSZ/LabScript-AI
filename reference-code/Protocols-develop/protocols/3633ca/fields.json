@@ -1,0 +1,20 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Pipette Mount",
+    "name": "p300mnt",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20-Multi Pipette Mount",
+    "name": "p20mnt",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

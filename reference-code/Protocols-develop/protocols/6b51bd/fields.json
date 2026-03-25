@@ -1,0 +1,88 @@
+[
+  {
+    "type": "float",
+    "label": "Aspiration Flow Rate for Mixing (use 0.3-3) (for 0.3-3 times the default rate)",
+    "name": "mix_asp_rate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Dispense Flow Rate for Mixing (use 0.3-3) (for 0.3-3 times the default rate)",
+    "name": "mix_disp_rate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Dead Volume in Reservoir Wells (volume in ul at which to move on to next source well)",
+    "name": "dead_vol",
+    "default": 3000
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Parent Plate",
+    "name": "labware_parent",
+    "options": [
+      { "label": "thermo_96_wellplate_ab_0800_200ul", "value": "thermo_96_wellplate_ab_0800_200ul" },
+      { "label": "brand_96_wellplate_360ul", "value": "brand_96_wellplate_360ul" },
+      { "label": "brooksframestar_96_wellplate_200ul", "value": "brooksframestar_96_wellplate_200ul" },
+      { "label": "biorad_96_wellplate_200ul_pcr", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "axygen_96_wellplate_500ul", "value": "axygen_96_wellplate_500ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Child Plates",
+    "name": "labware_child",
+    "options": [
+      { "label": "thermo_96_wellplate_ab_0800_200ul", "value": "thermo_96_wellplate_ab_0800_200ul" },
+      { "label": "brand_96_wellplate_360ul", "value": "brand_96_wellplate_360ul" },
+      { "label": "brooksframestar_96_wellplate_200ul", "value": "brooksframestar_96_wellplate_200ul" },
+      { "label": "axygen_96_wellplate_500ul", "value": "axygen_96_wellplate_500ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reservoir",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "usascientific_12_reservoir_22ml", "value": "usascientific_12_reservoir_22ml" },
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Buffer Dispenses (mm)",
+    "name": "clearance_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Minimum Well Bottom Clearance for Reservoir (mm)",
+    "name": "clearance_reservoir",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Aspiration from Parent Plate (mm)",
+    "name": "clearance_aspirate",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Dispense of Parent Volume to Child Plate (mm)",
+    "name": "clearance_dispense",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Count of Mix Repetitions to Perform (0-5)",
+    "name": "mix_reps",
+    "default": 3
+  },
+  {
+    "type": "textFile",
+    "label": "Upload CSV Input File (Upload CSV-formatted Excel File-with formatting of data values and file identical to example)",
+    "name": "uploaded_csv",
+    "default": "Parent Plate Location,Child Plate Location,Location,Concentration Parent (mg/mL),Concentration Child (mg/mL),Volume in Child (ul),Volume from Parent (ul),Volume Buffer (ul)\n4,5,A1,1,0.1,110,11,99\n4,5,A2,1.1,0.1,110,10,100\n4,5,A3,1.5,0.1,110,7.3,102.7\n4,5,A4,1.2,0.1,110,9.2,100.8\n4,5,A5,0.9,0.1,110,12.2,97.8\n4,5,A6,0.5,0.1,110,22,88\n4,5,A7,,,,,\n4,5,A8,,,,,\n4,5,A9,,,,,\n4,5,A10,,,,,\n4,5,A11,,,,,\n4,5,A12,,,,,\n4,5,B1,,,,,\n4,5,B2,1,0.1,110,11,99\n4,5,B3,1.1,0.1,110,10,100\n4,5,B4,1.5,0.1,110,7.3,102.7\n4,5,B5,1.2,0.1,110,9.2,100.8\n4,5,B6,0.9,0.1,110,12.2,97.8\n4,5,B7,0.5,0.1,110,22,88\n4,5,B8,,,,,\n4,5,B9,,,,,\n4,5,B10,,,,,\n4,5,B11,,,,,\n4,5,B12,,,,,\n4,5,C1,,,,,\n4,5,C2,,,,,\n4,5,C3,,,,,\n4,5,C4,,,,,\n4,5,C5,,,,,\n4,5,C6,,,,,\n4,5,C7,,,,,\n4,5,C8,,,,,\n4,5,C9,,,,,\n4,5,C10,,,,,\n4,5,C11,,,,,\n4,5,C12,,,,,\n4,5,D1,,,,,\n4,5,D2,,,,,\n4,5,D3,,,,,\n4,5,D4,,,,,\n4,5,D5,,,,,\n4,5,D6,,,,,\n4,5,D7,,,,,\n4,5,D8,,,,,\n4,5,D9,,,,,\n4,5,D10,,,,,\n4,5,D11,,,,,\n4,5,D12,,,,,\n4,5,E1,,,,,\n4,5,E2,,,,,\n4,5,E3,,,,,\n4,5,E4,,,,,\n4,5,E5,,,,,\n4,5,E6,,,,,\n4,5,E7,,,,,\n4,5,E8,,,,,\n4,5,E9,,,,,\n4,5,E10,,,,,\n4,5,E11,,,,,\n4,5,E12,,,,,\n4,5,F1,,,,,\n4,5,F2,,,,,\n4,5,F3,,,,,\n4,5,F4,,,,,\n4,5,F5,,,,,\n4,5,F6,,,,,\n4,5,F7,,,,,\n4,5,F8,,,,,\n4,5,F9,,,,,\n4,5,F10,,,,,\n4,5,F11,,,,,\n4,5,F12,,,,,\n4,5,G1,,,,,\n4,5,G2,,,,,\n4,5,G3,,,,,\n4,5,G4,,,,,\n4,5,G5,,,,,\n4,5,G6,,,,,\n4,5,G7,,,,,\n4,5,G8,,,,,\n4,5,G9,,,,,\n4,5,G10,,,,,\n4,5,G11,,,,,\n4,5,G12,,,,,\n4,5,H1,,,,,\n4,5,H2,,,,,\n4,5,H3,,,,,\n4,5,H4,,,,,\n4,5,H5,,,,,\n4,5,H6,,,,,\n4,5,H7,,,,,\n4,5,H8,,,,,\n4,5,H9,,,,,\n4,5,H10,,,,,\n4,5,H11,,,,,\n4,5,H12,,,,,\n7,8,A1,1,0.1,110,11,99\n7,8,A2,1.1,0.1,110,10,100\n7,8,A3,1.5,0.1,110,7.3,102.7\n7,8,A4,1.2,0.1,110,9.2,100.8\n7,8,A5,0.9,0.1,110,12.2,97.8\n7,8,A6,0.5,0.1,110,22,88\n7,8,A7,,,,,\n7,8,A8,,,,,\n7,8,A9,,,,,\n7,8,A10,,,,,\n7,8,A11,,,,,\n7,8,A12,,,,,\n7,8,B1,,,,,\n7,8,B2,,,,,\n7,8,B3,,,,,\n7,8,B4,,,,,\n7,8,B5,,,,,\n7,8,B6,,,,,\n7,8,B7,,,,,\n7,8,B8,,,,,\n7,8,B9,,,,,\n7,8,B10,,,,,\n7,8,B11,,,,,\n7,8,B12,,,,,\n7,8,C1,,,,,\n7,8,C2,,,,,\n7,8,C3,,,,,\n7,8,C4,,,,,\n7,8,C5,,,,,\n7,8,C6,,,,,\n7,8,C7,,,,,\n7,8,C8,,,,,\n7,8,C9,,,,,\n7,8,C10,,,,,\n7,8,C11,,,,,\n7,8,C12,,,,,\n7,8,D1,,,,,\n7,8,D2,,,,,\n7,8,D3,,,,,\n7,8,D4,,,,,\n7,8,D5,,,,,\n7,8,D6,,,,,\n7,8,D7,,,,,\n7,8,D8,,,,,\n7,8,D9,,,,,\n7,8,D10,,,,,\n7,8,D11,,,,,\n7,8,D12,,,,,\n7,8,E1,,,,,\n7,8,E2,,,,,\n7,8,E3,,,,,\n7,8,E4,,,,,\n7,8,E5,,,,,\n7,8,E6,,,,,\n7,8,E7,,,,,\n7,8,E8,,,,,\n7,8,E9,,,,,\n7,8,E10,,,,,\n7,8,E11,,,,,\n7,8,E12,,,,,\n7,8,F1,,,,,\n7,8,F2,,,,,\n7,8,F3,,,,,\n7,8,F4,,,,,\n7,8,F5,,,,,\n7,8,F6,,,,,\n7,8,F7,,,,,\n7,8,F8,,,,,\n7,8,F9,,,,,\n7,8,F10,,,,,\n7,8,F11,,,,,\n7,8,F12,,,,,\n7,8,G1,,,,,\n7,8,G2,,,,,\n7,8,G3,,,,,\n7,8,G4,,,,,\n7,8,G5,,,,,\n7,8,G6,,,,,\n7,8,G7,,,,,\n7,8,G8,,,,,\n7,8,G9,,,,,\n7,8,G10,,,,,\n7,8,G11,,,,,\n7,8,G12,,,,,\n7,8,H1,,,,,\n7,8,H2,,,,,\n7,8,H3,,,,,\n7,8,H4,,,,,\n7,8,H5,,,,,\n7,8,H6,,,,,\n7,8,H7,,,,,\n7,8,H8,,,,,\n7,8,H9,,,,,\n7,8,H10,,,,,\n7,8,H11,,,,,\n7,8,H12,,,,,\n10,11,A1,,,,,\n10,11,A2,,,,,\n10,11,A3,,,,,\n10,11,A4,,,,,\n10,11,A5,,,,,\n10,11,A6,,,,,\n10,11,A7,,,,,\n10,11,A8,,,,,\n10,11,A9,,,,,\n10,11,A10,,,,,\n10,11,A11,,,,,\n10,11,A12,,,,,\n10,11,B1,,,,,\n10,11,B2,,,,,\n10,11,B3,,,,,\n10,11,B4,,,,,\n10,11,B5,,,,,\n10,11,B6,,,,,\n10,11,B7,,,,,\n10,11,B8,,,,,\n10,11,B9,,,,,\n10,11,B10,,,,,\n10,11,B11,,,,,\n10,11,B12,,,,,\n10,11,C1,,,,,\n10,11,C2,,,,,\n10,11,C3,,,,,\n10,11,C4,,,,,\n10,11,C5,,,,,\n10,11,C6,,,,,\n10,11,C7,,,,,\n10,11,C8,,,,,\n10,11,C9,,,,,\n10,11,C10,,,,,\n10,11,C11,,,,,\n10,11,C12,,,,,\n10,11,D1,,,,,\n10,11,D2,,,,,\n10,11,D3,,,,,\n10,11,D4,,,,,\n10,11,D5,,,,,\n10,11,D6,,,,,\n10,11,D7,,,,,\n10,11,D8,,,,,\n10,11,D9,,,,,\n10,11,D10,,,,,\n10,11,D11,,,,,\n10,11,D12,,,,,\n10,11,E1,,,,,\n10,11,E2,,,,,\n10,11,E3,,,,,\n10,11,E4,,,,,\n10,11,E5,,,,,\n10,11,E6,,,,,\n10,11,E7,,,,,\n10,11,E8,,,,,\n10,11,E9,,,,,\n10,11,E10,,,,,\n10,11,E11,,,,,\n10,11,E12,,,,,\n10,11,F1,,,,,\n10,11,F2,,,,,\n10,11,F3,,,,,\n10,11,F4,,,,,\n10,11,F5,,,,,\n10,11,F6,,,,,\n10,11,F7,,,,,\n10,11,F8,,,,,\n10,11,F9,,,,,\n10,11,F10,,,,,\n10,11,F11,,,,,\n10,11,F12,,,,,\n10,11,G1,,,,,\n10,11,G2,,,,,\n10,11,G3,,,,,\n10,11,G4,,,,,\n10,11,G5,,,,,\n10,11,G6,,,,,\n10,11,G7,,,,,\n10,11,G8,,,,,\n10,11,G9,,,,,\n10,11,G10,,,,,\n10,11,G11,,,,,\n10,11,G12,,,,,\n10,11,H1,,,,,\n10,11,H2,,,,,\n10,11,H3,,,,,\n10,11,H4,,,,,\n10,11,H5,,,,,\n10,11,H6,,,,,\n10,11,H7,,,,,\n10,11,H8,,,,,\n10,11,H9,,,,,\n10,11,H10,,,,,\n10,11,H11,,,,,\n10,11,H12,,,,,\n"
+  }
+]

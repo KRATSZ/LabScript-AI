@@ -1,0 +1,33 @@
+[
+  {
+    "type": "dropDown",
+    "label": "CheckIt cartridge type",
+    "name": "lw_checkit",
+    "options": [
+      {"label": "5ul", "value": "checkit_8_wellplate_5ul"},
+      {"label": "10ul", "value": "checkit_8_wellplate_10ul"},
+      {"label": "20ul", "value": "checkit_8_wellplate_20ul"},
+      {"label": "50ul", "value": "checkit_8_wellplate_50ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette type",
+    "name": "pipette_type",
+    "options": [
+      {"label": "P20 8-channel (GEN 2)", "value": "p20_multi_gen2"},
+      {"label": "P300 8-channel (GEN 2)", "value": "p300_multi_gen2"},
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P300 Single (GEN 2)", "value": "p300_single_gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette mount",
+    "name": "pipette_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

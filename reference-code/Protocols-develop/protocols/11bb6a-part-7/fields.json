@@ -1,0 +1,86 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Choose an i7 primer plate row to use (rows A-H)",
+    "name": "i7row",
+    "options": [
+      { "label": "1st Row (row A)", "value": 0 },
+      { "label": "2nd Row (row B)", "value": 1 },
+      { "label": "3rd Row (row C)", "value": 2 },
+      { "label": "4th Row (row D)", "value": 3 },
+      { "label": "5th Row (row E)", "value": 4 },
+      { "label": "6th Row (row F)", "value": 5 },
+      { "label": "7th Row (row G)", "value": 6 },
+      { "label": "8th Row (row H)", "value": 7 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choose an i5 primer plate column to use (columns 1-12)",
+    "name": "i5col",
+    "options": [
+      { "label": "Column 1", "value": 0 },
+      { "label": "Column 2", "value": 1 },
+      { "label": "Column 3", "value": 2 },
+      { "label": "Column 4", "value": 3 },
+      { "label": "Column 5", "value": 4 },
+      { "label": "Column 6", "value": 5 },
+      { "label": "Column 7", "value": 6 },
+      { "label": "Column 8", "value": 7 },
+      { "label": "Column 9", "value": 8 },
+      { "label": "Column 10", "value": 9 },
+      { "label": "Column 11", "value": 10 },
+      { "label": "Column 12", "value": 11 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Input Samples (in multiples of 8, 48-96)",
+    "name": "sample_count",
+    "options": [
+      { "label": "Input Samples Filling All 12 Columns", "value": 96 },
+      { "label": "Input Samples Filling 11 Columns", "value": 88 },
+      { "label": "Input Samples Filling 10 Columns", "value": 80 },
+      { "label": "Input Samples Filling 9 Columns", "value": 72 },
+      { "label": "Input Samples Filling 8 Columns", "value": 64 },
+      { "label": "Input Samples Filling 7 Columns", "value": 56 },
+      { "label": "Input Samples Filling 6 Columns", "value": 48 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for 96-well Magnetic Module Plate ",
+    "name": "labware_plates",
+    "options": [
+      { "label": "vwr_96well_pcr_plate_200ul", "value": "vwr_96well_pcr_plate_200ul" },
+      { "label": "sarstedt_96well_pcr_plate_200ul", "value": "sarstedt_96well_pcr_plate_200ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reagent Tubes on the Temperature Module",
+    "name": "labware_tempmod",
+    "options": [
+      { "label": "sarstedt_24_aluminumblock_screwcap_tube_2ml", "value": "sarstedt_24_aluminumblock_screwcap_tube_2ml" },
+      { "label": "sarstedt_24_aluminumblock_hinged_screwcap_tube_2ml", "value": "sarstedt_24_aluminumblock_hinged_screwcap_tube_2ml" },
+      { "label": "sarstedt_24_aluminumblock_screwcap_tube_1.5ml", "value": "sarstedt_24_aluminumblock_screwcap_tube_1.5ml" },
+      { "label": "eppendorf_24_aluminumblock_lobind_tube_1.5ml", "value": "eppendorf_24_aluminumblock_lobind_tube_1.5ml" },
+      { "label": "eppendorf_24_aluminumblock_safelock_tube_1.5ml", "value": "eppendorf_24_aluminumblock_safelock_tube_1.5ml" },
+      { "label": "sarstedt_24_aluminumblock_safeseal_tube_2ml", "value": "sarstedt_24_aluminumblock_safeseal_tube_2ml" },
+      { "label": "vwr_24_aluminumblock_screwcap_tube_0.5ml", "value": "vwr_24_aluminumblock_screwcap_tube_0.5ml" },
+      { "label": "vwr_24_aluminumblock_wc_screwcap_tube_0.5ml", "value": "vwr_24_aluminumblock_wc_screwcap_tube_0.5ml" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Magnetic Module Engage Height (height from base of labware in millimeters)",
+    "name": "engage_height",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Sideways Move to Avoid Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  }
+]

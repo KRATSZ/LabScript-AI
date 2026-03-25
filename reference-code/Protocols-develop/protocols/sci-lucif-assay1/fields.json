@@ -1,0 +1,12 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

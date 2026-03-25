@@ -1,0 +1,40 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "num_samp",
+    "options": [
+      {"label": "Monoplo (16)", "value": 16},
+      {"label": "Duplo (32)", "value": 32},
+      {"label": "Triplo (48)", "value": 48}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Test Mode or Real Mode?",
+    "name": "real_mode",
+    "options": [
+      {"label": "Real Mode (real incubation times, drop tip in trash)", "value": true},
+      {"label": "Test Mode (shortened incubation time, return tip to rack)", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

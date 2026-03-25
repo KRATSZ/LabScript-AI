@@ -1,0 +1,34 @@
+[
+
+  {
+    "type": "float",
+    "label": "DMSO Dilution Factor",
+    "name": "dmso_dil_factor",
+    "default": 1.5
+  },
+  {
+    "type": "dropDown",
+    "label": "Add pre-dilution step?",
+    "name": "pre_dilution",
+    "options": [
+      {"label": "yes, add pre-dilution step", "value": true},
+      {"label": "no, do not add pre-dilution step", "value": false}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "If prepdilution step, pre-dilution factor",
+    "name": "pre_dil_factor",
+    "default": 2
+  },
+
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

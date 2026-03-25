@@ -1,0 +1,19 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Pipette & Tip Combo",
+    "name": "pipinfo",
+    "options": [
+      {"label": "P1000 GEN2 + Opentrons 1000µL Tips", "value": "p1000_single_gen2 opentrons_96_tiprack_1000ul"},
+      {"label": "P1000 GEN2 + Opentrons 1000µL Filter Tips", "value": "p1000_single_gen2 opentrons_96_filtertiprack_1000ul"},
+      {"label": "P300 GEN2 + Opentrons 300µL Tips", "value": "p300_single_gen2 opentrons_96_tiprack_300ul"},
+      {"label": "P300 GEN2 + Opentrons 200µL Filter Tips", "value": "p300_single_gen2 opentrons_96_filtertiprack_200ul"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples (1-24)",
+    "name": "sampnum",
+    "default": 24
+  }
+]

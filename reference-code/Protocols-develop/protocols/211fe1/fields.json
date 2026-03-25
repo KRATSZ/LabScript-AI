@@ -1,0 +1,23 @@
+[
+  {
+    "type": "textFile",
+    "label": "samples to process (comma-separated)",
+    "name": "samples_csv",
+    "default": "A1,B1,C1,D1,E1,G1"
+  },
+  {
+    "type": "dropDown",
+    "label": "P50 single-channel pipette mount",
+    "name": "p50_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "incubation temperature (degrees C)",
+    "name": "incubation_temperature",
+    "default": 37
+  }
+]

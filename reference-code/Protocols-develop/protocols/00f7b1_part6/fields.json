@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samples",
+    "default": 32
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi GEN2 mount",
+    "name": "m300_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  },
+    {
+      "type": "dropDown",
+      "label": "Flash Robot on Pause",
+      "name": "flash",
+      "options": [
+        {"label": "yes", "value": true},
+        {"label": "no", "value": false}
+      ]
+    }
+]

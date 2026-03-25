@@ -1,0 +1,83 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": "Sample Location,Sample Slot,Sample destination\nA1,1,A1\nA2, 2, A2"
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of 500ul racks (slots 1, 2, 3)",
+    "name": "number_05_plates",
+    "options": [
+      {"label": "3 (slots 1, 2, 3)", "value": 3},
+      {"label": "2 (slots 1, 2)", "value": 2},
+      {"label": "1 (slot 1)", "value": 1}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of 1400ul racks (slots 4, 5, 6)",
+    "name": "number_14_plates",
+    "options": [
+      {"label": "3 (slots 4, 5, 6)", "value": 3},
+      {"label": "2 (slots 4, 5)", "value": 2},
+      {"label": "1 (slot 4)", "value": 1}
+
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Sample tube removal volume",
+    "name": "remove_tube_vol",
+    "default": 20
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination Plate Type",
+    "name": "dest_plate",
+    "options": [
+      {"label": "Nest 96 deepwell", "value": "nest_96_wellplate_2ml_deep"},
+      {"label": "Falcon", "value": "corning_96_wellplate_340ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Add transfection mix step?",
+    "name": "add_transfection_mix",
+    "options": [
+      {"label": "Yes, add", "value": true},
+      {"label": "No, do not add transfection mix", "value": false}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Transfection mix volume",
+    "name": "trans_mix_vol",
+    "default": 40
+  },
+  {
+    "type": "float",
+    "label": "Initial volume of transfection mix in 50mL tube (mL)",
+    "name": "init_vol_50",
+    "default": 40
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

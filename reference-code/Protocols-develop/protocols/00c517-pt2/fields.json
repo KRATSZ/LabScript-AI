@@ -1,0 +1,51 @@
+[
+  {
+  "type": "textFile",
+  "label": ".CSV File",
+  "name": "input_csv",
+  "default": "sample,location in 96-well plate,concentration,add SDS buffer (µl),100 µl sample (µl)\n1,A1,2,0,50"
+},
+{
+  "type": "int",
+  "label": "Initial Sample Volume in Slot 2",
+  "name": "init_samp_vol",
+  "default": 40
+},
+
+  {
+    "type": "int",
+    "label": "Initial Volume of SDS in 50mL Tube (in mL)",
+    "name": "init_vol_sds",
+    "default": 40
+  },
+  {
+    "type": "int",
+    "label": "Starting tip of P20 pipette (by column)",
+    "name": "start_tip_p20",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Starting tip of P300 pipette (by column)",
+    "name": "start_tip_p300",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

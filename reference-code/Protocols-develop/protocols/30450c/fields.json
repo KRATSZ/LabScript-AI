@@ -1,0 +1,63 @@
+[
+  {
+    "type": "int",
+    "label": "Number of ELISA plates (1-5)",
+    "name": "plate_count",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "Step of the ELISA process",
+    "name": "step",
+    "options": [
+      { "label": "Coating Step - Add capture ab in 1x Coating Buffer A", "value": "coating" },
+      { "label": "Blocking Step - Add 1x Assay Diluent", "value": "blocking" },
+      { "label": "Detection Ab Step - Add diluted detection ab", "value": "detection ab" },
+      { "label": "Avidin HRP Step - Add diluted avidin HRP", "value": "avidin hrp" },
+      { "label": "TMB substrate Step - Add TMB substrate", "value": "TMB substrate" },
+      { "label": "Stop Step - Add stop solution", "value": "stop" }
+    ]
+  },
+  {
+  "type": "int",
+  "label": "Aspiration Height for Reagent Reservoir",
+  "name": "src_height",
+  "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "Pause (for off-deck washing) before adding reagent to each plate? (yes or no)",
+    "name": "pause_for_washing",
+    "options": [
+      { "label": "YES - include pause before adding reagent to each plate", "value": true },
+      { "label": "NO - add reagent to each plate without pausing", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include tip touch after dispense? (yes or no)",
+    "name": "tip_touch",
+    "options": [
+      { "label": "YES - touch tip after each dispense", "value": true },
+      { "label": "NO - avoid tip touch after each dispense", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the ELISA plate",
+    "name": "labware_elisa_plate",
+    "options": [
+      { "label": "nunc_442404_96_flat_wellplate_400ul", "value": "nunc_442404_96_flat_wellplate_400ul" },
+      { "label": "corning_96_wellplate_360ul_flat", "value": "corning_96_wellplate_360ul_flat" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the reservoir",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "Nest 12-Well reservoir for all steps except blocking", "value": "nest_12_reservoir_15ml" },
+      { "label": "Nest 195 mL reservoir for the blocking step", "value": "nest_1_reservoir_195ml" }
+    ]
+  }
+]

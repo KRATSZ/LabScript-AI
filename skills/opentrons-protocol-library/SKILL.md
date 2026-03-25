@@ -1,8 +1,8 @@
 ---
 name: opentrons-protocol-library
-description: Use when searching for existing validated Opentrons protocols, referencing protocol patterns from the Cookbook, or looking for code examples from the protocol library. This skill provides access to 800+ validated protocols, common patterns (liquid level tracking, wash steps, CSV handling, tip tracking, etc.), and protocol templates.
+description: Use when searching for existing validated Opentrons protocols, referencing bundled protocol patterns, or looking for code examples from the protocol library. This skill provides access to a bundled Protocols-develop snapshot plus override support for external copies.
 license: Apache-2.0
-compatibility: Requires an external Protocols-develop checkout provided through --library or OPENTRONS_PROTOCOL_LIBRARY_PATH.
+compatibility: Uses the bundled reference-code/Protocols-develop snapshot by default, and also supports external Protocols-develop paths via --library or OPENTRONS_PROTOCOL_LIBRARY_PATH.
 ---
 
 # Opentrons Protocol Library
@@ -11,7 +11,7 @@ This skill provides access to a curated collection of validated Opentrons protoc
 
 - The user asks for an existing protocol for a specific application
 - The user needs code examples for common operations (wash steps, loops, CSV handling, etc.)
-- The user wants to reference the Cookbook for protocol patterns
+- The user wants protocol patterns or reusable snippets from validated real protocols
 - The user needs a template to start a new protocol
 
 ## When to Use This Skill
@@ -22,14 +22,16 @@ Trigger this skill when the user mentions:
 - Similar applications that may already have solutions
 - Need for validated code snippets
 
-## External Library Configuration
+## Library Resolution
 
-Before using this skill, point the helper script at an external `Protocols-develop` checkout:
+The helper script resolves the library in this order:
 
-- pass `--library /path/to/Protocols-develop`, or
-- set `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+1. `--library /path/to/Protocols-develop`
+2. `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+3. bundled `reference-code/Protocols-develop`
+4. legacy sibling `../Protocols-develop`
 
-That external checkout is reference-only and is not part of this repository's own directory layout.
+The bundled snapshot is reference-only. It should be read and searched, not edited as part of normal feature work.
 
 ## Available Resources
 
@@ -62,6 +64,8 @@ Comprehensive collection of reusable code patterns including:
 | Track Data Across Protocol Runs | Data persistence | Recording run information |
 | Tip Tracking with Refills | Advanced tip management | Complex multi-refill protocols |
 | Flash Robot Lights | Robot status indication | User feedback during runs |
+
+Some snapshots do not include `Cookbook.md`. In that case, use `show` and `snippet` against matching protocol folders instead of assuming a cookbook exists.
 
 ### Templates (`<configured-library>/Template/`)
 
@@ -102,20 +106,17 @@ Helper functions for protocol development:
 ## Search and Reference Workflow
 
 1. **Understand the user's requirement** - What specific operation or application?
-
 2. **Search the protocol library** - Look for folders with relevant names and keywords
-
-3. **Read the Cookbook first** - Check if a pattern exists for the core operation
-
-4. **Examine example protocols** - Read README.md and protocol files for implementation details
-
+3. **Inspect one or two likely matches** - Use `show` for structure and metadata
+4. **Pull focused snippets** - Use `snippet` for reusable code or README context
 5. **Adapt and customize** - Modify the pattern/protocol to fit the user's specific needs
 
 ## Important Notes
 
-- All protocols in this library are validated and have been run on real robots
+- The bundled `protocols/` snapshot is reference material copied into this repository for agent use
+- Those protocol files were originally validated protocol-library assets, but this repository does not revalidate all of them on every change
 - Protocols cover both OT-2 and Flex robots (check metadata)
-- The Cookbook contains production-tested code patterns used across many protocols
+- `Cookbook.md` is useful when present, but not every snapshot contains it
 - When referencing a protocol, always verify the API level matches the user's robot
 - Custom labware definitions may be needed for some protocols
 
@@ -130,5 +131,5 @@ Helper functions for protocol development:
 ## Reference Files
 
 - Complete protocol library: `<configured-library>/`
-- Cookbook patterns: `<configured-library>/Cookbook.md`
-- Protocol template: `<configured-library>/Template/protocol_template.py`
+- Search tool: `scripts/search_protocols.py`
+- Bundled agent examples: `examples/reference-protocols/`

@@ -1,0 +1,55 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer .csv File",
+    "name": "transfer_csv",
+    "default": "Pipette Mount to use,Source Labware,Source Slot,Source Well,Source Aspiration Height Above Bottom (in mm),Dest Well,Volume (in ul)\nleft,4x6 2ml screw true,1,A1,1,A11,1\nleft,4x6 1.5ml snap,1,A1,1,A5,3\nright,8x12 0.5ml snap,2,A1,1.5,H12,7\n"
+  },
+  {
+    "type": "dropDown",
+    "label": "Left Pipette Model",
+    "name": "left_pipette_type",
+    "options": [
+      {"label": "P20 Multi (GEN 2)", "value": "p20_multi_gen2"},
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P300 Single (GEN 2)", "value": "p300_single_gen2"},
+      {"label": "P1000 Single (GEN 2)", "value": "p1000_single_gen2"},
+      {"label": "P300 Multi (GEN 2)", "value": "p300_multi_gen2"},
+      {"label": "None", "value": null}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Right Pipette Model",
+    "name": "right_pipette_type",
+    "options": [
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P300 Single (GEN 2)", "value": "p300_single_gen2"},
+      {"label": "P1000 Single (GEN 2)", "value": "p1000_single_gen2"},
+      {"label": "P20 Multi (GEN 2)", "value": "p20_multi_gen2"},
+      {"label": "P300 Multi (GEN 2)", "value": "p300_multi_gen2"},
+      {"label": "None", "value": null}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Type",
+    "name": "tip_type",
+    "options": [
+      {"label": "standard", "value": "standard"},
+      {"label": "filter", "value": "filter"}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "destination labware definition",
+    "name": "dest_lw_def",
+    "default": "sorenson_96_wellplate_350ul"
+  },
+  {
+    "type": "str",
+    "label": "destination labware slot (1-11)",
+    "name": "dest_slot",
+    "default": "3"
+  }
+]

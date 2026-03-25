@@ -1,0 +1,51 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Mastermix Samples (1-96)",
+    "name": "num_samp_mmx",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "Number of Lysis Mastermix Samples (1-48)",
+    "name": "num_samp_lysis",
+    "default": 48
+  },
+  {
+    "type": "float",
+    "label": "Volume of Forward/Reverse Primer",
+    "name": "vol_primer",
+    "default": 0.5
+  },
+  {
+    "type": "int",
+    "label": "Volume of PCR mix in each well (1-20ul)",
+    "name": "vol_pcr_mix",
+    "default": 15
+  },
+
+  {
+    "type": "int",
+    "label": "Volume of Lysis mix in each well (1-20ul)",
+    "name": "vol_lysis_mix",
+    "default": 15
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

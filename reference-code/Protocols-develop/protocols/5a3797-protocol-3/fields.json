@@ -1,0 +1,140 @@
+[
+    {
+        "type": "dropDown",
+        "label": "P300-multichannel GEN2 mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P1000-single GEN2 mount",
+        "name": "p1000_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    },
+    {
+      "type": "dropDown",
+      "label": "Tip Type",
+      "name": "tip_type",
+      "options": [
+        {"label": "Opentrons 200 uL Filter Tips", "value": "opentrons_96_filtertiprack_200ul"},
+        {"label": "Opentrons 300 uL Tips", "value": "opentrons_96_tiprack_300ul"}
+      ]
+    },
+    {
+      "type": "int",
+      "label": "Total Sample Number (# of Tubes)",
+      "name": "samples",
+      "default": 96
+    },
+    {
+      "type": "float",
+      "label": "P1000 Sample Transfer Volume (uL)",
+      "name": "sample_vol",
+      "default": 200
+    },
+    {
+      "type": "float",
+      "label": "P1000 Sample Aspiration Rate (uL/s)",
+      "name": "sample_asp_speed",
+      "default": 50
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 1 Type",
+        "name": "tuberack_1",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 2 Type",
+        "name": "tuberack_2",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 3 Type",
+        "name": "tuberack_3",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 4 Type",
+        "name": "tuberack_4",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 5 Type",
+        "name": "tuberack_5",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 6 Type",
+        "name": "tuberack_6",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "Tube Rack 7 Type",
+        "name": "tuberack_7",
+        "options": [
+          {"label": "Sorfa 15 Tube Rack 10 mL", "value": "sorfa_15_tuberack_10000ul"},
+          {"label": "Copan 15 Tube Rack 10 mL", "value": "copan_15_tuberack_10000ul"}
+        ]
+    },
+    {
+      "type": "float",
+      "label": "Final Step Aspiration Speed (uL/sec)",
+      "name": "final_asp_speed",
+      "default": 50
+    },
+    {
+      "type": "float",
+      "label": "Final Step Air Gap (uL)",
+      "name": "final_air_gap",
+      "default": 20
+    },
+    {
+      "type": "float",
+      "label": "Tube Height from bottom (mm)",
+      "name": "tube_height",
+      "default": 15
+    },
+    {
+      "type": "float",
+      "label": "Deep Well Plate Height from bottom (mm)",
+      "name": "sample_plate_height",
+      "default": 5
+    },
+    {
+      "type": "float",
+      "label": "Reservoir Height from bottom (mm)",
+      "name": "reservoir_height",
+      "default": 5
+    }
+  ]

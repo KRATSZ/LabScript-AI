@@ -1,0 +1,8 @@
+[
+  {
+    "type": "textFile",
+    "label": "Cherrypicking Transfer CSV",
+    "name": "transfer_csv",
+    "default": "source deck,Source well,Destination deck,Destination well,volume\n10,A4,11,A1,30"
+  }
+]

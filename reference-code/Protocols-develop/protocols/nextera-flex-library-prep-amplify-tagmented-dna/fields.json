@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples to prcoess",
+    "name": "number_of_samples_to_process",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 pipette type",
+    "name": "p300_type",
+    "options": [
+      { "label": "single", "value": "single" },
+      { "label": "multi", "value": "multi" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P50 single-channel pipette mount",
+    "name": "p50_single_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

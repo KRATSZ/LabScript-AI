@@ -1,0 +1,14 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Sample Racks (1-3)",
+    "name": "count_racks",
+    "default": 3
+  },
+  {
+    "type": "textFile",
+    "label": "Upload CSV Input File (Upload CSV-formatted Excel File-with formatting of data values and file identical to example)",
+    "name": "uploaded_csv",
+    "default": "Source slot,Source well,Destination well,Sample volume (uL),Diluent Volume(ul)\n1,A1,A1,2.35,197.65\n4,A2,A2,13.27,186.73\n7,A3,A3,15,185\n"
+  }
+]

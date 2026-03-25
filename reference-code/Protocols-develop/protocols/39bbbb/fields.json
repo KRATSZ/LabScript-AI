@@ -1,0 +1,46 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (up to 56)",
+    "name": "sample_count",
+    "default": 56
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of Labware for 24 Tube Rack",
+    "name": "labware_tube_rack",
+    "options": [
+      { "label": "Opentrons 24 Tube Rack with 1.5 mL Eppendorf Tubes", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "Opentrons 24 Tube Rack with 2.0 mL Eppendorf Tubes", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of Labware for Sample Prep Plate",
+    "name": "labware_sample_plate",
+    "options": [
+      { "label": "Corning 3897", "value": "corning_96_wellplate_320ul" },
+      { "label": "Nunc 249570", "value": "nunc_96_wellplate_250ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choice of Labware for ELISA Plate",
+    "name": "labware_elisa_plate",
+    "options": [
+      { "label": "Thermo 384 Well Plate 50 ul", "value": "thermo_384_wellplate_50ul" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Sample Eppendorfs in 24 Tube Rack (mm)",
+    "name": "clearance_sample_tube",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Sample Prep Plate (mm)",
+    "name": "clearance_sample_prep",
+    "default": 2
+  }
+]

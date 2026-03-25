@@ -1,0 +1,116 @@
+[
+  {
+    "type": "str",
+    "label": "Comma-Separated Counts of Filled Columns (for each downstream 96-well patient sample plate)",
+    "name": "samp_col_counts",
+    "default": "12,12,12,12,12,12,12,12,12"
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of 384-Well Plates",
+    "name": "plate_count",
+    "options": [
+      { "label": "Prepare 9 Plates", "value": 9 },
+      { "label": "Prepare 8 Plates", "value": 8 },
+      { "label": "Prepare 7 Plates", "value": 7 },
+      { "label": "Prepare 6 Plates", "value": 6 },
+      { "label": "Prepare 5 Plates", "value": 5 },
+      { "label": "Prepare 4 Plates", "value": 4 },
+      { "label": "Prepare 3 Plates", "value": 3 },
+      { "label": "Prepare 2 Plates", "value": 2 },
+      { "label": "Prepare 1 Plates", "value": 1 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choose your labware (384-well plate)",
+    "name": "labware_384_well_plate",
+    "options": [
+      { "label": "Thermo Applied Biosystems 384 well plate (4310286)", "value": "appliedbiosystems_384_wellplate_40ul" }
+    ]
+  },
+  {
+    "type": "str",
+    "label": "N1 Primer (2 mL plate Well Location)",
+    "name": "n1_primer_well",
+    "default": "A1"
+  },
+  {
+    "type": "str",
+    "label": "N1 Primer (1 mL plate Column Location)",
+    "name": "n1_col",
+    "default": "1"
+  },
+  {
+    "type": "str",
+    "label": "N2 Primer (2 mL plate Well Location)",
+    "name": "n2_primer_well",
+    "default": "A2"
+  },
+  {
+    "type": "str",
+    "label": "N2 Primer (1 mL plate Column Location)",
+    "name": "n2_col",
+    "default": "2"
+  },
+  {
+    "type": "str",
+    "label": "RP Primer (2 mL plate Well Location)",
+    "name": "rp_primer_well",
+    "default": "A3"
+  },
+  {
+    "type": "str",
+    "label": "RP Primer (1 mL plate Column Location)",
+    "name": "rp_col",
+    "default": "3"
+  },
+  {
+    "type": "str",
+    "label": "NTC Primer (2 mL plate Well Location)",
+    "name": "ntc_primer_well",
+    "default": "A4"
+  },
+  {
+    "type": "str",
+    "label": "NTC Primer (1 mL plate Column Location)",
+    "name": "ntc_col",
+    "default": "4"
+  },
+  {
+    "type": "float",
+    "label": "Primer Volume (ul/well in column of 1 mL plate)",
+    "name": "primer_col_volume",
+    "default": 100
+  },
+  {
+    "type": "float",
+    "label": "Primer Volume (per well of 384 well plate)",
+    "name": "primer_volume",
+    "default": 7.5
+  },
+  {
+    "type": "float",
+    "label": "Disposal Volume (if using multi-transfer option)",
+    "name": "disposal_vol",
+    "default": 0
+  },
+  {
+    "type": "dropDown",
+    "label": "Include No-Template Control Primer?",
+    "name": "include_ntc",
+    "options": [
+      { "label": "Skip No-Template Control Primer", "value": false },
+      { "label": "Include No-Template Control Primer", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include 15 ul Multi-Dispenses?",
+    "name": "include_multi",
+    "options": [
+      { "label": "Perform 15 ul Multi-Dispenses", "value": true },
+      { "label": "Perform 7.5 ul Single-Dispenses", "value": false }
+    ]
+  }
+]

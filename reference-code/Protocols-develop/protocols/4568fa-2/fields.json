@@ -1,0 +1,41 @@
+[
+  {
+    "type": "textFile",
+    "label": "input .csv for normalization",
+    "name": "dil_csv_1",
+    "default": "sample number,sample name,sample concentration (mg/ml)\n1,007007009-403-1,1.569\n2,007007009-403-2,0.984\n3,007007009-403-3,2.128\n4,007007009-403-4,2.413\n"
+  },
+  {
+    "type": "float",
+    "label": "desired final concentration (ug/ml)",
+    "name": "desired_conc",
+    "default": 4.0
+  },
+  {
+    "type": "dropDown",
+    "label": "fill entire plate with blank if necessary",
+    "name": "fill_plate_blank",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel pipette mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

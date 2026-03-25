@@ -1,0 +1,27 @@
+[
+    {
+        "type": "int",
+        "label": "number of sample columns (1-9)",
+        "name": "num_sample_columns",
+        "default": 9
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 8-channel pipette mount",
+        "name": "mount_m20",
+        "options": [
+            {"label": "right", "value": "right"},
+            {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 8-channel pipette mount",
+        "name": "mount_m300",
+        "options": [
+            {"label": "left", "value": "left"},
+            {"label": "right", "value": "right"}
+        ]
+    }
+  ]
+  

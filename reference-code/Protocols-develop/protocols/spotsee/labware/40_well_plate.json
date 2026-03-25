@@ -1,0 +1,506 @@
+{
+  "wells": {
+    "A1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 202.72,
+      "z": 7.48
+    },
+    "B1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 183.67,
+      "z": 7.48
+    },
+    "C1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 164.62,
+      "z": 7.48
+    },
+    "D1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 145.57,
+      "z": 7.48
+    },
+    "E1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 126.52,
+      "z": 7.48
+    },
+    "F1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 107.47,
+      "z": 7.48
+    },
+    "G1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 88.42,
+      "z": 7.48
+    },
+    "H1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 69.37,
+      "z": 7.48
+    },
+    "I1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 50.32,
+      "z": 7.48
+    },
+    "J1": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 117.06,
+      "y": 31.27,
+      "z": 7.48
+    },
+    "A2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 202.72,
+      "z": 7.48
+    },
+    "B2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 183.67,
+      "z": 7.48
+    },
+    "C2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 164.62,
+      "z": 7.48
+    },
+    "D2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 145.57,
+      "z": 7.48
+    },
+    "E2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 126.52,
+      "z": 7.48
+    },
+    "F2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 107.47,
+      "z": 7.48
+    },
+    "G2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 88.42,
+      "z": 7.48
+    },
+    "H2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 69.37,
+      "z": 7.48
+    },
+    "I2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 50.32,
+      "z": 7.48
+    },
+    "J2": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 214.56,
+      "y": 31.27,
+      "z": 7.48
+    },
+    "A3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 202.72,
+      "z": 7.48
+    },
+    "B3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 183.67,
+      "z": 7.48
+    },
+    "C3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 164.62,
+      "z": 7.48
+    },
+    "D3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 145.57,
+      "z": 7.48
+    },
+    "E3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 126.52,
+      "z": 7.48
+    },
+    "F3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 107.47,
+      "z": 7.48
+    },
+    "G3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 88.42,
+      "z": 7.48
+    },
+    "H3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 69.37,
+      "z": 7.48
+    },
+    "I3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 50.32,
+      "z": 7.48
+    },
+    "J3": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 312.06,
+      "y": 31.27,
+      "z": 7.48
+    },
+    "A4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 202.72,
+      "z": 7.48
+    },
+    "B4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 183.67,
+      "z": 7.48
+    },
+    "C4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 164.62,
+      "z": 7.48
+    },
+    "D4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 145.57,
+      "z": 7.48
+    },
+    "E4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 126.52,
+      "z": 7.48
+    },
+    "F4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 107.47,
+      "z": 7.48
+    },
+    "G4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 88.42,
+      "z": 7.48
+    },
+    "H4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 69.37,
+      "z": 7.48
+    },
+    "I4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 50.32,
+      "z": 7.48
+    },
+    "J4": {
+      "totalLiquidVolume": 20,
+      "diameter": 7.84,
+      "shape": "circular",
+      "depth": 0.02,
+      "x": 409.56,
+      "y": 31.27,
+      "z": 7.48
+    }
+  },
+  "groups": [
+    {
+      "metadata": {
+        "displayName": "40 Well Plate",
+        "displayCategory": "wellPlate",
+        "wellBottomShape": "v"
+      },
+      "brand": {
+        "brand": "Falcon",
+        "brandId": [
+          "1234"
+        ],
+        "links": [
+          "https://ecatalog.corning.com/life-sciences/b2c/US/en/Liquid-Handling/Tubes,-Liquid-Handling/Centrifuge-Tubes/Falcon%C2%AE-Conical-Centrifuge-Tubes/p/falconConicalTubes"
+        ]
+      },
+      "wells": [
+        "A1",
+        "B1",
+        "C1",
+        "D1",
+        "E1",
+        "F1",
+        "G1",
+        "H1",
+        "I1",
+        "J1",
+        "A2",
+        "B2",
+        "C2",
+        "D2",
+        "E2",
+        "F2",
+        "G2",
+        "H2",
+        "I2",
+        "J2",
+        "A3",
+        "B3",
+        "C3",
+        "D3",
+        "E3",
+        "F3",
+        "G3",
+        "H3",
+        "I3",
+        "J3",
+        "A4",
+        "B4",
+        "C4",
+        "D4",
+        "E4",
+        "F4",
+        "G4",
+        "H4",
+        "I4",
+        "J4"
+      ]
+    }
+  ],
+  "brand": {
+    "brand": "Opentrons",
+    "brandId": [],
+    "links": [
+      "https://shop.opentrons.com/collections/opentrons-tips/products/tube-rack-set-1"
+    ]
+  },
+  "metadata": {
+    "displayName": "80 Well Plate",
+    "displayCategory": "wellPlate",
+    "displayVolumeUnits": "mL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 426.88,
+    "yDimension": 234.84,
+    "zDimension": 7.5
+  },
+  "parameters": {
+    "format": "irregular",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "40_well_plate"
+  },
+  "ordering": [
+    [
+      "A1",
+      "B1",
+      "C1",
+      "D1",
+      "E1",
+      "F1",
+      "G1",
+      "H1",
+      "I1",
+      "J1"
+    ],
+    [
+      "A2",
+      "B2",
+      "C2",
+      "D2",
+      "E2",
+      "F2",
+      "G2",
+      "H2",
+      "I2",
+      "J2"
+    ],
+    [
+      "A3",
+      "B3",
+      "C3",
+      "D3",
+      "E3",
+      "F3",
+      "G3",
+      "H3",
+      "I3",
+      "J3"
+    ],
+    [
+      "A4",
+      "B4",
+      "C4",
+      "D4",
+      "E4",
+      "F4",
+      "G4",
+      "H4",
+      "I4",
+      "J4"
+    ]
+  ],
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

@@ -1,0 +1,83 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Input Samples in Deep Well Plate on Magnetic Module (up to 96)",
+    "name": "sample_count",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Park 300 ul Tips (use same tips for bead mix and sup removal? (yes or no)",
+    "name": "park_tips",
+    "options": [
+      { "label": "YES", "value": true },
+      { "label": "NO", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reagent Reservoir",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for PCR Plate (Elution Plate)",
+    "name": "labware_pcr_plate",
+    "options": [
+      { "label": "nest_96_wellplate_100ul_pcr_full_skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Deep Well Plate (on Magnetic Module)",
+    "name": "labware_deep_well",
+    "options": [
+      { "label": "nest_96_wellplate_2ml_deep", "value": "nest_96_wellplate_2ml_deep" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Reservoir Dead Volume (small amount of left-over, inaccessible volume) (ul)",
+    "name": "res_dead_vol",
+    "default": 1000
+  },
+  {
+    "type": "int",
+    "label": "50 mL Tube Dead Volume (small amount of left-over, inaccessible volume) (ul)",
+    "name": "tube_dead_vol",
+    "default": 1000
+  },
+  {
+    "type": "int",
+    "label": "Well Bottom Clearance for Reservoir (mm)",
+    "name": "clearance_reservoir",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Well Bottom Clearance for Deep Well Plate (on Magnetic Module) (mm)",
+    "name": "clearance_magplate",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Well Bottom Clearance With Bead Pellets (mm)",
+    "name": "clearance_bead_pellet",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Magnet Engage Time (min)",
+    "name": "engage_time",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Move to Side to Target or Avoid Bead Pellet (mm)",
+    "name": "x_offset_bead_pellet",
+    "default": 1.5
+  }
+]

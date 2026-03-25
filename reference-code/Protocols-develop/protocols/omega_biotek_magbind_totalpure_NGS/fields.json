@@ -1,0 +1,72 @@
+[
+  {
+    "type": "dropDown",
+    "label": "pipette type",
+    "name": "pipette_type",
+    "options": [
+      { "label": "GEN2 P1000 Single", "value": "p1000_single_gen2"},
+      { "label": "GEN2 P300 Single", "value": "p300_single_gen2" },
+      { "label": "GEN2 P20 Single", "value": "p10_single_gen2" },
+      { "label": "GEN2 P300 Multi", "value": "p300_multi_gen2" },
+      { "label": "GEN2 P20 Multi", "value": "p20_multi_gen2"},
+      { "label": "GEN1 P1000 Single", "value": "p1000_single"},
+      { "label": "GEN1 P300 Single", "value": "p300_single" },
+      { "label": "GEN1 P50 Single", "value": "p50_single" },
+      { "label": "GEN1 P10 Single", "value": "p10_single" },
+      { "label": "GEN1 P300 Multi", "value": "p300_multi" },
+      { "label": "GEN1 P50 Multi", "value": "p50_multi" },
+      { "label": "GEN1 P10 Multi", "value": "p10_multi"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette mount",
+    "name": "pipette_mount",
+    "options": [
+      { "label": "left", "value": "left"},
+      { "label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "sample_number",
+    "default": 24
+  },
+  {
+    "type": "float",
+    "label": "PCR volume (in uL)",
+    "name": "PCR_volume",
+    "default": 20
+  },
+  {
+    "type": "float",
+    "label": "bead ratio",
+    "name": "bead_ratio",
+    "default": 1.8
+  },
+  {
+    "type": "float",
+    "label": "elution buffer volume (in uL)",
+    "name": "elution_buffer_volume",
+    "default": 20
+  },
+  {
+    "type": "float",
+    "label": "incubation time (in minutes)",
+    "name": "incubation_time",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "settling time (in minutes)",
+    "name": "settling_time",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "drying time (in minutes)",
+    "name": "drying_time",
+    "default": 5
+  }
+]

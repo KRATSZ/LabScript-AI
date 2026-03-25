@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Columns with Samples",
+    "name": "_samp_cols",
+    "default": "3,10"
+  },
+  {
+    "type": "dropDown",
+    "label": "Module for Destination Plate",
+    "name": "_dest_module",
+    "options": [
+      { "label": "Thermocycler", "value": "thermocycler" },
+      { "label": "GEN2 Temp Module", "value": "temperature module gen2" },
+      { "label": "GEN1 Temp Module", "value": "temperature module" },
+      { "label": "No Module", "value": null }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Module for Reagent Plate",
+    "name": "_src_module",
+    "options": [
+      { "label": "No Module", "value": null },
+      { "label": "GEN2 Temp Module", "value": "temperature module gen2" },
+      { "label": "GEN1 Temp Module", "value": "temperature module" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi Mount",
+    "name": "_m20_mount",
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Right", "value": "right" }
+    ]
+  }
+]

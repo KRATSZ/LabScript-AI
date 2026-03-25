@@ -1,0 +1,48 @@
+[
+  {
+    "type": "textFile",
+    "label": "Stock Solution CSV",
+    "name": "csv_stock",
+    "default": "x,1,2,3,4,5,6,7,8,9,10,11,12,A,x,20,20,20,20,20,20,20,20,20,20,20"
+  },
+  {
+    "type": "textFile",
+    "label": "Buffer Solution CSV",
+    "name": "csv_buff",
+    "default": "x,1,2,3,4,5,6,7,8,9,10,11,12,A,x,20,20,20,20,20,20,20,20,20,20,20"
+  },
+  {
+    "type": "dropDown",
+    "label": "Dilute stock solution? before adding cells?",
+    "name": "dilute_stock",
+    "options": [
+      {"label": "Yes, dilute stock solution with csvs", "value": true},
+      {"label": "No, just transfers cells and solution to plate reader", "value": false}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Transfer volume of diluted stock to plate reader (ul)",
+    "name": "sol_vol",
+    "default": 20
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

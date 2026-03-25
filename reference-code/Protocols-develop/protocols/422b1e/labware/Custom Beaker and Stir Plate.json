@@ -1,0 +1,64 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "custom",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Custom Beaker and Stir Plate",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 130
+    },
+    "wells": {
+        "A1": {
+            "depth": 65,
+            "totalLiquidVolume": 5000,
+            "shape": "circular",
+            "diameter": 15,
+            "x": 64,
+            "y": 55,
+            "z": 65
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "displayName": "Custom Beaker and Stir Plate",
+                "displayCategory": "reservoir",
+                "wellBottomShape": "flat"
+            },
+            "brand": {
+                "brand": "custom",
+                "brandId": []
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "custom_beaker"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "_num_samps",
+    "default": 8
+  },
+  {
+    "type": "dropDown",
+    "label": "Master Mix Transfer Volume",
+    "name": "_mm_transfer_vol",
+    "options": [
+      { "label": "10µL (cDNA Synthesis)", "value": 10 },
+      { "label": "9µL (DNA)", "value": 9 },
+      { "label": "8µL (DNA)", "value": 8 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Module for Destination Plate",
+    "name": "_dest_module",
+    "options": [
+      { "label": "Thermocycler", "value": "thermocycler" },
+      { "label": "GEN2 Temp Module", "value": "temperature module gen2" },
+      { "label": "GEN1 Temp Module", "value": "temperature module" },
+      { "label": "No Module", "value": null }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "[If using Thermocycler] Number of Cycles",
+    "name": "_tc_cycles",
+    "default": 20
+  },
+  {
+    "type": "dropDown",
+    "label": "Module for Reagent Plate",
+    "name": "_src_module",
+    "options": [
+      { "label": "No Module", "value": null },
+      { "label": "GEN2 Temp Module", "value": "temperature module gen2" },
+      { "label": "GEN1 Temp Module", "value": "temperature module" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi Mount",
+    "name": "_m20_mount",
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Right", "value": "right" }
+    ]
+  }
+]

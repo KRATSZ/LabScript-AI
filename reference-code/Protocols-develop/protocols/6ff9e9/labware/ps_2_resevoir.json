@@ -1,0 +1,78 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ]
+    ],
+    "brand": {
+        "brand": "PS",
+        "brandId": [
+            "PS"
+        ]
+    },
+    "metadata": {
+        "displayName": "PS RESERVOIR",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127,
+        "yDimension": 86,
+        "zDimension": 55
+    },
+    "wells": {
+        "A1": {
+            "depth": 48,
+            "totalLiquidVolume": 170000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 73,
+            "x": 23,
+            "y": 43,
+            "z": 7
+        },
+        "A2": {
+            "depth": 48,
+            "totalLiquidVolume": 170000,
+            "shape": "rectangular",
+            "xDimension": 10,
+            "yDimension": 73,
+            "x": 85,
+            "y": 43,
+            "z": 7
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "ps_2_resevoir"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

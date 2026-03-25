@@ -1,0 +1,226 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ],
+        [
+            "A4"
+        ],
+        [
+            "A5"
+        ],
+        [
+            "A6"
+        ],
+        [
+            "A7"
+        ],
+        [
+            "A8"
+        ],
+        [
+            "A9"
+        ],
+        [
+            "A10"
+        ],
+        [
+            "A11"
+        ],
+        [
+            "A12"
+        ]
+    ],
+    "brand": {
+        "brand": "Agilent",
+        "brandId": [
+            "201256-100"
+        ]
+    },
+    "metadata": {
+        "displayName": "Agilent 12-Channel Reservoir 21ml",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.47,
+        "zDimension": 44.04
+    },
+    "wells": {
+        "A1": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 14.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A2": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 23.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A3": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 32.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A4": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 41.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A5": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 50.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A6": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 59.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A7": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 68.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A8": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 77.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A9": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 86.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A10": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 95.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A11": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 104.38,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A12": {
+            "depth": 39.22,
+            "totalLiquidVolume": 21000,
+            "shape": "rectangular",
+            "xDimension": 8.2,
+            "yDimension": 75,
+            "x": 113.38,
+            "y": 42.73,
+            "z": 4.82
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "displayName": "Agilent 12-Channel Reservoir 21ml",
+                "displayCategory": "reservoir",
+                "wellBottomShape": "v"
+            },
+            "brand": {
+                "brand": "Agilent",
+                "brandId": [
+                    "201256-100"
+                ]
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8",
+                "A9",
+                "A10",
+                "A11",
+                "A12"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "agilent_12_reservoir_21ml"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

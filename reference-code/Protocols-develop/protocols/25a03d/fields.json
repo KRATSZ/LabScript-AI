@@ -1,0 +1,72 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples (not including controls)",
+    "name": "num_samp",
+    "options": [
+      {"label": "8", "value": "8"},
+      {"label": "16", "value": "16"},
+      {"label": "24", "value": "24"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Final Plate Labware Type",
+    "name": "final_plate_slot4",
+    "options": [
+      {"label": "microampstrips_96_supportbase_100ul", "value": "microampstrips_96_supportbase_100ul"},
+      {"label": "microampplate_96_supportbase_100ul", "value": "microampplate_96_supportbase_100ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Control Plate Labware Type",
+    "name": "control_plate",
+    "options": [
+      {"label": "usastrips_96_supportbase_200ul", "value": "usastrips_96_supportbase_200ul"},
+      {"label": "usastrips_96_aluminumblock_200ul", "value": "usastrips_96_aluminumblock_200ul"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Global Aspiration Flow Rate for P20 Pipette",
+    "name": "asp_rate_global20",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Global Aspiration Flow Rate for P300 Pipette",
+    "name": "asp_rate_global300",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Global Dispense Flow Rate for P20 Pipette",
+    "name": "disp_rate_global20",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Global Dispense Flow Rate for P300 Pipette",
+    "name": "disp_rate_global300",
+    "default": 1.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

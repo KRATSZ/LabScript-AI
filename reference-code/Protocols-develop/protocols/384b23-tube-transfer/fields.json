@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-24)",
+    "name": "num_samp",
+    "default": 24
+  },
+  {
+    "type": "int",
+    "label": "Delay Time after Aspirating (in seconds)",
+    "name": "delay",
+    "default": 3
+  },
+  {
+  "type": "int",
+  "label": "Aspiration Height of recipient tubes (in mm)",
+  "name": "asp_height_recipient",
+  "default": 3
+  },
+  {
+  "type": "int",
+  "label": "Dispense height into destination tubes (in mm)",
+  "name": "disp_height_dest",
+  "default": 3
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single GEN2 Mount",
+    "name": "p1000_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

@@ -1,0 +1,308 @@
+[
+  {
+    "type": "int",
+    "label": "Starting Volume of Buffer in Slot 10 Reservoir (mL)",
+    "name": "buffer_vol",
+    "default": 90
+  },
+  {
+    "type": "dropDown",
+    "label": "Flow Rate for Left Pipette Aspirate (from 0.2x default rate to 3x default rate)",
+    "name": "rate_asp_l",
+    "options": [
+      { "label": "use the default flow rate (unchanged)", "value": 1 },
+      { "label": "multiply the default flow rate by 2", "value": 2 },
+      { "label": "multiply the default flow rate by 3", "value": 3 },
+      { "label": "multiply the default flow rate by 0.5", "value": 0.5 },
+      { "label": "multiply the default flow rate by 0.2", "value": 0.2 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Flow Rate for Left Pipette Dispense (from 0.2x default rate to 3x default rate)",
+    "name": "rate_disp_l",
+    "options": [
+      { "label": "use the default flow rate (unchanged)", "value": 1 },
+      { "label": "multiply the default flow rate by 2", "value": 2 },
+      { "label": "multiply the default flow rate by 3", "value": 3 },
+      { "label": "multiply the default flow rate by 0.5", "value": 0.5 },
+      { "label": "multiply the default flow rate by 0.2", "value": 0.2 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Flow Rate for Right Pipette Aspiration (from 0.2x default rate to 3x default rate)",
+    "name": "rate_asp_r",
+    "options": [
+      { "label": "use the default flow rate (unchanged)", "value": 1 },
+      { "label": "multiply the default flow rate by 2", "value": 2 },
+      { "label": "multiply the default flow rate by 3", "value": 3 },
+      { "label": "multiply the default flow rate by 0.5", "value": 0.5 },
+      { "label": "multiply the default flow rate by 0.2", "value": 0.2 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Flow Rate for Right Pipette Dispense (from 0.2x default rate to 3x default rate)",
+    "name": "rate_disp_r",
+    "options": [
+      { "label": "use the default flow rate (unchanged)", "value": 1 },
+      { "label": "multiply the default flow rate by 2", "value": 2 },
+      { "label": "multiply the default flow rate by 3", "value": 3 },
+      { "label": "multiply the default flow rate by 0.5", "value": 0.5 },
+      { "label": "multiply the default flow rate by 0.2", "value": 0.2 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Filter Tips?",
+    "name": "filter_tips",
+    "options": [
+      { "label": "YES - use Opentrons filter tips", "value": true },
+      { "label": "NO - use Opentrons standard tips", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Left Pipette",
+    "name": "pip_l",
+    "options": [
+      { "label": "P20 Single Gen2 on LEFT MOUNT", "value": "p20_single_gen2" },
+      { "label": "DO NOT USE THE PIPETTE ON THE LEFT MOUNT", "value": null },
+      { "label": "P300 Single Gen2 on LEFT MOUNT", "value": "p300_single_gen2" },
+      { "label": "P1000 Single Gen2 on LEFT MOUNT", "value": "p1000_single_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Right Pipette",
+    "name": "pip_r",
+    "options": [
+      { "label": "P300 Single Gen2 on RIGHT MOUNT", "value": "p300_single_gen2" },
+      { "label": "DO NOT USE THE PIPETTE ON THE RIGHT MOUNT", "value": null },
+      { "label": "P20 Single Gen2 on RIGHT MOUNT", "value": "p20_single_gen2" },
+      { "label": "P1000 Single Gen2 on RIGHT MOUNT", "value": "p1000_single_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware on the Slot 1 Temperature Module",
+    "name": "labware_1",
+    "options": [
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_snapcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_aluminumblock_generic_2ml_screwcap", "value": "opentrons_24_aluminumblock_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_2ml_screwcap", "value": "opentrons_24_aluminumblock_nest_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_0.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_0.5ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_2ml_snapcap", "value": "opentrons_24_aluminumblock_nest_2ml_snapcap" },
+      { "label": "celltreat_24_aluminumblock_1500ul", "value": "celltreat_24_aluminumblock_1500ul" },
+      { "label": "EMPTY - NO LABWARE ON SLOT 1 TEMPERATURE MODULE", "value": null }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Setting for Temperature Module in Slot 1 (degrees Celsius)",
+    "name": "temperature1",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 1 Labware (mm above bottom of well)",
+    "name": "clearance_1",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware in Slot 2",
+    "name": "labware_2",
+    "options": [
+      { "label": "master_block_384", "value": "master_block_384" },
+      { "label": "biorad_96_wellplate_200ul", "value": "biorad_96_wellplate_200ul" },
+      { "label": "thermo_96_pcr_with_plate_holder", "value": "thermo_96_pcr_with_plate_holder" },
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical" },
+      { "label": "opentrons_15_tuberack_falcon_15ml_conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+      { "label": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "opentrons_24_tuberack_nest_1.5ml_snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_tuberack_generic_2ml_screwcap", "value": "opentrons_24_tuberack_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_6_tuberack_falcon_50ml_conical", "value": "opentrons_6_tuberack_falcon_50ml_conical" },
+      { "label": "costar_3960_96_deep_wellplate_2ml", "value": "costar_3960_96_deep_wellplate_2ml" },
+      { "label": "opentrons_24_tuberack_thermo_1500_snapcap", "value": "opentrons_24_tuberack_thermo_1500_snapcap" },
+      { "label": "plateone_96_deep_wellplate", "value": "plateone_96_deep_wellplate" },
+      { "label": "EMPTY - NO LABWARE IN SLOT 2", "value": null }
+
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 2 Labware (mm above bottom of well)",
+    "name": "clearance_2",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware in Slot 3",
+    "name": "labware_3",
+    "options": [
+      { "label": "master_block_384", "value": "master_block_384" },
+      { "label": "biorad_96_wellplate_200ul", "value": "biorad_96_wellplate_200ul" },
+      { "label": "thermo_96_pcr_with_plate_holder", "value": "thermo_96_pcr_with_plate_holder" },
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical" },
+      { "label": "opentrons_15_tuberack_falcon_15ml_conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+      { "label": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "opentrons_24_tuberack_nest_1.5ml_snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_tuberack_generic_2ml_screwcap", "value": "opentrons_24_tuberack_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_6_tuberack_falcon_50ml_conical", "value": "opentrons_6_tuberack_falcon_50ml_conical" },
+      { "label": "costar_3960_96_deep_wellplate_2ml", "value": "costar_3960_96_deep_wellplate_2ml" },
+      { "label": "opentrons_24_tuberack_thermo_1500_snapcap", "value": "opentrons_24_tuberack_thermo_1500_snapcap" },
+      { "label": "plateone_96_deep_wellplate", "value": "plateone_96_deep_wellplate" },
+      { "label": "EMPTY - NO LABWARE IN SLOT 3", "value": null }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 3 Labware (mm above bottom of well)",
+    "name": "clearance_3",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware on the Slot 4 Temperature Module",
+    "name": "labware_4",
+    "options": [
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_snapcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_aluminumblock_generic_2ml_screwcap", "value": "opentrons_24_aluminumblock_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_2ml_screwcap", "value": "opentrons_24_aluminumblock_nest_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_0.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_0.5ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_2ml_snapcap", "value": "opentrons_24_aluminumblock_nest_2ml_snapcap" },
+      { "label": "celltreat_24_aluminumblock_1500ul", "value": "celltreat_24_aluminumblock_1500ul" },
+      { "label": "EMPTY - NO LABWARE ON SLOT 4 TEMPERATURE MODULE", "value": null }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Setting for Temperature Module in Slot 4 (degrees Celsius)",
+    "name": "temperature2",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 4 Labware (mm above bottom of well)",
+    "name": "clearance_4",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware in Slot 5",
+    "name": "labware_5",
+    "options": [
+      { "label": "master_block_384", "value": "master_block_384" },
+      { "label": "biorad_96_wellplate_200ul", "value": "biorad_96_wellplate_200ul" },
+      { "label": "thermo_96_pcr_with_plate_holder", "value": "thermo_96_pcr_with_plate_holder" },
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical" },
+      { "label": "opentrons_15_tuberack_falcon_15ml_conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+      { "label": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "opentrons_24_tuberack_nest_1.5ml_snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_tuberack_generic_2ml_screwcap", "value": "opentrons_24_tuberack_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_6_tuberack_falcon_50ml_conical", "value": "opentrons_6_tuberack_falcon_50ml_conical" },
+      { "label": "costar_3960_96_deep_wellplate_2ml", "value": "costar_3960_96_deep_wellplate_2ml" },
+      { "label": "opentrons_24_tuberack_thermo_1500_snapcap", "value": "opentrons_24_tuberack_thermo_1500_snapcap" },
+      { "label": "plateone_96_deep_wellplate", "value": "plateone_96_deep_wellplate" },
+      { "label": "EMPTY - NO LABWARE IN SLOT 5", "value": null }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 5 Labware (mm above bottom of well)",
+    "name": "clearance_5",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware in Slot 6",
+    "name": "labware_6",
+    "options": [
+      { "label": "master_block_384", "value": "master_block_384" },
+      { "label": "biorad_96_wellplate_200ul", "value": "biorad_96_wellplate_200ul" },
+      { "label": "thermo_96_pcr_with_plate_holder", "value": "thermo_96_pcr_with_plate_holder" },
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical" },
+      { "label": "opentrons_15_tuberack_falcon_15ml_conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+      { "label": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "opentrons_24_tuberack_nest_1.5ml_snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_tuberack_generic_2ml_screwcap", "value": "opentrons_24_tuberack_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_6_tuberack_falcon_50ml_conical", "value": "opentrons_6_tuberack_falcon_50ml_conical" },
+      { "label": "costar_3960_96_deep_wellplate_2ml", "value": "costar_3960_96_deep_wellplate_2ml" },
+      { "label": "opentrons_24_tuberack_thermo_1500_snapcap", "value": "opentrons_24_tuberack_thermo_1500_snapcap" },
+      { "label": "plateone_96_deep_wellplate", "value": "plateone_96_deep_wellplate" },
+      { "label": "EMPTY - NO LABWARE IN SLOT 6", "value": null }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 6 Labware (mm above bottom of well)",
+    "name": "clearance_6",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware in Slot 10",
+    "name": "labware_res",
+    "options": [
+      { "label": "agilent_1_reservoir_290ml", "value": "agilent_1_reservoir_290ml" },
+      { "label": "axygen_1_reservoir_90ml", "value": "axygen_1_reservoir_90ml" },
+      { "label": "nest_1_reservoir_195ml", "value": "nest_1_reservoir_195ml" },
+      { "label": "EMPTY - NO RESERVOIR IN SLOT 10", "value": null }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware in Slot 11",
+    "name": "labware_11",
+    "options": [
+      { "label": "master_block_384", "value": "master_block_384" },
+      { "label": "biorad_96_wellplate_200ul", "value": "biorad_96_wellplate_200ul" },
+      { "label": "thermo_96_pcr_with_plate_holder", "value": "thermo_96_pcr_with_plate_holder" },
+      { "label": "biorad_96_aluminumblock_200ul", "value": "biorad_96_aluminumblock_200ul" },
+      { "label": "thermo_96_pcr_with_aluminum", "value": "thermo_96_pcr_with_aluminum" },
+      { "label": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical" },
+      { "label": "opentrons_15_tuberack_falcon_15ml_conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+      { "label": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "opentrons_24_tuberack_nest_1.5ml_snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "opentrons_24_tuberack_generic_2ml_screwcap", "value": "opentrons_24_tuberack_generic_2ml_screwcap" },
+      { "label": "opentrons_24_aluminumblock_nest_1.5ml_screwcap", "value": "opentrons_24_aluminumblock_nest_1.5ml_screwcap" },
+      { "label": "opentrons_6_tuberack_falcon_50ml_conical", "value": "opentrons_6_tuberack_falcon_50ml_conical" },
+      { "label": "costar_3960_96_deep_wellplate_2ml", "value": "costar_3960_96_deep_wellplate_2ml" },
+      { "label": "opentrons_24_tuberack_thermo_1500_snapcap", "value": "opentrons_24_tuberack_thermo_1500_snapcap" },
+      { "label": "plateone_96_deep_wellplate", "value": "plateone_96_deep_wellplate" },
+      { "label": "EMPTY - NO LABWARE IN SLOT 11", "value": null }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Slot 11 Labware (mm above bottom of well)",
+    "name": "clearance_11",
+    "default": 1
+  },
+  {
+    "type": "textFile",
+    "label": "Upload CSV Input File (Upload CSV-formatted Excel File-with formatting of data values and file identical to example)",
+    "name": "uploaded_csv",
+    "default": "Sample_Group,Sample_Volume,Sample_Position,Sample_Slot,Final_Position,Final_Slot\n1,70,B2,1,A1,5\n1,17,A2,2,B1,5\n1,70,B2,3,A1,5\n1,17,A2,4,B1,5\n1,105,A2,1,B1,5\n1,37,B2,2,A1,5\n1,17,A2,3,B1,5\n1,37,A2,4,B1,5\n1,17,A2,1,B2,5\n1,55,B2,2,A2,5\n2,15,A1,3,A1,5\n2,72,B1,4,B1,5\n2,17,A1,1,B1,5\n2,17,A1,2,B1,5\n2,25,A1,3,B1,5\n2,17,A1,4,B1,6\n2,17,B1,1,A1,6\n2,17,A2,2,B1,6\n2,77,B2,3,A2,6\n2,45,A2,4,B2,6\n3,17,A2,1,A1,6\n3,18,B1,2,B1,6\n3,17,A3,3,A1,6\n3,18,B1,4,A1,6\n3,17,A1,1,B1,6\n3,18,A2,2,B1,6\n3,17,B1,3,A1,6\n3,18,A2,4,B1,6\n"
+  }
+]

@@ -1,0 +1,85 @@
+[
+    {
+        "type": "float",
+        "label": "refill volume (in ul)",
+        "name": "vol_refill",
+        "default": 100.0
+    },
+    {
+        "type": "int",
+        "label": "number of labware to refill",
+        "name": "num_lw",
+        "default": 1
+    },
+    {
+        "type": "dropDown",
+        "label": "remove existing media",
+        "name": "do_remove_media",
+        "options": [
+            { "label": "yes", "value": true },
+            { "label": "no", "value": false }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "premix source",
+        "name": "do_premix",
+        "options": [
+            { "label": "yes", "value": true },
+            { "label": "no", "value": false }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "media reservoir type",
+        "name": "lw_media",
+        "options": [
+            { "label": "NEST 1 Reservoir 195ml", "value": "nest_1_reservoir_195ml" },
+            { "label": "NEST 12 Reservoir 15ml", "value": "nest_12_reservoir_15ml" }
+        ]
+    },
+    {
+        "type": "float",
+        "label": "media aspiration offset from bottom of well (in mm)",
+        "name": "height_offset_aspirate",
+        "default": 0.5
+    },
+    {
+        "type": "float",
+        "label": "media dispense offset from top of well (in mm)",
+        "name": "height_offset_dispense",
+        "default": -1
+    },
+    {
+        "type": "dropDown",
+        "label": "plate type",
+        "name": "lw_refill",
+        "options": [
+            { "label": "PhenoPlate 96 Well Plate 425 µL", "value": "phenoplate_96_wellplate_425ul" },
+            { "label": "PhenoPlate 384 Well Plate 145 µL", "value": "phenoplate_384_wellplate_145ul" },
+            { "label": "Corning 24 Well Plate 3.4 mL Flat", "value": "corning_24_wellplate_3.4ml_flat" },
+            { "label": "Corning 12 Well Plate 6.9 mL Flat", "value": "corning_12_wellplate_6.9ml_flat" }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "pipette type",
+        "name": "type_pip",
+        "options": [
+            { "label": "P1000 single-channel GEN2", "value": "p1000_single_gen2" },
+            { "label": "P300 single-channel GEN2", "value": "p300_single_gen2" },
+            { "label": "P20 single-channel GEN2", "value": "p20_single_gen2" },
+            { "label": "P300 8-channel GEN2", "value": "p300_multi_gen2" },
+            { "label": "P20 8-channel GEN2", "value": "p20_multi_gen2" }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "pipette mount",
+        "name": "mount_pip",
+        "options": [
+            { "label": "right", "value": "right" },
+            { "label": "left", "value": "left" }
+        ]
+    }
+]

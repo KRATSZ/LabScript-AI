@@ -1,0 +1,42 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of source/destination plate pairs",
+    "name": "num_plates",
+    "options": [
+      {"label": "1", "value": 1},
+      {"label": "2", "value": 2},
+      {"label": "3", "value": 3}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Plate type",
+    "name": "plate_type",
+    "options": [
+      {"label": "Corning Plate", "value": "corning_96_wellplate_360ul_flat"},
+      {"label": "Falcon Plate", "value": "falcon_96_wellplate_200ul"}
+    ]
+  },
+  {
+  "type": "int",
+  "label": "Serum volume",
+  "name": "serum_vol",
+  "default": 72
+  },
+  {
+  "type": "float",
+  "label": "How many mm lower into source/dest plates?",
+  "name": "lower_asp_height",
+  "default": 0.7
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

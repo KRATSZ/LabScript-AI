@@ -1,0 +1,107 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Primer-Pairs (1-12)",
+    "name": "num_samp",
+    "default": 12
+  },
+  {
+    "type": "int",
+    "label": "cDNA Column 1",
+    "name": "cDNA_col_num1",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "cDNA Column 2",
+    "name": "cDNA_col_num2",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Aspiration height from well bottom",
+    "name": "asp_bottom_clearance",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Dispense height from well bottom",
+    "name": "disp_bottom_clearance",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Aspiration flowrate for P10-Multi (ul/sec)",
+    "name": "asp_flowrate_p10",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Aspiration flowrate for P50-Multi (ul/sec)",
+    "name": "asp_flowrate_p50",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Dispense flowrate for P10-Multi (ul/sec)",
+    "name": "disp_flowrate_p10",
+    "default": 10
+  },
+  {
+    "type": "int",
+    "label": "Dispense flowrate for P50-Multi (ul/sec)",
+    "name": "disp_flowrate_p50",
+    "default": 30
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Temperature Module",
+    "name": "temp_mod_on",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "NO", "value": false }
+     ]
+  },
+  {
+    "type": "int",
+    "label": "Temperature Module Temperature",
+    "name": "temp",
+    "default": 6
+  },
+  {
+    "type": "dropDown",
+    "label": "Small Volume Pipette",
+    "name": "small_pip",
+    "options": [
+       { "label": "P10 Multi GEN1", "value": "p10_multi" },
+       { "label": "P20 8-Multi GEN2", "value": "p20_multi_gen2" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Large Volume Pipette",
+    "name": "big_pip",
+    "options": [
+       { "label": "P50 Multi GEN1", "value": "p50_multi" },
+       { "label": "P300 8-Multi GEN2", "value": "p300_multi_gen2" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P10-Multi mount",
+    "name": "p10_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P50-Multi mount",
+    "name": "p50_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

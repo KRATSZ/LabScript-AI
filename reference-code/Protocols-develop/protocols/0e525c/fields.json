@@ -1,0 +1,20 @@
+[
+    {
+    "type": "dropDown",
+    "label": "P20 8-channel GEN2 pipette mount",
+    "name": "m300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 8-channel GEN2 pipette mount",
+    "name": "m20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

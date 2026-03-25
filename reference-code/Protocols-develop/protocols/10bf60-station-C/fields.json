@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "mastermix volume (µL)",
+    "name": "mm_vol",
+    "default": 15
+  },
+  {
+    "type": "float",
+    "label": "sample volume (µL)",
+    "name": "sample_vol",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 multi-channel mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  }
+]

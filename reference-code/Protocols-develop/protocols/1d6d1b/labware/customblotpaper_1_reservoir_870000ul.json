@@ -1,0 +1,62 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "custom blot paper",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Custom Blot Paper 1 Reservoir 870000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 128,
+        "yDimension": 86,
+        "zDimension": 14
+    },
+    "wells": {
+        "A1": {
+            "depth": 8,
+            "totalLiquidVolume": 870000,
+            "shape": "rectangular",
+            "xDimension": 115,
+            "yDimension": 75,
+            "x": 64,
+            "y": 43,
+            "z": 6
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "customblotpaper_1_reservoir_870000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

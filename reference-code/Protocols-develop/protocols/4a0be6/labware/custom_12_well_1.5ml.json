@@ -1,0 +1,185 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1",
+            "C1"
+        ],
+        [
+            "A2",
+            "B2",
+            "C2"
+        ],
+        [
+            "A3",
+            "B3",
+            "C3"
+        ],
+        [
+            "A4",
+            "B4",
+            "C4"
+        ]
+    ],
+    "brand": {
+        "brand": "Custom",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Custom 12 Rack 1.5mL",
+        "displayCategory": "wellPlate",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 84
+    },
+    "wells": {
+        "A1": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 18.88,
+            "y": 72.74,
+            "z": 41.8
+        },
+        "B1": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 18.88,
+            "y": 42.74,
+            "z": 41.8
+        },
+        "C1": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 18.88,
+            "y": 12.74,
+            "z": 41.8
+        },
+        "A2": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 48.88,
+            "y": 72.74,
+            "z": 41.8
+        },
+        "B2": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 48.88,
+            "y": 42.74,
+            "z": 41.8
+        },
+        "C2": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 48.88,
+            "y": 12.74,
+            "z": 41.8
+        },
+        "A3": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 78.88,
+            "y": 72.74,
+            "z": 41.8
+        },
+        "B3": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 78.88,
+            "y": 42.74,
+            "z": 41.8
+        },
+        "C3": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 78.88,
+            "y": 12.74,
+            "z": 41.8
+        },
+        "A4": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 108.88,
+            "y": 72.74,
+            "z": 41.8
+        },
+        "B4": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 108.88,
+            "y": 42.74,
+            "z": 41.8
+        },
+        "C4": {
+            "depth": 42.2,
+            "totalLiquidVolume": 1500,
+            "shape": "circular",
+            "diameter": 8.41,
+            "x": 108.88,
+            "y": 12.74,
+            "z": 41.8
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "C1",
+                "A2",
+                "B2",
+                "C2",
+                "A3",
+                "B3",
+                "C3",
+                "A4",
+                "B4",
+                "C4"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "custom_12_well_1.5ml"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

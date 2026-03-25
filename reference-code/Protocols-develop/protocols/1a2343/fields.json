@@ -1,0 +1,20 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

@@ -1,0 +1,63 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 pipette type",
+    "name": "p20_type",
+    "options": [
+      {"label": "single (GEN2)", "value": "p20_single_gen2"},
+      {"label": "multi (GEN2)", "value": "p20_multi_gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 pipette type",
+    "name": "p300_type",
+    "options": [
+      {"label": "single (GEN2)", "value": "p300_single_gen2"},
+      {"label": "multi (GEN2)", "value": "p300_multi_gen2"},
+      {"label": "multi (GEN1)", "value": "p300_multi"}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 channel pipette mount",
+    "name": "p20_mount",
+    "options": [
+
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "plate defintion",
+    "name": "plate_def",
+    "default": "nest_96_wellplate_100ul_pcr_full_skirt"
+  },
+  {
+    "type": "dropDown",
+    "label": "heating moudle type",
+    "name": "module_type",
+    "options": [
+
+      {"label": "temperature module (GEN2)", "value": "temperature module gen2"},
+      {"label": "thermocycler", "value": "thermocycler"}
+    ]
+  }
+]

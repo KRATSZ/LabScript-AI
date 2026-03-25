@@ -1,0 +1,11 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P1000 GEN2 single-channel pipette mount",
+    "name": "p1000_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

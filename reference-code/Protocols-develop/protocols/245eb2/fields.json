@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "p300 Multi Mount",
+    "name": "p300mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "num_samples",
+    "default": 8
+  }
+]

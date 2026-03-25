@@ -1,0 +1,50 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Labware Selection for Pool",
+    "name": "labware_pool",
+    "options": [
+      { "label": "Opentrons 24 Tube Rack with 1.5 mL Eppendorf Tubes", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Bead Pellet Drying Time (minutes)",
+    "name": "dry_time",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Bead Pellet Well Bottom Clearance (millimeters)",
+    "name": "bead_pellet_clearance",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Magnetic Module Engage Time (minutes)",
+    "name": "engage_time",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware Selection for Pre-PCR Plate",
+    "name": "labware_pre_pcr_plate",
+    "options": [
+      { "label": "NEST 100 ul PCR Plate Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware Selection for Reagents (Tube Strip or Plate)",
+    "name": "labware_tube_strip_or_plate",
+    "options": [
+      { "label": "Opentrons 96-Well Aluminum Block and Generic 200 ul Tube Strip", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Sample Count (1-96)",
+    "name": "sample_count",
+    "default": 96
+  }
+]

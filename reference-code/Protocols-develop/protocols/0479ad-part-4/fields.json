@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (8-48)",
+    "name": "sample_count",
+    "default": 48
+  },
+  {
+    "type": "dropDown",
+    "label": "cDNA Plate Labware on Temperature Module in Slot 1",
+    "name": "labware_tempmod",
+    "options": [
+      { "label": "thermofisher_96_well_pcrplate_200_aluminumblock", "value": "thermofisher_96_well_pcrplate_200_aluminumblock" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for Reagent Plate on Temperature Module in Slot 4",
+    "name": "labware_tempmod2",
+    "options": [
+      { "label": "opentrons_96_aluminumblock_nest_wellplate_100ul", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware on Magnetic Module",
+    "name": "labware_magneticmodule",
+    "options": [
+      { "label": "empty", "value": null }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Reagent Plate Dead Volume (uL)",
+    "name": "deadvol_plate",
+    "default": 5
+  }
+]

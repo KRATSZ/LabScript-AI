@@ -1,0 +1,47 @@
+[
+  {
+      "type": "int",
+      "label": "Number of Samples",
+      "name": "num_samples",
+      "default": 24
+  },
+  {
+    "type": "int",
+    "label": "Starting Volume",
+    "name": "starting_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Elution Volume",
+    "name": "elution_vol",
+    "default": 50
+  },
+  {
+    "type": "dropDown",
+    "label": "Park Tips?",
+    "name": "park_tips",
+    "options": [
+      { "label": "Yes, park tips", "value": true },
+      { "label": "No, do not park tips", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Mag Deck Generation",
+    "name": "mag_gen",
+    "options": [
+      { "label": "GEN1", "value": "magdeck" },
+      { "label": "GEN2", "value": "magnetic module gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi Mount",
+    "name": "m300_mount",
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Right", "value": "right" }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "mnt",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Transfer Volume (µL)",
+    "name": "vol",
+    "default": 200
+  },
+  {
+    "type": "int",
+    "label": "Number of Columns to Fill (1-8)",
+    "name": "cols",
+    "default": 8
+  }
+]

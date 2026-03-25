@@ -1,0 +1,25 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Input Samples (in multiples of 8, 48-96)",
+    "name": "sample_count",
+    "options": [
+      { "label": "Input Samples Filling All 12 Columns", "value": 96 },
+      { "label": "Input Samples Filling 11 Columns", "value": 88 },
+      { "label": "Input Samples Filling 10 Columns", "value": 80 },
+      { "label": "Input Samples Filling 9 Columns", "value": 72 },
+      { "label": "Input Samples Filling 8 Columns", "value": 64 },
+      { "label": "Input Samples Filling 7 Columns", "value": 56 },
+      { "label": "Input Samples Filling 6 Columns", "value": 48 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for 96-well Magnetic Module Plate ",
+    "name": "labware_plates",
+    "options": [
+      { "label": "vwr_96well_pcr_plate_200ul", "value": "vwr_96well_pcr_plate_200ul" },
+      { "label": "sarstedt_96well_pcr_plate_200ul", "value": "sarstedt_96well_pcr_plate_200ul" }
+    ]
+  }
+]

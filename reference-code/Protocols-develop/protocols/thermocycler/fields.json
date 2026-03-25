@@ -1,0 +1,95 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Thermocycler Generation",
+    "name": "type_tc",
+    "options": [
+      { "label": "GEN1", "value": "thermocycler" },
+      { "label": "GEN2", "value": "thermocyclerModuleV2" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Sample Volume per Well",
+    "name": "well_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Lid Temperature (°C)",
+    "name": "lid_temp",
+    "default": 110
+  },
+  {
+    "type": "int",
+    "label": "Initialization Temperature (°C)",
+    "name": "init_temp",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "Initialization Time",
+    "name": "init_time",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Denaturation Temperature (°C)",
+    "name": "d_temp",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "Denaturation Time",
+    "name": "d_time",
+    "default": 15
+  },
+  {
+    "type": "int",
+    "label": "Annealation Temperature (°C)",
+    "name": "a_temp",
+    "default": 60
+  },
+  {
+    "type": "int",
+    "label": "Annealation Time",
+    "name": "a_time",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Elongation Temperature (°C)",
+    "name": "e_temp",
+    "default": 74
+  },
+  {
+    "type": "int",
+    "label": "Elongation Time",
+    "name": "e_time",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Number of Cycles",
+    "name": "no_cycles",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Final Elongation Temperature (°C)",
+    "name": "fe_temp",
+    "default": 74
+  },
+  {
+    "type": "int",
+    "label": "Final Elongation Time",
+    "name": "fe_time",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "Final Hold Temperature (°C)",
+    "name": "final_temp",
+    "default": 4
+  }
+]

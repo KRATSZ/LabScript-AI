@@ -1,0 +1,38 @@
+[
+    {
+      "type": "dropDown",
+      "label": "P300 multi-channel GEN2 mount",
+      "name": "m300_mount",
+      "options": [
+        { "label": "left", "value": "left" },
+        { "label": "right", "value": "right" }
+      ]
+    },
+    {
+      "type": "str",
+      "label": "deepwell plate loadname",
+      "name": "deep_name",
+      "default": "nest_96_wellplate_2ml_deep"
+    },
+    {
+      "type": "dropDown",
+      "label": "elution buffer plate type",
+      "name": "plate_name",
+      "options": [
+        { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+        { "label": "Eppendorf Twin.tec 96 Well Plate 150 µL", "value": "eppendorftwintec_96_wellplate_150ul" }
+      ]
+    },
+    {
+      "type": "int",
+      "label": "starting column (1-12)",
+      "name": "start_column",
+      "default": 1
+    },
+    {
+      "type": "int",
+      "label": "end column (1-12)",
+      "name": "end_column",
+      "default": 12
+    }
+  ]

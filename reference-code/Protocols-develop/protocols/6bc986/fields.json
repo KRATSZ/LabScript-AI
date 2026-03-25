@@ -1,0 +1,20 @@
+[
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Aspiration (mm)",
+    "name": "clearance_aspirate",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Dispense (mm)",
+    "name": "clearance_dispense",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Sample Count (1-96)",
+    "name": "sample_count",
+    "default": 96
+  }
+]

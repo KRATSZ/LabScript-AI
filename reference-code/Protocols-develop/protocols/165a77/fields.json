@@ -1,0 +1,62 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Patient Sample Plates",
+    "name": "plate_count",
+    "options": [
+      { "label": "Three Patient Sample Plates", "value": 3 },
+      { "label": "Two Patient Sample Plates", "value": 2 },
+      { "label": "One Patient Sample Plate", "value": 1 }
+    ]
+  },
+  {
+    "type": "str",
+    "label": "(Comma-Separated String) Count of Filled Columns for Each Patient Sample Plate",
+    "name": "samp_col_counts",
+    "default": "12,12,12"
+  },
+  {
+    "type": "dropDown",
+    "label": "Choose your labware (384-well plate)",
+    "name": "labware_384_well_plate",
+    "options": [
+      { "label": "Thermo Applied Biosystems 384 well plate (4310286)", "value": "appliedbiosystems_384_wellplate_40ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choose your labware (Patient Sample plate)",
+    "name": "labware_patient_samples",
+    "options": [
+      { "label": "Thermo KingFisher 200 ul 96 well plate (97002540)", "value": "kingfisher_96_wellplate_200ul" },
+      { "label": "Nunc 1 mL plate", "value": "nunc_96_wellplate_1000ul" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Patient Sample Volume",
+    "name": "patient_sample_vol",
+    "default": 3
+  },
+  {
+    "type": "float",
+    "label": "Pipette Disposal Volume",
+    "name": "disposal_vol",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Patient Sample Count (up to 96)",
+    "name": "patient_sample_count",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Are No-Template Control Primers Included?",
+    "name": "include_ntc",
+    "options": [
+      { "label": "NTC Primers Not Included", "value": false },
+      { "label": "Yes NTC Primers are Included", "value": true }
+    ]
+  }
+]

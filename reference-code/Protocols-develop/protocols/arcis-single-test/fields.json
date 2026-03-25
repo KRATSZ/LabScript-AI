@@ -1,0 +1,20 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P50 Single Mount",
+    "name": "p50_mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single Mount",
+    "name": "p300_mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  }
+]

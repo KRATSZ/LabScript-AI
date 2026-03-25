@@ -1,0 +1,8 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer .csv input file",
+    "name": "csv_input",
+    "default": "plate1,DNA,TE buffer,\nA1,1.0,39.0"
+  }
+]

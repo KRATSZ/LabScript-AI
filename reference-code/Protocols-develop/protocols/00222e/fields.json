@@ -1,0 +1,32 @@
+[
+    {
+    "type": "dropDown",
+    "label": "Serial Dilution?",
+    "name": "serial_boolean",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+     ]
+     },
+  {
+    "type": "float",
+    "label": "Starting Diluent Volume",
+    "name": "starting_diluent_vol",
+    "default": 15
+  },
+  {
+    "type": "float",
+    "label": "Starting Plasma Volume",
+    "name": "starting_plasma_vol",
+    "default": 15
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

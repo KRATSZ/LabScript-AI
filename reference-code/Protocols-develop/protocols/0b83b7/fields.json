@@ -1,0 +1,21 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 16
+  },
+  {
+    "type": "int",
+    "label": "sample starting column (1-12)",
+    "name": "col_start",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "volume of beads (in ul)",
+    "name": "vol_beads",
+    "default": 66.0
+  }
+
+]

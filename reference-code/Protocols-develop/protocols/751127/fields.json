@@ -1,0 +1,8 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer .csv File",
+    "name": "transfer_csv",
+    "default": ",x,y,z,transfer volume\nsource A,120,100,20,n/a\nsource B,120,150,20,n/a\ndestination 1,20,20,20,10\ndestination 2,20,40,20,10\ndestination 3,20,60,20,10\ndestination 4,20,80,20,10\ndestination 5,20,100,20,10\ndestination 6,40,120,20,10\ndestination 7,40,140,20,10\ndestination 8,40,160,20,10\ndestination 9,40,180,20,10\ndestination 10,40,200,20,10"
+  }
+]

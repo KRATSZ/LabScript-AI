@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Plates (1-4)",
+    "name": "num_plates",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Aspiration/Dispense Speed (µL/sec)",
+    "name": "asp_speed",
+    "default": 40
+  },
+  {
+    "type": "float",
+    "label": "Aspiration Height (from bottom in mm)",
+    "name": "asp_height",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Dispense Height (from bottom in mm)",
+    "name": "disp_height",
+    "default": 1.5
+  }
+]

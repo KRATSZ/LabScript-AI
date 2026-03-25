@@ -1,0 +1,87 @@
+[
+    {
+      "type": "int",
+      "label": "Number of Samples",
+      "name": "_num_samps",
+      "default": 16
+    },
+    {
+      "type": "dropDown",
+      "label": "Wellplate type",
+      "name": "lw_deepwell_plate",
+      "options": [
+        { "label": "NEST 96 Deep Well Plate 2mL", "value": "nest_96_wellplate_2ml_deep" },
+        { "label": "Thermo Scientific Nunc 96 Well Plate 2000 uL", "value": "thermoscientificnunc_96_wellplate_2000ul" },
+        { "label": "USA Scientific 96 Deep Well Plate 2.4 mL", "value": "usascientific_96_wellplate_2.4ml_deep" }
+      ]
+    },
+    {
+      "type": "str",
+      "label": "Wellplate type (if not listed in dropdown above)",
+      "name": "lw_deepwell_plate_open",
+      "default": ""
+    },
+    {
+      "type": "dropDown",
+      "label": "Pipette Mount",
+      "name": "_m300_mount",
+      "options": [
+        { "label": "Right", "value": "right" },
+        { "label": "Left", "value": "left" }
+      ]
+    },
+    {
+      "type": "float",
+      "label": "XP1 buffer volume (in ul)",
+      "name": "vol_xp1",
+      "default": 320.0
+    },
+    {
+      "type": "float",
+      "label": "XP1/Mag-Bind removal volume (in ul)",
+      "name": "vol_removal",
+      "default": 700.0
+    },
+    {
+      "type": "float",
+      "label": "MagDeck Incubation (minutes)",
+      "name": "_mag_time",
+      "default": 5.0
+    },
+    {
+      "type": "int",
+      "label": "Air Dry Time (minutes)",
+      "name": "_air_dry",
+      "default": 10
+    },
+    {
+      "type": "int",
+      "label": "Elution Volume (in µL)",
+      "name": "_elution_vol",
+      "default": 100
+    },
+    {
+      "type": "float",
+      "label": "wash flow rates (in ul/second)",
+      "name": "flow_rate_wash",
+      "default": 150
+    },  
+    {
+      "type": "dropDown",
+      "label": "Perform Resuspension Off-Deck",
+      "name": "_off_deck",
+      "options": [
+        { "label": "No", "value": 0 },
+        { "label": "Yes", "value": 1 }
+      ]
+    },
+    {
+      "type": "dropDown",
+      "label": "Play Custom Music at Pause",
+      "name": "_music",
+      "options": [
+        { "label": "No", "value": 0 },
+        { "label": "Yes", "value": 1 }
+      ]
+    }
+  ]

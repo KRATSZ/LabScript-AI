@@ -1,0 +1,23 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Plates (1-6)",
+    "name": "num_plates",
+    "default": 7
+  },
+  {
+    "type": "float",
+    "label": "transfer volume (100-1000, in µl)",
+    "name": "transfer_vol",
+    "default": 925.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 single-channel (GEN2) pipette mount",
+    "name": "p1000_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

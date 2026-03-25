@@ -1,0 +1,72 @@
+[
+
+  {
+    "type": "textFile",
+    "label": ".csv File",
+    "name": "csv",
+    "default": "Well,Confluency\nA1,95"
+  },
+  {
+    "type": "int",
+    "label": "Temperature module temperature (C)",
+    "name": "temp_mod_temp",
+    "default": 37
+  },
+  {
+    "type": "float",
+    "label": "First step aspiration rate (moving to waste)",
+    "name": "asp_rate_step1",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "PBS Dispense Flow Rate",
+    "name": "pbs_dispense_rate",
+    "default": 1.0
+  },
+  {
+    "type": "int",
+    "label": "Incubation Time (minutes)",
+    "name": "incubation_time",
+    "default": 15
+  },
+  {
+    "type": "int",
+    "label": "Media Aspirate X (ul)",
+    "name": "first_media_x",
+    "default": 160
+  },
+  {
+    "type": "int",
+    "label": "Media Dispense Y (ul)",
+    "name": "second_media_y",
+    "default": 130
+  },
+  {
+    "type": "dropDown",
+    "label": "Track tips?",
+    "name": "track_tips",
+    "options": [
+      {"label": "Yes", "value": true},
+      {"label": "False", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "type": "textFile",
+    "label": "PCR setup CSV",
+    "name": "csv_input",
+    "default": "Reagent,Source Slot,Source Well,Target Slot,Target Well,Volume\nWater,2,A1,9,A1,10\nPrimer 1,2,A2,9,A1,5\nPCR Mix,2,A3,9,A1,10\nDNA 1,2,A4,9,A1,1"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "type": "dropDown",
+    "label": "sample type",
+    "name": "sample_type",
+    "options": [
+      {"label": "nasopharyngeal (5µl sample, 5µl mix)", "value": "nasopharyngeal"},
+      {"label": "saliva (10µl sample, 10µl mix)", "value": "saliva"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples (1-94)",
+    "name": "num_samples",
+    "default": 94
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 single-channel GEN1 mount",
+    "name": "p10_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 multi-channel GEN2 mount",
+    "name": "m10_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "track tips across protocol runs",
+    "name": "tip_track",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (8-48)",
+    "name": "count_samples",
+    "default": 8
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Reservoir (mm)",
+    "name": "clearance_reservoir",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for Deep Well Plate (mm)",
+    "name": "clearance_striptubes",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "Engage Time for Magnetic Module (minutes)",
+    "name": "time_engage",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Dry Time for Bead Pellet (minutes)",
+    "name": "time_dry",
+    "default": 15
+  },
+  {
+    "type": "int",
+    "label": "Inaccessible Volume in Bottom of the Reservoir (uL)",
+    "name": "vol_deadreservoir",
+    "default": 2000
+  },
+  {
+    "type": "int",
+    "label": "Inaccessible Volume in Bottom of Deep Well (uL)",
+    "name": "vol_deaddeepwell",
+    "default": 25
+  },
+  {
+    "type": "float",
+    "label": "Fraction of Tip Length Immersed (when aspirating or dispensing at liquid surface)",
+    "name": "tip_immersion",
+    "default": 0.1
+  },
+  {
+    "type": "float",
+    "label": "Magnitude of Move to Target or Avoid Bead Pellet (mm)",
+    "name": "x_offset_bead_pellet",
+    "default": 1.5
+  }
+]

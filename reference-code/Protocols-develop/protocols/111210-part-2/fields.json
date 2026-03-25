@@ -1,0 +1,17 @@
+[
+    {
+        "type": "float",
+        "label": "Number of Samples",
+        "name": "samples",
+        "default": 12
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 Single GEN2 Pipette Mount Position",
+        "name": "p20_mount",
+        "options": [
+          { "label": "Left", "value": "left" },
+          { "label": "Right", "value": "right" }
+        ]
+    }
+]

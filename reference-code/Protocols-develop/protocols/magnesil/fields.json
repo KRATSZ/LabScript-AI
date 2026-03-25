@@ -1,0 +1,73 @@
+[
+  {
+      "type": "int",
+      "label": "Number of Samples",
+      "name": "num_samps",
+      "default": 8
+    },
+    {
+    "type": "dropDown",
+    "label": "Pipette Model",
+    "name": "pip_model",
+    "options": [
+      {"label": "GEN2 P300 Multi", "value": "p300_multi_gen2"},
+      {"label": "GEN1 P300 Multi", "value": "p300_multi"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pip_mount",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Filter Tips?",
+    "name": "filter_tip",
+    "options": [
+      {"label": "Yes, Opentrons 200µL Filter Tips", "value": 1},
+      {"label": "No, Opentrons 300µL Standard Tips", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Magnetic Module Model",
+    "name": "mag_model",
+    "options": [
+      {"label": "GEN2 Mag Module", "value": "magnetic module gen2"},
+      {"label": "GEN1 Mag Module", "value": "magdeck"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Sample Plate Type",
+    "name": "mp_type",
+    "options": [
+      {"label": "NEST 96-Deepwell, 2mL", "value": "nest_96_wellplate_2ml_deep"},
+      {"label": "USA Scientific 96-Deepwell, 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reservoir Type",
+    "name": "res_type",
+    "options": [
+      {"label": "NEST 12-Well, 15mL", "value": "nest_12_reservoir_15ml"},
+      {"label": "USA Scientific 12-Well, 22mL", "value": "usascientific_12_reservoir_22ml"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Elution Plate Type",
+    "name": "ep_type",
+    "options": [
+      {"label": "NEST 96-Well PCR, 100µL", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "Bio-Rad 96-Well PCR, 200µL", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "NEST 96-Well Flat, 200µL", "value": "nest_96_wellplate_200ul_flat"},
+      {"label": "Corning 96-Well Flat, 360µL", "value": "corning_96_wellplate_360ul_flat"}
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+[
+    {
+        "type": "int",
+        "label": "Sample Number",
+        "name": "samples",
+        "default": 384
+    }
+]

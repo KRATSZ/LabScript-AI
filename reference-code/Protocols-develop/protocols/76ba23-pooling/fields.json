@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Minutes to Air Dry Beads",
+    "name": "dry_time",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of PCR2 Plates to Pool (One or Two)",
+    "name": "plate_count",
+    "options": [
+      { "label": "Two Plates (192 samples)", "value": 2 },
+      { "label": "One Plate (96 samples)", "value": 1 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choose Filtered or Standard Tips for P300 single",
+    "name": "tip_rack_300",
+    "options": [
+      { "label": "Filtered Tips", "value": "opentrons_96_filtertiprack_200ul" },
+      { "label": "Standard Tips", "value": "opentrons_96_tiprack_300ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Choose Filtered or Standard Tips for P10 single",
+    "name": "tip_rack_10",
+    "options": [
+      { "label": "Filtered Tips", "value": "opentrons_96_filtertiprack_10ul" },
+      { "label": "Standard Tips", "value": "opentrons_96_tiprack_10ul" }
+    ]
+  }
+]

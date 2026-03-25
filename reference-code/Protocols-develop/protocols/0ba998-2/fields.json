@@ -1,0 +1,9 @@
+[
+    {
+        "type": "int",
+        "label": "number of samples (1-96)",
+        "name": "num_samples",
+        "default": 96
+    }
+]
+  

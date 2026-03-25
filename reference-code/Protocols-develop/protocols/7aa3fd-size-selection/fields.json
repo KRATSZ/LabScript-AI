@@ -1,0 +1,47 @@
+[
+  {
+    "type": "dropDown",
+    "label": "number of samples",
+    "name": "num_samples",
+    "options": [
+      { "label": "24", "value": "24" },
+      { "label": "12", "value": "12" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "bead mix volume (uL)",
+    "name": "bead_mix_vol",
+    "default": 150
+  },
+  {
+    "type": "float",
+    "label": "bead mix speed (uL/s)",
+    "name": "bead_mix_speed",
+    "default": 300
+  },
+  {
+    "type": "int",
+    "label": "bead mix repetitions",
+    "name": "bead_mix_reps",
+    "default": 10
+  },
+  {
+    "type": "dropDown",
+    "label": "P10-single mount",
+    "name": "p10_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-single mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

@@ -1,0 +1,51 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Well Plate",
+    "name": "well_plate",
+    "options": [
+       { "label": "Bio-RAD 96 Well Plate 200ul PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+       { "label": "Corning 96 Well Plate 360ul Flat", "value": "corning_96_wellplate_360ul_flat" },
+       { "label": "NEST 96 Well Plate 100ul PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+       { "label": "NEST 96 Well Plate 200ul Flat", "value": "nest_96_wellplate_200ul_flat" },
+       { "label": "NEST 96 Well Plate 2mL Deep", "value": "nest_96_wellplate_2ml_deep" },
+       { "label": "USA Scientific 96 Well Plate 2.4 mL Deep", "value": "usascientific_96_wellplate_2.4ml_deep" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette",
+    "name": "pipette",
+    "options": [
+       { "label": "P20 Single GEN2", "value": "p20_single_gen2" },
+       { "label": "P300 Single GEN2", "value": "p300_single_gen2" },
+       { "label": "P1000 Single GEN2", "value": "p1000_single_gen2" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Tips",
+    "name": "tips",
+    "options": [
+       { "label": "GEB 1000ul", "value": "geb_96_tiprack_1000ul" },
+       { "label": "GEB 10ul", "value": "geb_96_tiprack_10ul" },
+       { "label": "Opentrons Filter tips 1000ul", "value": "opentrons_96_filtertiprack_1000ul" },
+       { "label": "Opentrons Filter tips 10ul", "value": "opentrons_96_filtertiprack_10ul" },
+       { "label": "Opentrons Filter tips 200ul", "value": "opentrons_96_filtertiprack_200ul" },
+       { "label": "Opentrons Filter tips 20ul", "value": "opentrons_96_filtertiprack_20ul" },
+       { "label": "Opentrons tips 1000ul", "value": "opentrons_96_tiprack_1000ul" },
+       { "label": "Opentrons tips 10ul", "value": "opentrons_96_tiprack_10ul" },
+       { "label": "Opentrons tips 20ul", "value": "opentrons_96_tiprack_20ul" },
+       { "label": "Opentrons tips 300ul", "value": "opentrons_96_tiprack_300ul" }
+     ]
+   },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipette_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "num_samp",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Delay After Aspiration (seconds)",
+    "name": "delay_after_asp",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Aspiration Speed",
+    "name": "asp_rate",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Dispense Speed",
+    "name": "disp_rate",
+    "default": 1.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single GEN2 Mount",
+    "name": "p1000_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

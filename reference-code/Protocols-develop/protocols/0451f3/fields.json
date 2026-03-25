@@ -1,0 +1,56 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "deepwell plate type",
+    "name": "lw_deepwell_plate",
+    "options": [
+      { "label": "Eppendorf 1ml #951032603", "value": "eppendorf_96_wellplate_1000ul" },
+      { "label": "NEST 2ml #999-00103", "value": "nest_96_wellplate_2ml_deep" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "mixing repetitions for resuspension",
+    "name": "mixreps",
+    "default": 20
+  },
+  {
+    "type": "float",
+    "label": "bead settling time (in  minutes)",
+    "name": "time_settling_minutes",
+    "default": 2.0
+  },
+  {
+    "type": "float",
+    "label": "airdry time before elution (in minutes)",
+    "name": "time_airdry_minutes",
+    "default": 15.0
+  },
+  {
+    "type": "float",
+    "label": "volume of final elution (in ul)",
+    "name": "vol_final_elution",
+    "default": 35.0
+  },
+  {
+    "type": "float",
+    "label": "Engage Height Magnetic Module",
+    "name": "engage_height",
+    "default": 4.9
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 8-channel GEN2 pipette mount",
+    "name": "mount_m300",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

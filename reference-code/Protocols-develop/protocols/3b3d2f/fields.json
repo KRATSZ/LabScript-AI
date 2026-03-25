@@ -1,0 +1,49 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of ddPCR Plates to Load (1-4)",
+    "name": "plate_count",
+    "options": [
+      { "label": "Load 1 ddPCR Plate", "value": 1 },
+      { "label": "Load 2 ddPCR Plates", "value": 2 },
+      { "label": "Load 3 ddPCR Plates", "value": 3 },
+      { "label": "Load 4 ddPCR Plates", "value": 4 }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for ddPCR Plate (mm)",
+    "name": "clearance_ddpcr_plate",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "Default Well Bottom Clearance for Water Tube (mm)",
+    "name": "clearance_water",
+    "default": 8
+  },
+  {
+    "type": "textFile",
+    "label": "Plate Map for 1st ddPCR Plate (Upload CSV-formatted Excel File)",
+    "name": "plate_map_1_csv",
+    "default": ",,,,,,,Phi6 Plate without Recovery Efficiency test Samples,,,,,\n,1,2,3,4,5,6,7,8,9,10,11,12\nA,Sample1,Sample3,Sample6,Sample9,Sample11,Ext.Control,,,,,,\nB,Sample1,Sample4,Sample6,Sample9,Neg.Control1,Ext.Control,,,,,,\nC,Sample1,Sample4,Sample7,Sample9,Neg.Control1,NTC,,,,,,\nD,Sample2,Sample4,Sample7,Sample10,Neg.Control1,NTC,,,,,,\nE,Sample2,Sample5,Sample7,Sample10,Neg.Control2,NTC,,,,,,\nF,Sample2,Sample5,Sample8,Sample10,Neg.Control2,CoV2+Control,,,,,,\nG,Sample3,Sample5,Sample8,Sample11,Neg.Control2,CoV2+Control,,,,,,\nH,Sample3,Sample6,Sample8,Sample11,Ext.Control,CoV2+Control,,,,,,\n"
+  },
+  {
+    "type": "textFile",
+    "label": "Plate Map for 2nd ddPCR Plate (Upload CSV-formatted Excel File)",
+    "name": "plate_map_2_csv",
+    "default": ",,,,,,,N1N2 plate,,,,,\n,1,2,3,4,5,6,7,8,9,10,11,12\nA,Sample1,Sample3,Sample6,Sample9,Sample11,Sample14,Sample17,Sample19,Sample22,Sample25,Sample27,Ext.Control\nB,Sample1,Sample4,Sample6,Sample9,Sample12,Sample14,Sample17,Sample20,Sample22,Sample25,Neg.Control1,Ext.Control\nC,Sample1,Sample4,Sample7,Sample9,Sample12,Sample15,Sample17,Sample20,Sample23,Sample25,Neg.Control1,NTC\nD,Sample2,Sample4,Sample7,Sample10,Sample12,Sample15,Sample18,Sample20,Sample23,Sample26,Neg.Control1,NTC\nE,Sample2,Sample5,Sample7,Sample10,Sample13,Sample15,Sample18,Sample21,Sample23,Sample26,Neg.Control2,NTC\nF,Sample2,Sample5,Sample8,Sample10,Sample13,Sample16,Sample18,Sample21,Sample24,Sample26,Neg.Control2,CoV2+Control\nG,Sample3,Sample5,Sample8,Sample11,Sample13,Sample16,Sample19,Sample21,Sample24,Sample27,Neg.Control2,CoV2+Control\nH,Sample3,Sample6,Sample8,Sample11,Sample14,Sample16,Sample19,Sample22,Sample24,Sample27,Ext.Control,CoV2+Control\n"
+  },
+  {
+    "type": "textFile",
+    "label": "Plate Map for 3rd ddPCR Plate (Upload CSV-formatted Excel File)",
+    "name": "plate_map_3_csv",
+    "default": ",,,,,,,N1N2 plate,,,,,\n,1,2,3,4,5,6,7,8,9,10,11,12\nA,Sample1,Sample3,Sample6,Sample9,Sample11,Sample14,Sample17,Sample19,Sample22,Sample25,Sample27,Ext.Control\nB,Sample1,Sample4,Sample6,Sample9,Sample12,Sample14,Sample17,Sample20,Sample22,Sample25,Neg.Control1,Ext.Control\nC,Sample1,Sample4,Sample7,Sample9,Sample12,Sample15,Sample17,Sample20,Sample23,Sample25,Neg.Control1,NTC\nD,Sample2,Sample4,Sample7,Sample10,Sample12,Sample15,Sample18,Sample20,Sample23,Sample26,Neg.Control1,NTC\nE,Sample2,Sample5,Sample7,Sample10,Sample13,Sample15,Sample18,Sample21,Sample23,Sample26,Neg.Control2,NTC\nF,Sample2,Sample5,Sample8,Sample10,Sample13,Sample16,Sample18,Sample21,Sample24,Sample26,Neg.Control2,CoV2+Control\nG,Sample3,Sample5,Sample8,Sample11,Sample13,Sample16,Sample19,Sample21,Sample24,Sample27,Neg.Control2,CoV2+Control\nH,Sample3,Sample6,Sample8,Sample11,Sample14,Sample16,Sample19,Sample22,Sample24,Sample27,Ext.Control,CoV2+Control\n"
+  },
+  {
+    "type": "textFile",
+    "label": "Plate Map for 4th ddPCR Plate (Upload CSV-formatted Excel File)",
+    "name": "plate_map_4_csv",
+    "default": ",,,,,,,N1N2 plate,,,,,\n,1,2,3,4,5,6,7,8,9,10,11,12\nA,Sample1,Sample3,Sample6,Sample9,Sample11,Sample14,Sample17,Sample19,Sample22,Sample25,Sample27,Ext.Control\nB,Sample1,Sample4,Sample6,Sample9,Sample12,Sample14,Sample17,Sample20,Sample22,Sample25,Neg.Control1,Ext.Control\nC,Sample1,Sample4,Sample7,Sample9,Sample12,Sample15,Sample17,Sample20,Sample23,Sample25,Neg.Control1,NTC\nD,Sample2,Sample4,Sample7,Sample10,Sample12,Sample15,Sample18,Sample20,Sample23,Sample26,Neg.Control1,NTC\nE,Sample2,Sample5,Sample7,Sample10,Sample13,Sample15,Sample18,Sample21,Sample23,Sample26,Neg.Control2,NTC\nF,Sample2,Sample5,Sample8,Sample10,Sample13,Sample16,Sample18,Sample21,Sample24,Sample26,Neg.Control2,CoV2+Control\nG,Sample3,Sample5,Sample8,Sample11,Sample13,Sample16,Sample19,Sample21,Sample24,Sample27,Neg.Control2,CoV2+Control\nH,Sample3,Sample6,Sample8,Sample11,Sample14,Sample16,Sample19,Sample22,Sample24,Sample27,Ext.Control,CoV2+Control\n"
+  }
+]

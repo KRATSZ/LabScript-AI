@@ -1,0 +1,58 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Plate Type",
+    "name": "plate_type",
+    "options": [
+      {"label": "NEST 96-Well, 100µL PCR w/aluminum block", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul"},
+      {"label": "NEST 96-Well, 100µL PCR", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "Bio-Rad 96-Well, 200µL PCR", "value": "biorad_96_wellplate_200ul_pcr"},
+      { "label": "Bio-Rad 96-Well, 200µL PCR w/aluminum block", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Temperature Module",
+    "name": "temp_mod_on",
+    "options": [
+       { "label": "Yes", "value": 1 },
+       { "label": "NO", "value": 0 }
+     ]
+  },
+  {
+    "type": "float",
+    "label": "dilution factor",
+    "name": "dilution_factor",
+    "default": 1.5
+  },
+  {
+    "type": "int",
+    "label": "number of dilutions",
+    "name": "num_of_dilutions",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "total mixing volume (in uL)",
+    "name": "total_mixing_volume",
+    "default": 150
+  },
+  {
+    "type": "dropDown",
+    "label": "Blank in Well Plate",
+    "name": "blank_on",
+    "options": [
+       { "label": "Yes", "value": 1 },
+       { "label": "No", "value": 0 }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "tip use strategy",
+    "name": "tip_use_strategy",
+    "options": [
+      { "label": "change tips", "value": "always" },
+      { "label": "use one tip", "value": "never" }
+    ]
+  }
+]

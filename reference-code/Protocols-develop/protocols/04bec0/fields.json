@@ -1,0 +1,27 @@
+[
+    {
+        "type": "textFile",
+        "label": "input .csv file",
+        "name": "input_csv",
+        "default": ",1,2,3,4,5,6,7,8\nA,0,0,0,0,0,0,0,0\nB,0,0,0,0,0,0,0,0\nC,80,60.72,82.79,207.23,370.24,265.78,270.34,342.88\nD,70,56.65,99.74,249.64,340.56,285.08,294,366.09\nE,117.17,162.28,88.7,135.69,322.46,321,285.73,375.51\nF,130.01,172.35,93.48,136.36,326.26,285.79,316.29,344.37"
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 GEN2 single-channel mount",
+        "name": "mount_p300",
+        "options": [
+            {"label": "left", "value": "left"},
+            {"label": "right", "value": "right"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P1000 GEN2 single-channel mount",
+        "name": "mount_p1000",
+        "options": [
+            {"label": "right", "value": "right"},
+            {"label": "left", "value": "left"}
+        ]
+    }  
+]
+  

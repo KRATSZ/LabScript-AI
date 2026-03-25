@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Count (up to 96)",
+    "name": "sample_count",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance (avoiding bead pellet step 4 and 6 aspiration) (0-4 mm)",
+    "name": "clearance_bead_pellet",
+    "default": 2
+  },
+  {
+    "type": "float",
+    "label": "(0-2.5) Millimeters to Move to Side (avoiding bead pellet step 4 and 6 aspiration) (0-2.5)",
+    "name": "x_offset_bead_pellet",
+    "default": 1.5
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance (targeting bead pellet step 8) (0-4 mm)",
+    "name": "clearance_elution",
+    "default": 0.5
+  },
+  {
+    "type": "float",
+    "label": "(0-2.5) Millimeters to Move to Side (targeting bead pellet step 8)",
+    "name": "x_offset_elution",
+    "default": 1.5
+  },
+  {
+    "type": "int",
+    "label": "Flow Rates When Suspending Bead Pellet (step 8)",
+    "name": "flow_rate_elution",
+    "default": 30
+  }
+]

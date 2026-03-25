@@ -1,0 +1,73 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ]
+    ],
+    "brand": {
+        "brand": "Cepheid",
+        "brandId": [
+            "Cepheid"
+        ]
+    },
+    "metadata": {
+        "displayName": "Cepheid",
+        "displayCategory": "wellPlate",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.75,
+        "yDimension": 85.5,
+        "zDimension": 60
+    },
+    "wells": {
+        "A1": {
+            "depth": 20,
+            "totalLiquidVolume": 1000,
+            "shape": "circular",
+            "diameter": 10,
+            "x": 45,
+            "y": 30.5,
+            "z": 40
+        },
+        "A2": {
+            "depth": 20,
+            "totalLiquidVolume": 1000,
+            "shape": "circular",
+            "diameter": 10,
+            "x": 100,
+            "y": 30.5,
+            "z": 40
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1",
+                "A2"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "cepheid"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

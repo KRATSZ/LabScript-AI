@@ -1,0 +1,24 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of mastermix",
+    "name": "NUM_MASTERMIX",
+    "options": [
+      {"label": "1", "value": 1},
+      {"label": "2", "value": 2},
+      {"label": "3", "value": 3},
+      {"label": "4", "value": 4},
+      {"label": "6", "value": 6},
+      {"label": "12", "value": 12}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

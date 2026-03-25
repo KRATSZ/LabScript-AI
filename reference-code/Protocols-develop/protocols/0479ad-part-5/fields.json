@@ -1,0 +1,82 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (8-48)",
+    "name": "sample_count",
+    "default": 48
+  },
+  {
+    "type": "dropDown",
+    "label": "Output Plate Labware on Temperature Module in Slot 1",
+    "name": "labware_tempmod",
+    "options": [
+      { "label": "thermofisher_96_well_pcrplate_200_aluminumblock", "value": "thermofisher_96_well_pcrplate_200_aluminumblock" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware on Temperature Module in Slot 4",
+    "name": "labware_tempmod2",
+    "options": [
+      { "label": "empty", "value": null }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware on Magnetic Module",
+    "name": "labware_magneticmodule",
+    "options": [
+      { "label": "thermofisher_96_well_pcrplate_semiskirted_200_plastic_adapter", "value": "thermofisher_96_well_pcrplate_semiskirted_200_plastic_adapter" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the Reservoir",
+    "name": "labware_reservoir",
+    "options": [
+      { "label": "usascientific_12_reservoir_22ml", "value": "usascientific_12_reservoir_22ml" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Reservoir Dead Volume (uL)",
+    "name": "deadvol_reservoir",
+    "default": 2000
+  },
+  {
+    "type": "float",
+    "label": "Reservoir Well Bottom Clearance (mm)",
+    "name": "clearance_reservoir",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Bead Pellet Resuspension Dispense Height (mm)",
+    "name": "clearance_beadresuspension",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Air Dry Time for Bead Pellet (minutes)",
+    "name": "time_dry",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Magnet Engage Time (minutes)",
+    "name": "time_engage",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Magnet Engage Height from Base (mm)",
+    "name": "height_engage",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "Size of Sideways Move Used to Avoid or Target Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  }
+]

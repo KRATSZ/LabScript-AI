@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Columns in 384 Well Plate (max 24)",
+    "name": "num_384_cols",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "P20 Starting Tip Column (1-12)",
+    "name": "starting_tip_col_20",
+    "default": 1
+  },
+  {
+    "type": "int",
+    "label": "P300 Starting Tip Column (1-12)",
+    "name": "starting_tip_col_300",
+    "default": 12
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi GEN2 mount",
+    "name": "m20_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "textFile",
+    "label": "Transfer .csv File",
+    "name": "file_input",
+    "default": "Vial,Volume from Vial to 96 Well Plate,Volume from 96 to 384 Well Plate\nA1,150,5\nB1,151,5\nC1,152,5\nD1,153,5\nA2,154,5\nB2,155,5\nC2,156,5\nD2,157,5\nA3,158,5\nB3,159,5\nC3,160,5\nD3,161,5"
+  }
+]

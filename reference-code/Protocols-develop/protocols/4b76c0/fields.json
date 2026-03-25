@@ -1,0 +1,17 @@
+[
+  {
+    "type": "textFile",
+    "label": "Volumes CSV",
+    "name": "volumes_csv",
+    "default": "1,2,3"
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 Multi Mount",
+    "name": "p10mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  }
+]

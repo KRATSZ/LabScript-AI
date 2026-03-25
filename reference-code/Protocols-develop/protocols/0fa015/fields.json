@@ -1,0 +1,26 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "piptype",
+    "options": [
+      {"label": "P20 Multi", "value": "p20_multi_gen2 opentrons_96_tiprack_20ul"},
+      {"label": "P300 Multi", "value": "p300_multi_gen2 opentrons_96_tiprack_300ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipmnt",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Plates (1-9)",
+    "name": "num_plates",
+    "default": 1
+  }
+]

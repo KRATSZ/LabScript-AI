@@ -1,0 +1,63 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "numSamps",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Sample Plate (input) Type",
+    "name": "sampPlate",
+    "options": [
+      {"label": "NEST 96 Deepwell Plate 2mL", "value": "nest_96_wellplate_2ml_deep"},
+      {"label": "Alphalabs 96 Well Plate 1mL", "value": "alphalabs_96_wellplate_1000ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Extraction Plate (MagPlate) Type",
+    "name": "extrPlate",
+    "options": [
+      {"label": "NEST 96 Deepwell Plate 2mL", "value": "nest_96_wellplate_2ml_deep"},
+      {"label": "Alphalabs 96 Well Plate 1mL", "value": "alphalabs_96_wellplate_1000ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Elution Plate (output) Type",
+    "name": "elutePlate",
+    "options": [
+      {"label": "NEST 96-Well PCR Plate", "value": "nest_96_wellplate_100ul_pcr_full_skirt"},
+      {"label": "NEST 96-Deepwell Plate 2mL", "value": "nest_96_wellplate_2ml_deep"},
+      {"label": "Alphalabs 96-Well Plate 1mL", "value": "alphalabs_96_wellplate_1000ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "p300mnt",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Type",
+    "name": "tipType",
+    "options": [
+      {"label": "Opentrons 300µL Tips", "value": "opentrons_96_tiprack_300ul"},
+      {"label": "Opentrons 200µL Filtered Tips", "value": "opentrons_96_filtertiprack_200ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Used Tips Destination",
+    "name": "tipTrash",
+    "options": [
+      {"label": "Empty Tiprack", "value": 1},
+      {"label": "Fixed Waste Bin", "value": 0}
+    ]
+  }
+]

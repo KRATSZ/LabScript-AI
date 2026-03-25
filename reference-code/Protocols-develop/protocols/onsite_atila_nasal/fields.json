@@ -1,0 +1,35 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-94)",
+    "name": "num_samp",
+    "default": 94
+  },
+  {
+    "type": "dropDown",
+    "label": "Reaction Plate Type",
+    "name": "reaction_plate",
+    "options": [
+      {"label": "Non-skirted", "value": "biorad_96_aluminumblock_200ul"},
+      {"label": "Half-skirted", "value": "biorad_96_aluminumblock_120ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P20-Single Mount",
+    "name": "p20mnt",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Wells",
+    "name": "num_wells",
+    "default": 96
+  }
+]

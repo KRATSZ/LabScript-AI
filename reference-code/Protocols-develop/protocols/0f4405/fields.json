@@ -1,0 +1,63 @@
+[
+  {
+    "type": "dropDown",
+    "label": "number of samples",
+    "name": "num_samples",
+    "options": [
+      {"label": "24", "value": 24},
+      {"label": "16", "value": 16},
+      {"label": "8", "value": 8}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "bead ratio (beads:DNA)",
+    "name": "_ratio_beads_dna",
+    "options": [
+      {"label": "1.8", "value": 1.8},
+      {"label": "0.9", "value": 0.9}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "thermocycling profile",
+    "name": "_profile_type",
+    "options": [
+      {"label": "20°C, 30 min / 65°C, 30 min (default)", "value": "default"},
+      {"label": "20°C, 30 min. / 55°C, 45 min (degraded)", "value": "degraded"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "magnetic incubation time (in minutes)",
+    "name": "time_mag_incubation",
+    "default": 5.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 8-channel GEN2 pipette mount",
+    "name": "mount_m300",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 8-channel GEN2 pipette mount",
+    "name": "mount_m20",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "dry run mode",
+    "name": "_dry_run",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  }
+]

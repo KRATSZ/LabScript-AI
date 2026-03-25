@@ -1,0 +1,65 @@
+[
+    {
+      "type": "textFile",
+      "label": "concentration .csv file",
+      "name": "input_csv",
+      "default": "concentration (in ng/ul)\n10\n8\n11\n"
+    },
+    {
+      "type": "float",
+      "label": "target DNA volume (in ul)",
+      "name": "target_dna_volume",
+      "default": 9.0
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 single-channel pipette mount",
+        "name": "p20_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P1000 single-channel pipette mount",
+        "name": "p1000_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "DNA template labware",
+        "name": "source_type",
+        "options": [
+          {"label": "Opentrons 24 Tube Rack with Eppendorf 1.5 mL Safe-Lock Snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"}
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "DNA template labware",
+        "name": "dest_type",
+        "options": [
+          {"label": "Bio-Rad Well Plate 200 µL", "value": "biorad_96_wellplate_200ul_pcr"}
+        ]
+    },
+    {
+      "type": "dropDown",
+      "label": "reagent labware",
+      "name": "reagent_type",
+      "options": [
+        {"label": "Opentrons 24 Tube Rack with Eppendorf 1.5 mL Safe-Lock Snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"},
+        {"label": "Opentrons 24 Tube Rack with Custom 2ml Tubes", "value": "opentrons_24_tuberack_2000ul"}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "Starting well in Barcode plate",
+      "name": "barcode_well",
+      "options": [
+        {"label": "96 Rapid Barcodes Plate", "value": "biorad_96_wellplate_200ul_pcr"}
+      ]
+  }
+  ]

@@ -1,0 +1,77 @@
+[
+  {
+    "type": "int",
+    "label": "number of agar plates (1-9)",
+    "name": "num_plates",
+    "default": 9
+  },
+  {
+    "type": "int",
+    "label": "number of source samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "transfer volume",
+    "name": "transfer_vol",
+    "default": 3.0
+  },
+  {
+    "type": "str",
+    "label": "source plate definition",
+    "name": "source_plate",
+    "default": "nest_96_wellplate_100ul_pcr_full_skirt"
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette type",
+    "name": "pipette_type",
+    "options": [
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P20 Multi (GEN 2)", "value": "p20_multi_gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette mount",
+    "name": "pipette_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "tip type",
+    "name": "tip_type",
+    "options": [
+      {"label": "standard", "value": "opentrons_96_tiprack_20ul"},
+      {"label": "filter", "value": "opentrons_96_filtertiprack_20ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "puncture agar",
+    "name": "puncture_agar",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "puncture depth (in mm)",
+    "name": "puncture_depth",
+    "default": 2.0
+  },
+  {
+    "type": "dropDown",
+    "label": "mix sources",
+    "name": "mix_sources",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Reduced Pipette Flow Rate (ul/sec) for TWB",
+    "name": "twb_rate",
+    "default": 20
+  },
+  {
+    "type": "int",
+    "label": "Sample Count (between 1 and 12)",
+    "name": "sample_count",
+    "default": 12
+  },
+  {
+    "type": "float",
+    "label": "Disposal Volume (ul) for Distribute",
+    "name": "disp_vol",
+    "default": 0
+  },
+  {
+    "type": "int",
+    "label": "Engage Time (minutes) for Magnetic Module",
+    "name": "engage_time",
+    "default": 5
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples to prcoess",
+    "name": "number_of_samples_to_process",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P50 pipette type",
+    "name": "p50_type",
+    "options": [
+      { "label": "single", "value": "p50_single" },
+      { "label": "multi", "value": "p50_multi" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "p50 pipette mount",
+    "name": "p50_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 pipette type",
+    "name": "p300_type",
+    "options": [
+      { "label": "single", "value": "p300_single" },
+      { "label": "multi", "value": "p300_multi" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

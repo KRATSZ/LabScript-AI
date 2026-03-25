@@ -1,0 +1,41 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Columns (1-12)",
+    "name": "num_col",
+    "default": 12
+  },
+  {
+    "type": "int",
+    "label": "Pre-Wash buffer volume (ul)",
+    "name": "prewash_buff_vol",
+    "default": 300
+  },
+  {
+    "type": "int",
+    "label": "Elute Buffer Volume (ul)",
+    "name": "elute_buff_vol",
+    "default": 50
+  },
+  {
+    "type": "float",
+    "label": "Magnetic Module Engage Height",
+    "name": "engage_height",
+    "default": 6.7
+  },
+  {
+    "type": "int",
+    "label": "gDNA buffer volume (ul)",
+    "name": "gdna_buff_vol",
+    "default": 300
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

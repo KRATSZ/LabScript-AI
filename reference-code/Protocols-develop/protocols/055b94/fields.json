@@ -1,0 +1,48 @@
+[
+  {
+    "type": "dropDown",
+    "label": "protocol type",
+    "name": "protocol_type",
+    "options": [
+      {"label": "BioGX", "value": "biogx"},
+      {"label": "LGC", "value": "lgc"},
+      {"label": "PKamp", "value": "pkamp"}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "scan 9000 plate barcode",
+    "name": "scan_9000_plate_barcode",
+    "default": ""
+  },
+  {
+    "type": "str",
+    "label": "scan qPCR plate barcode",
+    "name": "scan_qpcr_plate_barcode",
+    "default": ""
+  },
+  {
+    "type": "textFile",
+    "label": "8000 plate 1 .csv file",
+    "name": "plate_1_csv",
+    "default": ""
+  },
+  {
+    "type": "textFile",
+    "label": "8000 plate 2 .csv file",
+    "name": "plate_2_csv",
+    "default": ""
+  },
+  {
+    "type": "textFile",
+    "label": "8000 plate 3 .csv file",
+    "name": "plate_3_csv",
+    "default": ""
+  },
+  {
+    "type": "textFile",
+    "label": "8000 plate 4 .csv file",
+    "name": "plate_4_csv",
+    "default": ""
+  }
+]

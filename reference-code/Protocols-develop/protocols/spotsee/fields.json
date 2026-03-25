@@ -1,0 +1,66 @@
+[
+  {
+    "type": "int",
+    "label": "Number of cycles before new tip",
+    "name": "num_cycles",
+    "default": 20
+  },
+  {
+    "type": "int",
+    "label": "Volume to each well",
+    "name": "vol",
+    "default": 15
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware Type",
+    "name": "labware",
+    "options": [
+      {"label": "80 well plate", "value": "80_well_plate"},
+      {"label": "40 well plate", "value": "40_well_plate"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Starting tip (1-96)",
+    "name": "start_tip",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use P20 pipette in protocol?",
+    "name": "use_p20",
+    "options": [
+      {"label": "Yes, my P20 pipette is on the robot", "value": true},
+      {"label": "No, my P20 pipette is not on the robot", "value": false}
+    ]
+  },
+
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use P300 pipette in protocol?",
+    "name": "use_p300",
+    "options": [
+      {"label": "Yes, my P300 pipette is on the robot", "value": true},
+      {"label": "No, my P300 pipette is not on the robot", "value": false}
+    ]
+  }
+]

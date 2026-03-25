@@ -1,0 +1,29 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P10 Multi Mount",
+    "name": "p10mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single Mount",
+    "name": "p300mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pre-Wet Tips?",
+    "name": "wet_tip",
+    "options": [
+      {"label": "No", "value": "no"},
+      {"label": "Yes", "value": "yes"}
+    ]
+  }
+]

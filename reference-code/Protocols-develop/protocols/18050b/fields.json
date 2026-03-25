@@ -1,0 +1,60 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P10 multi-channel mount",
+    "name": "p10_multi_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "mother plate type",
+    "name": "mother_plate_type",
+    "options": [
+      { "label": "Corning 384-flatwell", "value": "corning_384_wellplate_112ul_flat" },
+      { "label": "Greiner Bio-One 384-deepwell", "value": "greinerbioone_384_wellplate_240ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "number of daughter plates (1-6)",
+    "name": "num_daughter_plates",
+    "options": [
+      { "label": "1", "value": 1 },
+      { "label": "2", "value": 2 },
+      { "label": "3", "value": 3 },
+      { "label": "4", "value": 4 },
+      { "label": "5", "value": 5 },
+      { "label": "6", "value": 6 }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "start column (inclusive)",
+    "name": "start_col",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "end column (inclusive)",
+    "name": "end_col",
+    "default": 22
+  },
+  {
+    "type": "float",
+    "label": "transfer volume (in µl)",
+    "name": "transfer_volume",
+    "default": 4.0
+  },
+  {
+    "type": "dropDown",
+    "label": "dispense plan",
+    "name": "dispense_plan",
+    "options": [
+      { "label": "one-to-one dispense", "value": "single" },
+      { "label": "multi dispense", "value": "multi" }
+    ]
+  }
+]

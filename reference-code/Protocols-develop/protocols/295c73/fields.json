@@ -1,0 +1,14 @@
+[
+  {
+    "type": "int",
+    "label": "Sample Count",
+    "name": "sample_count",
+    "default": 24
+  },
+  {
+    "type": "float",
+    "label": "Mastermix Volume",
+    "name": "mm_volume",
+    "default": 20
+  }
+]

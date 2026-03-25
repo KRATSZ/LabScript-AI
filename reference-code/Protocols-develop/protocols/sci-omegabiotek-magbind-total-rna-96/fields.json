@@ -1,0 +1,114 @@
+[
+    {
+        "type": "int",
+        "label": "Number of Samples",
+        "name": "num_samples",
+        "default": 8
+    },
+    {
+        "type": "dropDown",
+        "label": "Deepwell Type",
+        "name": "deepwell_type",
+        "options": [
+          { "label": "NEST 96 Wellplate 2mL", "value": "nest_96_wellplate_2ml_deep" },
+          { "label": "USA Scientific 96 Wellplate 2.4mL", "value": "usascientific_96_wellplate_2.4ml_deep" }
+        ]
+      },
+      {
+        "type": "dropDown",
+        "label": "Reservoir Type",
+        "name": "res_type",
+        "options": [
+          { "label": "NEST 12 Reservoir 15mL", "value": "nest_12_reservoir_15ml" },
+          { "label": "USA Scientific 12 Reservoir 22mL", "value": "usascientific_12_reservoir_22ml" }
+        ]
+      },
+      {
+        "type": "int",
+        "label": "Starting Volume",
+        "name": "starting_vol",
+        "default": 400
+      },
+      {
+        "type": "int",
+        "label": "Binding Buffer Volume",
+        "name": "binding_buffer_vol",
+        "default": 320
+      },
+      {
+        "type": "int",
+        "label": "Wash 1 Volume",
+        "name": "wash1_vol",
+        "default": 400
+      },
+      {
+        "type": "int",
+        "label": "Wash 2 Volume",
+        "name": "wash2_vol",
+        "default": 400
+      },
+      {
+        "type": "int",
+        "label": "Wash 3 Volume",
+        "name": "wash3_vol",
+        "default": 300
+      },
+
+      {
+        "type": "int",
+        "label": "Wash Mix Repetitions",
+        "name": "elution_vol",
+        "default": 50
+      },
+      {
+        "type": "int",
+        "label": "Settling Time (minutes)",
+        "name": "settling_time",
+        "default": 7
+      },
+      {
+        "type": "dropDown",
+        "label": "Mag Deck Generation",
+        "name": "mag_gen",
+        "options": [
+          { "label": "GEN1", "value": "magdeck" },
+          { "label": "GEN2", "value": "magnetic module gen2" }
+        ]
+      },
+      {
+        "type": "dropDown",
+        "label": "Park Tips?",
+        "name": "park_tips",
+        "options": [
+          { "label": "Yes, park tips", "value": true },
+          { "label": "No, do not park tips", "value": false }
+        ]
+      },
+      {
+        "type": "dropDown",
+        "label": "Track Tips?",
+        "name": "tip_track",
+        "options": [
+          { "label": "Yes, track tips", "value": true },
+          { "label": "No, do not track tips", "value": false }
+        ]
+      },
+      {
+        "type": "dropDown",
+        "label": "Flash",
+        "name": "flash",
+        "options": [
+          { "label": "Yes, flash lights", "value": true },
+          { "label": "No, do not flash lights", "value": false }
+        ]
+      },
+      {
+        "type": "dropDown",
+        "label": "P300 Multi Mount",
+        "name": "m300_mount",
+        "options": [
+          { "label": "Left", "value": "left" },
+          { "label": "Right", "value": "right" }
+        ]
+      }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "type": "textFile",
+    "label": "input .csv for normalization",
+    "name": "dil_csv_1",
+    "default": "sample number,sample name,sample concentration (mg/ml)\n1,007007009-403-1,1.569\n2,007007009-403-2,0.984\n3,007007009-403-3,2.128\n4,007007009-403-4,2.413\n5,007007009-403-5,2.303\n6,007007009-403-6,1.541\n7,007007009-403-7,2.404\n8,007007009-403-8,2.352\n9,007007009-403-9,2.763\n10,007007009-403-10,1.763\n11,007007009-403-11,2.094\n12,007007009-403-12,0.906\n13,007007009-403-13,0.715\n1,007007009-403-1,1.569\n2,007007009-403-2,0.984\n3,007007009-403-3,2.128\n4,007007009-403-4,2.413\n5,007007009-403-5,2.303\n6,007007009-403-6,1.541\n7,007007009-403-7,2.404\n8,007007009-403-8,2.352\n9,007007009-403-9,2.763\n10,007007009-403-10,1.763\n11,007007009-403-11,2.094\n12,007007009-403-12,0.906\n13,007007009-403-13,0.715\n1,007007009-403-1,1.569\n2,007007009-403-2,0.984\n"
+  },
+  {
+    "type": "float",
+    "label": "desired final concentration (ug/ml)",
+    "name": "desired_conc",
+    "default": 4.0
+  },
+  {
+    "type": "dropDown",
+    "label": "Eppendorf tube type",
+    "name": "tube_type",
+    "options": [
+      {"label": "2ml Eppendorf tubes", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap"},
+      {"label": "1.5ml Eppendorf tubes", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "RNA starting format",
+    "name": "rna_starting_format",
+    "options": [
+      {"label": "Eppendorf tubes", "value": "tubes"},
+      {"label": "MicroAmp Endura Plate on temperature module (slot 1)", "value": "microampenduraplate_96_aluminumblock_200ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "dilution plate type",
+    "name": "dil_plate_type",
+    "options": [
+      {"label": "MicroAmp EnduraPlate in holder", "value": "microampenduraplate_96_aluminumblock_200ul"},
+      {"label": "Fisherbrand skirted", "value": "fisherbrand_96_wellplate_200ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "fill entire plate with blank if necessary",
+    "name": "fill_plate_blank",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "fill second plate with rinse buffer at end of process",
+    "name": "fill_second_plate",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+  ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel pipette mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

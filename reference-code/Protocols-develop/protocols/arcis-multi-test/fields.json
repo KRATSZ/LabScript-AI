@@ -1,0 +1,26 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P50 Multi Mount",
+    "name": "p50_mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi Mount",
+    "name": "p300_mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples (1 - 56)",
+    "name": "samps",
+    "default": 48
+  }
+]

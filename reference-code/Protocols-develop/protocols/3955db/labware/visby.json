@@ -1,0 +1,60 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "Visby Medical",
+        "brandId": [
+            "Visby"
+        ]
+    },
+    "metadata": {
+        "displayName": "visby",
+        "displayCategory": "wellPlate",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.75,
+        "yDimension": 85.5,
+        "zDimension": 34.93
+    },
+    "wells": {
+        "A1": {
+            "depth": 19.05,
+            "totalLiquidVolume": 1000,
+            "shape": "circular",
+            "diameter": 9.53,
+            "x": 25,
+            "y": 75.5,
+            "z": 15.88
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "visby"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

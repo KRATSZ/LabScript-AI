@@ -1,0 +1,107 @@
+[
+  {
+    "type": "int",
+    "label": "Target Temperature for Heater Shaker (37-95 degrees Celsius)",
+    "name": "hs_temp",
+    "default": 42
+  },
+  {
+    "type": "int",
+    "label": "Target Shaking Speed for Heater Shaker (recommended 200-2000 rpm, up to 3000 is possible)",
+    "name": "hs_rpm",
+    "default": 1500
+  },
+  {
+    "type": "float",
+    "label": "Duration of Time for Shaking of the Heater Shaker (minutes)",
+    "name": "time_shake",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Target Every Nth Column of Heater Shaker Labware for Dispense (n)",
+    "name": "every_nth_col",
+    "default": 6
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware on the Heater Shaker",
+    "name": "labware_hs",
+    "options": [
+      { "label": "opentrons_96_deep_well_adapter_nest_wellplate_2ml_deep", "value": "opentrons_96_deep_well_adapter_nest_wellplate_2ml_deep" },
+      { "label": "opentrons_flat_plate_adapter_corning_384_wellplate_112ul_flat", "value": "opentrons_flat_plate_adapter_corning_384_wellplate_112ul_flat" },
+      { "label": "opentrons_96_flat_bottom_adapter_nest_wellplate_200ul_flat", "value": "opentrons_96_flat_bottom_adapter_nest_wellplate_200ul_flat" },
+      { "label": "opentrons_96_pcr_plate_adapter_nest_wellplate_100ul_pcr_full_skirt", "value": "opentrons_96_pcr_plate_adapter_nest_wellplate_100ul_pcr_full_skirt" },
+      { "label": "opentrons_96_pcr_adapter_armadillo_wellplate_200ul", "value": "opentrons_96_pcr_adapter_armadillo_wellplate_200ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the Source (well plate or reservoir from Opentrons Labware Library)",
+    "name": "labware_source",
+    "options": [
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" },
+      { "label": "usascientific_12_reservoir_22ml", "value": "usascientific_12_reservoir_22ml" },
+      { "label": "nest_1_reservoir_195ml", "value": "nest_1_reservoir_195ml" },
+      { "label": "axygen_1_reservoir_90ml", "value": "axygen_1_reservoir_90ml" },
+      { "label": "agilent_1_reservoir_290ml", "value": "agilent_1_reservoir_290ml" },
+      { "label": "nest_96_wellplate_100ul_pcr_full_skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "biorad_96_wellplate_200ul_pcr", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "corning_384_wellplate_112ul_flat", "value": "corning_384_wellplate_112ul_flat" },
+      { "label": "nest_96_wellplate_200ul_flat", "value": "nest_96_wellplate_200ul_flat" },
+      { "label": "corning_96_wellplate_360ul_flat", "value": "corning_96_wellplate_360ul_flat" },
+      { "label": "nest_96_wellplate_2ml_deep", "value": "nest_96_wellplate_2ml_deep" },
+      { "label": "usascientific_96_wellplate_2.4ml_deep", "value": "usascientific_96_wellplate_2.4ml_deep" },
+      { "label": "thermoscientificnunc_96_wellplate_1300ul", "value": "thermoscientificnunc_96_wellplate_1300ul" },
+      { "label": "thermoscientificnunc_96_wellplate_2000ul", "value": "thermoscientificnunc_96_wellplate_2000ul" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Labware for the Destination (well plate or reservoir from Opentrons Labware Library)",
+    "name": "labware_dest",
+    "options": [
+      { "label": "nest_96_wellplate_100ul_pcr_full_skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "nest_12_reservoir_15ml", "value": "nest_12_reservoir_15ml" },
+      { "label": "usascientific_12_reservoir_22ml", "value": "usascientific_12_reservoir_22ml" },
+      { "label": "nest_1_reservoir_195ml", "value": "nest_1_reservoir_195ml" },
+      { "label": "axygen_1_reservoir_90ml", "value": "axygen_1_reservoir_90ml" },
+      { "label": "agilent_1_reservoir_290ml", "value": "agilent_1_reservoir_290ml" },
+      { "label": "biorad_96_wellplate_200ul_pcr", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "corning_384_wellplate_112ul_flat", "value": "corning_384_wellplate_112ul_flat" },
+      { "label": "nest_96_wellplate_200ul_flat", "value": "nest_96_wellplate_200ul_flat" },
+      { "label": "corning_96_wellplate_360ul_flat", "value": "corning_96_wellplate_360ul_flat" },
+      { "label": "nest_96_wellplate_2ml_deep", "value": "nest_96_wellplate_2ml_deep" },
+      { "label": "usascientific_96_wellplate_2.4ml_deep", "value": "usascientific_96_wellplate_2.4ml_deep" },
+      { "label": "thermoscientificnunc_96_wellplate_1300ul", "value": "thermoscientificnunc_96_wellplate_1300ul" },
+      { "label": "thermoscientificnunc_96_wellplate_2000ul", "value": "thermoscientificnunc_96_wellplate_2000ul" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Transfer Volume (uL)",
+    "name": "tfer_vol",
+    "default": 100
+  },
+  {
+    "type": "dropDown",
+    "label": "Select a Pipette",
+    "name": "pip",
+    "options": [
+      { "label": "p300_multi_gen2", "value": "p300_multi_gen2" },
+      { "label": "p20_multi_gen2", "value": "p20_multi_gen2" },
+      { "label": "p20_single_gen2", "value": "p20_single_gen2" },
+      { "label": "p300_single_gen2", "value": "p300_single_gen2" },
+      { "label": "p1000_single_gen2", "value": "p1000_single_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Selected Pipette is Mounted on which side? (Right or Left)",
+    "name": "pip_side",
+    "options": [
+      { "label": "Right", "value": "right" },
+      { "label": "Left", "value": "left" }
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": ",1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\nnA,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnB,x,A1/A1,A2/A1,A2/A1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnC,x,A1/A1,A2/A1,A2/A1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnD,x,A1/B1,A2/B1,A2/B1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnE,x,A1/B1,A2/B1,A2/B1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnF,x,A1/C1,A2/C1,A2/C1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnG,x,A1/C1,A2/C1,A2/C1,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnH,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnI,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnJ,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnK,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnL,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnM,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnN,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnO,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnP,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x,x\nnDay 1,30,Yes pre-mix,0.8,2,5,200,1,0.8,0.8,0.8,0.5,0.8,Right,,,,,,,,,,,\nnDay 2,30,Yes pre-mix,0.8,2,5,200,1,0.8,0.8,0.8,0.5,0.8,Right,,,,,,,,,,,"
+  }
+]

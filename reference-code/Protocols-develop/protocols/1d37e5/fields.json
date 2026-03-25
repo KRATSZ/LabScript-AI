@@ -1,0 +1,8 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Plates (1-9)",
+    "name": "num_plates",
+    "default": 9
+  }
+]

@@ -1,0 +1,230 @@
+{
+    "ordering": [
+        [
+            "A1",
+            "B1",
+            "C1"
+        ],
+        [
+            "A2",
+            "B2",
+            "C2"
+        ],
+        [
+            "A3",
+            "B3",
+            "C3"
+        ],
+        [
+            "A4",
+            "B4",
+            "C4"
+        ],
+        [
+            "A5",
+            "B5",
+            "C5"
+        ]
+    ],
+    "brand": {
+        "brand": "Charles river",
+        "brandId": [
+            "TL700"
+        ]
+    },
+    "metadata": {
+        "displayName": "Charles River 15 Tube Rack 10000 µL",
+        "displayCategory": "tubeRack",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 96.56
+    },
+    "wells": {
+        "A1": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 13.88,
+            "y": 67.74,
+            "z": 6.71
+        },
+        "B1": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 13.88,
+            "y": 42.74,
+            "z": 6.71
+        },
+        "C1": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 13.88,
+            "y": 17.74,
+            "z": 6.71
+        },
+        "A2": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 38.88,
+            "y": 67.74,
+            "z": 6.71
+        },
+        "B2": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 38.88,
+            "y": 42.74,
+            "z": 6.71
+        },
+        "C2": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 38.88,
+            "y": 17.74,
+            "z": 6.71
+        },
+        "A3": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 63.88,
+            "y": 67.74,
+            "z": 6.71
+        },
+        "B3": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 63.88,
+            "y": 42.74,
+            "z": 6.71
+        },
+        "C3": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 63.88,
+            "y": 17.74,
+            "z": 6.71
+        },
+        "A4": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 88.88,
+            "y": 67.74,
+            "z": 6.71
+        },
+        "B4": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 88.88,
+            "y": 42.74,
+            "z": 6.71
+        },
+        "C4": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 88.88,
+            "y": 17.74,
+            "z": 6.71
+        },
+        "A5": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 113.88,
+            "y": 67.74,
+            "z": 6.71
+        },
+        "B5": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 113.88,
+            "y": 42.74,
+            "z": 6.71
+        },
+        "C5": {
+            "depth": 89.85,
+            "totalLiquidVolume": 10000,
+            "shape": "circular",
+            "diameter": 11.31,
+            "x": 113.88,
+            "y": 17.74,
+            "z": 6.71
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "displayName": "Charles River 15 Tube Rack 10000 µL",
+                "displayCategory": "tubeRack",
+                "wellBottomShape": "flat"
+            },
+            "brand": {
+                "brand": "Charles river",
+                "brandId": [
+                    "TL700"
+                ]
+            },
+            "wells": [
+                "A1",
+                "B1",
+                "C1",
+                "A2",
+                "B2",
+                "C2",
+                "A3",
+                "B3",
+                "C3",
+                "A4",
+                "B4",
+                "C4",
+                "A5",
+                "B5",
+                "C5"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "charlesriver_15_tuberack_10000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

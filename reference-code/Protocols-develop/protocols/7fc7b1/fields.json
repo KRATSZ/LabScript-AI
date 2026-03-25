@@ -1,0 +1,65 @@
+[
+  {
+    "type": "dropDown",
+    "label": "mastermix labware",
+    "name": "mm_lw",
+    "options": [
+      {"label": "12-channel reservoir", "value": "nest_12_reservoir_15ml"},
+      {"label": "96-well plate", "value": "greinerbioone_96_wellplate_200ul"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "mastermix plate slot (1-11)",
+    "name": "mm_slot",
+    "default": 4
+  },
+  {
+    "type": "float",
+    "label": "mastermix transfer volume per sample (in ul)",
+    "name": "mm_transfer_vol",
+    "default": 11
+  },
+  {
+    "type": "float",
+    "label": "mastermix volume loaded in source (per column, in ul)",
+    "name": "mm_source_vol",
+    "default": 200
+  },
+  {
+    "type": "int",
+    "label": "mastermix starting column",
+    "name": "mastermix_start_col",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "DNA volume (in ul)",
+    "name": "dna_vol",
+    "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "transfer scheme",
+    "name": "transfer_scheme",
+    "options": [
+      {"label": "multi dispense", "value": "multi"},
+      {"label": "single dispense", "value": "single"}
+    ]
+  },
+  {
+    "type": "textFile",
+    "label": ".csv file",
+    "name": "transfer_csv",
+    "default": "source DNA plate slot (1-11),source DNA well (A1-A12),destination plate type (384 or 96),destination plate slot (1-11),destination well (A1-A12 for 96; A1-A24 for 384)\n1,A1,384,2,A3"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20-multi GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

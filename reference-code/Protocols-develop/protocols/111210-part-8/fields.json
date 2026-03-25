@@ -1,0 +1,32 @@
+[
+    {
+        "type": "float",
+        "label": "Number of Samples",
+        "name": "samples",
+        "default": 12
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 Single GEN2 Pipette Mount Position",
+        "name": "p300_mount",
+        "options": [
+          { "label": "Right", "value": "right" },
+          { "label": "Left", "value": "left" }
+        ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P20 Single GEN2 Pipette Mount Position",
+        "name": "p20_mount",
+        "options": [
+          { "label": "Left", "value": "left" },
+          { "label": "Right", "value": "right" }
+        ]
+    },
+    {
+        "type": "float",
+        "label": "Magnetic Module Engage Height",
+        "name": "engage_height",
+        "default": 5
+    }
+]

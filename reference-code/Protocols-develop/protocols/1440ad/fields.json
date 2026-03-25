@@ -1,0 +1,123 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-24)",
+    "name": "num_samp",
+    "default": 24
+  },
+  {
+    "type": "int",
+    "label": "Number of Mag Bead Tubes",
+    "name": "num_mag_beads_tubes",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Mag Bead Resuspend Volume",
+    "name": "mag_bead_mix_resuspend_vol",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Mag Bead Resuspend Mix Repetions",
+    "name": "mag_bead_mix_resuspend_reps",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "RR1 Volume",
+    "name": "rr1",
+    "default": 14.6
+  },
+  {
+    "type": "float",
+    "label": "RR2 Volume",
+    "name": "rr2",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "RR3 Volume",
+    "name": "rr3",
+    "default": 7.9
+  },
+  {
+    "type": "float",
+    "label": "TR1 Volume",
+    "name": "tr1",
+    "default": 7.5
+  },
+  {
+    "type": "float",
+    "label": "TR2 Volume",
+    "name": "tr2",
+    "default": 7.5
+  },
+
+  {
+    "type": "float",
+    "label": "TR3 Volume",
+    "name": "tr3",
+    "default": 7.5
+  },
+  {
+    "type": "float",
+    "label": "TR4 Volume",
+    "name": "tr4",
+    "default": 7.5
+  },
+  {
+    "type": "float",
+    "label": "TR5 Volume",
+    "name": "tr5",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "TR6 Volume",
+    "name": "tr6",
+    "default": 20
+  },
+  {
+    "type": "float",
+    "label": "TR7 Volume",
+    "name": "tr7",
+    "default": 2.5
+  },
+  {
+    "type": "float",
+    "label": "TR8 Volume",
+    "name": "tr8",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "TR9 Volume",
+    "name": "tr9",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "TR10 Volume",
+    "name": "tr10",
+    "default": 5
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Channel Pipette Mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single Channel Pipette Mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

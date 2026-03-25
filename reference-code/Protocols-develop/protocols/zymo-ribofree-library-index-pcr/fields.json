@@ -1,0 +1,37 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "number_of_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "RNA input",
+    "name": "rna_input",
+    "options": [
+      { "label": "> 1µg", "value": "> 1µg" },
+      { "label": "250ng-1µg", "value": "250ng-1µg" },
+      { "label": "100ng-250ng", "value": "100ng-250ng" },
+      { "label": "< 100ng", "value": "< 100ng" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 multi-channel mount",
+    "name": "m20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

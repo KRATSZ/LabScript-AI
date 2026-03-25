@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-24)",
+    "name": "num_samples",
+    "default": 24
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single GEN2 Mount",
+    "name": "mount_p20",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single GEN2 Mount",
+    "name": "mount_p300",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

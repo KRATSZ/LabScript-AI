@@ -1,0 +1,18 @@
+[
+
+  {
+    "type": "int",
+    "label": "Number of samples (1-96, including controls)",
+    "name": "num_samp",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi GEN2 Mount",
+    "name": "m20_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  }
+]

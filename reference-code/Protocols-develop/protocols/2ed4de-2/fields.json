@@ -1,0 +1,59 @@
+[
+  {
+      "type": "float",
+      "label": "number of samples",
+      "name": "num_samples",
+      "default": 24
+  },
+  {
+      "type": "dropDown",
+      "label": "reagent labware",
+      "name": "reagent_labware",
+      "options": [
+        {"label": "NEST 12 Reservoir 15ml", "value": "nest_12_reservoir_15ml"},
+        {"label": "Opentrons 6 Tube Rack with Falcon 50 mL Conical", "value": "opentrons_6_tuberack_falcon_50ml_conical"}
+      ]
+  },
+  {
+      "type": "float",
+      "label": "starting sample concentration (mg/ml)",
+      "name": "starting_conc",
+      "default": 60.0
+  },
+  {
+      "type": "dropDown",
+      "label": "prepare standard",
+      "name": "prepare_standard",
+      "options": [
+        {"label": "yes", "value": true},
+        {"label": "no", "value": false}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "standard in use (if necessary)",
+      "name": "standard_type",
+      "options": [
+        {"label": "TR (0.5ug/ml dilution)", "value": 0.5},
+        {"label": "TE (2.5ug/ml dilution)", "value": 2.5}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "P1000-single GEN2 mount",
+      "name": "p1000_mount",
+      "options": [
+        {"label": "left", "value": "left"},
+        {"label": "right", "value": "right"}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "P300-multi GEN2 mount",
+      "name": "p300_mount",
+      "options": [
+        {"label": "right", "value": "right"},
+        {"label": "left", "value": "left"}
+      ]
+  }
+]

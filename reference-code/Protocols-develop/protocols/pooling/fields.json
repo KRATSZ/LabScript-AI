@@ -1,0 +1,56 @@
+[
+  {
+    "type": "textFile",
+    "label": ".csv input file",
+    "name": "input_csv",
+    "default": "source plate well,volume sample (µl)\nA1,5\nB1,30\nC1,10\nD1,5"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "source plate type",
+    "name": "source_type",
+    "options": [
+      { "label": "0.2 mL strip tubes (on aluminum block)", "value": "regeneron_96_aluminumblock_200ul"},
+      { "label": "Eppendorf (on aluminum block)", "value": "eppendorf_96_well_on_block" },
+      { "label": "Bio-Rad (on aluminum block)", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+      { "label": "Bio-Rad (off aluminum block)", "value": "biorad_96_wellplate_200ul_pcr" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "source plate on temperature module (GEN2)",
+    "name": "using_tempdeck",
+    "options": [
+      { "label": "yes", "value": true },
+      { "label": "no", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "destination tube type",
+    "name": "dest_type",
+    "options": [
+      { "label": "Opentrons 24 Tube Rack with Eppendorf 1.5 mL Safe-Lock Snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "Opentrons 24 Tube Rack with Eppendorf 2 mL Safe-Lock Snapcap", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap" },
+      { "label": "Opentrons 15 Tube Rack with Eppendorf 5 mL", "value": "opentrons_15_tuberack_5000ul" }
+    ]
+  }
+]

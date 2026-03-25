@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300 Multi (GEN1) Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Plates",
+    "name": "num_plates",
+    "default": 9
+  }
+]

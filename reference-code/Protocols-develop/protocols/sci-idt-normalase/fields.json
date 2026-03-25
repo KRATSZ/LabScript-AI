@@ -1,0 +1,72 @@
+[
+  {
+  "type": "textFile",
+  "label": ".CSV File",
+  "name": "sample_quant_csv",
+  "default": "Sample_Plate, Sample_well,Target_well\nsample_plate,A1,A12"
+  },
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "SAMPLES",
+    "options": [
+      {"label": "8", "value": "8x"},
+      {"label": "16", "value": "16x"},
+      {"label": "24", "value": "24x"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Dry Run",
+    "name": "DRYRUN",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Modules?",
+    "name": "NOMODULES",
+    "options": [
+      {"label": "Yes, use modules", "value": "NO"},
+      {"label": "No, do not use modules", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use protocol specific z-offsets?",
+    "name": "OFFSET",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use NGS Magnetic Block?",
+    "name": "NGSMAG",
+    "options": [
+      {"label": "Yes, use mag block", "value": "YES"},
+      {"label": "No, do not use", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20S_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20M_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

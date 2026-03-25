@@ -1,0 +1,78 @@
+[
+  {
+    "type": "dropDown",
+    "label": "left pipette type",
+    "name": "left_pipette_type",
+    "options": [
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P300 Single (GEN 2)", "value": "p300_single_gen2"},
+      {"label": "P1000 Single (GEN 2)", "value": "p1000_single_gen2"},
+      {"label": "None", "value": null}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "right pipette type",
+    "name": "right_pipette_type",
+    "options": [
+      {"label": "P1000 Single (GEN 2)", "value": "p1000_single_gen2"},
+      {"label": "P20 Single (GEN 2)", "value": "p20_single_gen2"},
+      {"label": "P300 Single (GEN 2)", "value": "p300_single_gen2"},
+      {"label": "None", "value": null}
+    ]
+  },
+  {
+    "type": "str",
+    "label": "left pipette start slot",
+    "name": "left_pip_slot",
+    "default": "10"
+  },
+  {
+    "type": "str",
+    "label": "right pipette start slot",
+    "name": "right_pip_slot",
+    "default": "11"
+  },
+  {
+    "type": "str",
+    "label": "left pipette start tip",
+    "name": "left_pip_tip",
+    "default": "A1"
+  },
+  {
+    "type": "str",
+    "label": "right pipette start tip",
+    "name": "right_pip_tip",
+    "default": "A1"
+  },
+  {
+    "type": "textFile",
+    "label": "diluent 1 CSV",
+    "name": "d_csv1",
+    "default": "Source Labware,Source Slot,Source Well,Source Aspiration Height Above Bottom (in mm),Dest Labware,Dest Slot,Dest Well,Dest Dispense Height Above Bottom (in mm),Volume (in ul),Pipette\nagilent_1_reservoir_290ml,1,A1,1,nest_96_wellplate_100ul_pcr_full_skirt,4,A11,5,1,left\nnest_12_reservoir_15ml,2,A1,1,nest_96_wellplate_2ml_deep,5,A5,5,3,left\nnest_1_reservoir_195ml,7,A1,1,nest_96_wellplate_2ml_deep,5,H12,5,7,left"
+  },
+  {
+    "type": "textFile",
+    "label": "sample CSV",
+    "name": "s_csv",
+    "default": "Source Labware,Source Slot,Source Well,Source Aspiration Height Above Bottom (in mm),Dest Labware,Dest Slot,Dest Well,Dest Dispense Height Above Bottom (in mm),Volume (in ul),Pipette\nagilent_1_reservoir_290ml,1,A1,1,nest_96_wellplate_100ul_pcr_full_skirt,4,A11,1,5,left\nnest_12_reservoir_15ml,2,A1,1,nest_96_wellplate_2ml_deep,5,A5,5,3,left\nnest_1_reservoir_195ml,3,A1,1,nest_96_wellplate_2ml_deep,5,H12,5,7,left"
+  },
+  {
+    "type": "dropDown",
+    "label": "diluent tip scheme",
+    "name": "diluent_scheme",
+    "options": [
+      {"label": "same tip for whole process", "value": "never"},
+      {"label": "new tip for each transfer", "value": "always"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "mix after final transfer",
+    "name": "mix",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  }
+]

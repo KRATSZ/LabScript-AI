@@ -1,0 +1,85 @@
+[
+  {
+    "type": "float",
+    "label": "Mix Rate (flow rate for mixing will be multiplied by this number)",
+    "name": "mix_rate",
+    "default": 3
+  },
+  {
+    "type": "str",
+    "label": "Tiprack Slot",
+    "name": "tiprack_slot",
+    "default": "11"
+  },
+  {
+    "type": "str",
+    "label": "Reservoir Slot",
+    "name": "reservoir_slot",
+    "default": "1"
+  },
+  {
+    "type": "str",
+    "label": "Tuberack Slot",
+    "name": "tube_rack_slot",
+    "default": "3"
+  },
+  {
+    "type": "dropDown",
+    "label": "Mix Volume",
+    "name": "mix_volume",
+    "options": [
+      { "label": "15 ul", "value": 15 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Mix Repetitions",
+    "name": "mix_repetitions",
+    "options": [
+      { "label": "3 repetitions", "value": 3 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pooling Volume",
+    "name": "pooling_volume",
+    "options": [
+      { "label": "5 ul", "value": 5 }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "pipette_type",
+    "options": [
+      { "label": "p20 single gen2", "value": "p20_single_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipette_mount",
+    "options": [
+      { "label": "Right", "value": "right" },
+      { "label": "Left", "value": "left" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Column Count",
+    "name": "column_count",
+    "default": 12
+  },
+  {
+    "type": "int",
+    "label": "Row Count",
+    "name": "row_count",
+    "default": 8
+  },
+  {
+    "type": "textFile",
+    "label": "Uploaded csv",
+    "name": "uploaded_csv",
+    "default": "0,0,0,0,0,0,0,0,0,0,0,0,,Plate 1\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n,,,,,,,,,,,,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,Plate 2\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n,,,,,,,,,,,,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,Plate 3\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n,,,,,,,,,,,,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,Plate 4\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,\\n0,0,0,0,0,0,0,0,0,0,0,0,,"
+  }
+]

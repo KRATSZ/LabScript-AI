@@ -1,0 +1,36 @@
+[
+  {
+    "type": "textFile",
+    "label": "cherrypicking .csv input file",
+    "name": "csv_input",
+    "default": "source labware,source slot,source well,volume,destination labware,destination slot,destination well,height offset from top of source well (mm),height offset from top of destination well (mm),mix volume\nplate,1,A2,7,tuberack,5,A4,-4,-1,5\nplate,2,H10,9,tuberack,3,D1,-4,-1,5"
+  },
+  {
+    "type": "dropDown",
+    "label": "P10 GEN1 single-channel pipette mount",
+    "name": "p10_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN1 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "change tips",
+    "name": "change_tips",
+    "options": [
+      { "label": "once per well", "value": "once per well" },
+      { "label": "always", "value": "always" }
+    ]
+  }
+
+]

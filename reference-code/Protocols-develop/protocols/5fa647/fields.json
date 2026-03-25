@@ -1,0 +1,32 @@
+[
+  {
+  "type": "textFile",
+  "label": "CSV File",
+  "name": "csv_samp",
+  "default": "Well, Transfer Vol\n A1, 1\n A2, 18\n A3, 3\n A4, 4\n A5, 3\n A6, 2\n B1, 19\n B2, 2\n B3, 3\n B4, 4\n B5, 5\n B6, 6\n C1, 1\n C2, 2\n C3, 3\n C4, 4\n C5, 5\n C6, 6\n D1, 1\n D2, 2\n D3, 3\n D4, 4\n D5, 5\n D6, 16"
+  },
+  {
+    "type": "int",
+    "label": "Number of samples (1-24)",
+    "name": "num_samp",
+    "default": 24
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single Gen2 Mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single Gen2 Mount",
+    "name": "p20_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

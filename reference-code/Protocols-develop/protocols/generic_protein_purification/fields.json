@@ -1,0 +1,233 @@
+[
+  {
+    "type": "int",
+    "label": "Magnet engagment time for bead binding",
+    "name": "mag_engage_time",
+    "default":5
+  },
+  {
+    "type": "int",
+    "label": "Number of samples",
+    "name": "n_samples",
+    "default":32
+  },
+  {
+    "type": "dropDown",
+    "label": "Left pipette",
+    "name": "left_pipette_lname",
+    "options": [
+      {"label": "p300 multi-pipette gen2", "value": "p300_multi_gen2"},
+      {"label": "p20 multi-pipette gen2", "value": "p20_multi_gen2"},
+      {"label": "p20 single-pipette gen2", "value": "p20_single_gen2"},
+      {"label": "p300 single-pipette gen2", "value": "p300_single_gen2"},
+      {"label": "p1000 single-pipette gen2", "value": "p1000_single_gen2"},
+      {"label": "None", "value": null}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Right pipette",
+    "name": "right_pipette_lname",
+    "options": [
+      {"label": "p20 multi-pipette gen2", "value": "p20_multi_gen2"},
+      {"label": "p300 multi-pipette gen2", "value": "p300_multi_gen2"},
+      {"label": "p20 single-pipette gen2", "value": "p20_single_gen2"},
+      {"label": "p300 single-pipette gen2", "value": "p300_single_gen2"},
+      {"label": "p1000 single-pipette gen2", "value": "p1000_single_gen2"},
+      {"label": "None", "value": null}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Small pipette tip-racks",
+    "name": "left_pipette_tipracks_lname",
+    "options": [
+      {"label": "Opentrons 96 Tip Rack 300 uL", "value": "opentrons_96_tiprack_300ul"},
+      {"label": "Opentrons 96 Tip Rack 20 uL", "value": "opentrons_96_tiprack_20ul"},
+      {"label": "Opentrons 96 Tip Rack 1000 uL", "value": "opentrons_96_tiprack_1000ul"},
+      {"label": "Opentrons 96 Filter Tip Rack 20 uL", "value": "opentrons_96_filtertiprack_20ul"},
+      {"label": "Opentrons 96 Filter Tip Rack 200 uL", "value": "opentrons_96_filtertiprack_200ul"},
+      {"label": "Opentrons 96 Filter Tip Rack 1000 uL", "value": "opentrons_96_filtertiprack_1000ul"},
+      {"label": "None", "value": "None"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Large pipette tip-racks",
+    "name": "right_pipette_tipracks_lname",
+    "options": [
+      {"label": "Opentrons 96 Tip Rack 20 uL", "value": "opentrons_96_tiprack_20ul" },
+      {"label": "Opentrons 96 Tip Rack 300 uL", "value": "opentrons_96_tiprack_300ul" },
+      {"label": "Opentrons 96 Tip Rack 1000 uL", "value": "opentrons_96_tiprack_1000ul" },
+      {"label": "Opentrons 96 Filter Tip Rack 20 uL", "value": "opentrons_96_filtertiprack_20ul" },
+      {"label": "Opentrons 96 Filter Tip Rack 200 uL", "value": "opentrons_96_filtertiprack_200ul" },
+      {"label": "Opentrons 96 Filter Tip Rack 1000 uL", "value": "opentrons_96_filtertiprack_1000ul" },
+      {"label": "None", "value": "None"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reagent reservoir",
+    "name": "reservoir_lname",
+    "options": [
+      {"label": "NEST 12 Well Reservoir 15 mL", "value": "nest_12_reservoir_15ml" },
+      {"label": "USA Scientific 12 Well Reservoir 22 mL", "value": "usascientific_12_reservoir_22ml" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination plate",
+    "name": "destination_plate_lname",
+    "options": [
+      { "label": "NEST 96 Well Plate 200 µL Flat", "value": "nest_96_wellplate_200ul_flat" },
+      { "label": "USA Scientific 96 Deep well Plate 2.4 mL", "value": "usascientific_96_wellplate_2.4ml_deep" },
+      { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "Corning 96 well Plate 360 µL Flat", "value": "corning_96_wellplate_360_ul_flat" },
+      { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "NEST 96 Deepwell plate 2 mL", "value": "nest_96_wellplate_2ml_deep" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Sample plate",
+    "name": "sample_plate_lname",
+    "options": [
+      { "label": "NEST 96 Deepwell plate 2 mL", "value": "nest_96_wellplate_2ml_deep" },
+      { "label": "USA Scientific 96 Deep well Plate 2.4 mL", "value": "usascientific_96_wellplate_2.4ml_deep" },
+      { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+      { "label": "Corning 96 well Plate 360 µL Flat", "value": "corning_96_wellplate_360_ul_flat" },
+      { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "NEST 96 Well Plate 200 µL Flat", "value": "nest_96_wellplate_200ul_flat" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Magnetic module",
+    "name": "mag_mod_lname",
+    "options": [
+      { "label": "Magnetic module Gen2", "value": "magnetic module gen2" },
+      { "label": "Magnetic module Gen1", "value": "magnetic module" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tube rack (optional)",
+    "name": "tube_rack_lname",
+    "options": [
+      { "label": "None", "value": null },
+      { "label": "Opentrons 24 Tube Rack with Eppendorf 1.5 mL Safe-Lock Snapcap", "value": "opentrons_24_tuberack_eppendorf_1.5ml_safelock_snapcap" },
+      { "label": "Opentrons 24 Tube Rack with Eppendorf 2 mL Safe-Lock Snapcap", "value": "opentrons_24_tuberack_eppendorf_2ml_safelock_snapcap" },
+      { "label": "Opentrons 24 Tube Rack with Generic 2 mL Screwcap", "value": "opentrons_24_tuberack_generic_2ml_screwcap" },
+      { "label": "Opentrons 24 Tube Rack with NEST 0.5 mL Screwcap", "value": "opentrons_24_tuberack_nest_0.5ml_screwcap" },
+      { "label": "Opentrons 24 Tube Rack with NEST 1.5 mL Screwcap", "value": "opentrons_24_tuberack_nest_1.5ml_screwcap" },
+      { "label": "Opentrons 24 Tube Rack with NEST 1.5 mL Snapcap", "value": "opentrons_24_tuberack_nest_1.5ml_snapcap" },
+      { "label": "Opentrons 24 Tube Rack with NEST 2 mL Screwcap", "value": "opentrons_24_tuberack_nest_2ml_screwcap" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Destination plate temperature module (optional)",
+    "name": "dest_temp_mod_lname",
+    "options": [
+      { "label": "None", "value": null },
+      { "label": "Temperature module Gen2", "value": "temperature module gen2" },
+      { "label": "Temperature module Gen1", "value": "temperature module" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pause robot operation to allow user to vortex magnetic beads?",
+    "name": "do_vortex_pause",
+    "options": [
+      { "label": "Yes", "value": true },
+      { "label": "No", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Elute proteins in SDS buffer instead of elution buffer",
+    "name": "do_SDS_step",
+    "options": [
+      { "label": "No", "value": false },
+      { "label": "Yes", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Add DNAse I to lysis sample from a tube? If not, the enzyme must be added to the lysis buffer by user",
+    "name": "do_DNAse_step",
+    "options": [
+      { "label": "No", "value": false },
+      { "label": "Yes", "value": true }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Add NaCl to samples to a conc. of 500 mM during wash steps to enhance protein binding?",
+    "name": "use_NaCl",
+    "options": [
+      { "label": "No", "value": false },
+      { "label": "Yes", "value": true }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Volume of paramagnetic beads to use with each sample (µL)",
+    "name": "bead_volume",
+    "default": 30
+  },
+  {
+    "type": "float",
+    "label": "Wash buffer volume for the washing steps (µL)",
+    "name": "wash_buf_vol",
+    "default": 150
+  },
+  {
+    "type": "float",
+    "label": "Elution buffer volume to elute proteins with (µL)",
+    "name": "elution_buf_vol",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Number of washing steps",
+    "name": "n_washes",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Number of times to mix the wash buffer with the beads for each wash step",
+    "name": "n_wash_mixes",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Number of times to mix the elution buffer with the beads",
+    "name": "n_elution_mixes",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Bead incubation time for binding and eluting protein (before magnets are engaged)",
+    "name": "incubation_time",
+    "default": 2
+  },
+  {
+    "type": "int",
+    "label": "Number of times to mix the bead solution before transferring beads to the samples",
+    "name": "n_bead_mixes",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "SDS buffer volume to elute proteins with (optional: this only matters if you decide to elute with SDS buffer)",
+    "name": "sds_buffer_vol",
+    "default": 30
+  },
+  {
+    "type": "float",
+    "label": "Starting volume of bacterial media",
+    "name": "starting_volume",
+    "default": 1000
+  }
+]

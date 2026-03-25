@@ -1,0 +1,130 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Dry run?",
+    "name": "DRYRUN",
+    "options": [
+      {"label": "NO (live run)", "value": false},
+      {"label": "YES (test run)", "value": true}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Test mode beads?",
+    "name": "TEST_MODE_BEADS",
+    "options": [
+      {"label": "NO (live run)", "value": false},
+      {"label": "YES (test run)", "value": true}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Water aspirate/dispense flow rate",
+    "name": "water_rate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Buffer mastermix primer aspirate/dispense rate",
+    "name": "buffer_mmx_primer_rate",
+    "default": 0.8
+  },
+  {
+    "type": "float",
+    "label": "Sample aspirate/dispense rate",
+    "name": "sample_rate",
+    "default": 0.6
+  },
+  {
+    "type": "float",
+    "label": "Beads aspirate/dispense rate",
+    "name": "beads_rate",
+    "default": 0.5
+  },
+
+  {
+    "type": "float",
+    "label": "Ethanol aspirate/dispense rate",
+    "name": "ethanol_rate",
+    "default": 0.8
+  },
+
+  {
+    "type": "int",
+    "label": "Bead mix repetitions",
+    "name": "beads_mix_reps",
+    "default": 3
+  },
+
+  {
+    "type": "float",
+    "label": "Bead mix aspirate/dispense rate",
+    "name": "beads_mix_rate",
+    "default": 1.2
+  },
+
+  {
+    "type": "int",
+    "label": "Magnetic deck engage height",
+    "name": "magdeck_engage_height",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "Ethanol dispense z offset",
+    "name": "ethnaol_dis_zoffset",
+    "default": -2
+  },
+  {
+    "type": "int",
+    "label": "Incubation Time (minutes)",
+    "name": "incubation_time",
+    "default": 5
+  },
+
+  {
+    "type": "int",
+    "label": "Beads Engaging Time (minutes)",
+    "name": "beads_engaging_time",
+    "default": 5
+  },
+
+  {
+    "type": "int",
+    "label": "Beads Air Dry Time (minutes)",
+    "name": "airdry_time",
+    "default": 2
+  },
+
+  {
+    "type": "int",
+    "label": "Ethanol Wash Time (minutes)",
+    "name": "ethanol_wash_time",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

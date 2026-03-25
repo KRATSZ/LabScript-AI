@@ -1,0 +1,8 @@
+[
+  {
+    "type": "textFile",
+    "label": "input .csv file",
+    "name": "sample_quant_csv",
+    "default": "Sample_Plate,Sample_well,InitialVol,InitialConc,TargetConc\nsample_plate,A1,20,2.3,2\nsample_plate,B1,20,3.99,2\nsample_plate,C1,20,4.39,2\nsample_plate,D1,20,3.95,2\nsample_plate,E1,20,4.16,2\nsample_plate,F1,20,3.81,2\nsample_plate,G1,20,3.96,2\nsample_plate,H1,20,3.41,2\n"
+  }
+]

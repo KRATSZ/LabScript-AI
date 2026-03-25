@@ -1,0 +1,38 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "pip_type",
+    "options": [
+      {"label": "Single Channel", "value": "p300_single"},
+      {"label": "Multi Channel", "value": "p300_multi"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pip_mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Touch Tip (After Aspiration)",
+    "name": "tt_asp",
+    "options": [
+      {"label": "No", "value": "no"},
+      {"label": "Yes", "value": "yes"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Touch Tip (After Dispense)",
+    "name": "tt_disp",
+    "options": [
+      {"label": "No", "value": "no"},
+      {"label": "Yes", "value": "yes"}
+    ]
+  }
+]

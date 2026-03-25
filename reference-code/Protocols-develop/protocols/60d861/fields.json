@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi GEN2 mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  }
+]

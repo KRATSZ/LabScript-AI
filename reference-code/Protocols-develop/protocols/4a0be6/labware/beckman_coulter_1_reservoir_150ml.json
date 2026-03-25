@@ -1,0 +1,62 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ]
+    ],
+    "brand": {
+        "brand": "Beckman Coulter",
+        "brandId": []
+    },
+    "metadata": {
+        "displayName": "Beckman Coulter Reservoir 150mL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.48,
+        "zDimension": 38
+    },
+    "wells": {
+        "A1": {
+            "depth": 35.74,
+            "totalLiquidVolume": 150000,
+            "shape": "rectangular",
+            "xDimension": 108,
+            "yDimension": 72,
+            "x": 63.88,
+            "y": 42.74,
+            "z": 2.26
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "flat"
+            },
+            "wells": [
+                "A1"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "beckman_coulter_1_reservoir_150ml"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

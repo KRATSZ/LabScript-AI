@@ -1,0 +1,66 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "source sample volume (in ul)",
+    "name": "vol_sample",
+    "default": 20.0
+  },
+  {
+    "type": "float",
+    "label": "bead:reaction volume ratio",
+    "name": "ratio_beads",
+    "default": 1.5
+  },
+  {
+    "type": "float",
+    "label": "EtOH wash volume (in ul)",
+    "name": "vol_wash",
+    "default": 150.0
+  },
+  {
+    "type": "float",
+    "label": "elution volume (in ul)",
+    "name": "vol_elution",
+    "default": 50.0
+  },
+  {
+    "type": "float",
+    "label": "bead separation time (in minutes)",
+    "name": "time_settling",
+    "default": 3.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 multi-channel GEN2 pipette mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel GEN2 pipette mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "steps to perform",
+    "name": "perform_steps",
+    "options": [
+      {"label": "PCR prep and cleanup", "value": "pcr_prep,cleanup"},
+      {"label": "PCR prep only", "value": "pcr_prep"},
+      {"label": "bead cleanup only", "value": "cleanup"}
+    ]
+  }
+]

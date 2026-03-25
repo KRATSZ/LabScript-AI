@@ -1,0 +1,59 @@
+[
+  {
+    "type": "textFile",
+    "label": "input file",
+    "name": "input_file",
+    "default": "Number of Redo\n8\npos TB_RCK_1,pos MTP_1,disposal_vol,transfer_vol\nREPLACE WITH SCAN,REPLACE WITH SCAN\n1,1,200,200\n2,35,200,200\n3,2,150,200\n4,90,100,100\n5,84\n6,62\n7,42\n8,18\n"
+  },
+  {
+    "type": "textFile",
+    "label": "input file 2",
+    "name": "input_file2",
+    "default": ""
+  },
+  {
+    "type": "str",
+    "label": "tuberack scan",
+    "name": "tuberack_scan",
+    "default": "REPLACE WITH SCAN_XXX"
+  },
+  {
+    "type": "str",
+    "label": "plate scan",
+    "name": "plate_scan",
+    "default": "REPLACE WITH SCAN_XXX"
+  },
+  {
+    "type": "str",
+    "label": "tuberack scan 2",
+    "name": "tuberack_scan2",
+    "default": "REPLACE WITH SCAN_XXX"
+  },
+  {
+    "type": "str",
+    "label": "plate scan 2",
+    "name": "plate_scan2",
+    "default": "REPLACE WITH SCAN_XXX"
+  },
+  {
+    "type": "float",
+    "label": "default initial disposal volume (µl)",
+    "name": "default_disposal_vol",
+    "default": 200.0
+  },
+  {
+    "type": "float",
+    "label": "default new transfer volume (µl)",
+    "name": "default_transfer_vol",
+    "default": 200.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

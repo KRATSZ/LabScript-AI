@@ -1,0 +1,225 @@
+[
+    {
+      "type": "dropDown",
+      "label": "P20 Multichannel GEN2 Mount Position",
+      "name": "m20_mount",
+      "options": [
+        { "label": "Left", "value": "left" },
+        { "label": "Right", "value": "right" }
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "P300 Multichannel GEN2 Mount Position",
+        "name": "m300_mount",
+        "options": [
+          { "label": "Right", "value": "right" },
+          { "label": "Left", "value": "left" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Temperature module in slot 1",
+        "name": "temp_mod_s1_lname",
+        "options": [
+          { "label": "Temperature module Gen2", "value": "temperature module gen2" },
+          { "label": "None", "value": null },
+          { "label": "Temperature module Gen1", "value": "temperature module" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Temperature module in slot 4",
+        "name": "temp_mod_s4_lname",
+        "options": [
+          { "label": "Temperature module Gen2", "value": "temperature module gen2" },
+          { "label": "None", "value": null },
+          { "label": "Temperature module Gen1", "value": "temperature module" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Temperature module in slot 7",
+        "name": "temp_mod_s7_lname",
+        "options": [
+          { "label": "Temperature module Gen2", "value": "temperature module gen2" },
+          { "label": "None", "value": null },
+          { "label": "Temperature module Gen1", "value": "temperature module" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Sample plate",
+        "name": "samples_loadname",
+        "options": [
+          { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+          { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 µL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+          { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Reagent 1 plate",
+        "name": "reagent1_loadname",
+        "options": [
+          { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 µL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+          { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+          { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Reagent 2 plate",
+        "name": "reagent2_loadname",
+        "options": [
+          { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+          { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 µL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+          { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Indexing plate",
+        "name": "indexing_plate_loadname",
+        "options": [
+          { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+          { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 µL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+          { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Primer plate",
+        "name": "primer_loadname",
+        "options": [
+          { "label": "Bio-Rad 96 Well Plate 200 µL PCR", "value": "biorad_96_wellplate_200ul_pcr" },
+          { "label": "Opentrons 96 Well Aluminum Block with Bio-Rad Well Plate 200 µL", "value": "opentrons_96_aluminumblock_biorad_wellplate_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with Generic PCR Strip 200 µL", "value": "opentrons_96_aluminumblock_generic_pcr_strip_200ul" },
+          { "label": "Opentrons 96 Well Aluminum Block with NEST Well Plate 100 µL", "value": "opentrons_96_aluminumblock_nest_wellplate_100ul" },
+          { "label": "NEST 96 Well Plate 100 µL PCR Full Skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Reagent reservoir",
+        "name": "reservoir_loadname",
+        "options": [
+          { "label": "NEST 12 Well Reservoir 15 mL", "value": "nest_12_reservoir_15ml" },
+          { "label": "USA Scientific 12 Well Reservoir 22 mL", "value": "usascientific_12_reservoir_22ml" }
+        ]
+      },
+    {
+        "type": "dropDown",
+        "label": "Ethanol reservoir",
+        "name": "ethanol_res_loadname",
+        "options": [
+          { "label": "Agilent 1 Well Reservoir 290 mL", "value": "agilent_1_reservoir_290ml" },
+          { "label": "Axygen 1 Well Reservoir 90 mL", "value": "axygen_1_reservoir_90ml" },
+          { "label": "NEST 1 Well Reservoir 195 mL", "value": "nest_1_reservoir_195ml" }
+        ]
+      },
+    {
+        "type": "int",
+        "label": "Number of Samples",
+        "name": "n_samples",
+        "default": 96
+      },
+    {
+        "type": "float",
+        "label": "Temperature (deg C) for temperature module on slot 1 in part 1",
+        "name": "temp_s1_part1",
+        "default": 4.0
+      },
+    {
+        "type": "float",
+        "label": "Temperature (deg C) for temperature module on slot 4 in part 1",
+        "name": "temp_s4_part1",
+        "default": 4.0
+      },
+    {
+        "type": "float",
+        "label": "Temperature (deg C) for temperature module on slot 7 in part 1",
+        "name": "temp_s7_part1",
+        "default": 4.0
+      },
+    {
+        "type": "float",
+        "label": "Temperature (deg C) for temperature module on slot 1 in part 2",
+        "name": "temp_s1_part2",
+        "default": 4.0
+      },
+    {
+        "type": "float",
+        "label": "Temperature (deg C) for temperature module on slot 4 in part 2",
+        "name": "temp_s4_part2",
+        "default": 4.0
+      },
+    {
+        "type": "float",
+        "label": "Temperature (deg C) for temperature module on slot 7 in part 2",
+        "name": "temp_s7_part2",
+        "default": 4.0
+      },
+    {
+        "type": "float",
+        "label": "Volume of reagent 1 to add",
+        "name": "reag1_vol",
+        "default": 2.0
+      },
+    {
+        "type": "float",
+        "label": "Volume of reagent 2 to add",
+        "name": "reag2_vol",
+        "default": 12.0
+      },
+    {
+        "type": "float",
+        "label": "Ethanol wash volume",
+        "name": "ethanol_wash_vol",
+        "default": 180.0
+      },
+    {
+        "type": "float",
+        "label": "Mastermix volume",
+        "name": "mastermix_vol",
+        "default": 25.0
+      },
+    {
+        "type": "float",
+        "label": "Primer mix volume",
+        "name": "primer_mix_vol",
+        "default": 5.0
+      },
+    {
+        "type": "float",
+        "label": "Bead volume",
+        "name": "bead_vol",
+        "default": 95.0
+      },
+    {
+        "type": "float",
+        "label": "Elution buffer volume",
+        "name": "elution_buffer_vol",
+        "default": 21.0
+      },
+    {
+        "type": "float",
+        "label": "Sample volume",
+        "name": "sample_vol",
+        "default": 19.0
+      },
+    {
+        "type": "float",
+        "label": "DNA supernatant volume",
+        "name": "DNA_supernat_vol",
+        "default": 20.0
+      }
+  ]

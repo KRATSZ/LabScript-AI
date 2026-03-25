@@ -1,0 +1,35 @@
+[
+
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "num_samp",
+    "default": 24
+  },
+
+  {
+    "type": "int",
+    "label": "Magnetic Module Engage Height",
+    "name": "mag_height",
+    "default": 3
+  },
+
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

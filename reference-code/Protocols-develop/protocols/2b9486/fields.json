@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P20 multi-channel pipette mount",
+    "name": "m20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  }
+]

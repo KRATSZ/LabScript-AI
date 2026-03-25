@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P20-single GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "textFile",
+    "label": "transfer .csv file",
+    "name": "transfer_csv",
+    "default": "Sample #,Position,Sample ID,Amt Lib (ul),Total Vol. (ul)\n1,A02,GMS,2,131.8\n2,A03,MCS,2.44,\n3,A04,DCS,3.05,\n4,A05,Log Dist,12.45,\n5,A06,NC_NC,15,\n6,B01,NC_Mg,15,"
+  }
+]

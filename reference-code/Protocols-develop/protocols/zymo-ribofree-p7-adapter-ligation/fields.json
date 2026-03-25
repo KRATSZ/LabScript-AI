@@ -1,0 +1,17 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "number_of_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

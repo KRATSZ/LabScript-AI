@@ -1,0 +1,14 @@
+[
+    {
+      "type": "int",
+      "label": "Number of DNA Samples",
+      "name": "number_of_DNA_samples",
+      "default": 21
+    },
+    {
+        "type": "int",
+        "label": "Number of Oligo Standards",
+        "name": "number_of_oligo_standards",
+        "default": 8
+      }
+  ]

@@ -1,0 +1,102 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "SAMPLES",
+    "options": [
+      {"label": "8", "value": "8x"},
+      {"label": "16", "value": "16x"},
+      {"label": "24", "value": "24x"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Test Mode (dry run)",
+    "name": "DRYRUN",
+    "options": [
+      {"label": "No (run samples)", "value": "NO"},
+      {"label": "Yes (no samples)", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Modules",
+    "name": "NOMODULES",
+    "options": [
+      {"label": "Yes", "value": "NO"},
+      {"label": "No (for testing)", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reuse Tips",
+    "name": "TIPREUSE",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Thermocycler",
+    "name": "ONDECK",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Opentrons Offsets",
+    "name": "OFFSET",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform ERAT Step",
+    "name": "STEP_ERAT",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform Ligation Step",
+    "name": "STEP_LIG",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform Post-Ligation Step",
+    "name": "STEP_POSTLIG",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform PCR Step",
+    "name": "STEP_PCR",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Perform Post-PCR Step",
+    "name": "STEP_POSTPCR",
+    "options": [
+      {"label": "Yes", "value": 1},
+      {"label": "No", "value": 0}
+    ]
+  }
+]

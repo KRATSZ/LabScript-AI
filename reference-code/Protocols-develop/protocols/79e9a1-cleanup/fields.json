@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 16
+  },
+  {
+    "type": "int",
+    "label": "sample starting column (1-12)",
+    "name": "col_start",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "volume of initial sample (in ul)",
+    "name": "vol_initial",
+    "default": 45.0
+  },
+  {
+    "type": "float",
+    "label": "volume of beads (in ul)",
+    "name": "vol_beads",
+    "default": 60
+  },
+  {
+    "type": "float",
+    "label": "volume of wash (in ul)",
+    "name": "vol_wash",
+    "default": 150.0
+  },
+  {
+    "type": "float",
+    "label": "volume of elution (in ul)",
+    "name": "vol_elution",
+    "default": 42.0
+  }
+]

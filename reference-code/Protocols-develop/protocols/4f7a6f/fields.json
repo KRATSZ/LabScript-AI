@@ -1,0 +1,35 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv",
+    "default": "N.º PROTEIN,VOLUME_EXCHANGE (ul),VOLUME_RESERVOIR (ml),TEMPERATURE_MODULE 1 (ºC),TEMPERATURE_MODULE 2 (ºC),TIME_PROTOCOL (min),TIME_INCUBATE (min)\n96,300,195,4,4,840,30\n48,200,195,4,4,840,20"
+  },
+  {
+    "type": "int",
+    "label": "Initial volume of buffer reservoir in Slot 4 (mL)",
+    "name": "init_vol_buff1",
+    "default": 130
+  },
+  {
+    "type": "int",
+    "label": "Initial volume of buffer reservoir in Slot 5 (mL)",
+    "name": "init_vol_buff2",
+    "default": 130
+  },
+  {
+    "type": "int",
+    "label": "Initial volume of buffer reservoir in Slot 6 (mL)",
+    "name": "init_vol_buff3",
+    "default": 130
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

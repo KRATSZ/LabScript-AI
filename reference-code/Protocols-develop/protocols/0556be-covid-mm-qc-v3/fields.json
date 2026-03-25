@@ -1,0 +1,29 @@
+[
+    {
+        "type": "dropDown",
+        "label": "P1000-single GEN2 mount",
+        "name": "p1000_mount",
+        "options": [
+          {"label": "right", "value": "right"},
+          {"label": "left", "value": "left"}
+        ]
+    },
+    {
+      "type": "int",
+      "label": "Temperature in Celsius (Temperature Module)",
+      "name": "temperature",
+      "default": 8
+    },
+    {
+      "type": "float",
+      "label": "Master Mix Volume (uL)",
+      "name": "volume",
+      "default": 546
+    },
+    {
+        "type": "float",
+        "label": "Master Mix Volume Height (mm)",
+        "name": "mm_height",
+        "default": 75
+    }
+  ]

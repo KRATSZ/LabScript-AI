@@ -1,0 +1,39 @@
+[
+  {
+    "type": "textFile",
+    "label": "cherrypicking .csv input file",
+    "name": "cherrypicking_CSV",
+    "default": "source plate, source well, destination well\n1, A1, A1\n2, H2, B1\n3, B3, C3\n4, C7, D2\n5, A3, C1\n6, G1, D1\n7, H1, D8\n8, A12, C12\n9, B11, E11"
+  },
+  {
+    "type": "float",
+    "label": "volume to cherrypick (µl)",
+    "name": "volume_to_cherrypick_in_ul",
+    "default": 30.0
+  },
+  {
+    "type": "str",
+    "label": "starting tip well (A1-H12)",
+    "name": "starting_tip_position",
+    "default": "A1"
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette type",
+    "name": "pipette_type",
+    "options": [
+      { "label": "P10 GEN1 Single-channel", "value": "p10_single" },
+      { "label": "P50 GEN1 Single-channel", "value": "p50_single" },
+      { "label": "P300 GEN1 Single-channel", "value": "p300_single" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "pipette mount",
+    "name": "pipette_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

@@ -1,0 +1,48 @@
+[
+  {
+    "type": "int",
+    "label": "Total PCR samples (Max: 96)",
+    "name": "total_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Types",
+    "name": "pipette_types",
+    "options": [
+      {"label": "Single Channel Pipettes", "value": "single"},
+      {"label": "Multichannel Pipettes", "value": "multi"}
+    ]
+  },
+  {
+      "type": "dropDown",
+      "label": "Left Pipette Type",
+      "name": "pip_l",
+      "options": [
+        {"label": "P1000 Single GEN2", "value": "p1000_single_gen2"},
+        {"label": "P20 Single GEN2", "value": "p20_single_gen2"},
+        {"label": "P300 Multi GEN2", "value": "p300_multi_gen2"},
+        {"label": "P20 Multi GEN2", "value": "p20_multi_gen2"}
+      ]
+  },
+  {
+      "type": "dropDown",
+      "label": "Right Pipette Type",
+      "name": "pip_r",
+      "options": [
+        {"label": "P20 Single GEN2", "value": "p20_single_gen2"},
+        {"label": "P1000 Single GEN2", "value": "p1000_single_gen2"},
+        {"label": "P300 Multi GEN2", "value": "p300_multi_gen2"},
+        {"label": "P20 Multi GEN2", "value": "p20_multi_gen2"}
+      ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tip Type",
+    "name": "tip_type",
+    "options": [
+      {"label": "Filter", "value": "filter"},
+      {"label": "Standard", "value": "standard"}
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "type": "int",
+    "label": "number of capsules to fill (1-300)",
+    "name": "num_samples",
+    "default": 100
+  },
+  {
+    "type": "float",
+    "label": "transfer volume (in ul)",
+    "name": "transfer_vol",
+    "default": 500
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 single GEN2 mount",
+    "name": "p1000_mount",
+    "options": [
+       { "label": "right", "value": "right" },
+       { "label": "left", "value": "left" }
+     ]
+  }
+]

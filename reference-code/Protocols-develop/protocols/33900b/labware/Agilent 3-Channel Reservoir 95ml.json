@@ -1,0 +1,100 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ]
+    ],
+    "brand": {
+        "brand": "Agilent",
+        "brandId": [
+            "204249-100"
+        ]
+    },
+    "metadata": {
+        "displayName": "Agilent 3-Channel Reservoir 95ml",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.76,
+        "yDimension": 85.47,
+        "zDimension": 44.04
+    },
+    "wells": {
+        "A1": {
+            "depth": 39.22,
+            "totalLiquidVolume": 95000,
+            "shape": "rectangular",
+            "xDimension": 35.11,
+            "yDimension": 75,
+            "x": 27.88,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A2": {
+            "depth": 39.22,
+            "totalLiquidVolume": 95000,
+            "shape": "rectangular",
+            "xDimension": 35.11,
+            "yDimension": 75,
+            "x": 63.88,
+            "y": 42.73,
+            "z": 4.82
+        },
+        "A3": {
+            "depth": 39.22,
+            "totalLiquidVolume": 95000,
+            "shape": "rectangular",
+            "xDimension": 35.11,
+            "yDimension": 75,
+            "x": 99.88,
+            "y": 42.73,
+            "z": 4.82
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "displayName": "Agilent 3-Channel Reservoir 95ml",
+                "displayCategory": "reservoir",
+                "wellBottomShape": "v"
+            },
+            "brand": {
+                "brand": "Agilent",
+                "brandId": [
+                    "204249-100"
+                ]
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "agilent_3_reservoir_95ml"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

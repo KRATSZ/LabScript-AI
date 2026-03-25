@@ -1,0 +1,44 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-382)",
+    "name": "num_samp",
+    "default": 382
+  },
+  {
+    "type": "dropDown",
+    "label": "96 Plate Type",
+    "name": "plate_96",
+    "options": [
+      {"label": "Thermofisher Plate", "value": "thermofisherscientific_96_wellplate_50ul"},
+      {"label": "Kingfisher Plate", "value": "kingfisher_96_wellplate_200ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "384 Plate Type",
+    "name": "plate_384",
+    "options": [
+      {"label": "Black Numbers Plate", "value": "black_num_384"},
+      {"label": "Clear Numbers Plate", "value": "white_num_384"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Temperature Module?",
+    "name": "use_temp",
+    "options": [
+      {"label": "Yes, use temperature module at 4C in slot 3", "value": true},
+      {"label": "No do not use", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

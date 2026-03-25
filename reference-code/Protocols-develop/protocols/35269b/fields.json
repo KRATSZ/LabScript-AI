@@ -1,0 +1,23 @@
+[
+    {
+      "type": "int",
+      "label": "Total number of samples",
+      "name": "num_samples",
+      "default": 96
+    },
+    {
+      "type": "float",
+      "label": "Magnetic Module Height (mm)",
+      "name": "mag_height",
+      "default": 4.1
+    },
+    {
+        "type": "dropDown",
+        "label": "P300-multi GEN2 mount",
+        "name": "m300_mount",
+        "options": [
+          {"label": "left", "value": "left"},
+          {"label": "right", "value": "right"}
+        ]
+    }
+  ]

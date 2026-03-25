@@ -1,0 +1,50 @@
+[
+  {
+    "type": "textFile",
+    "label": ".csv input file",
+    "name": "input_csv",
+    "default": "source plate well,destination plate well,volume sample (µl),volume diluent (µl)\\nA1,A1,2,28\\nB1,B1,5,25\\nC1,C1,1.0,20\\nD1,D1,15,15\\nD12,D12,25,5\\nD10,D10,25.32,5.55"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "Aspiration height from bottom of the source plate wells [mm]",
+    "name": "aspiration_height_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Dispensing height from bottom of the target plate wells [mm]",
+    "name": "dispensing_height_plate",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Aspiration height from bottom of the reservoir wells [mm]",
+    "name": "aspiration_height_resv",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Flow rate multiplier",
+    "name": "flow_rate_multiplier",
+    "default": 0.5
+  }
+]

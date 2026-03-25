@@ -1,0 +1,32 @@
+[
+  {
+    "type": "int",
+    "label": "number of blood samples (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "textFile",
+    "label": ".csv file to specify PCR mix destinations",
+    "name": "mix_csv",
+    "default": "mix tube,PCR plate start well,PCR plate end well\nA1,A1,H2\nB1,A3,H6\nC1,A7,H8\nD1,A9,H12"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel GEN2 mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

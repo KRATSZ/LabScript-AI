@@ -1,0 +1,83 @@
+[
+  {
+    "type": "int",
+    "label": "number of extracts",
+    "name": "num_extracts",
+    "default": 100
+  },
+  {
+    "type": "dropDown",
+    "label": "HPLC rack type",
+    "name": "lw_hplc",
+    "options": [
+      { "label": "black", "value": "bd_54_tuberack_5ml_black" },
+      { "label": "blue", "value": "bd_48_tuberack_5ml_blue" }
+    ]
+  },
+  {
+    "type": "float",
+    "label": "dilution volume (in ul)",
+    "name": "vol_dilution",
+    "default": 500.0
+  },
+  {
+    "type": "int",
+    "label": "mix repetitions of dilution",
+    "name": "mixreps_dilution",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "source 50ml tube aspiration height (in mm above bottom)",
+    "name": "height_source",
+    "default": 5.0
+  },
+  {
+    "type": "float",
+    "label": "dilution 15ml tube volume (in uL), left pipette",
+    "name": "vol_dilution_1_l",
+    "default": 500.0
+  },
+  {
+    "type": "float",
+    "label": "dilution 15ml tube volume (in uL), right pipette",
+    "name": "vol_dilution_1_r",
+    "default": 500.0
+  },
+  {
+    "type": "float",
+    "label": "dilution 15ml tube low mix height (in mm above bottom)",
+    "name": "height_intermediate_low",
+    "default": 5.0
+  },
+  {
+    "type": "float",
+    "label": "dilution 15ml tube middle mix height (in mm above bottom)",
+    "name": "height_intermediate_middle",
+    "default": 30.0
+  },
+  {
+    "type": "float",
+    "label": "dilution 15ml tube high mix height (in mm above bottom)",
+    "name": "height_intermediate_high",
+    "default": 60.0
+  },
+  {
+    "type": "float",
+    "label": "final HPLC tube volume (in uL), left pipette",
+    "name": "vol_dilution_2_l",
+    "default": 800.0
+  },
+  {
+    "type": "float",
+    "label": "final HPLC tube volume (in uL), right pipette",
+    "name": "vol_dilution_2_r",
+    "default": 800.0
+  },
+  {
+    "type": "float",
+    "label": "final HPLC tube dispense height (in mm above bottom)",
+    "name": "height_final",
+    "default": 5.0
+  }
+]

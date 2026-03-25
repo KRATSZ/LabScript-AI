@@ -1,0 +1,32 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P50 single-channel mount",
+    "name": "p50_single_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel mount",
+    "name": "p300_single_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of samples",
+    "name": "number_of_samples",
+    "default": 96
+  },
+  {
+    "type": "textFile",
+    "label": "antibody .csv",
+    "name": "antibody_csv",
+    "default": "Volume per antibody(in ul),Antibody,Well\n2.2,CD3 BUV395,A1\n1.1,CD45 BUV496,A3\n1.1,CD15 BUV563,A5\n1.1,CD45RA BUV615,A7\n2.2,CD14 BUV661,A9\n0.55,CD8 BUV737,A11\n2.2,CD11c BUV805,B2"
+  }
+]

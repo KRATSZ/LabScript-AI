@@ -1,0 +1,218 @@
+{
+    "ordering": [
+        [
+            "A1"
+        ],
+        [
+            "A2"
+        ],
+        [
+            "A3"
+        ],
+        [
+            "A4"
+        ],
+        [
+            "A5"
+        ],
+        [
+            "A6"
+        ],
+        [
+            "A7"
+        ],
+        [
+            "A8"
+        ],
+        [
+            "A9"
+        ],
+        [
+            "A10"
+        ],
+        [
+            "A11"
+        ],
+        [
+            "A12"
+        ]
+    ],
+    "brand": {
+        "brand": "Quintara",
+        "brandId": [
+            "15000"
+        ]
+    },
+    "metadata": {
+        "displayName": "Quintara 12 Reservoir 15000 µL",
+        "displayCategory": "reservoir",
+        "displayVolumeUnits": "µL",
+        "tags": []
+    },
+    "dimensions": {
+        "xDimension": 127.48,
+        "yDimension": 85.23,
+        "zDimension": 27.73
+    },
+    "wells": {
+        "A1": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 14.33,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A2": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 23.27,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A3": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 32.21,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A4": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 41.15,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A5": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 50.09,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A6": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 59.03,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A7": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 67.97,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A8": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 76.91,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A9": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 85.85,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A10": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 94.79,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A11": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 103.73,
+            "y": 43.69,
+            "z": 2.26
+        },
+        "A12": {
+            "depth": 25.47,
+            "totalLiquidVolume": 15000,
+            "shape": "rectangular",
+            "xDimension": 7.25,
+            "yDimension": 74.62,
+            "x": 112.67,
+            "y": 43.69,
+            "z": 2.26
+        }
+    },
+    "groups": [
+        {
+            "metadata": {
+                "wellBottomShape": "v"
+            },
+            "wells": [
+                "A1",
+                "A2",
+                "A3",
+                "A4",
+                "A5",
+                "A6",
+                "A7",
+                "A8",
+                "A9",
+                "A10",
+                "A11",
+                "A12"
+            ]
+        }
+    ],
+    "parameters": {
+        "format": "irregular",
+        "quirks": [
+            "centerMultichannelOnWells",
+            "touchTipDisabled"
+        ],
+        "isTiprack": false,
+        "isMagneticModuleCompatible": false,
+        "loadName": "quintara_12_reservoir_15000ul"
+    },
+    "namespace": "custom_beta",
+    "version": 1,
+    "schemaVersion": 2,
+    "cornerOffsetFromSlot": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+    }
+}

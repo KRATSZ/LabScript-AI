@@ -1,0 +1,81 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples + controls (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 multi-channel GEN2 pipette mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel GEN2 pipette mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  },
+
+  {
+    "type": "float",
+    "label": "magnetic engage height (in mm)",
+    "name": "mag_height",
+    "default": 6.8
+  },
+  {
+    "type": "float",
+    "label": "height offset from bottom of deepwell plate (in mm)",
+    "name": "z_offset",
+    "default": 0.5
+  },
+  {
+    "type": "float",
+    "label": "lateral offset (as fraction of deepwell radius)",
+    "name": "radial_offset",
+    "default": 0.3
+  },
+  {
+    "type": "float",
+    "label": "sample volume",
+    "name": "sample_vol",
+    "default": 45.0
+  },
+  {
+    "type": "float",
+    "label": "binding buffer volume (in ul)",
+    "name": "binding_buffer_vol",
+    "default": 45.0
+  },
+  {
+    "type": "float",
+    "label": "wash 1 volume (in ul, up to 500ul)",
+    "name": "wash1_vol",
+    "default": 200.0
+  },
+  {
+    "type": "float",
+    "label": "wash 2 volume (in ul, up to 500ul)",
+    "name": "wash2_vol",
+    "default": 200.0
+  },
+  {
+    "type": "float",
+    "label": "final elution volume (in ul)",
+    "name": "elution_vol",
+    "default": 50.0
+  },
+  {
+    "type": "float",
+    "label": "bead settling time (in minutes)",
+    "name": "settling_time",
+    "default": 2.0
+  }
+]

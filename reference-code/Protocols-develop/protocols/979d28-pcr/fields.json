@@ -1,0 +1,20 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-96)",
+    "name": "num_samples",
+    "default": 48
+  },
+  {
+    "type": "float",
+    "label": "volume of mastermix (in ul)",
+    "name": "vol_mm",
+    "default": 18.0
+  },
+  {
+    "type": "float",
+    "label": "volume of diluted cDNA (in ul)",
+    "name": "vol_dna",
+    "default": 2.0
+  }
+]

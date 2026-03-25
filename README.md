@@ -6,11 +6,11 @@
 - checking whether a local Opentrons runtime can analyze or simulate a protocol
 - iteratively repairing protocols through a simulation-first loop
 - driving an OT-2 or Flex robot over the LAN HTTP API
-- referencing validated protocol-library examples and Cookbook patterns
+- referencing validated protocol-library examples and reusable code patterns
 
 The repository follows Anthropic's public skills conventions: each skill lives in its own folder with a `SKILL.md`, optional `scripts/`, `references/`, and `assets/`, and the repository also includes `.claude-plugin/plugin.json` so the repo can be treated as a Claude Code plugin root.
 
-This repository is intentionally scoped to its own `skills/`, `mcp-servers/`, `src/`, and `tests/` directories. External checkouts such as `Protocols-develop` or an upstream `opentrons` source tree are optional reference inputs, not part of this project's required layout.
+This repository now bundles a read-only `Protocols-develop` snapshot under `reference-code/Protocols-develop/` for agent reference. External checkouts such as an upstream `opentrons` source tree remain optional inputs.
 
 ## Python Environment
 
@@ -39,8 +39,8 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
   - Runs a multi-round `simulate -> parse -> edit -> simulate` loop.
   - Keeps Claude Code honest about what can be fixed by code edit vs what is a runtime blocker.
 - `skills/opentrons-protocol-library`
-  - References validated protocols and Cookbook patterns from an explicitly configured external protocol-library checkout.
-  - Useful when the user needs an existing example protocol, a known liquid-handling pattern, or a template to adapt.
+  - References bundled validated protocols and optional external overrides.
+  - Useful when the user needs an existing example protocol, a known liquid-handling pattern, or a snippet to adapt.
 
 ## Included MCP Server
 
@@ -56,8 +56,12 @@ This repository's `mcp-servers/opentrons-mcp` is the canonical `opentrons-lab-mc
 ```text
 Opentrons-Lab-Agent/
 ├── .claude-plugin/plugin.json
+├── examples/
+│   └── reference-protocols/
 ├── mcp-servers/
 │   └── opentrons-mcp/
+├── reference-code/
+│   └── Protocols-develop/
 ├── skills/
 │   ├── opentrons-protocol-author/
 │   ├── opentrons-protocol-library/
@@ -68,12 +72,34 @@ Opentrons-Lab-Agent/
 └── tests/
 ```
 
-## External References
+## Reference Library Resolution
 
-- `Opentrons-Lab-Agent` does not require sibling repositories in the same parent directory.
+- `opentrons-protocol-library` resolves its reference library in this order:
+  1. `--library`
+  2. `OPENTRONS_PROTOCOL_LIBRARY_PATH`
+  3. bundled `reference-code/Protocols-develop`
+  4. legacy sibling `../Protocols-develop`
 - `opentrons-protocol-verify` and the MCP simulation helper use the installed `opentrons` runtime by default.
 - If you want to validate against an external source checkout, pass `--workspace-root` or explicit `--api-root` / `--shared-data-root`.
-- If you want to query an external protocol library, pass `--library /path/to/Protocols-develop` or set `OPENTRONS_PROTOCOL_LIBRARY_PATH`.
+- The bundled reference library is read-only reference material and is not part of the package runtime surface.
+
+## Using It In Codex
+
+Codex reads repository guidance from `AGENTS.md`. Open the repository root so Codex can discover:
+
+- `AGENTS.md` for workflow rules
+- `skills/` for authored capabilities
+- `examples/reference-protocols/` for small runnable baselines
+- `reference-code/Protocols-develop/` for real protocol references
+
+Recommended Codex workflow:
+
+1. search the bundled library with `search`
+2. inspect likely matches with `show`
+3. pull reusable fragments with `snippet`
+4. adapt one of `examples/reference-protocols/` or author a new protocol
+5. run `doctor`, then `analyze` or `simulate`
+6. use live MCP execution only after local validation passes
 
 ## Using It In Claude Code
 
@@ -84,6 +110,14 @@ This repository is already shaped like a Claude Code plugin:
 - helper code lives under `src/`
 
 If you use direct skills folders instead of the plugin flow, you can also copy the individual skill directories under `skills/` into the Claude Code skills location used in your environment.
+
+Recommended Claude Code workflow:
+
+1. use `opentrons-protocol-library` to inspect bundled references first
+2. pick a close match from `reference-code/Protocols-develop/` or `examples/reference-protocols/`
+3. switch to `opentrons-protocol-author` for drafting or edits
+4. run `opentrons-protocol-verify` or `opentrons-simulation-repair`
+5. use `opentrons-mcp` only when local checks pass
 
 ## Local Opentrons Runtime Assumptions
 
@@ -114,12 +148,25 @@ uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py doctor
 uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py analyze path/to/protocol.py -- --check
 ```
 
-### Search an external protocol library
+### Search the bundled protocol library
 
 ```bash
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
   search "magnetic beads" "DNA cleanup"
+```
+
+### Inspect one protocol folder
+
+```bash
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  show 00222e
+```
+
+### Extract focused snippets from a protocol
+
+```bash
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  snippet 00222e serial plasma
 ```
 
 ### Query a robot on the LAN
@@ -143,10 +190,21 @@ npm install
 node index.js
 ```
 
+## Reference Protocols For Agents
+
+Small runnable examples live under `examples/reference-protocols/`:
+
+- `ot2_minimal_transfer.py`
+- `flex_minimal_transfer.py`
+- `flex_tip_recovery_reference.py`
+
+Use these as clean starting points for Codex or Claude Code when you need a minimal baseline before adapting a larger protocol-library example.
+
 ## Simulation-First Repair Workflow
 
 Recommended Claude Code tool order:
 
+0. `search_protocols.py search/show/snippet` when you need a real reference first
 1. `doctor_local_runtime`
 2. `simulate_protocol`
 3. `parse_simulation_output`
@@ -318,15 +376,14 @@ Practical note from the current Flex:
 
 ## Protocol Library Knowledge Base
 
-The `opentrons-protocol-library` skill can query an external `Protocols-develop` checkout when you provide its path explicitly with `--library` or `OPENTRONS_PROTOCOL_LIBRARY_PATH`.
-
-That external repository is reference-only and is not part of `Opentrons-Lab-Agent`'s own directory layout.
+The `opentrons-protocol-library` skill uses the bundled `reference-code/Protocols-develop/` snapshot by default and still supports external overrides through `--library` or `OPENTRONS_PROTOCOL_LIBRARY_PATH`.
 
 When configured, the skill can reference:
 
 - validated example protocols with README documentation
-- `Cookbook.md` with common code patterns such as liquid level tracking, wash steps, loops, CSV handling, and tip tracking
-- templates for new protocol development
+- protocol source files for reusable code snippets
+- `fields.json` parameter schemas
+- `Cookbook.md` when the selected snapshot includes it
 
 Example queries:
 
@@ -334,6 +391,8 @@ Example queries:
 - "Show me how to implement liquid level tracking"
 - "Find me a protocol that does serial dilution"
 - "What's the pattern for CSV-based plate layout?"
+- "Show me the source and runtime metadata for protocol 00222e"
+- "Pull snippets related to plasma or serial dilution from protocol 00222e"
 
 ## Optional Source Mapping
 

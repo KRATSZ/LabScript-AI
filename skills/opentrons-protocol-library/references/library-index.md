@@ -1,26 +1,27 @@
 # Protocol Library Quick Index
 
-This document provides quick access to the contents of an external `Protocols-develop` checkout.
+This document provides quick access to the bundled or overridden `Protocols-develop` reference library.
 
 ## Protocol Library Location
 
-Configure the library path with one of these:
+The helper script resolves the library path in this order:
 
-- `--library /path/to/Protocols-develop`
-- `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+1. `--library /path/to/Protocols-develop`
+2. `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
+3. bundled `reference-code/Protocols-develop`
+4. sibling `../Protocols-develop`
 
 ## Structure
 
 ```
 <configured-library>/
-├── protocols/           # 800+ validated protocols
-│   ├── {protocol_id}/   # Each protocol has its own folder
-│   │   ├── README.md    # Description, categories, setup
+├── protocols/              # 800+ validated protocols
+│   ├── {protocol_id}/      # Each protocol has its own folder
+│   │   ├── README.md       # Description, categories, setup
 │   │   ├── *.ot2.apiv2.py  # Protocol file
-│   │   └── fields.json  # Optional parameters
-├── Cookbook.md          # Common code patterns
-├── Template/            # Protocol templates
-└── protolib/            # Helper functions
+│   │   └── fields.json     # Optional parameters
+├── Cookbook.md             # Optional common code patterns
+└── protolib/               # Helper functions
 ```
 
 ## Major Protocol Categories
@@ -50,17 +51,22 @@ Use the search script:
 ```bash
 # Search by keywords
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
   search "magnetic beads" "DNA cleanup" --limit 5
+
+# Inspect one protocol folder
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  show 00222e
+
+# Pull focused README/code snippets
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  snippet 00222e serial plasma
 
 # List Cookbook patterns
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
   cookbook
 
 # List protocol categories
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  --library /path/to/Protocols-develop \
   categories
 ```
 
@@ -83,7 +89,7 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
 
 ## Cookbook Patterns Reference
 
-See `<configured-library>/Cookbook.md` for complete details:
+If `Cookbook.md` exists in the selected snapshot, use:
 
 1. **Basic Skeleton Protocol** - Template for any new protocol
 2. **Liquid Level Tracking** - Simple, Complex, and API 2.13+ versions
@@ -102,13 +108,13 @@ See `<configured-library>/Cookbook.md` for complete details:
 2. Search the library using keywords
 3. Read the README.md of matching protocols
 4. Examine the protocol code for patterns to adapt
-5. Check the Cookbook for any relevant patterns
+5. Check the Cookbook when present, otherwise use `snippet`
 6. Adapt the code to your specific needs
 
 ## Tips for Protocol Authors
 
 - Start from a similar protocol rather than from scratch when possible
-- The Cookbook contains production-tested code patterns
+- Prefer real bundled protocol snippets when the snapshot does not include a cookbook
 - Always verify API level compatibility with your robot
 - Protocol READMEs often contain valuable setup notes
 - Custom labware may be required for some protocols

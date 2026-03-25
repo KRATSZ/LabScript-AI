@@ -1,0 +1,36 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "pip",
+    "options": [
+      { "label": "P20 Single-Channel", "value": "p20_single_gen2" },
+      { "label": "P300 Single-Channel", "value": "p300_single_gen2" },
+      { "label": "P1000 Single-Channel", "value": "p1000_single_gen2" },
+      { "label": "P20 8-Channel", "value": "p20_multi_gen2" },
+      { "label": "P300 8-Channel", "value": "p300_multi_gen2" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "mnt",
+    "options": [
+      { "label": "Left", "value": "left" },
+      { "label": "Right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tiprack Type",
+    "name": "tips",
+    "options": [
+      { "label": "Opentrons 20µL Tip Rack", "value": "opentrons_96_tiprack_20ul" },
+      { "label": "Opentrons 20µL Filter Tip Rack", "value": "opentrons_96_filtertiprack_20ul" },
+      { "label": "Opentrons 300µL Tip Rack", "value": "opentrons_96_tiprack_300ul" },
+      { "label": "Opentrons 200µL Filter Tip Rack", "value": "opentrons_96_filtertiprack_200ul" },
+      { "label": "Opentrons 1000µL Tip Rack", "value": "opentrons_96_tiprack_1000ul" },
+      { "label": "Opentrons 1000µL Filter Tip Rack", "value": "opentrons_96_filtertiprack_1000ul" }
+    ]
+  }
+]

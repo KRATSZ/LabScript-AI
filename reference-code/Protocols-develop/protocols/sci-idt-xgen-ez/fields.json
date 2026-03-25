@@ -1,0 +1,159 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of Samples",
+    "name": "SAMPLES",
+    "options": [
+      {"label": "8", "value": "8x"},
+      {"label": "16", "value": "16x"},
+      {"label": "24", "value": "24x"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Fragmentation Time (minutes)",
+    "name": "FRAGTIME",
+    "default": 30
+  },
+  {
+    "type": "int",
+    "label": "PCR Cycles",
+    "name": "PCRCYCLES",
+    "default": 4
+  },
+  {
+    "type": "dropDown",
+    "label": "Dry Run",
+    "name": "DRYRUN",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use Modules?",
+    "name": "NOMODULES",
+    "options": [
+      {"label": "Yes", "value": "NO"},
+      {"label": "NO", "value": "YES"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Reuse Tips?",
+    "name": "TIPREUSE",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use protocol specific z-offsets?",
+    "name": "OFFSET",
+    "options": [
+      {"label": "Yes", "value": "YES"},
+      {"label": "No", "value": "NO"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Fragmentation / End-Repair / A-Tailing Step?",
+    "name": "STEP_FRERAT",
+    "options": [
+      {"label": "Yes", "value": "1"},
+      {"label": "No", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "If yes, Fragmentation / End-Repair / A-Tailing on deck or off deck?",
+    "name": "STEP_FRERATDECK",
+    "options": [
+      {"label": "On Deck", "value": "1"},
+      {"label": "Off Deck", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Ligation Step?",
+    "name": "STEP_LIG",
+    "options": [
+      {"label": "Yes", "value": "1"},
+      {"label": "No", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "If yes, ligation Step on or off deck?",
+    "name": "STEP_LIGDECK",
+    "options": [
+      {"label": "On deck", "value": "1"},
+      {"label": "Off deck", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Post Ligation Step?",
+    "name": "STEP_POSTLIG",
+    "options": [
+      {"label": "Yes", "value": "1"},
+      {"label": "No", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include PCR Step?",
+    "name": "STEP_PCR",
+    "options": [
+      {"label": "Yes", "value": "1"},
+      {"label": "No", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "If yes, PCR step on or off deck?",
+    "name": "STEP_PCRDECK",
+    "options": [
+      {"label": "On Deck", "value": "1"},
+      {"label": "Off Deck", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include First Post PCR Step?",
+    "name": "STEP_POSTPCR1",
+    "options": [
+      {"label": "Yes", "value": "1"},
+      {"label": "No", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Include Second Post PCR Step?",
+    "name": "STEP_POSTPCR2",
+    "options": [
+      {"label": "Yes", "value": "1"},
+      {"label": "No", "value": "0"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "How many 96 well plates? (1 or 2)",
+    "name": "num_plates",
+    "default": 1
+  },
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": "vial_id, parent_well, dmso_volume, daughter_column\n1, A1, 1000, 1"
+  },
+  {
+    "type": "int",
+    "label": "Initial volume in 50mL tube on slot 8",
+    "name": "init_vol",
+    "default": 40
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single-Channel Mount",
+    "name": "p1000_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

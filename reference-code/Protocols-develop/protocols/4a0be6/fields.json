@@ -1,0 +1,98 @@
+[
+  {
+    "type": "int",
+    "label": "Transfer Volume (in µL)",
+    "name": "transferVol",
+    "default": 105
+  },
+  {
+    "type": "dropDown",
+    "label": "Tube Rack Type",
+    "name": "tubeRacks",
+    "options": [
+       { "label": "48 Well", "value": "x_capper_rack_48_well_"},
+       { "label": "24 Well", "value": "custom_24_well_" },
+       { "label": "12 Well", "value": "custom_12_well_" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Tube Type",
+    "name": "tubeType",
+    "options": [
+       { "label": "0.5mL", "value": "0.5ml" },
+       { "label": "1.5mL", "value": "1.5ml" },
+       { "label": "2mL", "value": "2ml" }
+     ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Racks",
+    "name": "numRacks",
+    "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "Source Container Type",
+    "name": "srcType",
+    "options": [
+       { "label": "15mL Falcon in Opentrons 15x15mL Tuberack", "value": "opentrons_15_tuberack_falcon_15ml_conical" },
+       { "label": "50mL Falcon in Opentrons 6x50mL Tuberack", "value": "opentrons_6_tuberack_falcon_50ml_conical" },
+       { "label": "150mL Beckman Coulter Trough", "value": "beckman_coulter_1_reservoir_150ml" }
+     ]
+  },
+  {
+    "type": "int",
+    "label": "Starting Stock Volume (in mL)",
+    "name": "srcVol",
+    "default": 15
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Type",
+    "name": "pipType",
+    "options": [
+       { "label": "P300-Single (GEN1)", "value": "p300_single" },
+       { "label": "P10-Single (GEN1)", "value": "p10_single" },
+       { "label": "P50-Single (GEN1)", "value": "p50_single" },
+       { "label": "P1000-Single (GEN1)", "value": "p1000_single" },
+       { "label": "P300-Single (GEN2)", "value": "p300_single_gen2" },
+       { "label": "P20-Single (GEN2)", "value": "p20_single_gen2" },
+       { "label": "P1000-Single (GEN2)", "value": "p1000_single_gen2" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Pipette Mount",
+    "name": "pipMnt",
+    "options": [
+       { "label": "Right", "value": "right" },
+       { "label": "Left", "value": "left" }
+     ]
+  },
+  {
+  "type": "str",
+  "label": "Starting Tip",
+  "name": "startTip",
+  "default": "A1"
+  },
+  {
+    "type": "dropDown",
+    "label": "Dispense Mode",
+    "name": "dispMode",
+    "options": [
+       { "label": "Transfer", "value": "Transfer" },
+       { "label": "Dispense", "value": "Dispense" }
+     ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Touch Tip?",
+    "name": "touchTip",
+    "options": [
+       { "label": "Yes", "value": true },
+       { "label": "No", "value": false }
+
+     ]
+  }
+]

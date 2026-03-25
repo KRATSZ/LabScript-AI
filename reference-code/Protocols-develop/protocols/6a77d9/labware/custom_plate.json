@@ -1,0 +1,58 @@
+{
+  "ordering": [
+    [
+      "A1"
+    ]
+  ],
+  "brand": {
+    "brand": "custom",
+    "brandId": [],
+    "links": []
+  },
+  "metadata": {
+    "displayName": "Custom Surface",
+    "displayCategory": "other",
+    "displayVolumeUnits": "µL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 397.5,
+    "yDimension": 236,
+    "zDimension": 100
+  },
+  "wells": {
+    "A1": {
+      "depth": 0.5,
+      "shape": "circular",
+      "diameter": 4.5,
+      "totalLiquidVolume": 20,
+      "x": 14.38,
+      "y": 224.77,
+      "z": 99.5
+    }
+  },
+  "groups": [
+    {
+      "metadata": {
+        "wellBottomShape": "flat"
+      },
+      "wells": [
+        "A1"
+      ]
+    }
+  ],
+  "parameters": {
+    "format": "irregular",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "custom_1_other_20ul"
+  },
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

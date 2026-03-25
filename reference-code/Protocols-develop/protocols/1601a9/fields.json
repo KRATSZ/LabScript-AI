@@ -1,0 +1,11 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P10 Multi Mount",
+    "name": "p10mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  }
+]

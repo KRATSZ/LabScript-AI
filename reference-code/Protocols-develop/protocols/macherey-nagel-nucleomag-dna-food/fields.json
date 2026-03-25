@@ -1,0 +1,107 @@
+[
+    {
+        "type": "int",
+        "label": "Number of Samples [1-48 samples]",
+        "name": "num_samples",
+        "default": 48
+    },
+    {
+        "type": "int",
+        "label": "Starting Volume",
+        "name": "starting_vol",
+        "default": 400
+    },
+    {
+        "type": "int",
+        "label": "Elution Volume [50-200µL]",
+        "name": "elution_vol",
+        "default": 100
+    },
+    {
+        "type": "int",
+        "label": "Binding Buffer Volume",
+        "name": "binding_buffer_vol",
+        "default": 600
+    },
+    {
+        "type": "int",
+        "label": "Bead Volume",
+        "name": "bead_vol",
+        "default": 25
+    },
+    {
+        "type": "int",
+        "label": "Wash 1 Volume",
+        "name": "wash1_vol",
+        "default": 600
+    },
+    {
+        "type": "int",
+        "label": "Wash 2 Volume",
+        "name": "wash2_vol",
+        "default": 600
+    },
+    {
+        "type": "int",
+        "label": "Wash 3 Volume",
+        "name": "wash3_vol",
+        "default": 600
+    },
+    {
+        "type": "int",
+        "label": "Wash 4 Volume",
+        "name": "wash4_vol",
+        "default": 0
+    },
+    {
+        "type": "int",
+        "label": "Mix Repetitions During Binding [pretested default, changing is not recommended]",
+        "name": "mix_reps_bind",
+        "default": 25
+    },
+    {
+        "type": "int",
+        "label": "Mix Repetitions during Wash [pretested default, changing is not recommended]",
+        "name": "mix_reps_wash",
+        "default": 20
+    },
+    {
+        "type": "int",
+        "label": "Mix Repetitions during Elution [pretested default, changing is not recommended]",
+        "name": "mix_reps_elu",
+        "default": 25
+    },
+    {
+        "type": "int",
+        "label": "Separation Time during Binding [pretested default, changing is not recommended]",
+        "name": "sep_time_bind",
+        "default": 5
+    },
+    {
+        "type": "int",
+        "label": "Separation Time during Wash [pretested default, changing is not recommended]",
+        "name": "sep_time_wash",
+        "default": 2
+    },
+    {
+        "type": "int",
+        "label": "Separation Time during Elution [pretested default, changing is not recommended]",
+        "name": "sep_time_elu",
+        "default": 5
+    },
+    {
+        "type": "int",
+        "label": "Time for Air Dry [pretested default, changing is not recommended]",
+        "name": "dry_time",
+        "default": 30
+    },
+    {
+        "type": "dropDown",
+        "label": "Track Tips Between Runs",
+        "name": "tip_track",
+        "options": [
+          { "label": "No", "value": 0 },
+          { "label": "Yes", "value": 1 }
+        ]
+      }
+  ]

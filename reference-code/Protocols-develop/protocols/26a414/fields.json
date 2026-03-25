@@ -1,0 +1,25 @@
+[
+  {
+    "type": "textFile",
+    "label": "Transfer CSV",
+    "name": "v_csv",
+    "default": "A1,8,15"
+  },{
+    "type": "dropDown",
+    "label": "P10 Single Mount",
+    "name": "p10_mnt",
+    "options": [
+      {"label": "Right side", "value": "right"},
+      {"label": "Left side", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P50 Single Mount",
+    "name": "p50_mnt",
+    "options": [
+      {"label": "Left side", "value": "left"},
+      {"label": "Right side", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,51 @@
+[
+    {
+      "type": "float",
+      "label": "mutant volume (in ul)",
+      "name": "volume_of_each_mutant_to_transfer",
+      "default": 50.0
+    },
+    {
+      "type": "dropDown",
+      "label": "P50 single-channel pipette mount",
+      "name": "pipette_mount",
+      "options": [
+        { "label": "left", "value": "left" },
+        { "label": "right", "value": "right" }
+      ]
+    },
+    {
+        "type": "dropDown",
+        "label": "tip strategy",
+        "name": "tip_strategy",
+        "options": [
+            { "label": "one tip per pool", "value": "one tip per pool" },
+            { "label": "new tips for each transfer", "value": "new tips for each transfer" }
+        ]
+    },
+    {
+        "type": "textFile",
+        "label": "inactive .csv",
+        "name": "inactive_CSV",
+        "default": "A5\nA6\nB1\n"
+    },
+    {
+        "type": "textFile",
+        "label": "decreate .csv",
+        "name": "decrease_CSV",
+        "default": "A2\nA3\nA4\nA7\nA8\nB3\nB5\n"
+    },
+    {
+        "type": "textFile",
+        "label": "no change .csv",
+        "name": "no_change_CSV",
+        "default": "B4\nB6\n"
+    },
+    {
+        "type": "textFile",
+        "label": "increase .csv",
+        "name": "increase_CSV",
+        "default": "A1\nB2\n"
+    }
+  ]
+  

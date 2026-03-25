@@ -1,0 +1,59 @@
+[
+  {
+    "type": "dropDown",
+    "label": "PCR labware",
+    "name": "pcr_labware",
+    "options": [
+      { "label": "Abgene AB-0800", "value": "thermofast_96_wellplate_200ul" },
+      { "label": "(Magnetic Module compatible) Nest 96 wellplate 100ul pcr full skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Sample Count (up to 24)",
+    "name": "sample_count",
+    "default": 24
+  },
+  {
+    "type": "int",
+    "label": "Incubation Time for Fragmentation (minutes)",
+    "name": "fragmentation_minutes",
+    "default": 15
+  },
+  {
+    "type": "float",
+    "label": "Initial Sample Volume",
+    "name": "sample_volume",
+    "default": 26.0
+  },
+  {
+    "type": "float",
+    "label": "Reaction Buffer Volume (per sample)",
+    "name": "rxn_bf_volume",
+    "default": 7
+  },
+  {
+    "type": "str",
+    "label": "Reaction Buffer Well Location",
+    "name": "rxn_bf_well",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "Enzyme Mix Volume (per sample)",
+    "name": "enz_mx_volume",
+    "default": 2
+  },
+  {
+    "type": "str",
+    "label": "Enzyme Mix Well Location",
+    "name": "enz_mx_well",
+    "default": "A2"
+  },
+  {
+    "type": "str",
+    "label": "Empty Vial Well Location",
+    "name": "empty_vial_well",
+    "default": "A3"
+  }
+]

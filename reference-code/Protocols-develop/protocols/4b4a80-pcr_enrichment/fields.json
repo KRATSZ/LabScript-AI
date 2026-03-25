@@ -1,0 +1,107 @@
+[
+  {
+    "type": "dropDown",
+    "label": "PCR labware",
+    "name": "pcr_labware",
+    "options": [
+      { "label": "(Magnetic Module compatible) Nest 96 wellplate 100ul pcr full skirt", "value": "nest_96_wellplate_100ul_pcr_full_skirt" },
+      { "label": "Abgene AB-0800", "value": "thermofast_96_wellplate_200ul" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of PCR Enrichment Cycles",
+    "name": "pcr_cycles",
+    "default": 3
+  },
+  {
+    "type": "int",
+    "label": "Sample Count (up to 24)",
+    "name": "sample_count",
+    "default": 24
+  },
+  {
+    "type": "float",
+    "label": "Sample Volume After Size Selection",
+    "name": "post_size_selection_volume",
+    "default": 15.0
+  },
+  {
+    "type": "float",
+    "label": "Q5 Volume (per sample)",
+    "name": "q5_volume",
+    "default": 25.0
+  },
+  {
+    "type": "str",
+    "label": "Q5 Well Location",
+    "name": "q5_well",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "i5 Volume (per sample)",
+    "name": "i5_volume",
+    "default": 5.0
+  },
+  {
+    "type": "str",
+    "label": "i5 Well Location",
+    "name": "i5_well",
+    "default": "A2"
+  },
+  {
+    "type": "float",
+    "label": "i7 Volume (per sample)",
+    "name": "i7_volume",
+    "default": 5.0
+  },
+  {
+    "type": "str",
+    "label": "i7 Well Location",
+    "name": "i7_well",
+    "default": "A3"
+  },
+  {
+    "type": "str",
+    "label": "Empty Vial Well Location",
+    "name": "empty_vial_well",
+    "default": "A4"
+  },
+  {
+    "type": "float",
+    "label": "Bead Volume (per sample)",
+    "name": "spri_beads_volume",
+    "default": 45.0
+  },
+  {
+    "type": "str",
+    "label": "SPRI Beads Well Location",
+    "name": "spri_beads_well",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "80% Ethanol Volume (per sample)",
+    "name": "etoh_volume",
+    "default": 160.0
+  },
+  {
+    "type": "str",
+    "label": "80% Ethanol Well Location",
+    "name": "etoh_well",
+    "default": "A1"
+  },
+  {
+    "type": "float",
+    "label": "0.1X TE Volume (per sample)",
+    "name": "te_volume",
+    "default": 33.0
+  },
+  {
+    "type": "str",
+    "label": "0.1X TE Well Location",
+    "name": "te_well",
+    "default": "A2"
+  }
+]

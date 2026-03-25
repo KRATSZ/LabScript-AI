@@ -1,0 +1,35 @@
+[
+  {
+    "type": "textFile",
+    "label": "worklist input",
+    "name": "worklist",
+    "default": "Pipettor,Slot 5 well (Oligo source plate),Slot 10 well (Destination plate),Volume uL\nP20 single channel,A6,A1,10\nP20 single channel,C1,A1,10\nP20 single channel,A1,B1,10\nP20 single channel,A7,B1,2.5\nP20 single channel,A8,B1,2.5\nP20 single channel,A9,B1,2.5\nP20 single channel,A10,B1,2.5\nP20 single channel,B4,C1,10\nP20 single channel,A2,C1,2.5\nP20 single channel,A3,C1,2.5\nP20 single channel,A4,C1,2.5\nP20 single channel,A5,C1,2.5\nP20 single channel,A11,D1,10\nP20 single channel,B5,D1,2.5\nP20 single channel,B6,D1,2.5\nP20 single channel,B7,D1,2.5\nP20 single channel,B8,D1,2.5\nP20 single channel,C2,E1,10\nP20 single channel,A12,E1,2.5\nP20 single channel,B1,E1,2.5\nP20 single channel,B2,E1,2.5\nP20 single channel,B3,E1,2.5"
+  },
+  {
+    "type": "dropDown",
+    "label": "deactivate Thermocycler following protocol",
+    "name": "do_deactivate_tc",
+    "options": [
+      {"label": "yes", "value": true },
+      {"label": "no", "value": false }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 8-channel GEN2 pipette mount",
+    "name": "mount_m300",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel GEN2 pipette mount",
+    "name": "mount_p20",
+    "options": [
+      {"label": "right", "value": "right"},
+      {"label": "left", "value": "left"}
+    ]
+  }
+]

@@ -1,0 +1,11 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Number of 384-Well OptiPlates (1 or 2)",
+    "name": "count_plates",
+    "options": [
+      { "label": "Two OptiPlates", "value": 2 },
+      { "label": "One OptiPlate", "value": 1 }
+    ]
+  }
+]

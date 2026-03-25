@@ -1,0 +1,14 @@
+[
+  {
+    "type": "textFile",
+    "label": "input csv file",
+    "name": "volume_csv",
+    "default": "Source tube rack,Source tube well,Destination well,Vol. of DNA  (?gL),Vol. of diluent  (?gL)\r\nSlot 3,A1,A1,7,8\r\nSlot 3,B1,B1,6.4,8.6\r\nSlot 3,C1,C1,9.2,5.8\r\nSlot 3,D1,D1,6,9\r\nSlot 3,A2,E1,14.7,0.3\r\nSlot 3,B2,F1,7.8,7.2\r\nSlot 3,C2,G1,5.3,9.7\r\nSlot 3,D2,H1,9.6,5.4\r\nSlot 3,A3,A2,10.3,4.7\r\nSlot 3,B3,B2,16.9,-1.9\r\nSlot 3,C3,C2,8.1,6.9\r\nSlot 3,D3,D2,5,10\r\nSlot 3,A4,E2,9.8,5.2\r\nSlot 3,B4,F2,6.1,8.9\r\nSlot 3,C4,G2,7.7,7.3"
+  },
+  {
+    "type": "float",
+    "label": "max reaction volume (in ul)",
+    "name": "max_reaction_volume",
+    "default": 15
+  }
+]

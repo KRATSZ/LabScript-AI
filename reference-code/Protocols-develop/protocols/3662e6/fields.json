@@ -1,0 +1,26 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P300-Multi Mount",
+    "name": "mnt300",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P10-Multi Mount",
+    "name": "mnt10",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Columns (1-12)",
+    "name": "nc",
+    "default": 12
+  }
+]

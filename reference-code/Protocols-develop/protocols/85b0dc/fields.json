@@ -1,0 +1,29 @@
+[
+  {
+    "type": "textFile",
+    "label": "input .csv file",
+    "name": "input_csv",
+    "default": "source well (A1-H12), mastermix tube (A1-D6), destination well (A1-H12)\\nA1,A1,A1\\nA2,A2,A2\\n , , ,"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel GEN2 pipette mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "left", "value": "left"},
+      {"label": "right", "value": "right"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "mastermix transfer volume (in ul)",
+    "name": "mm_vol",
+    "default": 7.5
+  },
+  {
+    "type": "float",
+    "label": "sample transfer volume (in ul)",
+    "name": "sample_vol",
+    "default": 2.5
+  }
+]

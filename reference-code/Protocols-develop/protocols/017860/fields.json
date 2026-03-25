@@ -1,0 +1,80 @@
+[
+  {
+    "type": "textFile",
+    "label": ".csv input file",
+    "name": "input_csv",
+    "default": ",M9,AMP_128,AMP_16,AMP_2,AZT_0.5,AZT_0.0625,AZT_0.0078125,CAZ_2,CAZ_0.25,CAZ_0.03125,CHL_128,CHL_16,CHL_2,CIP_0.25,CIP_0.03125,CIP_0.00390625,GEN_8,GEN_1,GEN_0.125,RIF_256,RIF_32,RIF_4,SXT_4,SXT_0.5,SXT_0.0625,TMP_8,TMP_1,TMP_0.125,TOB_8,TOB_1,TOB_0.125,color\n99999,50,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,50\n100,90,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n265,97.5,0,0,0,0,0,0,0,0,0,0,0,0,0,2.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n 300,97.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2.5,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n305,90,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n380,90,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0"
+  },
+  {
+    "type": "dropDown",
+    "label": "15 mL tuberacks",
+    "name": "tuberacks_15_lname",
+    "options": [
+      { "label": "Tuberacks with 15 mL NEST tubes", "value": "opentrons_15_tuberack_nest_15ml_conical"},
+      { "label": "Tuberacks with 15 mL Falcon tubes", "value": "opentrons_15_tuberack_falcon_15ml_conical"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "6x15/4x50 mL tuberacks",
+    "name": "tuberack_mixed_lname",
+    "options": [
+      { "label": "Opentrons 10 Tube Rack with NEST 4x50 mL, 6x15 mL Conical", "value": "opentrons_10_tuberack_nest_4x50ml_6x15ml_conical"},
+      { "label": "Opentrons 10 Tube Rack with Falcon 4x50 mL, 6x15 mL Conical", "value": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "20 uL pipette tips",
+    "name": "tiprack_lname_20_ul",
+    "options": [
+      {"label": "Opentrons 20 uL 96 tiprack", "value": "opentrons_96_tiprack_20ul"},
+      {"label": "BrandTech 20 uL 96 tiprack", "value": "brandtech_96_tiprack_20ul"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "300 uL pipette tips",
+    "name": "tiprack_lname_300ul",
+    "options": [
+      {"label": "Opentrons 300 uL 96 tiprack", "value": "opentrons_96_tiprack_300ul"},
+      {"label": "BrandTech 300 uL 96 tiprack", "value": "brandtech_96_tiprack_300ul"}
+    ]
+  },
+  {
+      "type": "int",
+      "label": "Number of plates",
+      "name": "n_plates",
+      "default": 6
+  },
+  {
+    "type": "float",
+    "label": "Height offset for dispensing antibiotics into target wells [mm]",
+    "name": "dispense_offset",
+    "default": 1.5
+  },
+  {
+    "type": "float",
+    "label": "Initial media volume in mL",
+    "name": "media_vol_initial",
+    "default": 50
+  },
+  {
+    "type": "dropDown",
+    "label": "Drop tips?",
+    "name": "is_drop_tips",
+    "options": [
+      { "label": "No", "value": false},
+      { "label": "Yes", "value": true}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Use debug mode (more verbose output)? ",
+    "name": "debug_mode",
+    "options": [
+      { "label": "No", "value": false},
+      { "label": "Yes", "value": true}
+    ]
+  }
+]

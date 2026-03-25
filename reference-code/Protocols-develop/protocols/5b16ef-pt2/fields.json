@@ -1,0 +1,38 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Sample Columns (1-6)",
+    "name": "num_col",
+    "default": 6
+  },
+  {
+  "type": "textFile",
+  "label": ".CSV File",
+  "name": "csv",
+  "default": "Well, DNA Volume (ul), Pool Volume\nA1, 5, 5"
+  },
+  {
+    "type": "int",
+    "label": "Index Start Column (1-12)",
+    "name": "index_start_col",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Multi-Channel Mount",
+    "name": "m20_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Multi-Channel Mount",
+    "name": "m300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  }
+]

@@ -1,0 +1,303 @@
+{
+  "wells": {
+    "A1": {
+      "totalLiquidVolume": 500,
+      "diameter": 8.4,
+      "shape": "circular",
+      "depth": 24.1,
+      "x": 50.07,
+      "y": 76.68,
+      "z": 25.4
+    },
+    "E1": {
+      "totalLiquidVolume": 500,
+      "diameter": 8.4,
+      "shape": "circular",
+      "depth": 24.1,
+      "x": 50.07,
+      "y": 8.52,
+      "z": 25.4
+    },
+    "B2": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 10.43,
+      "y": 64.05,
+      "z": 7.2
+    },
+    "C2": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 10.43,
+      "y": 49.55,
+      "z": 7.2
+    },
+    "B4": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 50.07,
+      "y": 64.05,
+      "z": 7.2
+    },
+    "C4": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 50.07,
+      "y": 49.55,
+      "z": 7.2
+    },
+    "B6": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 89.71,
+      "y": 64.05,
+      "z": 7.2
+    },
+    "C6": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 89.71,
+      "y": 49.55,
+      "z": 7.2
+    },
+    "D2": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 10.43,
+      "y": 21.15,
+      "z": 7.2
+    },
+    "D4": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 50.07,
+      "y": 21.15,
+      "z": 7.2
+    },
+    "D6": {
+      "totalLiquidVolume": 2000,
+      "diameter": 8.7,
+      "shape": "circular",
+      "depth": 42.3,
+      "x": 89.71,
+      "y": 21.15,
+      "z": 7.2
+    },
+    "B3": {
+      "totalLiquidVolume": 11200,
+      "diameter": 25,
+      "shape": "circular",
+      "depth": 40,
+      "x": 30.25,
+      "y": 56.8,
+      "z": 12
+    },
+    "D3": {
+      "totalLiquidVolume": 11200,
+      "diameter": 25,
+      "shape": "circular",
+      "depth": 40,
+      "x": 30.25,
+      "y": 28.4,
+      "z": 12
+    },
+    "B5": {
+      "totalLiquidVolume": 11200,
+      "diameter": 25,
+      "shape": "circular",
+      "depth": 40,
+      "x": 69.89,
+      "y": 56.8,
+      "z": 12
+    },
+    "D5": {
+      "totalLiquidVolume": 11200,
+      "diameter": 25,
+      "shape": "circular",
+      "depth": 40,
+      "x": 69.89,
+      "y": 28.4,
+      "z": 12
+    },
+    "B7": {
+      "totalLiquidVolume": 11200,
+      "diameter": 25,
+      "shape": "circular",
+      "depth": 40,
+      "x": 109.53,
+      "y": 56.8,
+      "z": 12
+    },
+    "D7": {
+      "totalLiquidVolume": 11200,
+      "diameter": 25,
+      "shape": "circular",
+      "depth": 40,
+      "x": 109.53,
+      "y": 28.4,
+      "z": 12
+    }
+  },
+  "groups": [
+    {
+      "metadata": {
+        "displayName": "SSI 2x0.5 mL Screwcap",
+        "displayCategory": "tubeRack",
+        "wellBottomShape": "v"
+      },
+      "brand": {
+        "brand": "SSI",
+        "brandId": [
+          "2120-XX"
+        ],
+        "links": []
+      },
+      "wells": [
+        "A1",
+        "E1"
+      ]
+    },
+    {
+      "metadata": {
+        "displayName": "SSI 6x2 mL Screwcap",
+        "displayCategory": "tubeRack",
+        "wellBottomShape": "v"
+      },
+      "brand": {
+        "brand": "SSI",
+        "brandId": [
+          "2340-XX"
+        ],
+        "links": []
+      },
+      "wells": [
+        "B2",
+        "C2",
+        "B4",
+        "C4",
+        "B6",
+        "C6"
+      ]
+    },
+    {
+      "metadata": {
+        "displayName": "SSI 6x2 mL Screwcap",
+        "displayCategory": "tubeRack",
+        "wellBottomShape": "v"
+      },
+      "brand": {
+        "brand": "SSI",
+        "brandId": [
+          "2340-XX"
+        ],
+        "links": []
+      },
+      "wells": [
+        "D2",
+        "D4",
+        "D6"
+      ]
+    },
+    {
+      "metadata": {
+        "displayName": "VWR 3x11.2 mL Screwcap",
+        "displayCategory": "tubeRack",
+        "wellBottomShape": "v"
+      },
+      "brand": {
+        "brand": "VWR",
+        "brandId": [
+          "414004-152"
+        ],
+        "links": []
+      },
+      "wells": [
+        "B3",
+        "D3",
+        "B5",
+        "D5",
+        "B7",
+        "D7"
+      ]
+    }
+  ],
+  "brand": {
+    "brand": "Opentrons",
+    "brandId": [],
+    "links": []
+  },
+  "metadata": {
+    "displayName": "Opentrons x Gold Standard 17 Tube Rack",
+    "displayCategory": "tubeRack",
+    "displayVolumeUnits": "mL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 127.2,
+    "yDimension": 86,
+    "zDimension": 46.5
+  },
+  "parameters": {
+    "format": "irregular",
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "opentrons_goldstandarddx_17_tuberack_lysis"
+  },
+  "ordering": [
+    [
+      "A1",
+      "E1"
+    ],
+    [
+      "B2",
+      "C2",
+      "D2"
+    ],
+    [
+      "B3",
+      "D3"
+    ],
+    [
+      "B4",
+      "C4",
+      "D4"
+    ],
+    [
+      "B5",
+      "D5"
+    ],
+    [
+      "B6",
+      "C6",
+      "D6"
+    ],
+    [
+      "B7",
+      "D7"
+    ]
+  ],
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}

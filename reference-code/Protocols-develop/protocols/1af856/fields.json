@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (8-96)",
+    "name": "count_samples",
+    "default": 96
+  },
+  {
+    "type": "int",
+    "label": "Bead Drying Time (minutes)",
+    "name": "time_dry",
+    "default": 6
+  },
+  {
+    "type": "int",
+    "label": "Magnet Engage Time (minutes)",
+    "name": "time_engage",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "Size of Sideways Move Used to Avoid or Target Bead Pellet (mm)",
+    "name": "offset_x",
+    "default": 1
+  }
+]

@@ -1,0 +1,48 @@
+[
+  {
+    "type": "dropDown",
+    "label": "process",
+    "name": "process",
+    "options": [
+      { "label": "antibody spotting and sample addition", "value": "antibody spotting and sample addition"},
+      { "label": "only antibody spotting", "value": "only antibody spotting" },
+      { "label": "only sample addition", "value": "only sample addition" }
+    ]
+  },
+  {
+    "type": "int",
+    "label": "number of antibodies/slides (1-5)",
+    "name": "num_antibodies",
+    "default": 5
+  },
+  {
+    "type": "int",
+    "label": "number of samples (in duplicate, 1-11)",
+    "name": "num_samples",
+    "default": 10
+  },
+  {
+    "type": "float",
+    "label": "space between duplicate samples (y-direction, in mm)",
+    "name": "y_offset",
+    "default": 2.3
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 GEN2 single-channel pipette mount",
+    "name": "p20_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 GEN2 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

@@ -1,0 +1,45 @@
+[
+  {
+    "type": "textFile",
+    "label": "input dilution file",
+    "name": "file_dilution",
+    "default": "Compound Management Plate (copy and paste information for each plate),,,,,,,,Desired Compound Plate (copy and paste information for each plate),,,,,,,\n,,,,,,,,,,,,,Columns to Illustrate Calculations,,\nPlate,Well,Barcode,Substance,Amount,Conc,,,Plate,Well,Substance,Conc,Compound Plate Volume (uL),Amount of DMSO to Add to Rows B-H,Amount of Compound to Serial Transfer to Subsequent Rows (B-G),Dilution Factor\n1,A01,A0056156/A01,G03499293.1-1,120 µL,10 mM,,,1,A01,G03500238.1-1,10 mM,50,25.0,25.0,2\n1,A02,A0056156/A02,G03508464.1-1,120 µL,10 mM,,,1,A02,G03508504.1-1,10 mM,50,25.0,25.0,2\n1,A03,A0056156/A03,G03501025.1-2,120 µL,10 mM,,,1,A03,G03503211.1-1,10 mM,50,25.0,25.0,2\n1,A04,A0056156/A04,G03503506.1-1,120 µL,10 mM,,,1,A04,G03508506.1-1,10 mM,50,25.0,25.0,2\n1,A05,A0056156/A05,G03508476.1-1,120 µL,10 mM,,,1,A05,G03501025.1-2,10 mM,50,25.0,25.0,2\n1,A06,A0056156/A06,G03508504.1-1,120 µL,10 mM,,,1,A06,G03508464.1-1,10 mM,50,33.3,16.7,3\n1,A07,A0056156/A07,G03508508.1-1,120 µL,10 mM,,,1,A07,G03501701.1-1,10 mM,50,25.0,25.0,2\n1,A08,A0056156/A08,G03503209.1-1,120 µL,10 mM,,,1,A08,G03508477.1-1,10 mM,50,25.0,25.0,2\n1,A09,A0056156/A09,G03501699.1-1,120 µL,10 mM,,,1,A09,G03499294.1-1,10 mM,50,25.0,25.0,2\n1,A10,A0056156/A10,G03508472.1-1,120 µL,10 mM,,,1,A10,G03503508.1-1,10 mM,50,25.0,25.0,2\n1,A11,A0056156/A11,G03500238.1-1,120 µL,10 mM,,,1,A11,G03507980.1-1,10 mM,50,33.3,16.7,3\n1,A12,B001276763,G03507979.1-1,120 µL,10 mM,,,1,A12,G03508473.1-1,10 mM,50,33.3,16.7,3\n1,C01,A0056156/C01,G03499294.1-1,120 µL,10 mM,,,2,A01,G03508466.1-1,10 mM,50,25.0,25.0,2\n1,C02,A0056156/C02,G03508465.1-1,120 µL,10 mM,,,2,A02,G03501700.1-1,10 mM,50,25.0,25.0,2\n1,C03,A0056156/C03,G03501026.1-2,120 µL,10 mM,,,2,A03,G03500239.1-1,10 mM,50,25.0,25.0,2\n1,C04,A0056156/C04,G03503507.1-1,120 µL,10 mM,,,2,A04,G03503210.1-1,10 mM,50,25.0,25.0,2\n1,C05,A0056156/C05,G03508477.1-1,120 µL,10 mM,,,2,A05,G03507981.1-1,10 mM,50,25.0,25.0,2\n1,C06,A0056156/C06,G03508505.1-1,120 µL,10 mM,,,2,A06,G03508478.1-1,10 mM,50,33.3,16.7,3\n1,C07,A0056156/C07,G03508509.1-1,120 µL,10 mM,,,2,A07,G03503209.1-1,10 mM,50,25.0,25.0,2\n1,C08,A0056156/C08,G03503210.1-1,120 µL,10 mM,,,2,A08,G03500240.1-1,10 mM,50,25.0,25.0,2\n1,C09,A0056156/C09,G03501700.1-1,120 µL,10 mM,,,2,A09,G03508472.1-1,10 mM,50,25.0,25.0,2\n1,C10,A0056156/C10,G03508473.1-1,120 µL,10 mM,,,2,A10,G03508508.1-1,10 mM,50,25.0,25.0,2\n1,C11,A0056156/C11,G03500239.1-1,120 µL,10 mM,,,2,A11,G03508465.1-1,10 mM,50,33.3,16.7,3\n1,C12,A0056156/C12,G03507980.1-1,120 µL,10 mM,,,2,A12,G03508505.1-1,10 mM,50,33.3,16.7,3\n1,E01,A0056156/E01,G03499295.1-1,120 µL,10 mM,,,3,A01,G03507979.1-1,10 mM,50,25.0,25.0,2\n1,E02,A0056156/E02,G03508466.1-1,120 µL,10 mM,,,3,A02,G03499293.1-1,10 mM,50,25.0,25.0,2\n1,E03,A0056156/E03,G03501027.1-2,120 µL,10 mM,,,3,A03,G03499295.1-1,10 mM,50,25.0,25.0,2\n1,E04,A0056156/E04,G03503508.1-1,120 µL,10 mM,,,3,A04,G03508510.1-1,10 mM,50,25.0,25.0,2\n1,E05,A0056156/E05,G03508478.1-1,120 µL,10 mM,,,3,A05,G03508474.1-1,10 mM,50,25.0,25.0,2\n1,E06,A0056156/E06,G03508506.1-1,120 µL,10 mM,,,3,A06,G03501026.1-2,10 mM,50,33.3,16.7,3\n1,E07,A0056156/E07,G03508510.1-1,120 µL,10 mM,,,3,A07,G03501699.1-1,10 mM,50,25.0,25.0,2\n1,E08,A0056156/E08,G03503211.1-1,120 µL,10 mM,,,3,A08,G03503506.1-1,10 mM,50,25.0,25.0,2\n1,E09,A0056156/E09,G03501701.1-1,120 µL,10 mM,,,3,A09,G03508476.1-1,10 mM,50,25.0,25.0,2\n1,E10,A0056156/E10,G03508474.1-1,120 µL,10 mM,,,3,A10,G03508509.1-1,10 mM,50,25.0,25.0,2\n1,E11,A0056156/E11,G03500240.1-1,120 µL,10 mM,,,3,A11,G03503507.1-1,10 mM,50,33.3,16.7,3\n1,E12,A0056156/E12,G03507981.1-1,120 µL,10 mM,,,3,A12,G03501027.1-2,10 mM,50,33.3,16.7,3\n"
+  },
+  {
+    "type": "dropDown",
+    "label": "DMSO reservoir type",
+    "name": "lw_dmso",
+    "options": [
+      { "label": "Beckman 8 Reservoir 19ml", "value": "beckman_8_reservoir_19000ul" },
+      { "label": "NEST 12 Reservoir 15ml", "value": "nest_12_reservoir_15ml" },
+      { "label": "Opentrons 15 Tube Rack with Falcon 15 mL Conical", "value": "opentrons_15_tuberack_falcon_15ml_conical" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel (GEN2) pipette mount",
+    "name": "mount_p300",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel (GEN2) pipette mount",
+    "name": "mount_p20",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "tip strategy for dilution",
+    "name": "tipstrategy_dilution",
+    "options": [
+      { "label": "one tip per entire compound dilution", "value": "once" },
+      { "label": "new tip for each compound dilution step", "value": "always" }
+    ]
+  }
+]

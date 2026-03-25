@@ -1,0 +1,32 @@
+[
+  {
+    "type": "textFile",
+    "label": "sample volume .csv file",
+    "name": "input_csv",
+    "default": "source well of elution plate (slot 9),transfer volume(uL)\nA1,2\nA2,3"
+  },
+  {
+    "type": "float",
+    "label": "volume of water for pooling (in uL)",
+    "name": "vol_water",
+    "default": 60
+  },
+  {
+    "type": "dropDown",
+    "label": "P10-single mount",
+    "name": "p10_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300-single mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  }
+]

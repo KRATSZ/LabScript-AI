@@ -1,0 +1,14 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples (1-96)",
+    "name": "count_samples",
+    "default": 96
+  },
+  {
+    "type": "float",
+    "label": "Well Bottom Clearance for TwinTec Plate (mm)",
+    "name": "clearance_twintec",
+    "default": 1
+  }
+]

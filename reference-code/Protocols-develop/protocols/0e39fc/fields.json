@@ -1,0 +1,26 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples (1-379)",
+    "name": "num_samples",
+    "default": 244
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 single-channel GEN2 pipette mount",
+    "name": "mount_p20",
+    "options": [
+      { "label": "right", "value": "right" },
+      { "label": "left", "value": "left" }
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 8-channel GEN2 pipette mount",
+    "name": "mount_m20",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

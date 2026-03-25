@@ -1,0 +1,43 @@
+[
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": "Source Well,Sample Transfer Vol,Source Tube,Diluent Transfer Volume\n1000, A1, A1, 20"
+  },
+  {
+    "type": "int",
+    "label": "Initial Volume of Diluent (mL)",
+    "name": "init_vol_dil",
+    "default": 40
+  },
+  {
+    "type": "dropDown",
+    "label": "Track tips?",
+    "name": "tip_track",
+    "options": [
+      {"label": "No, start at A1", "value": false},
+      {"label": "Yes, start from where the last protocol left off", "value": true}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single-Channel Mount",
+    "name": "p1000_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

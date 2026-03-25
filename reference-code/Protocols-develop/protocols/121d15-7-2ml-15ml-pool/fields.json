@@ -1,0 +1,35 @@
+[
+  {
+    "type": "textFile",
+    "label": "input file",
+    "name": "input_file",
+    "default": "Number of Redo\n8\npos TB_RCK_1,pos MTP_1,disposal_vol,transfer_vol\nREPLACE WITH SCAN,REPLACE WITH SCAN\n1,1,200,200\n2,3,200,200\n3,2,150,200\n4,6,100,100\n5,6\n6,6\n6,4\n6,6\n"
+  },
+  {
+    "type": "str",
+    "label": "parent tuberack scan",
+    "name": "tuberack1_scan",
+    "default": "REPLACE WITH SCAN_XXX"
+  },
+  {
+    "type": "str",
+    "label": "copy tuberack scan",
+    "name": "tuberack2_scan",
+    "default": "REPLACE WITH SCAN_XXX"
+  },
+  {
+    "type": "float",
+    "label": "default new transfer volume (µl)",
+    "name": "default_transfer_vol",
+    "default": 200.0
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 single-channel pipette mount",
+    "name": "p300_mount",
+    "options": [
+      { "label": "left", "value": "left" },
+      { "label": "right", "value": "right" }
+    ]
+  }
+]

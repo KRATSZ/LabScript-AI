@@ -1,0 +1,56 @@
+[
+  {
+    "type": "int",
+    "label": "Number of Samples",
+    "name": "num_samp",
+    "default": 48
+  },
+  {
+    "type": "dropDown",
+    "label": "Include pause after adding sample for capping?",
+    "name": "include_pause",
+    "options": [
+      {"label": "Yes, include pause", "value": true},
+      {"label": "No, keep going", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "Single or double dilution?",
+    "name": "single_dilution",
+    "options": [
+      {"label": "Single", "value": true},
+      {"label": "Double", "value": false}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Initial volume of methanol in 50mL tube (in mL)?",
+    "name": "init_vol_meth",
+    "default": 40
+  },
+  {
+    "type": "int",
+    "label": "Initial volume of standard in 50mL tube (in mL)?",
+    "name": "init_vol_standard",
+    "default": 40
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P1000 Single-Channel Mount",
+    "name": "p1000_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

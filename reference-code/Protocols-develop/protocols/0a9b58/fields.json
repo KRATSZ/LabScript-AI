@@ -1,0 +1,35 @@
+[
+  {
+    "type": "dropDown",
+    "label": "Normalization or Pooling Protocol?",
+    "name": "protocol",
+    "options": [
+      {"label": "Normalization", "value": "normalization"},
+      {"label": "Pooling", "value": "pooling"}
+    ]
+  },
+  {
+    "type": "textFile",
+    "label": ".CSV File",
+    "name": "csv_samp",
+    "default": "DNA Normalization,,,\nSource Plate:DNA/RNA,Water Volume needed,DNA/RNA_Volume needed,Final Plate:Normalized plate location\nA1,21.5,10.5,A1"
+  },
+  {
+    "type": "dropDown",
+    "label": "P20 Single-Channel Mount",
+    "name": "p20_mount",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single-Channel Mount",
+    "name": "p300_mount",
+    "options": [
+      {"label": "Right", "value": "right"},
+      {"label": "Left", "value": "left"}
+    ]
+  }
+]

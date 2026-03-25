@@ -1,0 +1,17 @@
+[
+  {
+    "type": "dropDown",
+    "label": "P50-Single Mount",
+    "name": "mnt50",
+    "options": [
+      {"label": "Left", "value": "left"},
+      {"label": "Right", "value": "right"}
+    ]
+  },
+  {
+    "type": "int",
+    "label": "Number of Samples (1-48)",
+    "name": "num_samps",
+    "default": 48
+  }
+]

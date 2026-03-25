@@ -1,0 +1,153 @@
+[
+  {
+    "type": "int",
+    "label": "number of samples + controls (1-96)",
+    "name": "num_samples",
+    "default": 96
+  },
+  {
+    "type": "dropDown",
+    "label": "96-deepwell extraction plate type",
+    "name": "deepwell_type",
+    "options": [
+      {"label": "USA Scientific", "value": "usascientific_96_wellplate_2.4ml_deep"},
+      {"label": "NEST", "value": "nest_96_wellplate_2ml_deep"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "96-well elution plate type",
+    "name": "elution_type",
+    "options": [
+      {"label": "USA Scientific", "value": "usascientific_96_wellplate_2.4ml_deep"},
+      {"label": "Bio-Rad", "value": "biorad_96_wellplate_200ul_pcr"},
+      {"label": "NEST", "value": "nest_96_wellplate_100ul_pcr_full_skirt"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "12-well reagent reservoir type",
+    "name": "res12_type",
+    "options": [
+      {"label": "USA Scientific", "value": "usascientific_12_reservoir_22ml"},
+      {"label": "NEST", "value": "nest_12_reservoir_15ml"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "1-well waste reservoir type",
+    "name": "res1_type",
+    "options": [
+      {"label": "Agilent 290mL", "value": "agilent_1_reservoir_290ml"},
+      {"label": "NEST 195mL", "value": "nest_1_reservoir_195ml"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "magnetic module generation",
+    "name": "magdeck_gen",
+    "options": [
+      {"label": "GEN1", "value": "magdeck"},
+      {"label": "GEN2", "value": "magnetic module gen2"}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 multi-channel pipette generation",
+    "name": "p300_gen",
+    "options": [
+      {"label": "GEN1", "value": "p300_multi"},
+      {"label": "GEN2", "value": "p300_multi_gen2"}
+    ]
+  },
+  {
+    "type": "float",
+    "label": "intitial volume (sample + lysis buffer, in ul)",
+    "name": "starting_vol",
+    "default": 250.0
+  },
+  {
+    "type": "float",
+    "label": "binding buffer + beads volume (in ul)",
+    "name": "binding_buffer_vol",
+    "default": 420.0
+  },
+  {
+    "type": "float",
+    "label": "VHB wash volume (in ul, up to 500ul)",
+    "name": "wash1_vol",
+    "default": 600.0
+  },
+  {
+    "type": "float",
+    "label": "SPM wash volume (in ul, up to 500ul)",
+    "name": "wash2_vol",
+    "default": 600.0
+  },
+  {
+    "type": "float",
+    "label": "final wash air drying time (in minutes)",
+    "name": "air_dry_time",
+    "default": 8
+  },
+  {
+    "type": "float",
+    "label": "final elution volume (in ul)",
+    "name": "elution_vol",
+    "default": 100.0
+  },
+  {
+    "type": "int",
+    "label": "mix repetitions for bead resuspension",
+    "name": "mix_reps",
+    "default": 5
+  },
+  {
+    "type": "float",
+    "label": "magnetic engage height (in mm)",
+    "name": "mag_height",
+    "default": 11.6
+  },
+  {
+    "type": "float",
+    "label": "bead settling time (in minutes)",
+    "name": "settling_time",
+    "default": 2.0
+  },
+  {
+    "type": "dropDown",
+    "label": "perform elution on robot",
+    "name": "elute_on_robot",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "park tips",
+    "name": "park_tips",
+    "options": [
+      {"label": "yes", "value": true},
+      {"label": "no", "value": false}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "track tips across protocol runs",
+    "name": "tip_track",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  },
+  {
+    "type": "dropDown",
+    "label": "flash robot on pause",
+    "name": "flash",
+    "options": [
+      {"label": "no", "value": false},
+      {"label": "yes", "value": true}
+    ]
+  }
+]

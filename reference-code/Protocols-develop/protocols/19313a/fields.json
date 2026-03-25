@@ -1,0 +1,179 @@
+[
+  {
+    "type": "int",
+    "label": "Number of samples (1-4)",
+    "name": "num_samp",
+    "default": 1
+  },
+  {
+    "type": "dropDown",
+    "label": "Reset tipracks?",
+    "name": "reset_tipracks",
+    "options": [
+       { "label": "Yes reset", "value": true },
+       { "label": "No do not reset", "value": false }
+     ]
+  },
+  {
+    "type": "int",
+    "label": "Mix repetitions 1",
+    "name": "mix_reps1",
+    "default": 10
+  },
+  {
+    "type": "int",
+    "label": "Mix Repetitions 2",
+    "name": "mix_reps2",
+    "default": 10
+  },
+  {
+    "type": "int",
+    "label": "Mix Repetitions Wash 1",
+    "name": "mix_reps_wash1",
+    "default": 6
+  },
+  {
+    "type": "int",
+    "label": "Mix Repetitions Wash 2",
+    "name": "mix_reps_wash2",
+    "default": 6
+  },
+  {
+    "type": "int",
+    "label": "Mix Repetitions Elution 1",
+    "name": "mix_reps_elution1",
+    "default": 6
+  },
+  {
+    "type": "int",
+    "label": "Mix Repetitions Elution 2",
+    "name": "mix_reps_elution2",
+    "default": 6
+  },
+  {
+    "type": "float",
+    "label": "Settling time 1 (minutes)",
+    "name": "settling_1",
+    "default": 4.0
+  },
+  {
+    "type": "float",
+    "label": "Settling time 2 (minutes)",
+    "name": "settling_2",
+    "default": 5.0
+  },
+  {
+    "type": "float",
+    "label": "Settling time 3 (minutes)",
+    "name": "settling_3",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Settling wash time (minutes)",
+    "name": "settling_wash",
+    "default": 0.5
+  },
+  {
+    "type": "float",
+    "label": "Settling dry time (minutes)",
+    "name": "settling_drying",
+    "default": 3.0
+  },
+  {
+    "type": "float",
+    "label": "Settling elution 1 (minutes)",
+    "name": "settling_elution1",
+    "default": 1.0
+  },
+  {
+    "type": "float",
+    "label": "Settling elution 2 (minutes)",
+    "name": "settling_elution2",
+    "default": 5.0
+  },
+  {
+    "type": "int",
+    "label": "Wash 1 volume",
+    "name": "wash1_vol",
+    "default": 300
+  },
+  {
+    "type": "int",
+    "label": "Wash 2 volume",
+    "name": "wash2_vol",
+    "default": 300
+  },
+  {
+    "type": "int",
+    "label": "Elution Volume",
+    "name": "elution_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Lysis Volume",
+    "name": "lysis_vol",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Move Volume",
+    "name": "move_vol",
+    "default": 200
+  },
+  {
+    "type": "int",
+    "label": "Binding Buffer Volume",
+    "name": "binding_buffer_vol",
+    "default": 100
+  },
+  {
+    "type": "int",
+    "label": "Final volume",
+    "name": "final_vol",
+    "default": 50
+  },
+  {
+    "type": "int",
+    "label": "Heating module temp (C)",
+    "name": "heating_module_temp",
+    "default": 65
+  },
+  {
+    "type": "float",
+    "label": "Magnetic module engage height (mm)",
+    "name": "mag_height_1",
+    "default": 4.50
+  },
+  {
+    "type": "dropDown",
+    "label": "Waste water mode?",
+    "name": "waste_water_mode",
+    "options": [
+       { "label": "Normal Extraction", "value": false },
+       { "label": "Waste Water Mode", "value": true }
+     ]
+  },
+  {
+    "type": "float",
+    "label": "Remove supernatant aspiration height (mm)",
+    "name": "asp_height",
+    "default": 1
+  },
+  {
+    "type": "float",
+    "label": "Length from side of the well opposite magnetically engaged beads (mm)",
+    "name": "length_from_side",
+    "default": 2
+  },
+  {
+    "type": "dropDown",
+    "label": "P300 Single GEN2 Mount",
+    "name": "p300_mount",
+    "options": [
+       { "label": "left", "value": "left" },
+       { "label": "right", "value": "right" }
+     ]
+  }
+]
