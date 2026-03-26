@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "opentrons-lab": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp-servers/opentrons-mcp/index.js"
+      ]
+    },
+    "opentrons-docs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "opentrons-document-mcp-server@latest"
+      ]
+    }
+  }
+}

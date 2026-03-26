@@ -7,3 +7,4 @@ artifacts/
 node_modules/
 mcp-servers/**/node_modules/
 mcp-servers/opentrons-mcp/data/session-state/
+mcp-servers/opentrons-mcp/data/result-logs/

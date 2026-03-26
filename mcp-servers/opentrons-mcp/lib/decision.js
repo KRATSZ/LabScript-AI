@@ -6,6 +6,12 @@ import {
   setDeckSlotState,
 } from "./state.js";
 
+export const HARD_STOP_ERROR_CATEGORIES = ["HARDWARE_FAULT", "DECK_COLLISION", "UNKNOWN"];
+
+export function isHardStopErrorCategory(errorCategory) {
+  return HARD_STOP_ERROR_CATEGORIES.includes(String(errorCategory || "").toUpperCase());
+}
+
 function unwrapData(payload) {
   if (payload && typeof payload === "object" && "data" in payload) {
     return payload.data;
@@ -604,6 +610,7 @@ export function parseRuntimeError({ run, commands, moduleStatusSnapshot, robotSt
       "DESTINATION_UNAVAILABLE",
       "UNKNOWN",
     ].includes(classification.error_category),
+    hard_stop: isHardStopErrorCategory(classification.error_category),
     escalate_to_human: [
       "HARDWARE_FAULT",
       "DECK_COLLISION",
@@ -773,6 +780,7 @@ export function buildRecoverySuggestion({
     return {
       error_category: "HARDWARE_FAULT",
       action: "stop_and_notify_human",
+      hard_stop: true,
       escalate_to_human: true,
       rationale: "robot_status_has_blockers",
       blockers: robotStatusSnapshot.blockers,
@@ -794,6 +802,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "wait_and_poll_module_status",
+        hard_stop: false,
         escalate_to_human: false,
         rationale: "module_status_has_blockers",
         blockers: moduleStatusSnapshot?.blockers || [],
@@ -804,6 +813,7 @@ export function buildRecoverySuggestion({
         return {
           error_category: errorCategory,
           action: "retry_pick_up_tip_with_next_candidate",
+          hard_stop: false,
           escalate_to_human: false,
           rationale: awaitingRecovery ? "run_is_awaiting_recovery" : "retry_in_same_context",
           failed_command_type: readNested(failed_command, [["commandType"]]),
@@ -816,6 +826,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "escalate_tip_search_exhausted",
+        hard_stop: false,
         escalate_to_human: true,
         rationale: "no_viable_tip_candidates",
       };
@@ -826,6 +837,7 @@ export function buildRecoverySuggestion({
         return {
           error_category: errorCategory,
           action: "suggest_new_destination_slot",
+          hard_stop: false,
           escalate_to_human: awaitingRecovery || !hasConfidentCandidate,
           rationale: awaitingRecovery
             ? "protocol_context_destination_occupied"
@@ -837,6 +849,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "choose_new_slot_or_escalate",
+        hard_stop: false,
         escalate_to_human: true,
         rationale: "destination_slot_is_occupied",
         slot_occupation: slotOccupation,
@@ -846,6 +859,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "fix_deck_configuration_or_protocol",
+        hard_stop: false,
         escalate_to_human: true,
         rationale: "slot_not_available_in_current_deck_configuration",
       };
@@ -854,6 +868,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "stop_and_fix_protocol_source",
+        hard_stop: false,
         escalate_to_human: false,
         rationale: "simulation_or_protocol_edit_required",
       };
@@ -862,6 +877,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "probe_or_reduce_volume_then_retry",
+        hard_stop: false,
         escalate_to_human: false,
         rationale: "runtime_volume_issue_detected",
       };
@@ -870,6 +886,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "slow_aspirate_and_change_tip",
+        hard_stop: false,
         escalate_to_human: false,
         rationale: "possible_air_bubble",
       };
@@ -878,6 +895,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "change_tip_and_reduce_flow_rate",
+        hard_stop: false,
         escalate_to_human: false,
         rationale: "possible_tip_clog",
       };
@@ -886,6 +904,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "stop_and_request_human_check",
+        hard_stop: true,
         escalate_to_human: true,
         rationale: "collision_class_failure",
       };
@@ -894,6 +913,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory,
         action: "adjust_liquid_class_or_parameters",
+        hard_stop: false,
         escalate_to_human: false,
         rationale: "liquid_property_issue_detected",
       };
@@ -902,6 +922,7 @@ export function buildRecoverySuggestion({
       return {
         error_category: errorCategory || "UNKNOWN",
         action: "escalate_unknown_failure",
+        hard_stop: true,
         escalate_to_human: true,
         rationale: "no_safe_automatic_branch",
       };

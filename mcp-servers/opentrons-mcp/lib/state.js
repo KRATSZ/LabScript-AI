@@ -5,7 +5,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SESSION_STATE_DIR = path.resolve(__dirname, "../data/session-state");
+const DEFAULT_SESSION_STATE_DIR = path.resolve(__dirname, "../data/session-state");
+
+function sessionStateDir() {
+  return process.env.OPENTRONS_SESSION_STATE_DIR
+    ? path.resolve(process.env.OPENTRONS_SESSION_STATE_DIR)
+    : DEFAULT_SESSION_STATE_DIR;
+}
 
 export const DEFAULT_SESSION_ID = "default";
 export const FLEX_SLOT_NAMES = [
@@ -54,11 +60,11 @@ function buildDefaultSessionState(sessionId = DEFAULT_SESSION_ID) {
 }
 
 function ensureStateDirectory() {
-  fs.mkdirSync(SESSION_STATE_DIR, { recursive: true });
+  fs.mkdirSync(sessionStateDir(), { recursive: true });
 }
 
 function sessionStatePath(sessionId = DEFAULT_SESSION_ID) {
-  return path.join(SESSION_STATE_DIR, `${sanitizeSessionId(sessionId)}.json`);
+  return path.join(sessionStateDir(), `${sanitizeSessionId(sessionId)}.json`);
 }
 
 function clone(value) {
