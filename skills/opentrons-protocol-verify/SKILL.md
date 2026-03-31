@@ -5,20 +5,19 @@ license: Apache-2.0
 compatibility: Requires Python 3.8+, uv for package management, and local Opentrons runtime with optional simulation support.
 ---
 
-# Opentrons Protocol Verify
+# Protocol Verify
 
-Use this skill when the user wants real validation instead of a code-only review.
-
-Prefer a `uv`-managed Python environment. In normal use, run this skill's script through `uv run python ...`.
+Use `uv run python ...` for all commands.
 
 ## Workflow
 
-1. Run `scripts/verify_protocol.py doctor` first if local runtime readiness is unknown.
-2. If `doctor` says the import path is broken, report the missing prerequisite instead of pretending the protocol is validated.
-3. Use `analyze` for parser and command graph checks.
-4. Use `simulate` when the user wants a stronger dry run and the environment can support it.
+1. Run `scripts/verify_protocol.py doctor` if runtime readiness is unknown.
+2. If `doctor` reports broken imports, report the missing prerequisite — do not
+   pretend the protocol is validated.
+3. `analyze` — parser and command graph checks.
+4. `simulate` — stronger dry run (requires working environment).
 5. Pass extra CLI flags after `--`.
-6. If the goal is to keep editing until simulation passes, hand off to `opentrons-simulation-repair`.
+6. If iterating until simulation passes -> `opentrons-simulation-repair`.
 
 ## Commands
 
@@ -28,12 +27,8 @@ uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py analyz
 uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py simulate path/to/protocol.py
 ```
 
-## Important Limits
+## Limits
 
-- This skill can inject a minimal `opentrons._version` shim for source checkouts.
-- It cannot invent missing third-party dependencies.
-- It cannot fix a partial Opentrons source snapshot that omits sibling packages required by the runtime.
+Cannot fix missing third-party dependencies or partial Opentrons source snapshots.
 
-## Reference File
-
-- Runtime assumptions and failure modes: `references/local-runtime.md`
+Ref: `references/local-runtime.md`

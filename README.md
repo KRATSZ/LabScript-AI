@@ -19,6 +19,7 @@ This project assumes Python is managed with `uv`.
 - create the local virtual environment with `uv venv .venv`
 - run commands with `uv run ...`
 - avoid mixing in `pip install` or a system Python unless you are intentionally debugging environment issues
+- for MCP `vision_check` (local YOLOE), add optional deps: `uv sync --extra vision` from the repo root so `ultralytics` + **CLIP** (Ultralytics fork) are available to the same interpreter MCP uses (`./.venv/bin/python` or `OPENTRONS_PYTHON`). For local protocol/simulation tools that need `opentrons`, use `uv sync --extra protocol` (or `--extra vision --extra protocol` if both; resolve any numpy pin conflicts as prompted by `uv`).
 
 If you want the project-local interpreter explicitly, activate `.venv` created by `uv`, but the default examples below assume `uv run`.
 
@@ -26,6 +27,11 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
 
 ## Included Skills
 
+- `skills/opentrons-experiment-full`
+  - **Default entry** for natural-language routing: new experiments, resume/recovery, and robot status queries (orchestrates the other skills and MCP tools).
+- `skills/opentrons-experiment-intent-review`
+  - Locks experiment intent vs plate mapping, well lists, and tip/liquid strategy before authoring or live runs.
+  - Use for spatial patterns, multi-well designs, and “does this match what I want?” gaps.
 - `skills/opentrons-protocol-author`
   - Drafts or refactors Python protocols.
   - Includes a template and concise references for OT-2/Flex metadata, runtime parameters, and `capture_image()`.
@@ -42,14 +48,14 @@ The local MCP server also auto-detects `./.venv/bin/python` when present, so onc
   - References bundled validated protocols and optional external overrides.
   - Useful when the user needs an existing example protocol, a known liquid-handling pattern, or a snippet to adapt.
 - `skills/opentrons-experiment-run`
-  - High-level MCP orchestration: verify → gated `run_protocol` → monitor → `experiment_history` / `restart_review` → recovery.
-  - Does not duplicate robot I/O; use MCP tools as the runtime source of truth.
+  - **Mandatory state machine** for live runs: intent (when needed) → protocol → simulation gate → preflight → MCP `run_protocol` → MCP recovery → audit.
+  - Explicit **no-bypass** rule: simulation failure must not be replaced with blind maintenance HTTP/`curl` loops.
 
 ## Included MCP Server
 
 - `mcp-servers/opentrons-mcp`
   - A compact MCP server for practical Claude Code orchestration.
-  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_available_slots`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `configure_camera`, `capture_preview_image`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `run_history`, `experiment_history`, `restart_review`, `probe_wells`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, `create_run`, and `control_run`.
+  - Includes live robot tools such as `robot_status`, `module_status`, `get_slot_occupation`, `list_available_slots`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, `load_pipette`, `load_labware`, `load_module`, `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`, `move_labware`, `cleanup_motion`, `camera_status`, `configure_camera`, `capture_preview_image`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `vision_check`, `run_history`, `experiment_history`, `restart_review`, `preflight_run_setup`, `probe_wells`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, `create_run`, and `control_run`.
   - Adds local tools `doctor_local_runtime`, `simulate_protocol`, and `parse_simulation_output` for simulation-first repair.
 
 This repository's `mcp-servers/opentrons-mcp` is the canonical `opentrons-lab-mcp` implementation. Community MCP servers in the broader workspace are reference material only; they are useful for HTTP surface comparison, but this repo's tool names, recovery rules, and response envelope are defined here.
@@ -71,6 +77,8 @@ Opentrons-Lab-Agent/
 ├── reference-code/
 │   └── Protocols-develop/
 ├── skills/
+│   ├── opentrons-experiment-full/
+│   ├── opentrons-experiment-intent-review/
 │   ├── opentrons-protocol-author/
 │   ├── opentrons-protocol-library/
 │   ├── opentrons-protocol-verify/
@@ -258,7 +266,7 @@ Recommended Claude Code tool order before and during live execution:
 
 Recent real-Flex validation also covers a physical gripper move:
 
-For the common "upload + create run + play + poll" path, prefer the single `run_protocol` tool. It now enforces a local `doctor_local_runtime -> simulate_protocol -> parse_simulation_output` gate before any real upload or run start, so a simulation failure blocks physical execution immediately.
+For the common "upload + create run + play + poll" path, prefer the single `run_protocol` tool. It now enforces a local `doctor_local_runtime -> simulate_protocol -> parse_simulation_output` gate before any real upload or run start, then runs `preflight_run_setup` (reconciliation flag, robot readiness, Flex deck declaration vs live snapshot) after run creation and before play unless `skip_preflight` is set. A simulation or preflight failure blocks physical execution immediately.
 
 ### Phase 2/3 acceptance (frozen rules)
 
@@ -421,8 +429,8 @@ The safe-home rule matches Phase 2 acceptance: `home` only when `is_home_safe()`
 
 The repository contains two useful layers for vision-related work:
 
-- robot-side camera control in `src/opentrons_lab_agent/robot_api.py` for `GET /camera`, `POST /camera`, `POST /camera/cameraSettings`, and `POST /camera/capturePreviewImage`
-- MCP-side camera tools in `mcp-servers/opentrons-mcp` for `camera_status`, `configure_camera`, `capture_preview_image`, `capture_run_image`, `list_data_files`, `download_data_file`, and `analyze_image_with_kimi`
+- Robot-side camera control in `src/opentrons_lab_agent/robot_api.py` for `GET /camera`, `POST /camera`, `POST /camera/cameraSettings`, and `POST /camera/capturePreviewImage`.
+- MCP-side camera and image tools in `mcp-servers/opentrons-mcp` for `camera_status`, `configure_camera`, `capture_preview_image`, `capture_run_image`, `list_data_files`, `download_data_file`, `analyze_image_with_kimi`, and `vision_check` (local **YOLOE** / Ultralytics on a saved image; observation-only; does not write session state).
 
 Design rule:
 
@@ -430,12 +438,29 @@ Design rule:
 - keep image interpretation in a separate analyzer step or future MCP
 - pass around a saved `image_path` artifact instead of stuffing binary blobs into tool output
 
+That split makes it easy to start with human inspection now, then later plug in a multimodal model or an external CV service without coupling perception logic to robot control.
+
+### Local YOLOE (`vision_check`)
+
+- **Purpose:** `CHECKDECK` / future `CHECKTIPS` — structured JSON for agents to compare with `reconcile_state` and live APIs, not as committed deck truth.
+- **Python:** install optional extras from the repo root: `uv sync --extra vision` (installs `ultralytics`, `opencv-python-headless`, and **CLIP** from `git+https://github.com/ultralytics/CLIP.git`). MCP resolves Python via `OPENTRONS_PYTHON` or `Opentrons-Lab-Agent/.venv/bin/python`.
+- **YOLOE text prompts:** Ultralytics also needs a **MobileCLIP** TorchScript bundle (`mobileclip2_b.ts`) on first `set_classes`. It is normally auto-downloaded; if that fails, copy it into `weights/` (see `weights/README.md`).
+- **Weights:** default `yoloe-26s-seg.pt` (override with `weights` or `OPENTRONS_YOLOE_WEIGHTS`).
+- **Fallback:** if CLIP/MobileCLIP is missing, `vision_check` can fall back to `yolo11n.pt` + COCO mapping (marked in JSON; not labware-tuned).
+- **CHECKDECK:** default YOLOE prompts are Flex-oriented (yellow/teal tip racks, clear/black plates, thermocycler/heater-shaker wording, trash); each prompt maps to a canonical label (`tiprack`, `plate`, `reservoir`, `module`, `trash_bin`). Empty slots are **grid-derived** (no detection center in that cell). Slot mapping uses **optional homography** (`deck_corners_norm` on the tool, or `optional_deck_corners_norm` in `labels/<stem>.labels.json`) else a **uniform image grid** — see `slot_mapping` in JSON output.
+- **CHECKTIPS:** `mode: tiprack` is reserved (conservative stub) until rack-local well analysis is implemented.
+- **Quick prompt tuning:** `uv run python scripts/yoloe_deck_preview.py <jpeg-or-0-for-webcam>` opens an Ultralytics window (or `--no-show --out file.jpg`). Override prompts via `--prompts-json` (see `scripts/yoloe_prompt_preset.example.json`).
+- **MVP vision batch:** `bash scripts/batch_vision_check_mvp.sh` (or `OPENTRONS_VISION_BATCH_OUT=... OPENTRONS_VISION_CONF=0.2 uv run python scripts/batch_vision_deck_mvp.py`) runs `vision_check` on `mvp-annotation-batch` with sidecar labels; optional `OPENTRONS_YOLOE_PROMPTS_JSON` for A/B prompts.
+- **MVP labeling batch:** `uv run python scripts/fetch_robot_camera_samples.py --robot HOST:31950 --limit 12` downloads recent `dataFiles` camera JPEGs into `artifacts/camera-captures/mvp-annotation-batch/` with a `manifest.json` (different runs → varied gantry/framing).
+- **Slot label templates:** `uv run python scripts/generate_slot_label_templates.py` writes empty `labels/*.labels.json` (12 slots per image); see `artifacts/camera-captures/mvp-annotation-batch/labels/README.md`.
+- **Kimi K2.5 deck photo (SiliconFlow):** set `SILICONFLOW_API_KEY`, then `node scripts/vlm_kimi_deck_one.mjs artifacts/camera-captures/device-latest-from-datafiles.jpeg` (or any local JPEG path).
+
 Practical note from the current Flex:
 
-- `GET /camera` works
-- `/camera/capturePreviewImage` currently returns `404`
-- `captureImage` through the command queue succeeds, but maintenance-context capture may still fail to expose a downloadable `fileId`
-- historical real robot images are still retrievable through `dataFiles`, so `download_data_file` plus `analyze_image_with_kimi` is already a usable real-image workflow
+- `GET /camera` works (HTTP needs `Opentrons-Version`, same as MCP). Quick check: `uv run python scripts/probe_robot_camera_http.py --robot HOST:31950`
+- `/camera/capturePreviewImage` and `POST /camera/cameraSettings` may return `404` — **no remote zoom/pan/resolution** from HTTP on this build; variety in images comes from **different protocol captures** (`dataFiles`) or physical deck changes.
+- `captureImage` through command queue can produce files, but maintenance-context capture may still fail to expose a downloadable `fileId`
+- historical real robot images are still retrievable through `dataFiles`, so `download_data_file` + `vision_check` / `analyze_image_with_kimi` is a usable real-image workflow
 
 ## Protocol Library Knowledge Base
 
@@ -481,7 +506,7 @@ cd mcp-servers/opentrons-mcp
 npm test
 ```
 
-**What the MCP tests prove** (mapped to acceptance): see `../Developdocs/design/phase-2-3-acceptance.md` — in short, `test/decision.test.js` covers `DESTINATION_OCCUPIED`, safe-home, and hard stops; `test/run-protocol.test.js` and `test/experiment-history.test.js` cover the simulation gate; `test/experiment-history.test.js`, `test/restart-reconcile.test.js`, and `test/restart-review.test.js` cover log query, restart guidance, and restart-vs-log truth boundaries; `test/probe-wells.test.js` covers experimental probing only.
+**What the MCP tests prove** (mapped to acceptance): see `../Developdocs/design/phase-2-3-acceptance.md` — in short, `test/decision.test.js` covers `DESTINATION_OCCUPIED`, safe-home, and hard stops; `test/run-protocol.test.js` and `test/experiment-history.test.js` cover the simulation gate; `test/preflight-run-setup.test.js` covers `preflight_run_setup` and declared-deck helpers; `test/experiment-history.test.js`, `test/restart-reconcile.test.js`, and `test/restart-review.test.js` cover log query, restart guidance, and restart-vs-log truth boundaries; `test/probe-wells.test.js` covers experimental probing only.
 
 The repository also includes mocked HTTP tests for `run_protocol`, `execute_protocol_recovery`, and `recover_tip_pickup`, plus safe real-Flex validation protocols at `mcp-servers/opentrons-mcp/examples/flex_noop_protocol.py` and `mcp-servers/opentrons-mcp/examples/flex_tip_recovery_validation.py`.
 

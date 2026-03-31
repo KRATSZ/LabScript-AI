@@ -39,5 +39,6 @@
 
 ## See also
 
-- MCP handler and gating: `mcp-servers/opentrons-mcp/index.js` (`probe_wells`).
-- Tests: `mcp-servers/opentrons-mcp/test/probe-wells.test.js`.
+- **Canonical** MCP handler and gating: `Opentrons-Lab-Agent/mcp-servers/opentrons-mcp/index.js` (`probe_wells`).
+- **Canonical** tests: `Opentrons-Lab-Agent/mcp-servers/opentrons-mcp/test/probe-wells.test.js`.
+- Workspace root `mcp-servers/opentrons-mcp/` is reference-only; do not treat it as the implementation source of truth.

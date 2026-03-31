@@ -33,6 +33,7 @@ It also exposes a compact set of live tools:
 - `list_tip_candidates`
 - `suggest_next_tip_well`
 - `is_home_safe`
+- `preflight_run_setup`
 - `reconcile_state`
 - `parse_error`
 - `suggest_recovery_action`
@@ -52,6 +53,7 @@ It also exposes a compact set of live tools:
 - `list_data_files`
 - `download_data_file`
 - `analyze_image_with_kimi`
+- `vision_check`
 - `get_protocols`
 - `upload_protocol`
 - `run_protocol`
@@ -77,13 +79,14 @@ It also exposes a compact set of live tools:
 - The tool surface is inspired by the community project `yerbymatey/opentrons-mcp`, but reduced to the parts that are most useful for this repository's simulation-first workflow.
 - For API documentation lookup, pair this server with `opentrons-document-mcp-server`.
 - Live-state tools return a common envelope with `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, and `timestamp`.
-- `run_protocol` now hard-gates real execution with `doctor_local_runtime -> simulate_protocol -> parse_simulation_output`; if simulation fails, the tool returns a blocked response and does not start a real run.
+- `run_protocol` hard-gates real **play** with (1) `doctor_local_runtime -> simulate_protocol -> parse_simulation_output` and (2) `preflight_run_setup` after run creation (reconciliation flag, robot readiness, Flex-oriented protocol deck declaration vs live snapshot). Use `skip_preflight` or `skip_preflight_deck_diff` only as explicit operator overrides.
 - Session-level `DeckState` snapshots are persisted under `data/session-state/` so tip bookkeeping and reconciliation survive MCP restarts.
 - Phase 4 MVP persists compact result logs under `data/result-logs/`. `experiment_history` filters: `session_id`, `run_id`, `tool_name`, `status`, `limit`, and optional `event_kind`. **Logs are historical evidence;** committed deck truth stays in `data/session-state/` and live `robot_status` / `reconcile_state`.
 - Tests may set `OPENTRONS_RESULT_LOG_DIR` and `OPENTRONS_SESSION_STATE_DIR` to isolate JSONL session and log files (see `test/experiment-history.test.js`, `test/restart-reconcile.test.js`).
 - `capture_preview_image` saves the preview locally and returns the artifact path so a later human step or vision analyzer can consume it without embedding binary image data into MCP responses.
 - `capture_run_image` uses the robot command queue (`captureImage`) and attempts to download the generated data file immediately; on the current Flex software, maintenance-context captures may succeed without returning a downloadable `fileId`, so the server also exposes `list_data_files` and `download_data_file` for working with historical robot images.
 - `analyze_image_with_kimi` calls SiliconFlow's OpenAI-compatible chat API and is intended for deck-level visual analysis, not liquid-volume truth.
+- `vision_check` runs **local Ultralytics YOLOE** (`yoloe-26s-seg.pt` by default) via `scripts/vision_check.py` in the project Python environment. It returns **observation-only** JSON (`summary`, `slot_mapping`, `observed_items`, `slot_observations`, `mismatches`, `uncertainties`, `needs_human_review`, `annotated_image_path`). It does **not** mutate `data/session-state/`. Install deps from repo root: `uv sync --extra vision` (includes **CLIP** + `ultralytics`; YOLOE also needs `mobileclip2_b.ts` — auto-downloaded or placed under `weights/` per repo `weights/README.md`). Override weights with `weights` or `OPENTRONS_YOLOE_WEIGHTS`. `mode: deck` maps detections to Flex 12 slots using **optional deck homography** (`deck_corners_norm` or `labels/<stem>.labels.json` → `optional_deck_corners_norm`) or a uniform image-grid fallback; empty slots are geometric (no detection in cell). Default YOLOE prompts are Flex-oriented (yellow/teal tip racks, plates, thermocycler/heater-shaker wording, trash); override with `class_prompts` + `canonical_labels` (same length). For quick visual iteration use `scripts/yoloe_deck_preview.py`; batch MVP JPEGs with `uv run python scripts/batch_vision_deck_mvp.py` (env `OPENTRONS_VISION_CONF`, `OPENTRONS_YOLOE_PROMPTS_JSON`). `mode: tiprack` is a reserved stub until rack-local analysis ships. For offline labeling batches, `scripts/fetch_robot_camera_samples.py` pulls recent `dataFiles` JPEGs.
 - On the current validated Flex (`10.31.2.149:31950`, API `8.8.1`), `GET /camera` is available, while the POST camera endpoints currently return `404`; the MCP therefore reports these as capability/version gaps instead of silently pretending preview capture is supported everywhere.
 - Real-Flex validation now includes a physical gripper move of `corning_96_wellplate_360ul_flat` from `C3` to `B3`, followed by successful `cleanup_motion`.
 - Real-Flex validation also includes runtime error parsing for `TIP_PHYSICALLY_MISSING`, `PROTOCOL_SETUP_ERROR`, `DESTINATION_UNAVAILABLE`, and a software-occupied `DESTINATION_OCCUPIED` move failure.
@@ -218,6 +221,7 @@ Full mapping: `Developdocs/design/phase-2-3-acceptance.md`.
 | Restart: reconcile flag vs historical log | `test/restart-reconcile.test.js` |
 | `restart_review` bundle + optional live preview + suggested tool order + handler-level ordering | `test/restart-review.test.js` |
 | Experimental `probe_wells` | `test/probe-wells.test.js` |
+| `vision_check` input validation | `test/vision-check.test.js` |
 
 ## Example MCP config
 

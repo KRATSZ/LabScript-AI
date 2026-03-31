@@ -110,6 +110,11 @@ test("run_protocol uploads, plays, and returns final run snapshot", async () => 
     if (method === "POST" && pathname === "/runs") {
       return jsonResponse({ data: { id: "run-1", status: "idle" } });
     }
+    if (method === "GET" && pathname === "/runs/run-1") {
+      return jsonResponse({
+        data: { id: "run-1", protocolId: "protocol-1", status: "succeeded", labware: [] },
+      });
+    }
     if (method === "POST" && pathname === "/runs/run-1/actions") {
       return jsonResponse({ data: { id: "action-1", actionType: "play" } });
     }
@@ -158,6 +163,7 @@ test("run_protocol uploads, plays, and returns final run snapshot", async () => 
     assert.equal(result.data.final_status, "succeeded");
     assert.equal(result.data.requires_attention, false);
     assert.equal(result.data.simulation_gate.parsed.success, true);
+    assert.equal(result.data.preflight_gate?.ok, true);
     assert.equal(result.data.final_run_history.run_id, "run-1");
     assert.equal(result.hardwareSnapshot.run.data.id, "run-1");
     assert.equal(result.hardwareSnapshot.health.robot_serial, "FLX-1");

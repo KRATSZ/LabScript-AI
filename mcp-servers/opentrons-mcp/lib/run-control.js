@@ -24,6 +24,7 @@ export function buildRunProtocolResult({
   play_action = null,
   final_run_history,
   simulation_gate = null,
+  preflight_gate = null,
   parsed_error = null,
   recovery = null,
 } = {}) {
@@ -31,6 +32,7 @@ export function buildRunProtocolResult({
   const normalizedStatus = normalizeRunStatus(finalStatus);
   return {
     simulation_gate,
+    preflight_gate,
     protocol,
     created_run,
     play_action,
