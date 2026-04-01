@@ -1,13 +1,17 @@
 ---
 name: opentrons-protocol-verify
-description: Use when the user wants to analyze, simulate, or sanity-check an Opentrons Python protocol locally. This skill probes the local Opentrons runtime first, then invokes opentrons.cli analyze or python -m opentrons.simulate only if imports are actually available.
-license: Apache-2.0
-compatibility: Requires Python 3.8+, uv for package management, and local Opentrons runtime with optional simulation support.
+description: Local doctor, analyze, and simulate Opentrons Python protocols without a live robot.
+type: script-backed
+entry: scripts/verify_protocol.py
+mcp_tools:
+  - doctor_local_runtime
+  - simulate_protocol
+  - parse_simulation_output
 ---
 
 # Protocol Verify
 
-Use `uv run python ...` for all commands.
+Use `.venv/bin/python` or `uv run python` for all commands.
 
 ## Workflow
 
@@ -22,9 +26,9 @@ Use `uv run python ...` for all commands.
 ## Commands
 
 ```bash
-uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py doctor
-uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py analyze path/to/protocol.py -- --check
-uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py simulate path/to/protocol.py
+uv run python scripts/verify_protocol.py doctor
+uv run python scripts/verify_protocol.py analyze path/to/protocol.py -- --check
+uv run python scripts/verify_protocol.py simulate path/to/protocol.py
 ```
 
 ## Limits

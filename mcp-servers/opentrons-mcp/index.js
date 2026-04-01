@@ -82,6 +82,7 @@ import {
   buildPreviewArtifactName,
   contentTypeToExtension,
 } from "./lib/vision.js";
+import { buildHealthCheck, checkRobotHealth } from "./lib/health-check.js";
 import {
   buildDeckPhotoAnalysisPrompt,
   buildImageDataUrl,
@@ -962,6 +963,16 @@ const TOOL_DEFINITIONS = [
         stderr: { type: "string" },
         exit_code: { type: "integer" },
         protocol_path: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "health_check",
+    description: "Comprehensive environment health check: MCP server, Python venv, opentrons package, git state, session state, and optional robot connectivity.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Optional robot IP to check connectivity (e.g. 10.31.2.149)" },
       },
     },
   },
@@ -3779,6 +3790,14 @@ const TOOL_HANDLERS = {
     return {
       data: parseSimulationLog(args),
     };
+  },
+
+  async health_check(args) {
+    const report = buildHealthCheck(args);
+    if (args.robot_ip) {
+      report.robot = await checkRobotHealth(args.robot_ip);
+    }
+    return { data: report };
   },
 };
 

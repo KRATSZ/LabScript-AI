@@ -1,6 +1,11 @@
 ---
 name: opentrons-simulation-repair
-description: Use when iteratively repairing an Opentrons Python protocol by running local simulation, parsing logs, editing, and retrying.
+description: Iteratively repair an Opentrons Python protocol — simulate, parse errors, edit, retry.
+type: prompt-only
+mcp_tools:
+  - doctor_local_runtime
+  - simulate_protocol
+  - parse_simulation_output
 ---
 
 # Simulation Repair

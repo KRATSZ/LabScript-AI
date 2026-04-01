@@ -33,7 +33,7 @@ It also exposes a compact set of live tools:
 - `list_tip_candidates`
 - `suggest_next_tip_well`
 - `is_home_safe`
-- `preflight_run_setup`
+- `preflight_run_setup` *(in development)*
 - `reconcile_state`
 - `parse_error`
 - `suggest_recovery_action`
@@ -53,7 +53,7 @@ It also exposes a compact set of live tools:
 - `list_data_files`
 - `download_data_file`
 - `analyze_image_with_kimi`
-- `vision_check`
+- `vision_check` *(in development)*
 - `get_protocols`
 - `upload_protocol`
 - `run_protocol`
@@ -66,6 +66,7 @@ It also exposes a compact set of live tools:
 - `experiment_history`
 - `restart_review`
 - `probe_wells`
+- `health_check`
 
 ## Operator runbooks (this repo)
 

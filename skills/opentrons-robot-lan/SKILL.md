@@ -1,8 +1,17 @@
 ---
 name: opentrons-robot-lan
-description: Use when guiding live Opentrons OT-2 or Flex operations. Prefer MCP (opentrons-lab-mcp) for all robot state and control; the Python LAN helper remains an optional fallback for direct HTTP API access.
-license: Apache-2.0
-compatibility: Requires Python 3.8+, uv for package management, network access to OT-2 or Flex robot on LAN, and requests library.
+description: Fallback HTTP API when MCP is unavailable — direct LAN access to OT-2 or Flex robot.
+type: script-backed
+entry: scripts/opentrons_robot_api.py
+mcp_tools:
+  - robot_status
+  - module_status
+  - reconcile_state
+  - run_protocol
+  - restart_review
+  - is_home_safe
+  - camera_status
+  - capture_preview_image
 ---
 
 # Robot LAN (MCP-absent fallback)
@@ -18,8 +27,7 @@ command tools (`load_pipette`, `load_labware`, `load_module`,
 `control_temperature_module`, `control_heater_shaker`, `control_thermocycler`,
 `move_labware`, `cleanup_motion`) ->
 camera tools (`camera_status`, `capture_preview_image`, `capture_run_image`,
-`list_data_files`, `download_data_file`, `analyze_image_with_kimi`, `vision_check`
-— treat `vision_check` as observation-only, compare with `reconcile_state`) ->
+`list_data_files`, `download_data_file`, `analyze_image_with_kimi`) ->
 `run_history` / `experiment_history` -> `suggest_recovery_action`
 
 ## Key Rules
@@ -40,12 +48,12 @@ camera tools (`camera_status`, `capture_preview_image`, `capture_run_image`,
 ## Fallback Commands (no MCP)
 
 ```bash
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 health
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 get-camera
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 upload-protocol path/to/protocol.py
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 analyze-protocol <protocol-id>
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 create-run --protocol-id <protocol-id>
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py --host 192.168.1.50 run-action <run-id> play
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 health
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 get-camera
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 upload-protocol path/to/protocol.py
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 analyze-protocol <protocol-id>
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 create-run --protocol-id <protocol-id>
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 run-action <run-id> play
 ```
 
 Ref: `references/http-api.md`
