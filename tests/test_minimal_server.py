@@ -22,9 +22,8 @@ def test_imports():
         print("✅ Pydantic导入成功")
         
         # 测试后端模块
-        from backend.config_manager import get_config
-        config = get_config()
-        print(f"✅ Config导入成功 - API Key: {config.api.api_key[:10] if config.api.api_key else 'Not set'}...")
+        import config
+        print(f"✅ Config导入成功 - API Key: {config.api_key[:10]}...")
         
         import langchain_agent
         print("✅ Langchain Agent导入成功")
@@ -157,4 +156,4 @@ def main():
         print(f"\n⚠️ 有测试失败，请检查依赖和配置。")
 
 if __name__ == "__main__":
-    main()
+    main() 

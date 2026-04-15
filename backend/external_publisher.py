@@ -10,11 +10,7 @@ import os
 import tempfile
 from typing import Dict, Any
 
-from backend.config_manager import get_config
-
-# 获取配置
-_config = get_config()
-FIGSHARE_PERSONAL_TOKEN = _config.api.figshare_token if hasattr(_config.api, 'figshare_token') else None
+from backend.config import FIGSHARE_PERSONAL_TOKEN
 
 class FigsharePublisher:
     """
@@ -130,4 +126,4 @@ class FigsharePublisher:
 #         )
 #         print(f"Successfully published to: {url}")
 #     except Exception as e:
-#         print(f"An error occurred: {e}")
+#         print(f"An error occurred: {e}") 

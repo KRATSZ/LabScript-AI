@@ -50,7 +50,7 @@ import {
   Info
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, type AppState } from '../context/AppContext';
 import { apiService, formatHardwareConfig } from '../services/api';
 
 const SimulationResultsPage: React.FC = () => {
@@ -460,6 +460,39 @@ const SimulationResultsPage: React.FC = () => {
                       </Button>
                     </Box>
                   </Tooltip>
+
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    size="large"
+                    startIcon={<Eye />}
+                    onClick={() => navigate('/animation')}
+                    disabled={
+                      isSimulating ||
+                      !state.pythonCode ||
+                      state.simulationResults.status === 'idle' ||
+                      state.simulationResults.status === 'error'
+                    }
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.success.main, 0.3)}`,
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 32px ${alpha(theme.palette.success.main, 0.4)}`,
+                      },
+                      '&:disabled': {
+                        background: theme.palette.action.disabledBackground,
+                        transform: 'none',
+                        boxShadow: 'none',
+                      }
+                    }}
+                  >
+                    View Animation
+                  </Button>
 
                   <Button
                     fullWidth

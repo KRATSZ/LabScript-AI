@@ -1,7 +1,17 @@
 import axios from 'axios';
 import { AppState, LabwareItem } from '../context/AppContext';
+import type { ProtocolAnalysisOutput } from '../../../web/opentrons-protocol-visualizer-web-slim/shared-data/js';
 
-const API_BASE_URL = 'https://api.ai4ot.cn';
+const normalizeBaseUrl = (value?: string): string => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.replace(/\/+$/, '') : '';
+};
+
+const DEFAULT_LOCAL_API_BASE_URL = 'http://127.0.0.1:8000';
+
+export const API_BASE_URL =
+  normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL) || DEFAULT_LOCAL_API_BASE_URL;
+export const API_BASE_URL_LABEL = API_BASE_URL || 'same-origin';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -90,6 +100,17 @@ export interface PyLabRobotProfilesResponse {
   timestamp: string;
 }
 
+export type VisualizerAnalyzeProgressPhase =
+  | 'submitting'
+  | 'submitted'
+  | 'queued'
+  | 'running';
+
+export interface VisualizerAnalyzeOptions {
+  check?: boolean;
+  onProgress?: (phase: VisualizerAnalyzeProgressPhase) => void;
+}
+
 // protocols.io 导出请求接口
 export interface ProtocolExportRequest {
   user_goal: string;
@@ -111,6 +132,114 @@ Right Pipette: ${state.rightPipette || 'None'}
 Use Gripper: ${state.useGripper}
 Deck Layout:
 ${deckItems || '  (No labware configured)'}`;
+};
+
+const VISUALIZER_ANALYZE_PREFIX = '/api/visualizer/analyze';
+const VISUALIZER_ANALYZE_POLL_MS = 900;
+const VISUALIZER_ANALYZE_MAX_WAIT_MS = 15 * 60 * 1000;
+
+const buildVisualizerAnalyzeFormData = (
+  protocol: File,
+  options: VisualizerAnalyzeOptions = {}
+): FormData => {
+  const fd = new FormData();
+  fd.append('protocol', protocol);
+  if (options.check === true) {
+    fd.append('check', 'true');
+  }
+  return fd;
+};
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise(resolve => window.setTimeout(resolve, ms));
+
+const formatDetail = (detail: unknown): string => {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail
+      .map((entry: { msg?: string }) => entry?.msg ?? JSON.stringify(entry))
+      .join('; ');
+  }
+  return JSON.stringify(detail);
+};
+
+interface VisualizerJobStatusBody {
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  result?: ProtocolAnalysisOutput;
+  error?: string;
+}
+
+export const analyzeProtocolForVisualization = async (
+  protocol: File,
+  options: VisualizerAnalyzeOptions = {}
+): Promise<ProtocolAnalysisOutput> => {
+  const { onProgress, ...rest } = options;
+  let lastPhase: VisualizerAnalyzeProgressPhase | null = null;
+  const emit = (phase: VisualizerAnalyzeProgressPhase): void => {
+    if (phase !== lastPhase) {
+      lastPhase = phase;
+      onProgress?.(phase);
+    }
+  };
+
+  emit('submitting');
+  const startRes = await fetch(`${API_BASE_URL}${VISUALIZER_ANALYZE_PREFIX}/start`, {
+    method: 'POST',
+    body: buildVisualizerAnalyzeFormData(protocol, rest),
+  });
+
+  if (!startRes.ok) {
+    let message = startRes.statusText;
+    try {
+      const body = (await startRes.json()) as { detail?: unknown };
+      if (body.detail != null) message = formatDetail(body.detail);
+    } catch {
+      // ignore
+    }
+    throw new Error(message);
+  }
+
+  const { job_id: jobId } = (await startRes.json()) as { job_id: string };
+  emit('submitted');
+
+  const deadline = Date.now() + VISUALIZER_ANALYZE_MAX_WAIT_MS;
+  while (Date.now() < deadline) {
+    await sleep(VISUALIZER_ANALYZE_POLL_MS);
+    const response = await fetch(
+      `${API_BASE_URL}${VISUALIZER_ANALYZE_PREFIX}/jobs/${jobId}`
+    );
+
+    if (!response.ok) {
+      let message = response.statusText;
+      try {
+        const body = (await response.json()) as { detail?: unknown };
+        if (body.detail != null) message = formatDetail(body.detail);
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
+
+    const body = (await response.json()) as VisualizerJobStatusBody;
+    if (body.status === 'pending') {
+      emit('queued');
+    } else if (body.status === 'running') {
+      emit('running');
+    }
+
+    if (body.status === 'completed') {
+      if (body.result == null) {
+        throw new Error('Analysis completed but result was missing');
+      }
+      return body.result;
+    }
+
+    if (body.status === 'failed') {
+      throw new Error(body.error ?? 'Analysis failed');
+    }
+  }
+
+  throw new Error('Protocol analysis timed out while waiting for the server job');
 };
 
 

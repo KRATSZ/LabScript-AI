@@ -35,7 +35,7 @@ import { ArrowLeft, Play, RefreshCw, Copy, Code2, Zap, CheckCircle, AlertTriangl
 import { useSnackbar } from 'notistack';
 import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
-import { formatHardwareConfig } from '../services/api';
+import { formatHardwareConfig, API_BASE_URL } from '../services/api';
 import type { IterationLog } from '../services/api';
 
 interface ApiErrorDetail {
@@ -141,7 +141,7 @@ const CodeGenerationPage: React.FC = () => {
       const hardwareConfigForApi = state.rawHardwareConfigText?.trim() || formatHardwareConfig(state);
       
       // Create EventSource connection to streaming API
-      const eventSource = new EventSource('https://api.ai4ot.cn/api/generate-protocol-code');
+      const eventSource = new EventSource(`${API_BASE_URL}/api/generate-protocol-code`);
       
       // Send request data to server
       // Note: EventSource doesn't directly support POST requests, we need another approach
@@ -150,7 +150,7 @@ const CodeGenerationPage: React.FC = () => {
       // Close current connection first, use fetch to initiate POST request and get streaming response
       eventSource.close();
       
-      const response = await fetch('https://api.ai4ot.cn/api/generate-protocol-code', {
+      const response = await fetch(`${API_BASE_URL}/api/generate-protocol-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

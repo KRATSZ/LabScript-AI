@@ -18,12 +18,11 @@ from langchain_core.agents import AgentAction, AgentFinish
 from langchain.agents.output_parsers.react_single_input import ReActSingleInputOutputParser
 from langchain_core.exceptions import OutputParserException
 
-# =============================================================================
-# 用户配置区域 - 请根据您的需求修改以下配置
-# =============================================================================
-API_KEY = "sk-TnKnlDtgvZgrG9wP543180A16aA34a1a978c90333dCa8746"
-BASE_URL = "https://api.pumpkinaigc.online/v1"
-MODEL_NAME = "gemini-2.5-pro-preview-06-05"
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from backend.config import api_key as API_KEY, base_url as BASE_URL, model_name as MODEL_NAME
 
 # 设置环境变量
 os.environ["DEEPSEEK_API_KEY"] = API_KEY

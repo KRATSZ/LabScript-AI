@@ -29,6 +29,7 @@ import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
 import ChatInterface, { ChatMessage } from '../components/ChatInterface';
 import CodeDiffModal from '../components/diff/CodeDiffModal';
+import { API_BASE_URL } from '../services/api';
 
 // Quick edit templates for common code modifications
 const quickEditTemplates = [
@@ -213,7 +214,7 @@ const CodeEditingPage: React.FC = () => {
     setChatMessages(prev => [...prev, userMessage]);
 
     try {
-      const response = await fetch('https://api.ai4ot.cn/api/converse-code-stream', {
+      const response = await fetch(`${API_BASE_URL}/api/converse-code-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -8,6 +8,12 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 import re
 
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from backend.config import api_key as API_KEY, base_url as BASE_URL, model_name as MODEL_NAME
+
 # Import our PyLabRobot executor
 sys.path.append(os.path.join(os.path.dirname(__file__), 'pylabrobot-main', 'pylabrobot'))
 from pylabrobot_executor import run_pylabrobot_protocol
@@ -107,10 +113,10 @@ async def protocol(lh):
 
 # Initialize LLM with hardcoded API settings
 llm = ChatOpenAI(
-    model="gemini-2.5-pro-preview-06-05",
+    model=MODEL_NAME,
     temperature=0.2,
-    openai_api_key="sk-TnKnlDtgvZgrG9wP543180A16aA34a1a978c90333dCa8746",
-    openai_api_base="https://api.pumpkinaigc.online/v1"
+    openai_api_key=API_KEY,
+    openai_api_base=BASE_URL
 )
 
 async def generate_and_simulate_node(state: GraphState) -> GraphState:

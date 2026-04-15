@@ -29,9 +29,10 @@ LabScript AI 是一个基于 AI 的实验室自动化平台，帮助科学家和
     -   前端将 Python 代码发送到 `/api/simulate` 端点。
     -   后端返回模拟结果，前端通过 `AppContext` 存储。
 5.  **动画**:
-    -   用户在 `AnimationPage` 页面查看动画。
-    -   前端将模拟结果发送到 `/api/animate` 端点。
-    -   后端返回动画数据，前端进行展示。
+    -   用户在 `AnimationPage` 页面查看 Opentrons 动画预览。
+    -   主前端直接渲染 `web/opentrons-protocol-visualizer-web-slim` 中的 visualizer 组件。
+    -   前端将生成的 Python protocol code 提交到主后端 `/api/visualizer/analyze/start`，再轮询 `/api/visualizer/analyze/jobs/{job_id}` 获取 playback analysis。
+    -   动画页面不再依赖独立的 visualizer dev server。
 
 
 
@@ -86,8 +87,12 @@ LabScript AI 是一个基于 AI 的实验室自动化平台，帮助科学家和
 ## 快速开始
 
 1. 克隆仓库
-2. 安装依赖: `npm install`
-3. 启动开发服务器: `npm run dev`
+2. 在项目根目录复制环境变量模板: `cp .env.example .env`
+3. 安装依赖: `npm install`
+4. 启动开发服务器: `npm run dev`
+5. 如需动画预览，同时启动主后端 `uv run python main.py`，动画分析接口已并入主服务。
+
+前端会从项目根目录 `.env` 读取 `VITE_API_BASE_URL` 等配置。
 
 ## API 集成指南
 

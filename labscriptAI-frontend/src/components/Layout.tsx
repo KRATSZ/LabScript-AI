@@ -10,7 +10,8 @@ const steps = [
   { label: 'Hardware Config', path: '/configure-hardware' },
   { label: 'Define SOP', path: '/define-sop' },
   { label: 'Generate Code', path: '/generate-code' },
-  { label: 'Simulation', path: '/simulation-results' }
+  { label: 'Simulation', path: '/simulation-results' },
+  { label: 'Animation', path: '/animation' }
 ];
 
 interface LayoutProps {

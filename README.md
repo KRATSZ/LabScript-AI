@@ -13,20 +13,23 @@
 # 1. 环境初始化
 .\scripts\setup-uv.ps1
 
-# 2. 启动后端 API 服务器
+# 2. 配置环境变量
+cp .env.example .env
+
+# 3. 启动后端 API 服务器
 .\.venv\Scripts\Activate.ps1
 uvicorn backend.api_server:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend
 or
 python -m uvicorn backend.api_server:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend
 # 或者使用 uv run python main.py
 
-# 3. 启动前端开发服务器
+# 4. 启动前端开发服务器
 cd labscriptAI-frontend
 npm install  # 首次运行
 # 如果遇到依赖冲突错误，可以使用：npm install --legacy-peer-deps
 npm run dev
 
-# 4. 前端构建（生产环境）
+# 5. 前端构建（生产环境）
 npm run build     # 构建生产版本
 npm run preview   # 预览构建结果
 ```
@@ -41,7 +44,7 @@ npm run preview   # 预览构建结果
 - **构建命令**: `npm run build`
 - **预览构建**: `npm run preview` (本地预览生产版本)
 - **部署**: 将 `dist/` 目录内容部署到静态文件服务器
-- **环境变量**: 可通过 `.env` 文件配置 API 端点等环境变量
+- **环境变量**: 项目根目录的 `.env` 统一管理前端 API、后端 LLM 和服务端口等配置
 
 ---
 

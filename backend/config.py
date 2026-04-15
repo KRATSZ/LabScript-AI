@@ -1,6 +1,57 @@
 # -*- coding: utf-8 -*-
 """Configuration file for the Opentrons AI Protocol Generator."""
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
+
+
+def _clean_env_value(value):
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _get_env(*names, default=""):
+    for name in names:
+        value = _clean_env_value(os.getenv(name))
+        if value is not None:
+            return value
+    return default
+
+
+def _get_bool_env(*names, default=False):
+    value = _clean_env_value(_get_env(*names, default=""))
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _get_int_env(*names, default=0):
+    value = _clean_env_value(_get_env(*names, default=""))
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _strip_trailing_slash(value):
+    return value.rstrip("/") if value else value
+
+
+environment = _get_env("LABSCRIPTAI_ENVIRONMENT", default="development")
+server_host = _get_env("LABSCRIPTAI_SERVER_HOST", default="0.0.0.0")
+server_port = _get_int_env("LABSCRIPTAI_SERVER_PORT", default=8000)
+debug = _get_bool_env("LABSCRIPTAI_DEBUG", default=False)
+
 # --- Common Pitfalls for OT-2 ---
 COMMON_PITFALLS_OT2 = [
     "Use metadata = {{\"apiLevel\": \"2.19\"}} for OT-2, not the 'requirements' dictionary.",
@@ -141,31 +192,44 @@ def run(protocol: protocol_api.ProtocolContext):
 ```
 """
 
-# 1. API Configuration - 使用新的配置管理系统
-# 导入配置管理器
-try:
-    from .config_manager import get_config
-    
-    # 获取配置
-    _config = get_config()
-    
-    # 导出配置变量（保持向后兼容）
-    api_key = _config.api.api_key
-    base_url = _config.api.base_url
-    model_name = _config.api.model_name
-    DEEPSEEK_API_KEY = _config.api.deepseek_api_key
-    DEEPSEEK_BASE_URL = _config.api.deepseek_base_url
-    DEEPSEEK_INTENT_MODEL = _config.api.deepseek_model
-    
-except ImportError:
-    # 如果配置管理器不可用，使用默认值
-    import os
-    api_key = os.getenv("LABSCRIPTAI_API_KEY", "sk-Fbf6T3Gd8o3srcifmRyfUa3PfKmtbNuYgNzind0j92h2sV3n")
-    base_url = os.getenv("LABSCRIPTAI_BASE_URL", "https://api.ai190.com/v1")
-    model_name = os.getenv("LABSCRIPTAI_MODEL_NAME", "gemini-2.5-pro")
-    DEEPSEEK_API_KEY = os.getenv("LABSCRIPTAI_DEEPSEEK_API_KEY", "C5dgRQ47zWYzeNGpS7YU9kQIEoP4KiGfPDdnrnLFwRE1AJaUCNN5acwtACD69-XPyOiqPI8H5tFMHJLxVuAJQA")
-    DEEPSEEK_BASE_URL = os.getenv("LABSCRIPTAI_DEEPSEEK_BASE_URL", "https://www.sophnet.com/api/open-apis/v1")
-    DEEPSEEK_INTENT_MODEL = os.getenv("LABSCRIPTAI_DEEPSEEK_MODEL", "DeepSeek-V3-Fast")
+# 1. API Configuration
+api_key = _get_env("LABSCRIPTAI_API_KEY", "OPENAI_API_KEY", default="")
+base_url = _strip_trailing_slash(
+    _get_env(
+        "LABSCRIPTAI_BASE_URL",
+        "OPENAI_API_BASE",
+        default="",
+    )
+)
+model_name = _get_env(
+    "LABSCRIPTAI_MODEL_NAME",
+    "OPENAI_MODEL_NAME",
+    default="",
+)
+
+# Specialized API for intent classification / fast-response tasks.
+DEEPSEEK_API_KEY = _get_env(
+    "LABSCRIPTAI_DEEPSEEK_API_KEY",
+    "DEEPSEEK_API_KEY",
+    default=api_key,
+)
+DEEPSEEK_BASE_URL = _strip_trailing_slash(
+    _get_env(
+        "LABSCRIPTAI_DEEPSEEK_BASE_URL",
+        "DEEPSEEK_API_BASE",
+        default=base_url,
+    )
+)
+DEEPSEEK_INTENT_MODEL = _get_env(
+    "LABSCRIPTAI_DEEPSEEK_MODEL",
+    "DEEPSEEK_MODEL",
+    default=model_name,
+)
+FIGSHARE_PERSONAL_TOKEN = _get_env(
+    "LABSCRIPTAI_FIGSHARE_PERSONAL_TOKEN",
+    "FIGSHARE_PERSONAL_TOKEN",
+    default="",
+)
 
 # 2. Valid Opentrons Names and Code Examples (Knowledge Base)
 
@@ -442,4 +506,4 @@ def run(protocol: protocol_api.ProtocolContext):
     p1000.dispense(100, plate['A1'])
     p1000.drop_tip()
 ```
-"""
+""" 
