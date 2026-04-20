@@ -1,3 +1,8 @@
 .env
 .env.*
 !.env.example
+
+# Web visualization (large build artifacts)
+web/
+node_modules/
+.venv/
