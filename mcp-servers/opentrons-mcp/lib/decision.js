@@ -125,13 +125,29 @@ function upsertObservedSlot(slots, slotName, patch) {
 }
 
 export function buildObservedDeckState({ deckConfiguration, modules, run } = {}) {
+  const deck = unwrapData(deckConfiguration) || deckConfiguration || {};
+  const fixtures = (() => {
+    const candidates = [
+      readNested(deck, [["cutoutFixtures"]], undefined),
+      readNested(deck, [["cutout_fixtures"]], undefined),
+      readNested(deck, [["raw", "cutoutFixtures"]], undefined),
+      readNested(deck, [["raw", "cutout_fixtures"]], undefined),
+    ];
+    for (const candidate of candidates) {
+      if (candidate !== undefined && candidate !== null) {
+        return asArray(candidate);
+      }
+    }
+    return [];
+  })();
+
   const slots = Object.fromEntries(
     FLEX_SLOT_NAMES.map(slotName => [
       slotName,
       {
         slot_name: slotName,
         observed_status: "unknown",
-        addressable: false,
+        addressable: true,
         occupant_type: null,
         occupant_name: null,
         occupant_id: null,
@@ -141,7 +157,6 @@ export function buildObservedDeckState({ deckConfiguration, modules, run } = {})
     ]),
   );
 
-  const fixtures = asArray(readNested(unwrapData(deckConfiguration) || {}, [["cutoutFixtures"]], []));
   for (const fixture of fixtures) {
     const slotName = extractSlotNameFromCutoutId(readNested(fixture, [["cutoutId"]]));
     if (!slotName) {
@@ -938,6 +953,7 @@ export function suggestAlternativeSlots({
   const excludedSlots = new Set(
     [targetSlot].filter(Boolean).map(slotName => String(slotName).toUpperCase()),
   );
+  const slotStates = observedDeckState?.slots || {};
   return listAvailableSlots({
     observedDeckState,
     sessionState,
@@ -947,7 +963,18 @@ export function suggestAlternativeSlots({
     .map(slot => ({
       ...slot,
       confidence: slot.status === "empty" ? "high" : "low",
+      known_fixture: (slotStates[slot.slot_name]?.observed_sources || []).includes("deck_configuration"),
     }))
+    .sort((a, b) => {
+      if (a.confidence !== b.confidence) {
+        return a.confidence === "high" ? -1 : 1;
+      }
+      if (a.known_fixture !== b.known_fixture) {
+        return a.known_fixture ? -1 : 1;
+      }
+      return FLEX_SLOT_NAMES.indexOf(a.slot_name) - FLEX_SLOT_NAMES.indexOf(b.slot_name);
+    })
+    .map(({ known_fixture, ...slot }) => slot)
     .slice(0, limit);
 }
 

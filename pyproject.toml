@@ -27,5 +27,4 @@ Homepage = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
 Repository = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
 

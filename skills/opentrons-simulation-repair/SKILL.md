@@ -10,7 +10,9 @@ mcp_tools:
 
 # Simulation Repair
 
-## Loop (up to 5 rounds)
+## Repair loop (no fixed round cap)
+
+Repeat until simulation passes or you stop early:
 
 1. If runtime readiness unknown: `doctor_local_runtime`.
 2. `simulate_protocol`.
@@ -21,7 +23,9 @@ mcp_tools:
 **Stop early if:**
 - `RUNTIME_UNAVAILABLE`
 - `UNKNOWN_NEEDS_HUMAN`
-- Two consecutive rounds do not materially change the failure
+- **Two consecutive rounds do not materially change the failure** (same root error / no meaningful code delta)
+
+There is **no** target maximum number of rounds; avoid pointless churn by honoring the stop conditions above.
 
 ## Editing Rules
 
@@ -29,6 +33,7 @@ mcp_tools:
 - Do not rewrite the full protocol if a local fix is enough.
 - Do not claim validated unless simulation actually passed.
 - Do not send to robot while simulation is failing.
+- For long sessions, a one-line note per round (or version control) helps avoid losing track of edits; still report each round’s delta in the conversation.
 
 ## Repair Lookup
 

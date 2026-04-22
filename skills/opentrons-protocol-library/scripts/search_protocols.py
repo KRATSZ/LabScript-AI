@@ -20,7 +20,7 @@ def get_default_library_candidates(repo_root: Path | None = None) -> list[tuple[
     """Return library discovery candidates in precedence order."""
     root = repo_root or get_repo_root()
     return [
-        ("bundled", root / "reference-code" / "Protocols-develop"),
+        ("bundled", root / "reference-protocols" / "Protocols-develop"),
         ("sibling", root.parent / "Protocols-develop"),
     ]
 
@@ -48,13 +48,24 @@ def resolve_library_path(
                 raise SystemExit(
                     "protocol library path is not configured; pass --library /path/to/Protocols-develop, "
                     "set OPENTRONS_PROTOCOL_LIBRARY_PATH, or vendor Protocols-develop into "
-                    "reference-code/Protocols-develop"
+                    "reference-protocols/Protocols-develop"
                 )
 
     if not library_path.exists():
         raise SystemExit(f"protocol library path does not exist: {library_path}")
 
     return library_path
+
+
+def load_catalog(library_path: Path) -> dict[str, Any] | None:
+    """Load protocol-catalog.json if available; return None otherwise."""
+    catalog_path = library_path / "protocol-catalog.json"
+    if not catalog_path.exists():
+        return None
+    try:
+        return json.loads(safe_read_text(catalog_path))
+    except (json.JSONDecodeError, Exception):
+        return None
 
 
 def get_protocol_directory(library_path: Path, slug: str) -> Path:
@@ -213,6 +224,12 @@ def search_protocols(
     limit: int = 10,
 ) -> list[dict[str, Any]]:
     """Search the protocol library across README, source, fields, and slug."""
+    # Fast path: use catalog index when available
+    catalog = load_catalog(library_path)
+    if catalog is not None:
+        return _search_via_catalog(catalog, keywords, limit)
+
+    # Slow path: scan filesystem directly
     protocols_dir = library_path / "protocols"
     normalized_keywords = [keyword.lower() for keyword in keywords]
     results: list[dict[str, Any]] = []
@@ -250,6 +267,71 @@ def search_protocols(
                 "matched_in": matched_in,
             }
         )
+
+    results.sort(key=lambda item: (-len(item["matched_keywords"]), item["name"]))
+    return results[:limit]
+
+
+def _search_via_catalog(
+    catalog: dict[str, Any], keywords: list[str], limit: int
+) -> list[dict[str, Any]]:
+    """Fast search using pre-built catalog index."""
+    normalized_keywords = [keyword.lower() for keyword in keywords]
+    results: list[dict[str, Any]] = []
+
+    for proto in catalog.get("protocols", []):
+        if proto.get("hidden"):
+            continue
+
+        # Build search text from catalog fields
+        searchable = " ".join([
+            proto.get("slug", ""),
+            proto.get("title", ""),
+            proto.get("description", ""),
+            " ".join(proto.get("method_tags", [])),
+            " ".join(
+                f"{cat} {' '.join(subs)}"
+                for cat, subs in proto.get("categories", {}).items()
+            ),
+            " ".join(proto.get("pipettes", [])),
+            " ".join(proto.get("labware", [])),
+            " ".join(proto.get("reagents", [])),
+            " ".join(
+                param.get("name", "")
+                for param in proto.get("parameters", [])
+            ),
+        ]).lower()
+
+        matched_keywords = [kw for kw in normalized_keywords if kw in searchable]
+        if not matched_keywords:
+            continue
+
+        # Determine match locations
+        matched_in = []
+        title_lower = proto.get("title", "").lower()
+        desc_lower = proto.get("description", "").lower()
+        slug_lower = proto.get("slug", "").lower()
+        tags_text = " ".join(proto.get("method_tags", [])).lower()
+
+        for kw in matched_keywords:
+            if kw in slug_lower and "slug" not in matched_in:
+                matched_in.append("slug")
+            if kw in title_lower and "title" not in matched_in:
+                matched_in.append("title")
+            if kw in desc_lower and "readme" not in matched_in:
+                matched_in.append("readme")
+            if kw in tags_text and "tags" not in matched_in:
+                matched_in.append("tags")
+
+        results.append({
+            "name": proto["slug"],
+            "title": proto.get("title", ""),
+            "path": proto.get("slug", ""),
+            "description": proto.get("description", "")[:200],
+            "matched_keywords": matched_keywords,
+            "matched_in": matched_in,
+            "method_tags": proto.get("method_tags", []),
+        })
 
     results.sort(key=lambda item: (-len(item["matched_keywords"]), item["name"]))
     return results[:limit]
@@ -338,6 +420,38 @@ def show_protocol(library_path: Path, slug: str) -> dict[str, Any]:
         "fields_path": str(fields_path) if fields_path.exists() else None,
         "robot_types": robot_types,
         "python_files": python_files,
+    }
+
+
+def show_catalog_summary(library_path: Path) -> dict[str, Any]:
+    """Return catalog metadata and statistics for agent consumption."""
+    catalog = load_catalog(library_path)
+    if catalog is None:
+        return {
+            "available": False,
+            "message": (
+                "No protocol-catalog.json found. Generate it with: "
+                "python reference-protocols/Protocols-develop/scripts/generate_catalog.py"
+            ),
+        }
+
+    # Collect tag statistics
+    tag_counts: dict[str, int] = {}
+    for proto in catalog.get("protocols", []):
+        if proto.get("hidden"):
+            continue
+        for tag in proto.get("method_tags", []):
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+    top_tags = sorted(tag_counts.items(), key=lambda x: -x[1])[:20]
+
+    return {
+        "available": True,
+        "generated_at": catalog.get("generated_at", ""),
+        "total_protocols": catalog.get("total_protocols", 0),
+        "total_categories": len(catalog.get("categories", {})),
+        "top_method_tags": [{"tag": tag, "count": count} for tag, count in top_tags],
+        "category_names": sorted(catalog.get("categories", {}).keys()),
     }
 
 
@@ -477,6 +591,9 @@ def main() -> int:
 
     categories_cmd = subparsers.add_parser("categories", help="List protocol categories")
     categories_cmd.set_defaults(handler=lambda args: list_categories(args.library))
+
+    catalog_cmd = subparsers.add_parser("catalog", help="Show catalog summary and stats")
+    catalog_cmd.set_defaults(handler=lambda args: show_catalog_summary(args.library))
 
     args = parser.parse_args()
     args.library = resolve_library_path(args.library)

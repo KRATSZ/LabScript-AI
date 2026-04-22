@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 168" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="11">
+  <title>Five-step experiment path</title>
+  <defs>
+    <filter id="sh" x="-6%" y="-6%" width="112%" height="112%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#1e3a5f" flood-opacity="0.07"/>
+    </filter>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L0,5 L8,2.5 z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="780" height="168" fill="#ffffff"/>
+
+  <text x="390" y="22" text-anchor="middle" font-size="15" font-weight="600" fill="#0f172a">Experiment happy path (5 steps)</text>
+  <text x="390" y="38" text-anchor="middle" font-size="10" fill="#64748b">intent → plan → code+iterate → run → complete</text>
+
+  <g filter="url(#sh)" stroke-width="1.25">
+    <rect x="28" y="52" width="124" height="58" rx="8" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="90" y="78" text-anchor="middle" font-size="12">📋</text>
+    <text x="90" y="96" text-anchor="middle" font-weight="600" fill="#1e40af" font-size="11.5">Intent</text>
+
+    <rect x="174" y="52" width="124" height="58" rx="8" fill="#f1f5f9" stroke="#64748b"/>
+    <text x="236" y="78" text-anchor="middle" font-size="12">🧭</text>
+    <text x="236" y="96" text-anchor="middle" font-weight="600" fill="#334155" font-size="11.5">Experiment plan</text>
+
+    <rect x="320" y="52" width="124" height="58" rx="8" fill="#f8fafc" stroke="#2563eb"/>
+    <text x="382" y="74" text-anchor="middle" font-size="12">🔁</text>
+    <text x="382" y="90" text-anchor="middle" font-weight="600" fill="#1e40af" font-size="11">Code &amp; iteration</text>
+    <text x="382" y="104" text-anchor="middle" font-size="9" fill="#64748b">sim · fix · repeat</text>
+
+    <rect x="466" y="52" width="124" height="58" rx="8" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="528" y="78" text-anchor="middle" font-size="12">🚀 🔁</text>
+    <text x="528" y="96" text-anchor="middle" font-weight="600" fill="#1e40af" font-size="11.5">Live execution</text>
+
+    <rect x="612" y="52" width="124" height="58" rx="8" fill="#ecfdf5" stroke="#059669"/>
+    <text x="674" y="78" text-anchor="middle" font-size="12">✅</text>
+    <text x="674" y="96" text-anchor="middle" font-weight="600" fill="#047857" font-size="11.5">Experiment complete</text>
+  </g>
+
+  <g stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)">
+    <path d="M152 81 L174 81"/>
+    <path d="M298 81 L320 81"/>
+    <path d="M444 81 L466 81"/>
+    <path d="M590 81 L612 81"/>
+  </g>
+</svg>

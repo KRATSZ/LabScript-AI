@@ -18,7 +18,7 @@ class ProtocolLibraryScriptTests(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             explicit = tmp / "explicit"
-            bundled = tmp / "repo" / "reference-code" / "Protocols-develop"
+            bundled = tmp / "repo" / "reference-protocols" / "Protocols-develop"
             sibling = tmp / "Protocols-develop"
             explicit.mkdir(parents=True)
             bundled.mkdir(parents=True)
@@ -36,7 +36,7 @@ class ProtocolLibraryScriptTests(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             repo_root = tmp / "repo"
-            bundled = repo_root / "reference-code" / "Protocols-develop"
+            bundled = repo_root / "reference-protocols" / "Protocols-develop"
             env_path = tmp / "env-library"
             bundled.mkdir(parents=True)
             env_path.mkdir(parents=True)
@@ -53,7 +53,7 @@ class ProtocolLibraryScriptTests(unittest.TestCase):
         with TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             repo_root = tmp / "repo"
-            bundled = repo_root / "reference-code" / "Protocols-develop"
+            bundled = repo_root / "reference-protocols" / "Protocols-develop"
             sibling = tmp / "Protocols-develop"
             bundled.mkdir(parents=True)
             sibling.mkdir(parents=True)
@@ -75,14 +75,14 @@ class ProtocolLibraryScriptTests(unittest.TestCase):
         self.assertEqual(resolved, sibling.resolve())
 
     def test_search_protocols_matches_source_code_content(self) -> None:
-        library_path = ROOT / "reference-code" / "Protocols-develop"
+        library_path = ROOT / "reference-protocols" / "Protocols-develop"
 
         results = MODULE.search_protocols(library_path, ["p20_mount"], limit=20)
 
         self.assertTrue(any(result["name"] == "00222e" for result in results))
 
     def test_show_protocol_returns_paths_and_metadata(self) -> None:
-        library_path = ROOT / "reference-code" / "Protocols-develop"
+        library_path = ROOT / "reference-protocols" / "Protocols-develop"
 
         result = MODULE.show_protocol(library_path, "00222e")
 
@@ -94,7 +94,7 @@ class ProtocolLibraryScriptTests(unittest.TestCase):
         self.assertEqual(result["python_files"][0]["apiLevel"], "2.11")
 
     def test_snippet_protocol_returns_keyword_hits(self) -> None:
-        library_path = ROOT / "reference-code" / "Protocols-develop"
+        library_path = ROOT / "reference-protocols" / "Protocols-develop"
 
         result = MODULE.snippet_protocol(library_path, "00222e", ["serial", "plasma"], limit=3)
 
@@ -108,7 +108,7 @@ class ProtocolLibraryScriptTests(unittest.TestCase):
         )
 
     def test_cookbook_missing_returns_clear_message(self) -> None:
-        library_path = ROOT / "reference-code" / "Protocols-develop"
+        library_path = ROOT / "reference-protocols" / "Protocols-develop"
 
         result = MODULE.get_cookbook_sections(library_path)
 

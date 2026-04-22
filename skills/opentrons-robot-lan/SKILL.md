@@ -47,13 +47,53 @@ camera tools (`camera_status`, `capture_preview_image`, `capture_run_image`,
 
 ## Fallback Commands (no MCP)
 
+### Connection management
+
 ```bash
-uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 health
-uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 get-camera
-uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 upload-protocol path/to/protocol.py
-uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 analyze-protocol <protocol-id>
-uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 create-run --protocol-id <protocol-id>
-uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 run-action <run-id> play
+# Save connection for reuse (--host is optional afterwards)
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 save-connection
+# Show saved connection (token is redacted)
+uv run python scripts/opentrons_robot_api.py show-connection
+```
+
+### One-shot deploy and run
+
+```bash
+# Upload → analyze → create run → play (single command)
+uv run python scripts/opentrons_robot_api.py deploy-and-run protocol.py
+```
+
+### Labware search
+
+```bash
+# Search labware definitions by keyword (local-only, no host needed)
+uv run python scripts/opentrons_robot_api.py search-labware "PCR full skirt"
+uv run python scripts/opentrons_robot_api.py search-labware "reservoir" --limit 10
+```
+
+### Run monitoring
+
+```bash
+# Smart monitoring: only outputs on status change, exits on terminal
+uv run python scripts/opentrons_robot_api.py watch-run <run-id> --interval 30 --timeout 1800
+```
+
+### Deck check
+
+```bash
+# Compare protocol declarations vs live robot deck before running
+uv run python scripts/opentrons_robot_api.py --host 192.168.1.50 deck-check protocol.py
+```
+
+### Legacy commands (still available)
+
+```bash
+uv run python scripts/opentrons_robot_api.py health                       # uses saved connection
+uv run python scripts/opentrons_robot_api.py get-camera
+uv run python scripts/opentrons_robot_api.py upload-protocol path/to/protocol.py
+uv run python scripts/opentrons_robot_api.py analyze-protocol <protocol-id>
+uv run python scripts/opentrons_robot_api.py create-run --protocol-id <protocol-id>
+uv run python scripts/opentrons_robot_api.py run-action <run-id> play
 ```
 
 Ref: `references/http-api.md`

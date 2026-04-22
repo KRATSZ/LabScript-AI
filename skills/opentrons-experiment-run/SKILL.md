@@ -11,10 +11,14 @@ mcp_tools:
   - suggest_recovery_action
   - execute_protocol_recovery
   - recover_tip_pickup
+  - safe_next_action
   - restart_review
   - experiment_history
   - is_home_safe
   - health_check
+  - camera_status
+  - capture_preview_image
+  - vision_check
 ---
 
 # Experiment Run (MCP State Machine)
@@ -22,11 +26,25 @@ mcp_tools:
 Phases are **ordered**. Finish each gate before the next. If a gate fails,
 **stop** and fix or escalate.
 
+## User-Facing Contract
+
+Hide internal complexity from the operator. The default interaction model is:
+
+1. One user input
+2. At most one blocking clarification round
+3. One confirmation before live execution
+
+If a runnable protocol exists, the default next step is the simulation gate. Do
+not wait for the user to explicitly ask for simulate.
+
 ### Phase 0 — Intent (multi-well / pattern / ambiguous mapping)
 
 - If wells or spatial layout not confirmed: `opentrons-experiment-intent-review`
   to obtain `target_wells` / `plate_mask` and `tip_policy`.
 - If intent already fixed: skip to Phase 1.
+- Ask only the minimum blocking questions. Prefer a documented default for
+  non-critical preferences.
+- **Do not** default to `opentrons-protocol-library` for new authoring. Use it **only** if the user explicitly wants to search the reference catalog or find an existing protocol example.
 
 ### Phase 1 — Protocol
 
@@ -39,25 +57,30 @@ Phases are **ordered**. Finish each gate before the next. If a gate fails,
 - `doctor_local_runtime` -> `simulate_protocol` -> `parse_simulation_output`
 - Or `opentrons-simulation-repair` for the edit loop.
 - **Failure here -> STOP for live.** No workaround.
+- If simulation fails, keep ownership of the repair loop when possible instead of
+  pushing the user back to raw logs without guidance.
 
 ### Phase 3 — Live Preflight
 
-- `restart_review` if resuming or after MCP/host restart.
+- After MCP/host restart or when the operator is lost: prefer **`safe_next_action`** (same inputs as `restart_review`) for `recommended_next_tool` and `operator_steps`; fall back to **`restart_review`** for the full raw bundle.
 - If `guidance.reconcile_first` -> `reconcile_state`.
 - `robot_status`, `module_status` — verify robot reachable and modules ready.
 - `reconcile_state` — confirm deck matches expected layout.
+- **Deck vision (observation-only) — ONLY if the operator explicitly requests a visual check or image-based deck confirmation:** `camera_status` → `capture_preview_image` → `vision_check` on the saved image. Canonical sequence and setup: **`docs/workflows.md`** → section *Optional deck vision (observation-only)* and `docs/vision-acceptance.md`. Do **not** pull vision into the default preflight path. Treat output as hints; **do not** treat vision as committed deck truth — compare with `reconcile_state` and robot APIs. Prefer lab-trained weights auto-resolution (`labagentyolo` `deck_v2`/`deck_pilot` `best.pt` when present); override with `weights` / `OPENTRONS_DECK_YOLO_WEIGHTS` if needed.
 - Before `home`: `is_home_safe`.
 
 ### Phase 4 — Execute
 
 - `run_protocol` (file_path, robot_ip, session_id).
 - Simulation gate also runs inside this tool.
+- Before this phase, give the operator a short ready-state summary rather than a
+  long internal trace.
 
 ### Phase 5 — Failure / Recovery
 
 - `run_history` -> `parse_error` -> `suggest_recovery_action`.
 - Execute supported branches: `execute_protocol_recovery` / `recover_tip_pickup`.
-- Hard stops and DESTINATION_OCCUPIED human-review rules per Agent CLAUDE.md.
+- Hard stops and DESTINATION_OCCUPIED human-review rules per `docs/safety-policy.md` and `docs/error-response.md`.
 
 ### Phase 6 — Audit
 
@@ -77,4 +100,5 @@ When refusing an unsafe request, **always immediately offer the corrective actio
 ## Handoff
 
 - Sim-stuck: `opentrons-simulation-repair` or `opentrons-protocol-author`.
-- No MCP: `opentrons-robot-lan`.
+- No MCP: `opentrons-robot-lan` (explicit fallback only).
+- Search existing Opentrons examples: `opentrons-protocol-library` (user-requested only).

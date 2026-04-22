@@ -47,7 +47,7 @@ export function buildProbeWellsProtocol({
   labwareSlot,
   wells = [],
   mode = "detect_presence",
-  apiLevel = "2.20",
+  apiLevel = "2.24",
   robotType = "Flex",
   tiprackNamespace = "opentrons",
   tiprackVersion = 1,
