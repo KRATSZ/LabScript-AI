@@ -37,6 +37,7 @@ This repository is a [Claude Code plugin](https://docs.anthropic.com/en/docs/cla
 Opentrons-Lab-Agent/
 ├── skills/                              # 7 agent skills
 ├── mcp-servers/opentrons-mcp/           # MCP server (local simulation + live robot control)
+├── vision/                              # Optional vision scripts/docs/placeholders (weights stay out of git)
 ├── reference-protocols/Protocols-develop/ # 833 reference protocols (read-only)
 ├── tests/                               # Python + Node.js tests
 ├── CLAUDE.md                            # Short agent index → canonical docs
@@ -69,6 +70,11 @@ uv venv .venv
 
 # Setup MCP server
 cd mcp-servers/opentrons-mcp && npm install && cd ../..
+
+# Optional: prepare vision weight download config
+cp vision/models/weights/manifest.example.json vision/models/weights/manifest.json
+# edit manifest.json to point at your release assets, then:
+bash scripts/download_vision_weights.sh
 
 # Run tests
 uv run python -m unittest discover -s tests -v
@@ -119,6 +125,7 @@ git submodule add https://github.com/SmartisanNaive/Opentrons-Lab-Agent.git open
 
 - Managed with `uv`: `uv venv .venv`, then `uv run ...`
 - Optional vision deps: `uv sync --extra vision` (YOLOE/Ultralytics for local deck vision); acceptance checklist: `docs/vision-acceptance.md`
+- Optional vision workspace: `vision/` holds scripts/docs; model binaries download into `vision/models/weights/` via `bash scripts/download_vision_weights.sh`
 - Optional protocol deps: `uv sync --extra protocol` (opentrons runtime for local simulate)
 
 ## Recommended Operator Flow / 推荐使用流程

@@ -6,10 +6,12 @@ __pycache__/
 /artifacts/
 /weights
 /runs/
+/labagentyolo/
 node_modules/
 mcp-servers/**/node_modules/
 mcp-servers/opentrons-mcp/data/session-state/
 mcp-servers/opentrons-mcp/data/result-logs/
 skills/opentrons-robot-lan/data/robot-connection.json
 /src/
-/scripts/
+/scripts/*
+!/scripts/download_vision_weights.sh

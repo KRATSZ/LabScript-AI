@@ -103,11 +103,12 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/** Prefer plugin `artifacts/camera-captures`; if missing, use sibling `labagentyolo/data/camera-captures`. */
+/** Prefer plugin `artifacts/camera-captures`; otherwise use in-repo `vision/data/camera-captures`, then legacy sibling fallback. */
 function resolveCameraArtifactRoot() {
   const repoRoot = path.resolve(__dirname, "../..");
   const preferred = path.join(repoRoot, "artifacts", "camera-captures");
-  const fallback = path.resolve(repoRoot, "..", "labagentyolo", "data", "camera-captures");
+  const visionFallback = path.join(repoRoot, "vision", "data", "camera-captures");
+  const legacyFallback = path.resolve(repoRoot, "..", "labagentyolo", "data", "camera-captures");
   try {
     if (fs.existsSync(preferred)) {
       return preferred;
@@ -116,8 +117,15 @@ function resolveCameraArtifactRoot() {
     // ignore
   }
   try {
-    if (fs.existsSync(fallback)) {
-      return fallback;
+    if (fs.existsSync(visionFallback)) {
+      return visionFallback;
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    if (fs.existsSync(legacyFallback)) {
+      return legacyFallback;
     }
   } catch {
     // ignore
@@ -758,7 +766,7 @@ const TOOL_DEFINITIONS = [
         weights: {
           type: "string",
           description:
-            "Ultralytics checkpoint path or name. Omit to auto-pick: OPENTRONS_DECK_YOLO_WEIGHTS, then labagentyolo deck_v2/deck_pilot best.pt, then OPENTRONS_YOLOE_WEIGHTS / yoloe-26s-seg.pt",
+            "Ultralytics checkpoint path or name. Omit to auto-pick: OPENTRONS_DECK_YOLO_WEIGHTS, then vision/models/weights deck_v2/deck_pilot, then local vision/runs, then OPENTRONS_YOLOE_WEIGHTS / yoloe-26s-seg.pt",
         },
         annotated_output_dir: {
           type: "string",

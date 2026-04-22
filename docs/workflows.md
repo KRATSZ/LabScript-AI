@@ -61,7 +61,7 @@ Use this **only when the operator explicitly asks** for a visual deck check, cam
 **Setup (once per machine):**
 
 - Python: `uv sync --extra vision` from the repo root (Ultralytics / optional YOLOE extras).
-- Weights: optional `labagentyolo` checkout beside this repo so `../labagentyolo/runs/detect/.../weights/best.pt` resolves, or set `OPENTRONS_DECK_YOLO_WEIGHTS` / `OPENTRONS_YOLOE_WEIGHTS` per `docs/vision-acceptance.md`.
+- Weights: either download them into `vision/models/weights/` via `bash scripts/download_vision_weights.sh`, or set `OPENTRONS_DECK_YOLO_WEIGHTS` / `OPENTRONS_YOLOE_WEIGHTS` per `docs/vision-acceptance.md`. Legacy sibling `../labagentyolo/...` paths still work as a fallback while migrating older workspaces.
 
 **Tool sequence (MCP `opentrons-lab-mcp`):**
 

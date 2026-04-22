@@ -7,7 +7,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 VISION_SCRIPT = ROOT / "mcp-servers" / "opentrons-mcp" / "scripts" / "vision_check.py"
-SIDECAR_SCRIPT = ROOT.parent / "labagentyolo" / "scripts" / "export_deck_sidecars_from_labelme.py"
+SIDECAR_SCRIPT = ROOT / "vision" / "scripts" / "export_deck_sidecars_from_labelme.py"
 
 VISION = runpy.run_path(str(VISION_SCRIPT))
 SIDECAR = runpy.run_path(str(SIDECAR_SCRIPT))
@@ -159,7 +159,7 @@ class VisionCheckLogicTests(unittest.TestCase):
         self.assertIn("expected_layout_mismatch", slot_observations["A1"]["reasons"])
 
     def test_extract_deck_quad_norm_supports_legacy_multi_point_polygon(self) -> None:
-        legacy_path = ROOT.parent / "labagentyolo" / "data" / "frames" / "samples" / "deck_vid3_02.json"
+        legacy_path = ROOT / "tests" / "fixtures" / "vision" / "deck_vid3_02.json"
         data = json.loads(legacy_path.read_text(encoding="utf-8"))
 
         corners = extract_deck_quad_norm(data)

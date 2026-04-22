@@ -6,7 +6,7 @@ Contract: read one JSON object from stdin, write one JSON object to stdout.
 
 Modes:
   - deck: Ultralytics YOLO. If `weights` is omitted, auto-pick lab-trained
-          `labagentyolo` deck checkpoints when present, else YOLOE
+          `vision` deck checkpoints when present, else YOLOE
           (`yoloe-26s-seg.pt`). Lab class names (e.g. tiprack_200) map to
           canonical labels (tiprack, plate, ...). Detections are mapped to
           Flex slots via optional deck homography or a uniform image-grid
@@ -33,6 +33,10 @@ SLOT_AREA = SLOT_WIDTH * SLOT_HEIGHT
 BOUNDARY_EPS = 0.02
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
+_VISION_ROOT = _REPO_ROOT / "vision"
+_VISION_WEIGHTS_DIR = _VISION_ROOT / "models" / "weights"
+_VISION_RUNS_DIR = _VISION_ROOT / "runs" / "detect"
+_LEGACY_VISION_ROOT = _REPO_ROOT.parent / "labagentyolo"
 
 
 def _default_weights_chain() -> str:
@@ -46,8 +50,12 @@ def _default_weights_chain() -> str:
         if ep.is_file():
             return str(ep)
     candidates = [
-        _REPO_ROOT.parent / "labagentyolo" / "runs" / "detect" / "deck_v2" / "weights" / "best.pt",
-        _REPO_ROOT.parent / "labagentyolo" / "runs" / "detect" / "deck_pilot" / "weights" / "best.pt",
+        _VISION_WEIGHTS_DIR / "deck_v2_best.pt",
+        _VISION_WEIGHTS_DIR / "deck_pilot_best.pt",
+        _VISION_RUNS_DIR / "deck_v2" / "weights" / "best.pt",
+        _VISION_RUNS_DIR / "deck_pilot" / "weights" / "best.pt",
+        _LEGACY_VISION_ROOT / "runs" / "detect" / "deck_v2" / "weights" / "best.pt",
+        _LEGACY_VISION_ROOT / "runs" / "detect" / "deck_pilot" / "weights" / "best.pt",
     ]
     for c in candidates:
         if c.is_file():
@@ -55,12 +63,15 @@ def _default_weights_chain() -> str:
     env_yoloe = os.environ.get("OPENTRONS_YOLOE_WEIGHTS")
     if env_yoloe and str(env_yoloe).strip():
         return str(env_yoloe).strip()
+    bundled_yoloe = _VISION_WEIGHTS_DIR / "yoloe-26s-seg.pt"
+    if bundled_yoloe.is_file():
+        return str(bundled_yoloe.resolve())
     return "yoloe-26s-seg.pt"
 
 
 def _path_suggests_trained_deck(weights_path: str) -> bool:
     pl = str(weights_path or "").replace("\\", "/").lower()
-    if "labagentyolo" in pl and "best.pt" in pl:
+    if ("/vision/" in pl or "labagentyolo" in pl) and "best.pt" in pl:
         return True
     if "/deck_v" in pl or "deck_pilot" in pl:
         return True
@@ -173,7 +184,7 @@ COCO_NAME_TO_CANONICAL = {
     "person": "unknown",
 }
 
-# labagentyolo YOLO training classes -> MCP expected_layout vocabulary
+# Lab-tuned YOLO training classes -> MCP expected_layout vocabulary
 LAB_CLASS_TO_CANONICAL = {
     "tiprack_50": "tiprack",
     "tiprack_200": "tiprack",
@@ -1163,7 +1174,10 @@ def _run_model_predictions(
                 err_s = str(exc).lower()
                 if "clip" in err_s or "yoloe" in (weights or "").lower():
                     use_prompts = False
-                    fb = os.environ.get("OPENTRONS_VISION_FALLBACK_WEIGHTS", DEFAULT_COCO_FALLBACK_WEIGHTS)
+                    fb = os.environ.get("OPENTRONS_VISION_FALLBACK_WEIGHTS")
+                    if not fb:
+                        bundled_fb = _VISION_WEIGHTS_DIR / "yolo11n.pt"
+                        fb = str(bundled_fb.resolve()) if bundled_fb.is_file() else DEFAULT_COCO_FALLBACK_WEIGHTS
                     effective_weights = fb
                     model = YOLO(fb)
                     uncertainties_preflight.append(

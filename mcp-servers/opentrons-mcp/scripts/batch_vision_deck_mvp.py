@@ -32,6 +32,8 @@ def resolve_image_source(root: Path) -> tuple[Path | None, list[Path], list[Path
     candidates.extend(
         [
             root / "artifacts/camera-captures/mvp-annotation-batch",
+            root / "vision" / "data" / "frames" / "samples",
+            root / "vision" / "data" / "camera-captures" / "mvp-annotation-batch",
             root.parent / "labagentyolo" / "data" / "frames" / "samples",
             root.parent / "labagentyolo" / "data" / "camera-captures" / "mvp-annotation-batch",
         ]

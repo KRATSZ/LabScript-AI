@@ -1,28 +1,32 @@
 # Vision integration acceptance (Flexagent)
 
-Use this checklist after wiring `labagentyolo` weights and MCP `vision_check`. End-to-end tool order for the lab agent stack: [`workflows.md`](workflows.md) → **Optional deck vision (observation-only)**.
+Use this checklist after wiring in-repo `vision` weights and MCP `vision_check`. End-to-end tool order for the lab agent stack: [`workflows.md`](workflows.md) → **Optional deck vision (observation-only)**.
 
 ## Contract
 
 - Vision is **observation-only**. It does **not** mutate `data/session-state/` or override `reconcile_state` / committed deck truth.
-- Default camera artifact directory: `artifacts/camera-captures` when present; otherwise the MCP server falls back to `../labagentyolo/data/camera-captures`.
+- Default camera artifact directory: `artifacts/camera-captures` when present; otherwise the MCP server falls back to `vision/data/camera-captures` and only then the legacy sibling `../labagentyolo/data/camera-captures`.
 
 ## Weight auto-priority (no `weights` argument)
 
 1. `OPENTRONS_DECK_YOLO_WEIGHTS` (explicit `.pt` path), if the file exists.
-2. `../labagentyolo/runs/detect/deck_v2/weights/best.pt`, if present.
-3. `../labagentyolo/runs/detect/deck_pilot/weights/best.pt`, if present.
-4. `OPENTRONS_YOLOE_WEIGHTS`, if set.
-5. `yoloe-26s-seg.pt` (YOLOE + text prompts; requires CLIP / vision extra).
+2. `vision/models/weights/deck_v2_best.pt`, if present.
+3. `vision/models/weights/deck_pilot_best.pt`, if present.
+4. `vision/runs/detect/deck_v2/weights/best.pt`, if present.
+5. `vision/runs/detect/deck_pilot/weights/best.pt`, if present.
+6. legacy sibling `../labagentyolo/runs/detect/.../weights/best.pt`, if present.
+7. `OPENTRONS_YOLOE_WEIGHTS`, if set.
+8. `vision/models/weights/yoloe-26s-seg.pt`, if present.
+9. `yoloe-26s-seg.pt` (YOLOE + text prompts; requires CLIP / vision extra).
 
 ## Manual checks
 
 ### A — Offline (recommended first)
 
-From repo root, with `uv sync --extra vision` and Ultralytics available:
+From repo root, with `uv sync --extra vision`, local sample images under `vision/data/frames/samples/`, and weights available:
 
 ```bash
-echo '{"mode":"deck","image_path":"'"$(pwd)"'/../labagentyolo/data/frames/samples/deck_mvp_01.jpeg","conf_threshold":0.25}' \
+echo '{"mode":"deck","image_path":"'"$(pwd)"'/vision/data/frames/samples/deck_mvp_01.jpeg","conf_threshold":0.25}' \
   | uv run python mcp-servers/opentrons-mcp/scripts/vision_check.py
 ```
 
