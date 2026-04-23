@@ -2,6 +2,14 @@
 .env.*
 !.env.example
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
 # Web visualization (large build artifacts)
 web/
 node_modules/
