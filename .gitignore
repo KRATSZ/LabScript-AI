@@ -14,3 +14,4 @@ __pycache__/
 web/
 node_modules/
 .venv/
+.alma-snapshots
