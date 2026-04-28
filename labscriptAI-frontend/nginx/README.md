@@ -1,158 +1,172 @@
-# Nginx 部署配置说明
+# 前端部署指南
 
-本文件夹包含了 LabscriptAI 前端应用的 Nginx 配置文件，用于生产环境部署。
+LabscriptAI 前端是 React + Vite 构建的 SPA 应用。本目录包含不同部署场景的 Nginx 配置文件。
 
-## 📁 文件说明
+## 📁 配置文件对照
 
-- `nginx.conf` - 主要的 Nginx 配置文件
-- `README.md` - 本说明文件
+| 配置文件 | 适用场景 | 说明 |
+|---------|---------|------|
+| `openresty-labscriptai.conf` | **生产部署**（推荐） | OpenResty + 1Panel，同域部署前端 + API 反代 |
+| `nginx-docker.conf` | Docker 容器部署 | Docker 环境下的完整配置（含 API 代理） |
+| `nginx.conf` | 旧版配置 | 参考，路径已过时，不建议使用 |
 
-## 🚀 部署步骤
+---
 
-### 1. 构建前端应用
+## 🚀 方案一：OpenResty + 1Panel（推荐）
+
+这是你的生产环境实际使用的方案。
+
+### 1. 本地构建前端
 
 ```bash
-# 在 labscriptAI-frontend 目录下执行
+cd labscriptAI-frontend
+
+# 安装依赖
+npm install
+
+# 构建生产版本
 npm run build
 ```
 
-构建完成后，会在 `dist/` 目录下生成静态文件。
+构建完成后，`dist/` 目录包含所有静态文件（约 22MB）。
 
-### 2. 部署到服务器
-
-将 `dist/` 目录下的所有文件上传到服务器的 `/var/www/labscriptai/dist/` 目录。
+### 2. 上传到服务器
 
 ```bash
-# 创建部署目录
-sudo mkdir -p /var/www/labscriptai
-
-# 复制构建文件
-sudo cp -r dist/* /var/www/labscriptai/dist/
-
-# 设置权限
-sudo chown -R nginx:nginx /var/www/labscriptai
-sudo chmod -R 755 /var/www/labscriptai
+# 上传 dist/ 目录内容到服务器
+scp -r dist/* user@your-server:/opt/1panel/www/sites/labscriptai.cn/index/dist/
 ```
 
-### 3. 配置 Nginx
+### 3. 配置 `VITE_API_BASE_URL`
+
+前端开发环境默认 API 地址是 `http://127.0.0.1:8000`。生产构建用于同域部署时，应该将 `VITE_API_BASE_URL` 留空，让浏览器请求当前域名下的 `/api/`，再由 Nginx 反代到后端。
+
+**构建前**确认 `labscriptAI-frontend/.env`（或 `.env.local`）：
 
 ```bash
-# 复制配置文件到 Nginx 配置目录
-sudo cp nginx/nginx.conf /etc/nginx/sites-available/labscriptai
-
-# 创建软链接启用站点
-sudo ln -s /etc/nginx/sites-available/labscriptai /etc/nginx/sites-enabled/
-
-# 测试配置文件语法
-sudo nginx -t
-
-# 重新加载 Nginx 配置
-sudo systemctl reload nginx
+# 留空表示使用同域请求，通过 /api/ 转发
+VITE_API_BASE_URL=
 ```
 
-### 4. 启动服务
+生产构建会自动忽略 `localhost` / `127.0.0.1` 这类开发地址，避免把本机 API 地址打进线上包。修改环境变量后必须重新执行 `npm run build` 并重新上传 `dist/`。
 
-```bash
-# 启动 Nginx
-sudo systemctl start nginx
+### 4. 应用 OpenResty 配置
 
-# 设置开机自启
-sudo systemctl enable nginx
-
-# 检查状态
-sudo systemctl status nginx
-```
-
-## ⚙️ 配置说明
-
-### 静态文件服务
-- 网站根目录：`/var/www/labscriptai/dist`
-- 支持 gzip 压缩，减少传输大小
-- 静态资源缓存 1 年，HTML 文件不缓存
-
-### API 代理
-- 所有 `/api/` 请求代理到后端服务器
-- 默认代理到 `http://api.ai4ot.cn:8000`
-- 可修改为本地后端：`http://127.0.0.1:8000`
-
-### CORS 支持
-- 允许跨域访问
-- 支持所有常用 HTTP 方法
-- 正确处理预检请求
-
-### SPA 路由
-- 所有未匹配的路由都返回 `index.html`
-- 支持 React Router 等前端路由
-
-### 安全配置
-- 添加了安全头部
-- 禁止访问隐藏文件和备份文件
-- 配置了错误页面
-
-## 🔧 自定义配置
-
-### 修改域名
-
-在 `nginx.conf` 中修改 `server_name`：
+1. 登录 1Panel 面板
+2. 进入「网站」→ 选择 `labscriptai.cn`
+3. 点击「配置文件」，将 `openresty-labscriptai.conf` 的内容粘贴进去
+4. 关键配置项检查：
 
 ```nginx
-server_name your-domain.com www.your-domain.com;
+server_name labscriptai.cn;
+
+# 静态文件运行目录
+root /opt/1panel/www/sites/labscriptai.cn/index/dist;
+
+# API 反代地址（容器内 8000，映射到主机 9002）
+location /api/ {
+    proxy_pass http://127.0.0.1:9002;
+}
 ```
 
-### 修改后端 API 地址
+5. 点击「保存并重载」
 
-在 `location /api/` 块中修改 `proxy_pass`：
+### 5. 验证
+
+```bash
+# 访问前端
+curl https://labscriptai.cn
+
+# 测试 API 反代
+curl https://labscriptai.cn/api/health
+
+# 预期返回：{"status":"healthy"}
+```
+
+---
+
+## 🐳 方案二：Docker 部署
+
+如果前后端都用 Docker，使用 `docker-compose.yml`：
+
+```bash
+cd labscriptAI-frontend/nginx
+
+# 启动前端 + 后端
+docker compose up -d
+
+# 访问前端
+open http://localhost
+```
+
+此方案会自动拉取 Dockerfile 构建前端，并启动后端服务。
+
+---
+
+## 🔧 常见问题
+
+### API 请求失败（CORS 401/403）
+
+**原因**：前端直接请求后端地址，跨域被拦截
+
+**解决**：
+1. 确保 `VITE_API_BASE_URL` 为空（同域模式）
+2. 检查后端 `CORS_ORIGINS` 是否包含你的域名
+
+### 502 Bad Gateway
+
+**原因**：后端服务未启动或端口错误
+
+**解决**：
+```bash
+# 检查后端服务
+docker compose ps backend  # 或 systemctl status otcode-api
+
+# 检查端口监听
+lsof -i :9002
+```
+
+### 静态资源缓存不更新
+
+**原因**：浏览器缓存了旧的 `.js` 文件
+
+**解决**：
+1. 构建后文件名带 hash（Vite 默认行为），强制清除缓存
+2. 手动刷新（Ctrl+Shift+R）
+3. 检查 Nginx 配置中 `Cache-Control: no-cache` 是否对 HTML 生效
+
+### 路由刷新 404
+
+**原因**：SPA 路由需要 Nginx fallback 到 `index.html`
+
+**解决**：确认配置中有：
 
 ```nginx
-proxy_pass http://your-backend-server:8000;
+location / {
+    try_files $uri $uri/ /index.html;
+}
 ```
 
-### 启用 HTTPS
+---
 
-取消注释配置文件中的 HTTPS 部分，并配置 SSL 证书路径。
+## 📋 后端健康检查
 
-## 📝 日志文件
-
-- 访问日志：`/var/log/nginx/labscriptai_access.log`
-- 错误日志：`/var/log/nginx/labscriptai_error.log`
-
-## 🔍 故障排除
-
-### 检查 Nginx 状态
+后端健康检查端点：`/api/health`
 
 ```bash
-sudo systemctl status nginx
+# 容器内测试
+curl http://localhost:8000/api/health
+
+# 从主机测试（通过端口映射）
+curl http://localhost:9002/api/health
 ```
 
-### 查看错误日志
+---
 
-```bash
-sudo tail -f /var/log/nginx/labscriptai_error.log
-```
+## 🌐 多环境切换
 
-### 测试配置文件
-
-```bash
-sudo nginx -t
-```
-
-### 重新加载配置
-
-```bash
-sudo systemctl reload nginx
-```
-
-## 📋 注意事项
-
-1. 确保服务器防火墙开放 80 和 443 端口
-2. 如果使用 HTTPS，需要配置 SSL 证书
-3. 定期检查日志文件，监控应用运行状态
-4. 建议配置日志轮转，避免日志文件过大
-
-## 🌐 域名配置
-
-当前配置支持以下域名访问：
-- `ai4ot.cn`
-- `www.ai4ot.cn`
-
-如需修改，请更新配置文件中的 `server_name` 指令。
+| 环境 | VITE_API_BASE_URL | Nginx proxy_pass |
+|------|------------------|-----------------|
+| 本地开发 | 未设置或 `http://127.0.0.1:8000` | 无需配置 |
+| 1Panel 生产 | 空 | `http://127.0.0.1:9002` |
+| Docker 生产 | 空 | `http://backend:8000` |

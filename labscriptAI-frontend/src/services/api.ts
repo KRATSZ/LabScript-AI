@@ -8,9 +8,27 @@ const normalizeBaseUrl = (value?: string): string => {
 };
 
 const DEFAULT_LOCAL_API_BASE_URL = 'http://127.0.0.1:8000';
+const configuredApiBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+const isLoopbackApiBaseUrl = (value: string): boolean => {
+  if (!value) return false;
+
+  try {
+    const { hostname } = new URL(value);
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+  } catch {
+    return false;
+  }
+};
+const shouldUseConfiguredApiBaseUrl =
+  Boolean(configuredApiBaseUrl) &&
+  (import.meta.env.DEV || !isLoopbackApiBaseUrl(configuredApiBaseUrl));
 
 export const API_BASE_URL =
-  normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL) || DEFAULT_LOCAL_API_BASE_URL;
+  shouldUseConfiguredApiBaseUrl
+    ? configuredApiBaseUrl
+    : import.meta.env.DEV
+      ? DEFAULT_LOCAL_API_BASE_URL
+      : '';
 export const API_BASE_URL_LABEL = API_BASE_URL || 'same-origin';
 
 const apiClient = axios.create({
