@@ -50,6 +50,23 @@ FastAPI server for Opentrons AI Protocol Generator - Simplified Version
 用户目标 → 生成SOP → 生成代码 → 模拟验证 → 完成协议
 """
 
+<<<<<<< HEAD
+import asyncio
+import io
+import json
+import subprocess
+import traceback
+from datetime import datetime
+from typing import Dict, Any, List, Optional, AsyncGenerator
+
+from fastapi import FastAPI, HTTPException, Depends, File, Form, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
+
+# Use absolute imports
+from backend.protocol_visualizer_bridge import load_protocol_visualizer_backend
+=======
 import json
 import traceback
 import asyncio
@@ -63,6 +80,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 # Use absolute imports
+>>>>>>> upstream/main
 from backend.langchain_agent import (
     generate_sop_with_langchain,
     run_code_generation_graph_stream,  # 流式代码生成函数
@@ -163,6 +181,52 @@ def get_sop_generator():
 def get_protocol_simulator():
     return run_opentrons_simulation
 
+<<<<<<< HEAD
+
+async def _read_named_files(files: list[UploadFile] | None) -> list[tuple[str, bytes]]:
+    out: list[tuple[str, bytes]] = []
+    if not files:
+        return out
+    for f in files:
+        if f.filename:
+            out.append((f.filename, await f.read()))
+    return out
+
+
+def _get_visualizer_backend() -> dict[str, Any]:
+    return load_protocol_visualizer_backend()
+
+
+def _run_visualizer_sync_analyze(
+    protocol_filename: str,
+    protocol_content: bytes,
+    labware_files: list[tuple[str, bytes]],
+    rtp_csv_files: list[tuple[str, bytes]],
+    rtp_values: str | None,
+    rtp_files_map: str | None,
+    check: bool,
+) -> dict[str, Any]:
+    backend = _get_visualizer_backend()
+    sync_analyze_from_uploads = backend["sync_analyze_from_uploads"]
+    try:
+        return sync_analyze_from_uploads(
+            protocol_filename,
+            protocol_content,
+            labware_files,
+            rtp_csv_files,
+            rtp_values,
+            rtp_files_map,
+            check,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(status_code=504, detail="Analysis timed out") from e
+
+=======
+>>>>>>> upstream/main
 @app.get("/")
 async def root():
     """Health check endpoint for the API."""
@@ -399,11 +463,97 @@ async def list_tools():
         "tools_available": [
             {"name": "Local SOP Generation (LangChain)", "description": "Generates detailed SOPs from hardware config and user goal using local LangChain."},
             {"name": "Protocol Code Generation Agent (LangChain)", "description": "Generates Python protocol code from SOP and hardware config, with iteration."},
+<<<<<<< HEAD
+            {"name": "Opentrons Protocol Simulator", "description": "Simulates Opentrons Python protocols."},
+            {"name": "Protocol Visualizer Analyzer", "description": "Analyzes Opentrons protocol files into playback-ready timeline data."}
+=======
             {"name": "Opentrons Protocol Simulator", "description": "Simulates Opentrons Python protocols."}
+>>>>>>> upstream/main
         ],
         "status": "ok"
     }
 
+<<<<<<< HEAD
+
+@app.post("/api/visualizer/analyze")
+async def visualizer_analyze_protocol(
+    protocol: UploadFile = File(description="Main protocol .py or .json file"),
+    labware: list[UploadFile] | None = File(None),
+    rtp_csv: list[UploadFile] | None = File(None),
+    rtp_values: str | None = Form(None),
+    rtp_files_map: str | None = Form(None),
+    check: bool = Form(False),
+):
+    """Synchronously analyze a protocol for deck playback."""
+    if protocol.filename is None:
+        raise HTTPException(status_code=400, detail="Missing filename on protocol upload")
+
+    content = await protocol.read()
+    labware_files = await _read_named_files(labware)
+    rtp_csv_files = await _read_named_files(rtp_csv)
+
+    result = await asyncio.to_thread(
+        _run_visualizer_sync_analyze,
+        protocol.filename,
+        content,
+        labware_files,
+        rtp_csv_files,
+        rtp_values,
+        rtp_files_map,
+        check,
+    )
+    return JSONResponse(content=result)
+
+
+@app.post("/api/visualizer/analyze/start")
+async def visualizer_analyze_protocol_start(
+    protocol: UploadFile = File(description="Main protocol .py or .json file"),
+    labware: list[UploadFile] | None = File(None),
+    rtp_csv: list[UploadFile] | None = File(None),
+    rtp_values: str | None = Form(None),
+    rtp_files_map: str | None = Form(None),
+    check: bool = Form(False),
+):
+    """Enqueue protocol analysis and return a job id for polling."""
+    if protocol.filename is None:
+        raise HTTPException(status_code=400, detail="Missing filename on protocol upload")
+
+    content = await protocol.read()
+    labware_files = await _read_named_files(labware)
+    rtp_csv_files = await _read_named_files(rtp_csv)
+    fname = protocol.filename
+
+    async def _work() -> dict[str, Any]:
+        return await asyncio.to_thread(
+            _run_visualizer_sync_analyze,
+            fname,
+            content,
+            labware_files,
+            rtp_csv_files,
+            rtp_values,
+            rtp_files_map,
+            check,
+        )
+
+    backend = _get_visualizer_backend()
+    start_job = backend["start_job"]
+    job_id = await start_job(lambda: _work())
+    return {"job_id": job_id}
+
+
+@app.get("/api/visualizer/analyze/jobs/{job_id}")
+async def visualizer_analyze_job_status(job_id: str):
+    backend = _get_visualizer_backend()
+    get_job = backend["get_job"]
+    job_to_response = backend["job_to_response"]
+
+    rec = get_job(job_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Unknown job_id")
+    return JSONResponse(content=job_to_response(rec))
+
+=======
+>>>>>>> upstream/main
 # PyLabRobot profile models
 class PyLabRobotProfile(BaseModel):
     id: str
@@ -665,4 +815,8 @@ async def converse_code_endpoint(request: CodeEditRequest):
         return result
     except Exception as e:
         print(f"Error during code conversation: {traceback.format_exc()}")
+<<<<<<< HEAD
         raise HTTPException(status_code=500, detail=f"An unexpected server error occurred: {str(e)}")
+=======
+        raise HTTPException(status_code=500, detail=f"An unexpected server error occurred: {str(e)}")
+>>>>>>> upstream/main

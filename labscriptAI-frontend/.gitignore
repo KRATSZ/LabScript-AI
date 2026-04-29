@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+<<<<<<< HEAD
+package-lock.json
+=======
+>>>>>>> upstream/main

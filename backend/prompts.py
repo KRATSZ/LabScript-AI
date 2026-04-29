@@ -778,6 +778,8 @@ async def protocol(lh: LiquidHandler):
 Generate a completely new, fresh PyLabRobot protocol that fulfills the original requirements.
 Output ONLY the Python code with no markdown or explanations.
 """
+<<<<<<< HEAD
+=======
 
 # =========================================================================
 # Reviewer prompt templates
@@ -837,3 +839,4 @@ When provided with an image, comment on:
 
 Keep responses concise. If no image is supplied, respond with "NO_IMAGE".
 """
+>>>>>>> upstream/main

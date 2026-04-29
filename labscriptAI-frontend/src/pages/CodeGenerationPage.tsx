@@ -35,7 +35,11 @@ import { ArrowLeft, Play, RefreshCw, Copy, Code2, Zap, CheckCircle, AlertTriangl
 import { useSnackbar } from 'notistack';
 import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
+<<<<<<< HEAD
+import { formatHardwareConfig, API_BASE_URL } from '../services/api';
+=======
 import { formatHardwareConfig } from '../services/api';
+>>>>>>> upstream/main
 import type { IterationLog } from '../services/api';
 
 interface ApiErrorDetail {
@@ -141,7 +145,11 @@ const CodeGenerationPage: React.FC = () => {
       const hardwareConfigForApi = state.rawHardwareConfigText?.trim() || formatHardwareConfig(state);
       
       // Create EventSource connection to streaming API
+<<<<<<< HEAD
+      const eventSource = new EventSource(`${API_BASE_URL}/api/generate-protocol-code`);
+=======
       const eventSource = new EventSource('http://localhost:8000/api/generate-protocol-code');
+>>>>>>> upstream/main
       
       // Send request data to server
       // Note: EventSource doesn't directly support POST requests, we need another approach
@@ -150,7 +158,11 @@ const CodeGenerationPage: React.FC = () => {
       // Close current connection first, use fetch to initiate POST request and get streaming response
       eventSource.close();
       
+<<<<<<< HEAD
+      const response = await fetch(`${API_BASE_URL}/api/generate-protocol-code`, {
+=======
       const response = await fetch('http://localhost:8000/api/generate-protocol-code', {
+>>>>>>> upstream/main
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -960,6 +972,25 @@ def run(protocol: protocol_api.ProtocolContext):
                   </Stack>
                   
                   <Tooltip title="Copy code to clipboard">
+<<<<<<< HEAD
+                    <Box component="span">
+                      <IconButton 
+                        onClick={handleCopyCode} 
+                        color="primary" 
+                        disabled={!editedCode}
+                        sx={{
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            background: alpha(theme.palette.primary.main, 0.1),
+                            transform: 'scale(1.1)',
+                          }
+                        }}
+                      >
+                        <Copy size={20} />
+                      </IconButton>
+                    </Box>
+=======
                     <IconButton 
                       onClick={handleCopyCode} 
                       color="primary" 
@@ -975,6 +1006,7 @@ def run(protocol: protocol_api.ProtocolContext):
                     >
                       <Copy size={20} />
                     </IconButton>
+>>>>>>> upstream/main
                   </Tooltip>
                 </Box>
                 

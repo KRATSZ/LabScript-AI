@@ -12,6 +12,10 @@ dependencies = [
     "langgraph==0.4.8",
     "mcp==1.10.1",
     "pydantic==2.11.5",
+<<<<<<< HEAD
+    "python-multipart>=0.0.9",
+=======
+>>>>>>> upstream/main
     "python-dotenv==1.0.1",
     "requests==2.31.0",
     "faiss-cpu==1.8.0",

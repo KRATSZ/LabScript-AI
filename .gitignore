@@ -1,3 +1,22 @@
+<<<<<<< HEAD
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# Web visualization (large build artifacts)
+web/
+node_modules/
+.venv/
+.alma-snapshots
+=======
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -164,3 +183,4 @@ labscriptAI-frontend/dist/
 # Local validation artifacts
 opentrons_validator/
 
+>>>>>>> upstream/main

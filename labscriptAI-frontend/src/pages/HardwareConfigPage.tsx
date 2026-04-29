@@ -37,7 +37,11 @@ import {
   ListItemSecondaryAction,
 } from '@mui/material';
 import { ArrowRight, Text, Layout, Settings, Notebook as Robot, HardDrive, Cpu, Zap, Wrench, Info } from 'lucide-react';
+<<<<<<< HEAD
+import { useAppContext, AppState, LabwareItem, PipetteModel } from '../context/AppContext';
+=======
 import { useAppContext, LabwareItem, PipetteModel } from '../context/AppContext';
+>>>>>>> upstream/main
 import DeckLayout from '../components/hardware/DeckLayout';
 import LabwareLibrary from '../components/hardware/LabwareLibrary';
 import { formatHardwareConfig, apiService, PyLabRobotProfile } from '../services/api';
@@ -48,6 +52,17 @@ const STORAGE_KEY = 'labscript_hardware_config';
 
 const apiVersions = ['2.18', '2.19', '2.20', '2.21'];
 
+<<<<<<< HEAD
+const LEGACY_DEFAULT_FLEX_CONFIG = `Robot Model: Flex
+API Version: 2.20
+Left Pipette: None
+Right Pipette: None
+Use Gripper: false
+Deck Layout:
+  (No labware configured)`;
+
+=======
+>>>>>>> upstream/main
 const flexPipettes = [
   { value: 'flex_1channel_1000', label: 'Flex 1-channel 1000µL' },
   { value: 'flex_1channel_300', label: 'Flex 1-channel 300µL' },
@@ -69,6 +84,34 @@ const pyLabRobotPipettes = [
   { value: 'pylabrobot_50', label: 'PyLabRobot 50µL' },
 ];
 
+<<<<<<< HEAD
+const isLegacyDefaultFlexState = (state: AppState): boolean => (
+  state.robotModel === 'Flex' &&
+  state.apiVersion === '2.20' &&
+  state.leftPipette === null &&
+  state.rightPipette === null &&
+  state.useGripper === false &&
+  Object.values(state.deckLayout).every((labware) => labware === null)
+);
+
+const getTextConfigForState = (state: AppState): string => {
+  if (isLegacyDefaultFlexState(state)) {
+    return hardwareTemplates.Flex;
+  }
+
+  return formatHardwareConfig(state);
+};
+
+const normalizeRawHardwareConfigText = (rawConfig: string | null | undefined): string | null => {
+  if (!rawConfig?.trim()) {
+    return null;
+  }
+
+  return rawConfig.trim() === LEGACY_DEFAULT_FLEX_CONFIG ? hardwareTemplates.Flex : rawConfig;
+};
+
+=======
+>>>>>>> upstream/main
 // Helper to format JSON into a YAML-like string
 const formatJsonToYamlStyle = (obj: any): string => {
   const yamlLines: string[] = [];
@@ -126,12 +169,20 @@ const HardwareConfigPage: React.FC = () => {
     if (savedConfig) {
       try {
         const config = JSON.parse(savedConfig);
+<<<<<<< HEAD
+        const rawHardwareConfigText = normalizeRawHardwareConfigText(config.rawHardwareConfigText);
+=======
+>>>>>>> upstream/main
         dispatch({ type: 'SET_ROBOT_MODEL', payload: config.robotModel });
         dispatch({ type: 'SET_API_VERSION', payload: config.apiVersion });
         dispatch({ type: 'SET_LEFT_PIPETTE', payload: config.leftPipette });
         dispatch({ type: 'SET_RIGHT_PIPETTE', payload: config.rightPipette });
         dispatch({ type: 'SET_USE_GRIPPER', payload: config.useGripper });
+<<<<<<< HEAD
+        dispatch({ type: 'SET_RAW_HARDWARE_CONFIG_TEXT', payload: rawHardwareConfigText });
+=======
         dispatch({ type: 'SET_RAW_HARDWARE_CONFIG_TEXT', payload: config.rawHardwareConfigText || null});
+>>>>>>> upstream/main
 
         Object.entries(config.deckLayout || {}).forEach(([slot, labware]) => {
           dispatch({ 
@@ -141,8 +192,13 @@ const HardwareConfigPage: React.FC = () => {
         });
         
         setShowConfig(true);
+<<<<<<< HEAD
+        if (rawHardwareConfigText) {
+          setConfigText(rawHardwareConfigText);
+=======
         if (config.rawHardwareConfigText) {
           setConfigText(config.rawHardwareConfigText);
+>>>>>>> upstream/main
           setConfigMode('text');
         } else {
           setConfigMode('visual'); 
@@ -181,7 +237,11 @@ const HardwareConfigPage: React.FC = () => {
           anchorOrigin: { vertical: 'top', horizontal: 'center' }
         });
       } else {
+<<<<<<< HEAD
+        setConfigText(getTextConfigForState(state));
+=======
         setConfigText(formatHardwareConfig(state)); 
+>>>>>>> upstream/main
       }
     }
   };
@@ -339,7 +399,11 @@ const HardwareConfigPage: React.FC = () => {
       setShowConfig(true);
     }
     if (effectiveConfigMode === 'text' && !state.rawHardwareConfigText) {
+<<<<<<< HEAD
+      setConfigText(getTextConfigForState(state));
+=======
       setConfigText(formatHardwareConfig(state));
+>>>>>>> upstream/main
     } else if (effectiveConfigMode === 'text' && state.rawHardwareConfigText) {
       setConfigText(state.rawHardwareConfigText);
     }
@@ -1022,7 +1086,11 @@ const HardwareConfigPage: React.FC = () => {
                 rows={15}
                 fullWidth
                 variant="outlined"
+<<<<<<< HEAD
+                placeholder={hardwareTemplates[state.robotModel] || getTextConfigForState(state)}
+=======
                 placeholder={`Example configuration for ${state.robotModel || 'selected robot'}:\n{\n  "robot_model": "${state.robotModel || 'Flex'}",\n  "api_version": "${state.apiVersion || '2.20'}",\n  "left_pipette": "p1000_single_gen2",\n  "right_pipette": null,\n  "deck_layout": {\n    "A1": "opentrons_96_tiprack_1000ul",\n    "B2": "corning_6_wellplate_16.8ml_flat"\n  },\n  "use_gripper": false\n}`}
+>>>>>>> upstream/main
                 value={configText}
                 onChange={handleConfigTextChange}
                 sx={{ 
@@ -1087,4 +1155,8 @@ const HardwareConfigPage: React.FC = () => {
   );
 };
 
+<<<<<<< HEAD
 export default HardwareConfigPage;
+=======
+export default HardwareConfigPage;
+>>>>>>> upstream/main

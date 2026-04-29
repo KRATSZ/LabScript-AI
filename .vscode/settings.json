@@ -5,6 +5,10 @@
     "python.terminal.activateEnvInCurrentTerminal": true,
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "${workspaceFolder}"
+<<<<<<< HEAD
+    }
+=======
     },
     "svg.preview.background": "white"
+>>>>>>> upstream/main
 }

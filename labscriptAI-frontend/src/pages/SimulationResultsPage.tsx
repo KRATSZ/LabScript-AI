@@ -50,7 +50,11 @@ import {
   Info
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
+<<<<<<< HEAD
+import { useAppContext, type AppState } from '../context/AppContext';
+=======
 import { useAppContext } from '../context/AppContext';
+>>>>>>> upstream/main
 import { apiService, formatHardwareConfig } from '../services/api';
 
 const SimulationResultsPage: React.FC = () => {
@@ -429,6 +433,38 @@ const SimulationResultsPage: React.FC = () => {
                   </Button>
 
                   <Tooltip title="Generates a .zip file with instructions for easy uploading to protocols.io">
+<<<<<<< HEAD
+                    <Box component="span">
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        color="info"
+                        size="large"
+                        startIcon={<UploadCloud />}
+                        onClick={handleExportForProtocolsIO}
+                        disabled={isSimulating || isExporting || state.simulationResults.status === 'error'}
+                        sx={{
+                          py: 1.5,
+                          borderRadius: 2,
+                          fontWeight: 600,
+                          background: `linear-gradient(45deg, ${theme.palette.info.main}, ${theme.palette.info.dark})`,
+                          boxShadow: `0 4px 20px ${alpha(theme.palette.info.main, 0.3)}`,
+                          transition: 'all 0.3s ease-in-out',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: `0 8px 32px ${alpha(theme.palette.info.main, 0.4)}`,
+                          },
+                          '&:disabled': {
+                            background: theme.palette.action.disabledBackground,
+                            transform: 'none',
+                            boxShadow: 'none',
+                          }
+                        }}
+                      >
+                        {isExporting ? 'Exporting...' : 'Export for protocols.io'}
+                      </Button>
+                    </Box>
+=======
                     <Button
                       fullWidth
                       variant="contained"
@@ -457,10 +493,47 @@ const SimulationResultsPage: React.FC = () => {
                     >
                       {isExporting ? 'Exporting...' : 'Export for protocols.io'}
                     </Button>
+>>>>>>> upstream/main
                   </Tooltip>
 
                   <Button
                     fullWidth
+<<<<<<< HEAD
+                    variant="contained"
+                    size="large"
+                    startIcon={<Eye />}
+                    onClick={() => navigate('/animation')}
+                    disabled={
+                      isSimulating ||
+                      !state.pythonCode ||
+                      state.simulationResults.status === 'idle' ||
+                      state.simulationResults.status === 'error'
+                    }
+                    sx={{
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      background: `linear-gradient(45deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.success.main, 0.3)}`,
+                      transition: 'all 0.3s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 32px ${alpha(theme.palette.success.main, 0.4)}`,
+                      },
+                      '&:disabled': {
+                        background: theme.palette.action.disabledBackground,
+                        transform: 'none',
+                        boxShadow: 'none',
+                      }
+                    }}
+                  >
+                    View Animation
+                  </Button>
+
+                  <Button
+                    fullWidth
+=======
+>>>>>>> upstream/main
                     variant="outlined"
                     size="large"
                     startIcon={<ArrowLeft />}
@@ -824,4 +897,8 @@ const SimulationResultsPage: React.FC = () => {
   );
 };
 
+<<<<<<< HEAD
 export default SimulationResultsPage;
+=======
+export default SimulationResultsPage;
+>>>>>>> upstream/main

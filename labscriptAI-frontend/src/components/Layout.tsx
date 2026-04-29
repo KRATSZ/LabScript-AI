@@ -10,7 +10,12 @@ const steps = [
   { label: 'Hardware Config', path: '/configure-hardware' },
   { label: 'Define SOP', path: '/define-sop' },
   { label: 'Generate Code', path: '/generate-code' },
+<<<<<<< HEAD
+  { label: 'Simulation', path: '/simulation-results' },
+  { label: 'Animation', path: '/animation' }
+=======
   { label: 'Simulation', path: '/simulation-results' }
+>>>>>>> upstream/main
 ];
 
 interface LayoutProps {
@@ -113,4 +118,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
+<<<<<<< HEAD
 export default Layout;
+=======
+export default Layout;
+>>>>>>> upstream/main

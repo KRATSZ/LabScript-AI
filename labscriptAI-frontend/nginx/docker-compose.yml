@@ -1,0 +1,74 @@
+# Docker Compose配置文件
+# 用于同时部署前端和后端服务
+
+version: '3.8'
+
+services:
+  # 前端服务
+  frontend:
+    build:
+      context: ..
+      dockerfile: nginx/Dockerfile
+    container_name: labscriptai-frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    networks:
+      - labscriptai-network
+    restart: unless-stopped
+    volumes:
+      # 如果需要自定义nginx配置，可以挂载配置文件
+      - ./nginx-docker.conf:/etc/nginx/conf.d/default.conf:ro
+      # 如果有SSL证书，可以挂载证书目录
+      # - ./ssl:/etc/nginx/ssl:ro
+    environment:
+      - NGINX_HOST=ai4ot.cn
+      - NGINX_PORT=80
+
+  # 后端服务
+  backend:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    container_name: labscriptai-backend
+    ports:
+      - "8000:8000"
+    networks:
+      - labscriptai-network
+    restart: unless-stopped
+    env_file:
+      - ../../docker/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 数据库服务（可选）
+  # database:
+  #   image: postgres:15-alpine
+  #   container_name: labscriptai-db
+  #   environment:
+  #     POSTGRES_DB: labscriptai
+  #     POSTGRES_USER: labscriptai
+  #     POSTGRES_PASSWORD: your_password_here
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - labscriptai-network
+  #   restart: unless-stopped
+
+# 网络配置
+networks:
+  labscriptai-network:
+    driver: bridge
+
+# 数据卷配置
+volumes:
+  backend-data:
+    driver: local
+  # postgres-data:
+  #   driver: local
