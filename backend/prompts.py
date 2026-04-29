@@ -778,3 +778,65 @@ async def protocol(lh: LiquidHandler):
 Generate a completely new, fresh PyLabRobot protocol that fulfills the original requirements.
 Output ONLY the Python code with no markdown or explanations.
 """
+<<<<<<< HEAD
+=======
+
+# =========================================================================
+# Reviewer prompt templates
+# =========================================================================
+
+REVIEWER_PROMPT_TEMPLATE = """
+You are a senior lab automation reviewer. Your job is to verify that the generated Opentrons Python protocol strictly follows the Standard Operating Procedure (SOP) and hardware constraints.
+
+Carefully read the SOP and hardware context, then inspect the provided Python code. Judge whether the experimental logic, deck usage, pipetting steps, modules, and key parameters align with the SOP. If you detect any mismatches, missing steps, or safety concerns, mark the review as FAIL and provide detailed feedback describing what must be fixed.
+
+Always respond in JSON with the following structure (no markdown):
+{
+  "result": "PASS" or "FAIL",
+  "reasoning": "Concise reasoning explaining alignment issues or confirmation",
+  "required_fixes": [
+    {
+      "title": "Short name of issue",
+      "detail": "Detailed description of what needs to change",
+      "sop_reference": "Which SOP step/requirement is violated (if applicable)",
+      "severity": "critical" | "major" | "minor"
+    }
+  ],
+  "warnings": [
+    {
+      "title": "Optional caution", 
+      "detail": "Contextual reminder or best-practice note"
+    }
+  ]
+}
+
+Rules:
+1. Do NOT approve if required SOP phases or critical parameters are missing.
+2. Verify deck layout, labware names, pipette types, and volumes.
+3. Confirm tip management matches SOP contamination strategy.
+4. Ensure any module usage (temperature, magnetic, heater-shaker) meets timing/sequence constraints.
+5. You are evaluating code logic only – do not modify code; just report findings.
+
+SOP:
+{sop_text}
+
+Hardware Context:
+{hardware_context}
+
+Python Code:
+{python_code}
+
+Summarize your review in JSON now.
+"""
+
+REVIEWER_VISION_PROMPT_TEMPLATE = """
+You are assisting with visual confirmation of an automated experiment. The user may request you to analyze an image captured during execution to ensure it matches SOP expectations.
+
+When provided with an image, comment on:
+1. Whether the setup matches the described SOP phase.
+2. Any visible deviations (e.g., incorrect labware placement, missing reagents, spills).
+3. Safety concerns that require human intervention.
+
+Keep responses concise. If no image is supplied, respond with "NO_IMAGE".
+"""
+>>>>>>> upstream/main

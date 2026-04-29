@@ -50,6 +50,7 @@ FastAPI server for Opentrons AI Protocol Generator - Simplified Version
 用户目标 → 生成SOP → 生成代码 → 模拟验证 → 完成协议
 """
 
+<<<<<<< HEAD
 import asyncio
 import io
 import json
@@ -65,6 +66,21 @@ from pydantic import BaseModel, Field
 
 # Use absolute imports
 from backend.protocol_visualizer_bridge import load_protocol_visualizer_backend
+=======
+import json
+import traceback
+import asyncio
+import io
+from datetime import datetime
+from typing import Dict, Any, List, Optional, AsyncGenerator
+
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+
+# Use absolute imports
+>>>>>>> upstream/main
 from backend.langchain_agent import (
     generate_sop_with_langchain,
     run_code_generation_graph_stream,  # 流式代码生成函数
@@ -165,6 +181,7 @@ def get_sop_generator():
 def get_protocol_simulator():
     return run_opentrons_simulation
 
+<<<<<<< HEAD
 
 async def _read_named_files(files: list[UploadFile] | None) -> list[tuple[str, bytes]]:
     out: list[tuple[str, bytes]] = []
@@ -208,6 +225,8 @@ def _run_visualizer_sync_analyze(
     except subprocess.TimeoutExpired as e:
         raise HTTPException(status_code=504, detail="Analysis timed out") from e
 
+=======
+>>>>>>> upstream/main
 @app.get("/")
 async def root():
     """Health check endpoint for the API."""
@@ -444,12 +463,17 @@ async def list_tools():
         "tools_available": [
             {"name": "Local SOP Generation (LangChain)", "description": "Generates detailed SOPs from hardware config and user goal using local LangChain."},
             {"name": "Protocol Code Generation Agent (LangChain)", "description": "Generates Python protocol code from SOP and hardware config, with iteration."},
+<<<<<<< HEAD
             {"name": "Opentrons Protocol Simulator", "description": "Simulates Opentrons Python protocols."},
             {"name": "Protocol Visualizer Analyzer", "description": "Analyzes Opentrons protocol files into playback-ready timeline data."}
+=======
+            {"name": "Opentrons Protocol Simulator", "description": "Simulates Opentrons Python protocols."}
+>>>>>>> upstream/main
         ],
         "status": "ok"
     }
 
+<<<<<<< HEAD
 
 @app.post("/api/visualizer/analyze")
 async def visualizer_analyze_protocol(
@@ -528,6 +552,8 @@ async def visualizer_analyze_job_status(job_id: str):
         raise HTTPException(status_code=404, detail="Unknown job_id")
     return JSONResponse(content=job_to_response(rec))
 
+=======
+>>>>>>> upstream/main
 # PyLabRobot profile models
 class PyLabRobotProfile(BaseModel):
     id: str
@@ -789,4 +815,8 @@ async def converse_code_endpoint(request: CodeEditRequest):
         return result
     except Exception as e:
         print(f"Error during code conversation: {traceback.format_exc()}")
+<<<<<<< HEAD
         raise HTTPException(status_code=500, detail=f"An unexpected server error occurred: {str(e)}")
+=======
+        raise HTTPException(status_code=500, detail=f"An unexpected server error occurred: {str(e)}")
+>>>>>>> upstream/main

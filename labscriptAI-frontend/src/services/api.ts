@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { AppState, LabwareItem } from '../context/AppContext';
+<<<<<<< HEAD
 import type { ProtocolAnalysisOutput } from '../../../web/opentrons-protocol-visualizer-web-slim/shared-data/js';
 
 const normalizeBaseUrl = (value?: string): string => {
@@ -30,6 +31,10 @@ export const API_BASE_URL =
       ? DEFAULT_LOCAL_API_BASE_URL
       : '';
 export const API_BASE_URL_LABEL = API_BASE_URL || 'same-origin';
+=======
+
+const API_BASE_URL = 'http://127.0.0.1:8000';
+>>>>>>> upstream/main
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -118,6 +123,7 @@ export interface PyLabRobotProfilesResponse {
   timestamp: string;
 }
 
+<<<<<<< HEAD
 export type VisualizerAnalyzeProgressPhase =
   | 'submitting'
   | 'submitted'
@@ -137,6 +143,8 @@ export interface ProtocolExportRequest {
   generated_code: string;
 }
 
+=======
+>>>>>>> upstream/main
 export const formatHardwareConfig = (state: AppState): string => {
     const deckItems = Object.entries(state.deckLayout)
       .filter(([, labware]: [string, LabwareItem | null]) => labware !== null)
@@ -152,6 +160,7 @@ Deck Layout:
 ${deckItems || '  (No labware configured)'}`;
 };
 
+<<<<<<< HEAD
 const VISUALIZER_ANALYZE_PREFIX = '/api/visualizer/analyze';
 const VISUALIZER_ANALYZE_POLL_MS = 900;
 const VISUALIZER_ANALYZE_MAX_WAIT_MS = 15 * 60 * 1000;
@@ -260,6 +269,8 @@ export const analyzeProtocolForVisualization = async (
   throw new Error('Protocol analysis timed out while waiting for the server job');
 };
 
+=======
+>>>>>>> upstream/main
 
 export const apiService = {
     healthCheck: async () => {
@@ -382,6 +393,7 @@ export const apiService = {
             throw error;
         }
     },
+<<<<<<< HEAD
 
     // 导出协议到 protocols.io 格式的 zip 文件
     exportForProtocolsIO: async (params: ProtocolExportRequest): Promise<Blob> => {
@@ -396,3 +408,6 @@ export const apiService = {
         }
     },
 };
+=======
+};
+>>>>>>> upstream/main

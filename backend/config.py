@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Configuration file for the Opentrons AI Protocol Generator."""
 
+<<<<<<< HEAD
 import os
 from pathlib import Path
 
@@ -52,6 +53,8 @@ server_host = _get_env("LABSCRIPTAI_SERVER_HOST", default="0.0.0.0")
 server_port = _get_int_env("LABSCRIPTAI_SERVER_PORT", default=8000)
 debug = _get_bool_env("LABSCRIPTAI_DEBUG", default=False)
 
+=======
+>>>>>>> upstream/main
 # --- Common Pitfalls for OT-2 ---
 COMMON_PITFALLS_OT2 = [
     "Use metadata = {{\"apiLevel\": \"2.19\"}} for OT-2, not the 'requirements' dictionary.",
@@ -193,6 +196,7 @@ def run(protocol: protocol_api.ProtocolContext):
 """
 
 # 1. API Configuration
+<<<<<<< HEAD
 api_key = _get_env("LABSCRIPTAI_API_KEY", "OPENAI_API_KEY", default="")
 base_url = _strip_trailing_slash(
     _get_env(
@@ -230,6 +234,23 @@ FIGSHARE_PERSONAL_TOKEN = _get_env(
     "FIGSHARE_PERSONAL_TOKEN",
     default="",
 )
+=======
+api_key = "YOUR_OPENAI_API_KEY"
+base_url = "https://api.ai190.com/v1"
+model_name = "gemini-2.5-pro"
+# Specialized API for Intent Classification (faster model)
+DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"
+DEEPSEEK_BASE_URL = "https://www.sophnet.com/api/open-apis/v1"
+DEEPSEEK_INTENT_MODEL = "DeepSeek-V3-Fast"
+
+# Reviewer configuration (textual reasoning + optional vision assist)
+REVIEW_PRIMARY_MODEL_NAME = model_name  # default to main Gemini model
+REVIEW_VISION_TOOL_CONFIG = {
+    "model": "zai-org/GLM-4.5V",
+    "base_url": "https://api.siliconflow.cn/v1",
+    "api_key": "YOUR_GLM_API_KEY",
+}
+>>>>>>> upstream/main
 
 # 2. Valid Opentrons Names and Code Examples (Knowledge Base)
 
@@ -506,4 +527,8 @@ def run(protocol: protocol_api.ProtocolContext):
     p1000.dispense(100, plate['A1'])
     p1000.drop_tip()
 ```
+<<<<<<< HEAD
 """ 
+=======
+""" 
+>>>>>>> upstream/main

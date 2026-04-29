@@ -29,7 +29,10 @@ import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
 import ChatInterface, { ChatMessage } from '../components/ChatInterface';
 import CodeDiffModal from '../components/diff/CodeDiffModal';
+<<<<<<< HEAD
 import { API_BASE_URL } from '../services/api';
+=======
+>>>>>>> upstream/main
 
 // Quick edit templates for common code modifications
 const quickEditTemplates = [
@@ -214,7 +217,11 @@ const CodeEditingPage: React.FC = () => {
     setChatMessages(prev => [...prev, userMessage]);
 
     try {
+<<<<<<< HEAD
       const response = await fetch(`${API_BASE_URL}/api/converse-code-stream`, {
+=======
+      const response = await fetch('http://127.0.0.1:8000/api/converse-code-stream', {
+>>>>>>> upstream/main
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -460,11 +467,17 @@ const CodeEditingPage: React.FC = () => {
                   </Typography>
                 </Stack>
                 <Tooltip title="Clear conversation">
+<<<<<<< HEAD
                   <Box component="span" sx={{ display: 'inline-flex' }}>
                     <IconButton onClick={handleClearMessages} size="small" color="default">
                       <Trash2 size={16} />
                     </IconButton>
                   </Box>
+=======
+                  <IconButton onClick={handleClearMessages} size="small" color="default">
+                    <Trash2 size={16} />
+                  </IconButton>
+>>>>>>> upstream/main
                 </Tooltip>
               </Stack>
 

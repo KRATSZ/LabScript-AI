@@ -19,6 +19,7 @@ class SimulateToolInput(BaseModel):
     """Input schema for the Opentrons simulation tool."""
     protocol_code: str = Field(description="The complete, raw Python code string for the Opentrons protocol.")
 
+<<<<<<< HEAD
 def is_non_fatal_warning(stderr_content: str) -> bool:
     """
     判断 stderr 内容是否为非致命警告（不应导致模拟失败）
@@ -73,6 +74,8 @@ def is_non_fatal_warning(stderr_content: str) -> bool:
     
     return False
 
+=======
+>>>>>>> upstream/main
 def get_error_recommendations(simulation_output: str) -> list[str]:
     """根据模拟输出提供具体错误恢复建议"""
     recommendations = []
@@ -158,6 +161,7 @@ def run_opentrons_simulation(protocol_code: str, return_structured: bool = False
             else:
                 result_data["final_status"] = "成功"
         else:
+<<<<<<< HEAD
             # 检查是否为非致命警告导致的非零退出码
             if proc.stderr and is_non_fatal_warning(proc.stderr):
                 # 将非致命警告视为成功但有警告
@@ -172,6 +176,12 @@ def run_opentrons_simulation(protocol_code: str, return_structured: bool = False
                 result_data["error_details"] = proc.stderr.strip() if proc.stderr else "模拟失败，但未提供错误详情。"
                 result_data["recommendations"] = get_error_recommendations(proc.stderr)
                 result_data["final_status"] = "失败"
+=======
+            result_data["success"] = False
+            result_data["error_details"] = proc.stderr.strip() if proc.stderr else "模拟失败，但未提供错误详情。"
+            result_data["recommendations"] = get_error_recommendations(proc.stderr)
+            result_data["final_status"] = "失败"
+>>>>>>> upstream/main
 
     except subprocess.TimeoutExpired:
         error_msg = f"❌ 模拟超时（超过 {SIMULATION_TIMEOUT} 秒）。可能原因：\n" \
@@ -229,4 +239,8 @@ def run(protocol: ProtocolContext):
     assert not result2['success'], "Test 2 Failed"
     assert "recommendations" in result2 and len(result2['recommendations']) > 0, "Test 2 did not provide recommendations"
 
+<<<<<<< HEAD
     print("\n--- All tests complete. Review output. ---")
+=======
+    print("\n--- All tests complete. Review output. ---") 
+>>>>>>> upstream/main
