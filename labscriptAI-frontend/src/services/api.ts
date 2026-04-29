@@ -1,7 +1,25 @@
 import axios from 'axios';
 import { AppState, LabwareItem } from '../context/AppContext';
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
+/**
+ * API base URL resolution strategy:
+ * 1. If VITE_API_BASE_URL is set → use it (user knows what they're doing)
+ * 2. Else if DEV mode → fall back to http://127.0.0.1:8000
+ * 3. Else (production) → empty string → same-origin /api requests via reverse proxy
+ */
+const normalizeBaseUrl = (value?: string): string => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed.replace(/\/+$/, '') : '';
+};
+
+const configuredApiBaseUrl = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
+export const API_BASE_URL = configuredApiBaseUrl
+  ? configuredApiBaseUrl
+  : import.meta.env.DEV
+    ? 'http://127.0.0.1:8000'
+    : '';
+export const API_BASE_URL_LABEL = API_BASE_URL || 'same-origin (via reverse proxy)';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
