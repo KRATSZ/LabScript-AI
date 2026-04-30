@@ -11,10 +11,20 @@ authors = [
 keywords = ["opentrons", "claude-code", "agent-skills", "lab-automation", "ot-2", "flex"]
 dependencies = []
 
+[project.optional-dependencies]
+# Robot API + protocol helpers (pins numpy 1.x stack; pair with `vision` only if versions resolve).
+protocol = [
+  "opentrons==8.8.1",
+]
+vision = [
+  "ultralytics>=8.4.0",
+  "opencv-python-headless>=4.6.0",
+  "clip @ git+https://github.com/ultralytics/CLIP.git",
+]
+
 [project.urls]
 Homepage = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
 Repository = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
 

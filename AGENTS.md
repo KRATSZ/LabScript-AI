@@ -1,149 +1,44 @@
-# Opentrons Lab Agent
+# Opentrons-Lab-Agent
 
-A collection of Agent Skills for working with Opentrons OT-2 and Flex laboratory robots.
+## Canonical documents (read these for full rules)
 
-## Project Overview
+| Document | Role |
+|----------|------|
+| [docs/workflows.md](docs/workflows.md) | **Workflow** — sequences, tool order, protocol library usage |
+| [docs/safety-policy.md](docs/safety-policy.md) | **Safety policy** — hard bans, deck truth, vision, interaction defaults |
+| [docs/error-response.md](docs/error-response.md) | **Errors & recovery** — categories, branches, Phase 2/4 invariants |
+| [docs/architecture.md](docs/architecture.md) | **Architecture** — layers and pointers to diagrams |
 
-This project provides AI agents with specialized knowledge for:
+This file stays short for the agent host; do not duplicate long policy text here.
 
-- **Protocol Authoring** - Writing and revising Python protocols for Opentrons robots
-- **Protocol Validation** - Analyzing and simulating protocols locally
-- **Simulation Repair** - Iteratively fixing protocols through a simulation-first loop
-- **Robot Control** - Managing robots via LAN HTTP API
-- **Protocol Library** - Accessing bundled or overridden validated protocols and code patterns
+## Skills
 
-## Available Skills
+| Skill | When to use |
+|-------|-------------|
+| `opentrons-experiment-run` | Default entry. New experiments, "what's the robot doing?", resume, recovery |
+| `opentrons-experiment-intent-review` | Plate mapping, tip strategy, deck alignment — before authoring |
+| `opentrons-protocol-author` | Write or revise Python protocol code |
+| `opentrons-protocol-library` | Search 833 reference protocols, find code examples |
+| `opentrons-protocol-verify` | Local doctor/analyze/simulate without MCP |
+| `opentrons-robot-lan` | Fallback HTTP API when MCP unavailable |
+| `opentrons-simulation-repair` | Iterative simulate → parse → edit → simulate fix loop |
 
-The following Agent Skills are available in `skills/`:
+**On-demand skills (do not use by default):**
 
-| Skill | Description | Trigger Keywords |
-|--------|-------------|------------------|
-| `opentrons-protocol-author` | Draft/revise Python protocols for OT-2/Flex | protocol, draft, write, OT-2, Flex, deck setup |
-| `opentrons-simulation-repair` | Repair protocols through simulate -> parse -> edit loops | repair, fix protocol, simulation failure, traceback, blocker |
-| `opentrons-protocol-verify` | Validate protocols using local runtime | validate, analyze, simulate, check, environment |
-| `opentrons-robot-lan` | Control robots via HTTP API | robot, camera, upload, run, play, pause, API |
-| `opentrons-protocol-library` | Reference validated protocols & Cookbook | example, library, cookbook, pattern, search, reference |
+- **`opentrons-protocol-library`** — Only when the user asks to search the 833-protocol catalog, find existing examples, or browse reference code. Do **not** open it for routine new-protocol authoring when a blank or workflow template suffices.
+- **`opentrons-robot-lan`** — Only when MCP is unavailable or the user explicitly opts into LAN fallback (see [docs/safety-policy.md](docs/safety-policy.md)).
+- **Vision / camera / `vision_check`** — Only when the user asks for a visual deck check, camera preview, or image-based confirmation. Vision is observation-only; never treat it as committed deck truth — reconcile with `reconcile_state` and robot APIs. Canonical tool order: [docs/workflows.md](docs/workflows.md) → section **Optional deck vision (observation-only)**.
 
-## When to Use Which Skill
+MCP server: `opentrons-lab-mcp` at `mcp-servers/opentrons-mcp/`.
 
-Use this flow to determine the appropriate skill:
+## Quick reminder (details in linked docs)
 
-1. **User asks to write/edit a protocol** → `opentrons-protocol-author`
-2. **User wants to verify a protocol** → `opentrons-protocol-verify`
-3. **User needs robot control/camera** → `opentrons-robot-lan`
-4. **User wants iterative simulation-first fixes** → `opentrons-simulation-repair`
-5. **User looks for existing examples** → `opentrons-protocol-library`
+Simulation is blocking before live play; live runs go through MCP `run_protocol`; recovery follows `parse_error` → `suggest_recovery_action` → `execute_protocol_recovery`; logs are audit-only; hard-stop categories escalate to a human.
 
-## Protocol Library
+For protocol authoring, prefer MCP `validate_labware_name` before trusting a new load name, `inspect_labware_definition` when you need geometry or dead-volume guidance, and `estimate_tip_budget` before finalizing a draft with many transfers. These are the fast checks that prevent the common labware and tip-capacity mistakes.
 
-The `opentrons-protocol-library` skill resolves `Protocols-develop` in this order:
+## Detailed reference (read on demand)
 
-- `--library /path/to/Protocols-develop`
-- `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
-- bundled `reference-code/Protocols-develop`
-- legacy sibling `../Protocols-develop`
-
-The bundled snapshot is read-only reference material for agents. It exposes:
-
-- **800+ validated protocols** with README documentation
-- **Protocol source files** - Reusable snippets and runtime metadata
-- **fields.json** - Parameter schema hints
-- **Cookbook.md** - Common patterns when the selected snapshot includes it
-- **protolib/** - Helper functions
-
-Search the library:
-```bash
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  search "magnetic beads" "DNA cleanup"
-
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  show 00222e
-
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
-  snippet 00222e serial plasma
-```
-
-## Codex Workflow
-
-When using Codex, start from the repository root so `AGENTS.md` is in scope.
-
-Recommended order:
-
-1. Query `opentrons-protocol-library`
-2. Check `examples/reference-protocols/` for a minimal runnable baseline
-3. Draft or edit with `opentrons-protocol-author`
-4. Validate with `opentrons-protocol-verify`
-5. If needed, iterate with `opentrons-simulation-repair`
-6. Use live robot tooling only after local validation passes
-
-## Claude Code Workflow
-
-Recommended order:
-
-1. Search bundled references first
-2. Inspect one candidate with `show` or `snippet`
-3. Start from `examples/reference-protocols/` when a clean baseline is better than adapting a large library protocol
-4. Run authoring, verify, and repair skills before any live robot action
-
-## Python Environment
-
-This project uses `uv` for package management:
-
-```bash
-# Create virtual environment
-uv venv .venv
-
-# Run scripts
-uv run python scripts/...
-```
-
-## Commands
-
-### Protocol Validation
-```bash
-# Check Opentrons runtime readiness
-uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py doctor
-
-# Analyze a protocol
-uv run python skills/opentrons-protocol-verify/scripts/verify_protocol.py \
-  analyze path/to/protocol.py -- --check
-```
-
-### Robot API
-```bash
-# Health check
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py \
-  --host 192.168.1.50 health
-
-# Capture camera preview
-uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py \
-  --host 192.168.1.50 capture-preview --output /tmp/preview.png
-```
-
-## Testing
-
-```bash
-# Run unit tests
-PYTHONPATH=src uv run python -m unittest discover -s tests -v
-
-# Validate skill structure
-skills-ref validate ./skills/opentrons-protocol-author
-skills-ref validate ./skills/opentrons-simulation-repair
-skills-ref validate ./skills/opentrons-protocol-verify
-skills-ref validate ./skills/opentrons-robot-lan
-skills-ref validate ./skills/opentrons-protocol-library
-```
-
-## Important Notes
-
-- Always verify API level compatibility (OT-2 vs Flex)
-- The bundled library is reference material vendored into this repository for agent use
-- Local validation uses the installed Opentrons runtime by default; source checkouts are opt-in
-- Robot API requires network access to the robot on LAN
-- Prefer `show` and `snippet` against real protocol folders when `Cookbook.md` is absent
-
-## References
-
-- [Agent Skills Specification](https://agentskills.io/specification)
-- [Opentrons Protocol API](https://docs.opentrons.com/)
-- [Opentrons Protocol Library](http://protocols.opentrons.com/)
+- Architecture diagrams: [docs/diagrams/README.md](docs/diagrams/README.md)
+- Experiment-type SOP: [docs/experiment-sop.md](docs/experiment-sop.md)
+- Agent behavior guidelines: [docs/agent-behavior.md](docs/agent-behavior.md)

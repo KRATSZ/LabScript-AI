@@ -1,0 +1,33 @@
+{
+  "description": "Copy to my_prompts.json and pass OPENTRONS_YOLOE_PROMPTS_JSON=my_prompts.json for batch, or --prompts-json for yoloe_deck_preview.py. canonical_labels must match class_prompts length.",
+  "class_prompts": [
+    "yellow pipette tip rack on lab robot deck",
+    "teal or blue pipette tip rack on lab robot deck",
+    "white or clear plastic 96-well microplate",
+    "black plastic 96-well microplate",
+    "plastic liquid reservoir trough on deck",
+    "PCR thermocycler module with open lid and red heating block",
+    "black heater shaker module with microplate on top",
+    "dark rectangular laboratory trash bin opening on robot deck"
+  ],
+  "canonical_labels": [
+    "tiprack",
+    "tiprack",
+    "plate",
+    "plate",
+    "reservoir",
+    "module",
+    "module",
+    "trash_bin"
+  ],
+  "minimal_alternate": {
+    "class_prompts": [
+      "pipette tip rack",
+      "microplate",
+      "reservoir",
+      "laboratory instrument module",
+      "trash bin"
+    ],
+    "canonical_labels": ["tiprack", "plate", "reservoir", "module", "trash_bin"]
+  }
+}

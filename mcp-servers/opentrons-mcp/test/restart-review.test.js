@@ -5,7 +5,7 @@ import os from "os";
 import path from "path";
 
 import { TOOL_HANDLERS } from "../index.js";
-import { buildRestartReview } from "../lib/restart-review.js";
+import { buildRestartReview, buildSafeNextAction } from "../lib/restart-review.js";
 import { writeSessionState } from "../lib/state.js";
 import { appendResultLogEntry } from "../lib/result-log.js";
 
@@ -62,6 +62,65 @@ test("buildRestartReview extends narrative when home safety preview blocks auto-
 
   assert.equal(data.guidance.home_safety_preview?.auto_home_allowed, false);
   assert.match(data.guidance.narrative, /Live home-safety preview disallows auto-home/i);
+});
+
+test("buildSafeNextAction recommends reconcile_state when session needs reconciliation", () => {
+  const data = buildRestartReview({
+    sessionState: {
+      session_id: "s-rec",
+      state_revision: 2,
+      needs_reconciliation: true,
+      last_run_id: "run-x",
+      cleanup: { pending_actions: [] },
+    },
+    logEntries: [],
+    homeSafety: null,
+  });
+  const sn = buildSafeNextAction(data);
+  assert.equal(sn.recommended_next_tool, "reconcile_state");
+  assert.equal(sn.reconcile_first, true);
+  assert.ok(sn.operator_steps[0].includes("reconcile_state"));
+});
+
+test("buildSafeNextAction recommends robot_status when no reconciliation flag", () => {
+  const data = buildRestartReview({
+    sessionState: {
+      session_id: "s-ok",
+      state_revision: 1,
+      needs_reconciliation: false,
+      last_run_id: null,
+      cleanup: { pending_actions: [] },
+    },
+    logEntries: [],
+    homeSafety: null,
+  });
+  const sn = buildSafeNextAction(data);
+  assert.equal(sn.recommended_next_tool, "robot_status");
+  assert.equal(sn.reconcile_first, false);
+});
+
+test("buildSafeNextAction surfaces home blockers and cleanup actions from preview", () => {
+  const data = buildRestartReview({
+    sessionState: {
+      session_id: "s-home",
+      state_revision: 1,
+      needs_reconciliation: false,
+      last_run_id: "run-home",
+      cleanup: { pending_actions: [] },
+    },
+    logEntries: [],
+    homeSafety: {
+      auto_home_allowed: false,
+      blockers: ["tip_attached:left", "cleanup_pending"],
+      minimum_cleanup_actions: ["drop_tip:left", "finish_cleanup_motion"],
+    },
+  });
+  const sn = buildSafeNextAction(data);
+  assert.equal(sn.home_action_required, true);
+  assert.deepEqual(sn.home_blockers, ["tip_attached:left", "cleanup_pending"]);
+  assert.deepEqual(sn.minimum_cleanup_actions, ["drop_tip:left", "finish_cleanup_motion"]);
+  assert.ok(sn.operator_steps.some((step) => step.includes("Do not home yet")));
+  assert.ok(sn.operator_steps.some((step) => step.includes("drop_tip:left")));
 });
 
 test("buildRestartReview flags reconcile_first when session needs reconciliation", () => {
@@ -133,6 +192,52 @@ test("restart_review handler includes run_history and parse_error when last_run_
     assert.ok(order.indexOf("robot_status") < order.indexOf("run_history"));
     assert.ok(order.indexOf("run_history") < order.indexOf("parse_error"));
     assert.equal(result.data.guidance.reconcile_first, false);
+  } finally {
+    if (originalSessionDir === undefined) {
+      delete process.env.OPENTRONS_SESSION_STATE_DIR;
+    } else {
+      process.env.OPENTRONS_SESSION_STATE_DIR = originalSessionDir;
+    }
+    if (originalLogDir === undefined) {
+      delete process.env.OPENTRONS_RESULT_LOG_DIR;
+    } else {
+      process.env.OPENTRONS_RESULT_LOG_DIR = originalLogDir;
+    }
+  }
+});
+
+test("safe_next_action handler merges safe_next_action summary into restart_review data", async () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "opentrons-safe-next-"));
+  const sessionDir = path.join(tempDir, "session-state");
+  const logDir = path.join(tempDir, "result-logs");
+  fs.mkdirSync(sessionDir, { recursive: true });
+  fs.mkdirSync(logDir, { recursive: true });
+
+  const originalSessionDir = process.env.OPENTRONS_SESSION_STATE_DIR;
+  const originalLogDir = process.env.OPENTRONS_RESULT_LOG_DIR;
+
+  process.env.OPENTRONS_SESSION_STATE_DIR = sessionDir;
+  process.env.OPENTRONS_RESULT_LOG_DIR = logDir;
+
+  try {
+    writeSessionState({
+      session_id: "sns-session",
+      needs_reconciliation: false,
+      state_revision: 1,
+      last_run_id: "run-active",
+      deck: { slots: {} },
+      cleanup: { pending_actions: [] },
+    });
+
+    const result = await TOOL_HANDLERS.safe_next_action({
+      session_id: "sns-session",
+      limit: 5,
+    });
+
+    assert.ok(result.data.guidance);
+    assert.ok(result.data.safe_next_action);
+    assert.equal(result.data.safe_next_action.recommended_next_tool, "robot_status");
+    assert.equal(result.data.safe_next_action.reconcile_first, false);
   } finally {
     if (originalSessionDir === undefined) {
       delete process.env.OPENTRONS_SESSION_STATE_DIR;

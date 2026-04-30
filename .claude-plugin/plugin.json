@@ -1,7 +1,7 @@
 {
   "name": "opentrons-lab-agent",
   "version": "0.1.0",
-  "description": "Claude Code skills for Opentrons protocol authoring, verification, simulation repair, protocol-library lookup, MCP-orchestrated robot runs, and LAN robot control.",
+  "description": "Claude Code skills for Opentrons: default entry via opentrons-experiment-run, intent review, protocol authoring, local verification, simulation repair, protocol-library lookup, MCP live-run state machine (including optional deck vision via vision_check and camera tools), and optional LAN robot control fallback.",
   "author": {
     "name": "SmartisanNaive",
     "url": "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
@@ -15,11 +15,13 @@
     "skills",
     "lab-automation",
     "ot-2",
-    "flex"
+    "flex",
+    "vision"
   ],
   "components": {
     "skills": [
       "opentrons-experiment-run",
+      "opentrons-experiment-intent-review",
       "opentrons-protocol-author",
       "opentrons-protocol-library",
       "opentrons-protocol-verify",

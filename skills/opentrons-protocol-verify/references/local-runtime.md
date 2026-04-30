@@ -40,7 +40,8 @@ That behavior is intentional. A failed import means the protocol was not actuall
 
 ## Recommended Usage Pattern
 
-1. Run `doctor`.
-2. If imports are good, run `analyze`.
-3. Run `simulate` only when the environment is stable enough to support it.
-4. If local validation is blocked, consider remote analysis on a robot via the `opentrons-robot-lan` skill.
+1. Run `preflight` on the protocol file for static mistakes (invalid Flex pipette names, apiLevel vs `protocol.params` / liquid-class hints).
+2. Run `doctor`.
+3. If imports are good, run `analyze`.
+4. Run `simulate` only when the environment is stable enough to support it.
+5. If local validation is blocked, consider remote analysis on a robot via the `opentrons-robot-lan` skill.

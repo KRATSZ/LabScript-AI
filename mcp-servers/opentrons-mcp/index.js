@@ -72,7 +72,13 @@ import {
   readResultLogEntries,
   summarizeResultLogEntries,
 } from "./lib/result-log.js";
-import { buildRestartReview } from "./lib/restart-review.js";
+import { buildRestartReview, buildSafeNextAction } from "./lib/restart-review.js";
+import { buildPreflightRunSetupResult } from "./lib/preflight-run-setup.js";
+import {
+  estimateTipBudget,
+  inspectLabwareDefinition,
+  validateLabwareLoadName,
+} from "./lib/authoring-tools.js";
 import {
   buildCaptureImageParams,
   buildCameraControlBody,
@@ -82,6 +88,8 @@ import {
   buildPreviewArtifactName,
   contentTypeToExtension,
 } from "./lib/vision.js";
+import { buildHealthCheck, checkRobotHealth } from "./lib/health-check.js";
+import { runVisionCheck } from "./lib/vision-check.js";
 import {
   buildDeckPhotoAnalysisPrompt,
   buildImageDataUrl,
@@ -94,10 +102,79 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const DEFAULT_CAMERA_ARTIFACT_DIR = path.resolve(__dirname, "../../artifacts/camera-captures");
+
+/** Prefer plugin `artifacts/camera-captures`; otherwise use in-repo `vision/data/camera-captures`, then legacy sibling fallback. */
+function resolveCameraArtifactRoot() {
+  const repoRoot = path.resolve(__dirname, "../..");
+  const preferred = path.join(repoRoot, "artifacts", "camera-captures");
+  const visionFallback = path.join(repoRoot, "vision", "data", "camera-captures");
+  const legacyFallback = path.resolve(repoRoot, "..", "labagentyolo", "data", "camera-captures");
+  try {
+    if (fs.existsSync(preferred)) {
+      return preferred;
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    if (fs.existsSync(visionFallback)) {
+      return visionFallback;
+    }
+  } catch {
+    // ignore
+  }
+  try {
+    if (fs.existsSync(legacyFallback)) {
+      return legacyFallback;
+    }
+  } catch {
+    // ignore
+  }
+  return preferred;
+}
+
+const DEFAULT_CAMERA_ARTIFACT_DIR = resolveCameraArtifactRoot();
+const DEFAULT_VISION_ANNOTATED_DIR = path.resolve(DEFAULT_CAMERA_ARTIFACT_DIR, "vision-annotated");
 const DEFAULT_PROBE_PROTOCOL_DIR = path.resolve(__dirname, "../artifacts/probe-protocols");
 
 const TOOL_DEFINITIONS = [
+  {
+    name: "validate_labware_name",
+    description: "Validate a labware load name against the local Opentrons definition index and return close matches.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        load_name: { type: "string", description: "Labware load name to validate" },
+        limit: { type: "integer", default: 5 },
+      },
+      required: ["load_name"],
+    },
+  },
+  {
+    name: "estimate_tip_budget",
+    description: "Heuristically estimate tip usage and flag low-volume transfers below the recommended 10% threshold.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        protocol_source: { type: "string", description: "Protocol source text to lint" },
+        file_path: { type: "string", description: "Protocol file to read if protocol_source is omitted" },
+        tip_rack_count: { type: "integer", description: "Override the inferred number of tip racks" },
+        tip_rack_capacity: { type: "integer", default: 96 },
+      },
+    },
+  },
+  {
+    name: "inspect_labware_definition",
+    description: "Inspect a labware load name and return geometry, capacity, and dead-volume guidance from the local definition index.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        load_name: { type: "string", description: "Labware load name to inspect" },
+        limit: { type: "integer", default: 5 },
+      },
+      required: ["load_name"],
+    },
+  },
   {
     name: "robot_health",
     description: "Check robot connectivity and health via /health.",
@@ -652,6 +729,82 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "vision_check",
+    description:
+      "Local YOLOE/YOLO vision observation for CHECKDECK or CHECKTIPS (observation-only; does not mutate session state). Uses ultralytics in the project Python env. CHECKDECK maps detections to Flex 12 slots using optional deck homography (deck_corners_norm or labels sidecar optional_deck_corners_norm) or a uniform image-grid fallback; empty slots are geometric (no detection in cell). Default YOLOE prompts are Flex-tuned (colored tip racks, modules, trash). Override with class_prompts + canonical_labels. CHECKTIPS is stubbed pending rack-local analysis.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        mode: {
+          type: "string",
+          enum: ["deck", "tiprack"],
+          description: "deck = slot-level observation; tiprack = reserved / conservative stub",
+        },
+        image_path: {
+          type: "string",
+          description: "Absolute or workspace path to a saved camera image",
+        },
+        expected_layout: {
+          type: "object",
+          description:
+            'Optional map of slot -> expected label (canonical: tiprack, plate, reservoir, module, trash_bin) or "empty". Example: {"C2":"tiprack","A1":"empty"}',
+        },
+        reference_image_path: {
+          type: "string",
+          description: "Optional reference image for future visual-prompt tiprack flows (not used in MVP deck mode).",
+        },
+        conf_threshold: {
+          type: "number",
+          description: "Minimum detection confidence (default 0.25)",
+          default: 0.25,
+        },
+        use_text_prompts: {
+          type: "boolean",
+          description:
+            "If true, use YOLOE text prompts (requires CLIP). If false, use a plain YOLO checkpoint without set_classes. Default: auto from weights (yoloe = true).",
+        },
+        weights: {
+          type: "string",
+          description:
+            "Ultralytics checkpoint path or name. Omit to auto-pick: OPENTRONS_DECK_YOLO_WEIGHTS, then vision/models/weights deck_v2/deck_pilot, then local vision/runs, then OPENTRONS_YOLOE_WEIGHTS / yoloe-26s-seg.pt",
+        },
+        annotated_output_dir: {
+          type: "string",
+          description: "Directory to save annotated debug image (default under artifacts/camera-captures/vision-annotated)",
+        },
+        python_executable: {
+          type: "string",
+          description: "Override Python for ultralytics (else OPENTRONS_PYTHON / .venv)",
+        },
+        deck_corners_norm: {
+          type: "array",
+          description:
+            "Optional 4-corner deck homography in normalized image coordinates [[x,y], ...] to map detections to slots.",
+          items: {
+            type: "array",
+            items: { type: "number" },
+          },
+        },
+        load_labels_sidecar: {
+          type: "boolean",
+          description:
+            "If true, also try labels/<stem>.labels.json for optional_deck_corners_norm, class_prompts, and canonical_labels.",
+        },
+        class_prompts: {
+          type: "array",
+          description: "Optional YOLOE text prompts to bias detection classes.",
+          items: { type: "string" },
+        },
+        canonical_labels: {
+          type: "array",
+          description: "Optional canonical label set used to normalize detections.",
+          items: { type: "string" },
+        },
+      },
+      required: ["image_path"],
+    },
+  },
+  {
     name: "get_protocols",
     description: "List protocols stored on the robot.",
     inputSchema: {
@@ -699,6 +852,18 @@ const TOOL_DEFINITIONS = [
         poll_interval_ms: { type: "integer", default: 1000 },
         page_length: { type: "integer", default: 20 },
         session_id: { type: "string" },
+        skip_preflight: {
+          type: "boolean",
+          description: "If true, skip the post-run preflight gate and proceed directly to play.",
+        },
+        skip_preflight_deck_diff: {
+          type: "boolean",
+          description: "If true, keep reconciliation and readiness checks but skip the declared-load deck diff.",
+        },
+        strict_preflight_labware_slots: {
+          type: "boolean",
+          description: "If true, treat empty observed labware slots as errors during preflight.",
+        },
         tiprack_slots: {
           type: "array",
           items: { type: "string" },
@@ -731,7 +896,7 @@ const TOOL_DEFINITIONS = [
           enum: ["detect_presence", "require_presence", "measure_height"],
           default: "detect_presence",
         },
-        api_level: { type: "string", default: "2.20" },
+        api_level: { type: "string", default: "2.24" },
         liquid_presence_detection: { type: "boolean", default: true },
         execute_on_robot: { type: "boolean", default: false },
         output_path: { type: "string" },
@@ -901,6 +1066,22 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "safe_next_action",
+    description:
+      "Single-entry operator summary after MCP/host restart: same payload as restart_review plus safe_next_action (recommended_next_tool, operator_steps, tool_sequence). Prefer this when the user wants one call instead of reading the full guidance object. Atomic tools are unchanged.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+        limit: { type: "integer", default: 20 },
+        robot_ip: {
+          type: "string",
+          description: "Optional; when set, fetches robot_status for home-safety preview (same as restart_review)",
+        },
+      },
+    },
+  },
+  {
     name: "parse_error",
     description: "Parse run or maintenance command failures into structured runtime error categories.",
     inputSchema: {
@@ -963,6 +1144,42 @@ const TOOL_DEFINITIONS = [
         exit_code: { type: "integer" },
         protocol_path: { type: "string" },
       },
+    },
+  },
+  {
+    name: "health_check",
+    description: "Comprehensive environment health check: MCP server, Python venv, opentrons package, git state, session state, and optional robot connectivity.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Optional robot IP to check connectivity (e.g. 10.31.2.149)" },
+      },
+    },
+  },
+  {
+    name: "preflight_run_setup",
+    description:
+      "Before play: verify session reconciliation, robot readiness, and (Flex) declared protocol loads vs live deck snapshot. Callable standalone or invoked automatically inside run_protocol after run creation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        file_path: { type: "string", description: "Path to protocol .py for declared deck extraction" },
+        session_id: { type: "string" },
+        run_id: {
+          type: "string",
+          description: "Optional; when set, includes this run's labware snapshot in observed deck state",
+        },
+        skip_deck_diff: {
+          type: "boolean",
+          description: "If true, skip protocol-source vs deck comparison (still checks reconciliation and robot readiness)",
+        },
+        strict_empty_labware_slots: {
+          type: "boolean",
+          description: "If true, treat empty observed slots as errors when the protocol declares labware there",
+        },
+      },
+      required: ["robot_ip", "file_path"],
     },
   },
 ];
@@ -1965,6 +2182,80 @@ async function executeProtocolRecovery(args, { expectedAction = null } = {}) {
   });
 }
 
+async function runPreflightRunSetup(args) {
+  if (!args.robot_ip) {
+    throw new Error("preflight_run_setup requires robot_ip.");
+  }
+  if (!args.file_path) {
+    throw new Error("preflight_run_setup requires file_path.");
+  }
+
+  const robotStatusResult = await readRobotStatus(args);
+  const moduleStatusResult = await readModuleStatus(args);
+  const sessionId = resolveSessionId(args, robotStatusResult);
+  const sessionState = readSessionState(sessionId);
+  const runContext = await readRunContext(
+    { ...args, run_id: args.run_id || undefined },
+    { includeCommands: false },
+  );
+
+  const preflight = buildPreflightRunSetupResult({
+    filePath: args.file_path,
+    sessionState,
+    robotStatusSnapshot: robotStatusResult.data,
+    deckConfigurationPayload: robotStatusResult.hardwareSnapshot.deck_configuration,
+    modulesPayload: moduleStatusResult.hardwareSnapshot.modules,
+    moduleStatusSnapshot: moduleStatusResult.data,
+    runRecord: runContext.run || null,
+    skipDeckDiff: Boolean(args.skip_deck_diff),
+    strictEmptyLabwareSlots: Boolean(args.strict_empty_labware_slots),
+  });
+
+  return {
+    data: preflight,
+    hardwareSnapshot: {
+      ...robotStatusResult.hardwareSnapshot,
+      ...moduleStatusResult.hardwareSnapshot,
+      run: runContext.run || null,
+    },
+    stateRevision: sessionState.state_revision,
+    sessionId,
+  };
+}
+
+async function executeRestartReview(args) {
+  const limit = Math.max(1, Math.min(Number(args.limit || 20), 200));
+  const hardwareSnapshot = {};
+  let sessionId = args.session_id || DEFAULT_SESSION_ID;
+  let sessionState = readSessionState(sessionId);
+  let homeSafety = null;
+
+  if (args.robot_ip) {
+    const robotStatusResult = await readRobotStatus(args);
+    Object.assign(hardwareSnapshot, robotStatusResult.hardwareSnapshot);
+    sessionId = resolveSessionId(args, robotStatusResult);
+    sessionState = readSessionState(sessionId);
+    homeSafety = buildHomeSafetyResult({
+      robotStatusSnapshot: robotStatusResult.data,
+      sessionState,
+    });
+  }
+
+  const logEntries = readResultLogEntries({ session_id: sessionId, limit });
+  const data = buildRestartReview({
+    sessionState,
+    logEntries,
+    homeSafety,
+  });
+
+  return {
+    data,
+    hardwareSnapshot,
+    stateRevision: sessionState.state_revision,
+    sessionId,
+  };
+}
+
 const TOOL_HANDLERS = {
   async robot_health(args) {
     const health = await requestRobotJson("GET", args.robot_ip, "/health");
@@ -2514,6 +2805,33 @@ const TOOL_HANDLERS = {
       stateRevision: state.state_revision,
       sessionId,
       runId: deriveContextRunId(contextType, args.context_id),
+    };
+  },
+
+  async validate_labware_name(args) {
+    return {
+      data: validateLabwareLoadName(args.load_name, {
+        limit: args.limit ?? 5,
+      }),
+    };
+  },
+
+  async estimate_tip_budget(args) {
+    return {
+      data: estimateTipBudget({
+        protocol_source: args.protocol_source,
+        file_path: args.file_path,
+        tip_rack_count: args.tip_rack_count,
+        tip_rack_capacity: args.tip_rack_capacity,
+      }),
+    };
+  },
+
+  async inspect_labware_definition(args) {
+    return {
+      data: inspectLabwareDefinition(args.load_name, {
+        limit: args.limit ?? 5,
+      }),
     };
   },
 
@@ -3290,6 +3608,33 @@ const TOOL_HANDLERS = {
     };
   },
 
+  async vision_check(args) {
+    const annotatedDir = args.annotated_output_dir
+      ? path.resolve(args.annotated_output_dir)
+      : DEFAULT_VISION_ANNOTATED_DIR;
+    fs.mkdirSync(annotatedDir, { recursive: true });
+
+    const result = await runVisionCheck({
+      mode: args.mode || "deck",
+      imagePath: args.image_path,
+      expectedLayout: args.expected_layout,
+      referenceImagePath: args.reference_image_path,
+      confThreshold: args.conf_threshold ?? 0.25,
+      weights: args.weights,
+      useTextPrompts: args.use_text_prompts,
+      annotatedOutputDir: annotatedDir,
+      pythonExecutable: args.python_executable,
+      deckCornersNorm: args.deck_corners_norm,
+      loadLabelsSidecar: args.load_labels_sidecar,
+      classPrompts: args.class_prompts,
+      canonicalLabels: args.canonical_labels,
+    });
+
+    return {
+      data: result,
+    };
+  },
+
   async get_protocols(args) {
     const protocols = await requestRobotJson("GET", args.robot_ip, "/protocols");
     return {
@@ -3333,6 +3678,40 @@ const TOOL_HANDLERS = {
         throw new Error("Run creation did not return a run id.");
       }
 
+      let preflightGate;
+      if (args.skip_preflight === true) {
+        preflightGate = {
+          ok: true,
+          allowed_to_play: true,
+          skipped: true,
+          summary: "Preflight skipped (skip_preflight=true).",
+        };
+      } else {
+        const preflightWrap = await runPreflightRunSetup({
+          robot_ip: args.robot_ip,
+          file_path: args.file_path,
+          session_id: args.session_id || runId,
+          run_id: runId,
+          skip_deck_diff: args.skip_preflight_deck_diff === true,
+          strict_empty_labware_slots: args.strict_preflight_labware_slots === true,
+        });
+        preflightGate = preflightWrap.data;
+        if (!preflightGate.ok) {
+          const preflightError = new Error(
+            preflightGate.summary || "Preflight blocked real execution before play.",
+          );
+          preflightError.toolContext = {
+            data: {
+              blocked_real_execution: true,
+              gate_stage: "preflight_run_setup",
+              preflight_run_setup: preflightGate,
+              simulation_gate: simulationGate,
+            },
+          };
+          throw preflightError;
+        }
+      }
+
       const autoPlay = args.auto_play ?? true;
       let playAction = null;
       if (autoPlay) {
@@ -3372,6 +3751,7 @@ const TOOL_HANDLERS = {
           parsed_error: failureGuidance?.parsedError || null,
           recovery: failureGuidance?.recovery || null,
           simulation_gate: simulationGate,
+          preflight_gate: preflightGate,
         }),
         hardwareSnapshot:
           failureGuidance?.hardwareSnapshot && Object.keys(failureGuidance.hardwareSnapshot).length > 0
@@ -3394,6 +3774,7 @@ const TOOL_HANDLERS = {
         summary: `Protocol run finished with status ${result.data.final_status || "unknown"}.`,
         data: {
           simulation_gate_success: result.data.simulation_gate?.parsed?.success ?? null,
+          preflight_gate_ok: result.data.preflight_gate?.ok ?? null,
           parsed_error_category: result.data.parsed_error?.error_category || null,
           recovery_action:
             result.data.recovery?.recovery?.action || result.data.recovery?.action || null,
@@ -3442,7 +3823,7 @@ const TOOL_HANDLERS = {
       trashSlot: args.trash_slot || null,
       wells,
       mode: args.mode || "detect_presence",
-      apiLevel: args.api_level || "2.20",
+      apiLevel: args.api_level || "2.24",
       liquidPresenceDetection: args.liquid_presence_detection ?? true,
     });
     fs.writeFileSync(outputPath, `${protocolText}\n`);
@@ -3731,35 +4112,17 @@ const TOOL_HANDLERS = {
   },
 
   async restart_review(args) {
-    const limit = Math.max(1, Math.min(Number(args.limit || 20), 200));
-    const hardwareSnapshot = {};
-    let sessionId = args.session_id || DEFAULT_SESSION_ID;
-    let sessionState = readSessionState(sessionId);
-    let homeSafety = null;
+    return executeRestartReview(args);
+  },
 
-    if (args.robot_ip) {
-      const robotStatusResult = await readRobotStatus(args);
-      Object.assign(hardwareSnapshot, robotStatusResult.hardwareSnapshot);
-      sessionId = resolveSessionId(args, robotStatusResult);
-      sessionState = readSessionState(sessionId);
-      homeSafety = buildHomeSafetyResult({
-        robotStatusSnapshot: robotStatusResult.data,
-        sessionState,
-      });
-    }
-
-    const logEntries = readResultLogEntries({ session_id: sessionId, limit });
-    const data = buildRestartReview({
-      sessionState,
-      logEntries,
-      homeSafety,
-    });
-
+  async safe_next_action(args) {
+    const base = await executeRestartReview(args);
     return {
-      data,
-      hardwareSnapshot,
-      stateRevision: sessionState.state_revision,
-      sessionId,
+      ...base,
+      data: {
+        ...base.data,
+        safe_next_action: buildSafeNextAction(base.data),
+      },
     };
   },
 
@@ -3779,6 +4142,18 @@ const TOOL_HANDLERS = {
     return {
       data: parseSimulationLog(args),
     };
+  },
+
+  async preflight_run_setup(args) {
+    return runPreflightRunSetup(args);
+  },
+
+  async health_check(args) {
+    const report = buildHealthCheck(args);
+    if (args.robot_ip) {
+      report.robot = await checkRobotHealth(args.robot_ip);
+    }
+    return { data: report };
   },
 };
 

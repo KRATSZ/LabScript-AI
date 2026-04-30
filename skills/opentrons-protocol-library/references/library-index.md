@@ -2,56 +2,58 @@
 
 This document provides quick access to the bundled or overridden `Protocols-develop` reference library.
 
+## Protocol Catalog (Recommended)
+
+The **protocol-catalog.json** is a pre-built index of all 833 protocols. When available,
+the search script uses it for fast lookups instead of scanning all folders.
+
+- **JSON catalog**: `<configured-library>/protocol-catalog.json`
+- **Markdown catalog**: `<configured-library>/protocol-catalog.md`
+
+### Regenerating the catalog
+
+```bash
+python reference-protocols/Protocols-develop/scripts/generate_catalog.py
+```
+
 ## Protocol Library Location
 
 The helper script resolves the library path in this order:
 
 1. `--library /path/to/Protocols-develop`
 2. `OPENTRONS_PROTOCOL_LIBRARY_PATH=/path/to/Protocols-develop`
-3. bundled `reference-code/Protocols-develop`
+3. bundled `reference-protocols/Protocols-develop`
 4. sibling `../Protocols-develop`
 
 ## Structure
 
 ```
 <configured-library>/
-├── protocols/              # 800+ validated protocols
-│   ├── {protocol_id}/      # Each protocol has its own folder
-│   │   ├── README.md       # Description, categories, setup
-│   │   ├── *.ot2.apiv2.py  # Protocol file
-│   │   └── fields.json     # Optional parameters
-├── Cookbook.md             # Optional common code patterns
-└── protolib/               # Helper functions
+├── protocol-catalog.json    # Searchable index (833 protocols)
+├── protocol-catalog.md      # Human-readable catalog by category
+├── protocols/               # 833 protocol folders
+│   ├── {protocol_id}/       # Each protocol has its own folder
+│   │   ├── README.md        # Description, categories, setup
+│   │   ├── *.ot2.apiv2.py   # Protocol file
+│   │   ├── fields.json      # Customizable parameters
+│   │   └── labware/         # Custom labware definitions (optional)
+├── protolib/                # Python library for parsing protocols
+└── scripts/
+    ├── generate_catalog.py  # Generate the catalog index
+    ├── consistencyCheck.py  # Validate protocol structure
+    └── ...
 ```
 
-## Major Protocol Categories
-
-### Sample Preparation
-- DNA extraction (various kits)
-- RNA extraction
-- Magnetic bead cleanup
-- Library prep (Illumina, Nextera, etc.)
-
-### Liquid Handling
-- Serial dilution
-- Plate filling
-- Pooling / Aliquoting
-- Master mix preparation
-
-### Assay Types
-- PCR preparation
-- qPCR setup
-- ELISA
-- Enzymatic assays
-
-## Search the Library
-
-Use the search script:
+## Search Commands
 
 ```bash
-# Search by keywords
+# Search by keywords (uses catalog when available for fast lookup)
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
   search "magnetic beads" "DNA cleanup" --limit 5
+
+# Show catalog summary and top method tags
+uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
+  catalog
 
 # Inspect one protocol folder
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
@@ -61,7 +63,7 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
   snippet 00222e serial plasma
 
-# List Cookbook patterns
+# List Cookbook patterns (when Cookbook.md exists)
 uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
   cookbook
 
@@ -70,22 +72,22 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py \
   categories
 ```
 
-## Quick Protocol Reference
+## Top Method Tags
 
-### Common Protocol Prefixes
-- `00*` - Early protocols (legacy OT-1)
-- `1*` - Standard OT-2 protocols
-- `sci-*` - Scientific protocols (kit-specific)
-- `test*` - Test/development protocols
+These normalized tags are the fastest way to find protocols by purpose:
 
-### Popular Protocol Groups
-
-| Group | Description | Example Prefixes |
-|-------|-------------|------------------|
-| Nucleic Acid Prep | DNA/RNA extraction, cleanup | `omega-biotek`, `zymo`, `sci-idt` |
-| Library Prep | NGS library preparation | `illumina`, `nextera`, `kapa` |
-| Plate Handling | Dilution, pooling, filling | `serial`, `pooling`, `aliquoting` |
-| PCR/qPCR | PCR plate setup | `pcr`, `qpcr`, `complete-pcr` |
+| Tag | Count | Typical Use |
+|-----|-------|-------------|
+| sample_prep | 291 | General sample preparation workflows |
+| ngs_library_prep | 193 | NGS library preparation (Illumina, Nextera, etc.) |
+| plate_filling | 143 | Plate filling, pooling, aliquoting |
+| pcr | 124 | PCR-related protocols |
+| pcr_prep | 101 | PCR plate setup |
+| nucleic_acid_extraction | 86 | DNA/RNA extraction and purification |
+| cherrypicking | 36 | Cherry-picking samples |
+| normalization | 35 | Concentration normalization |
+| proteins_proteomics | 28 | Protein assays and purification |
+| assay | 21 | Various assay types |
 
 ## Cookbook Patterns Reference
 
@@ -104,17 +106,8 @@ If `Cookbook.md` exists in the selected snapshot, use:
 
 ## Getting Started with a Protocol
 
-1. Identify your application (e.g., "magnetic bead DNA cleanup")
-2. Search the library using keywords
-3. Read the README.md of matching protocols
-4. Examine the protocol code for patterns to adapt
-5. Check the Cookbook when present, otherwise use `snippet`
-6. Adapt the code to your specific needs
-
-## Tips for Protocol Authors
-
-- Start from a similar protocol rather than from scratch when possible
-- Prefer real bundled protocol snippets when the snapshot does not include a cookbook
-- Always verify API level compatibility with your robot
-- Protocol READMEs often contain valuable setup notes
-- Custom labware may be required for some protocols
+1. Search the catalog: `search "your keywords" --limit 5`
+2. Show protocol details: `show <slug>`
+3. Pull relevant snippets: `snippet <slug> keywords...`
+4. Read the protocol Python file for patterns
+5. Adapt the code to your specific needs

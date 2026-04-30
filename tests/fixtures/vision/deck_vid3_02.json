@@ -1,0 +1,214 @@
+{
+  "version": "6.0.0",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "deck_quad",
+      "points": [
+        [
+          131.7808219178082,
+          269.5890410958904
+        ],
+        [
+          98.90410958904108,
+          714.7945205479452
+        ],
+        [
+          448.2191780821918,
+          713.4246575342466
+        ],
+        [
+          1083.8356164383563,
+          536.7123287671234
+        ],
+        [
+          894.7945205479452,
+          118.90410958904111
+        ],
+        [
+          638.6301369863014,
+          136.71232876712332
+        ],
+        [
+          607.1232876712329,
+          76.43835616438356
+        ],
+        [
+          435.8904109589041,
+          109.31506849315069
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "polygon",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "module",
+      "points": [
+        [
+          171.50684931506848,
+          428.4931506849315
+        ],
+        [
+          420.82191780821915,
+          225.75342465753425
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "module",
+      "points": [
+        [
+          470.13698630136986,
+          396.9863013698631
+        ],
+        [
+          131.7808219178082,
+          588.7671232876713
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "module",
+      "points": [
+        [
+          481.0958904109589,
+          540.8219178082193
+        ],
+        [
+          182.46575342465752,
+          714.7945205479452
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "plate",
+      "points": [
+        [
+          544.1095890410959,
+          695.6164383561644
+        ],
+        [
+          778.3561643835617,
+          492.8767123287672
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "plate",
+      "points": [
+        [
+          746.8493150684932,
+          480.54794520547944
+        ],
+        [
+          483.83561643835617,
+          375.06849315068496
+        ]
+      ],
+      "group_id": null,
+      "description": null,
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "reservoir",
+      "points": [
+        [
+          674.2465753424658,
+          242.19178082191786
+        ],
+        [
+          474.24657534246575,
+          387.3972602739726
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "module",
+      "points": [
+        [
+          766.027397260274,
+          477.80821917808225
+        ],
+        [
+          966.027397260274,
+          296.98630136986304
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "tiprack_1000",
+      "points": [
+        [
+          672.8767123287672,
+          257.26027397260276
+        ],
+        [
+          453.6986301369863,
+          98.35616438356165
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    },
+    {
+      "label": "trash_bin",
+      "points": [
+        [
+          670.1369863013699,
+          251.78082191780823
+        ],
+        [
+          963.2876712328767,
+          101.09589041095892
+        ]
+      ],
+      "group_id": null,
+      "description": "",
+      "shape_type": "rectangle",
+      "flags": {},
+      "mask": null
+    }
+  ],
+  "imagePath": "deck_vid3_02.jpg",
+  "imageData": null,
+  "imageHeight": 720,
+  "imageWidth": 1280
+}

@@ -1,15 +1,15 @@
-# Restart and reconcile runbook (`restart_review`)
+# Restart and reconcile runbook (`restart_review` / `safe_next_action`)
 
 Use this after an **MCP process restart**, **host reboot**, or when an operator returns to a session whose physical deck may have drifted from committed state.
 
 ## Preconditions
 
 - Same **`session_id`** you use for the experiment (persisted under `mcp-servers/opentrons-mcp/data/session-state/` unless overridden with `OPENTRONS_SESSION_STATE_DIR`).
-- **`robot_ip`** available if you want a live **home-safety preview** inside `restart_review` (recommended before any homing discussion).
+- **`robot_ip`** available if you want a live **home-safety preview** inside `restart_review` or `safe_next_action` (recommended before any homing discussion).
 
 ## Operator checklist (fixed order)
 
-1. Call **`restart_review`** with `session_id`, optional `limit`, optional `robot_ip`.
+1. Call **`safe_next_action`** or **`restart_review`** with `session_id`, optional `limit`, optional `robot_ip`. `safe_next_action` adds **`data.safe_next_action.recommended_next_tool`** and **`operator_steps`** (same underlying snapshot as `restart_review`).
 2. If **`guidance.reconcile_first`** is true → run **`reconcile_state`** before other autonomous physical motion.
 3. Poll live truth: **`robot_status`**, **`module_status`**, then if a run still matters **`run_history`** and **`parse_error`** (pass `robot_ip` and `run_id`; use `session_summary.last_run_id` when present).
 4. Use **`experiment_history`** only for audit narrative — it is **not** current deck truth.
@@ -27,5 +27,5 @@ The server proposes a tool order; you still pass **`robot_ip`** where required. 
 
 ## See also
 
-- MCP tool definitions: `mcp-servers/opentrons-mcp/index.js` (`restart_review`, `experiment_history`, `run_history`).
+- MCP tool definitions: `mcp-servers/opentrons-mcp/index.js` (`safe_next_action`, `restart_review`, `experiment_history`, `run_history`).
 - Tests: `mcp-servers/opentrons-mcp/test/restart-review.test.js`, `test/restart-reconcile.test.js`.
