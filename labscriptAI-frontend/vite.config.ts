@@ -10,5 +10,6 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // 监听所有网络接口
     port: 5173,      // 明确设置端口
+    cors: true, // Dev server only — allow all origins. Production CORS is handled by Nginx.
   },
 });
