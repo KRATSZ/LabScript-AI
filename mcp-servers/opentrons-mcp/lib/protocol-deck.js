@@ -215,12 +215,17 @@ export function compareDeclaredLoadsToObservedDeck({
       continue;
     }
 
-    warnings.push({
+    const unknownLabware = {
       code: "labware_placement_unknown",
       slot: slotName,
       declared: item.load_name,
       message: `Protocol expects labware at ${slotName}; observed status is unknown — confirm physical layout.`,
-    });
+    };
+    if (strictEmptyLabwareSlots) {
+      errors.push(unknownLabware);
+    } else {
+      warnings.push(unknownLabware);
+    }
   }
 
   return { errors, warnings };

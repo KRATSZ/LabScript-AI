@@ -141,3 +141,39 @@ test("buildPreflightRunSetupResult does not hard-block when deck configuration i
   assert.equal(result.allowed_to_play, true);
   assert.ok(result.warnings.some(w => w.code === "labware_placement_unknown"));
 });
+
+test("buildPreflightRunSetupResult hard-blocks unknown labware placement in strict mode", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "preflight-strict-unknown-"));
+  const protocolPath = path.join(dir, "protocol.py");
+  fs.writeFileSync(
+    protocolPath,
+    [
+      "from opentrons import protocol_api",
+      "",
+      'requirements = {"robotType": "Flex", "apiLevel": "2.24"}',
+      "",
+      "def run(protocol: protocol_api.ProtocolContext) -> None:",
+      '    protocol.load_labware("nest_96_wellplate_200ul_flat", "B2")',
+      "",
+    ].join("\n"),
+  );
+
+  const result = buildPreflightRunSetupResult({
+    filePath: protocolPath,
+    sessionState: {},
+    robotStatusSnapshot: {
+      ready_for_physical_action: true,
+      blockers: [],
+      deck_configuration: { cutout_fixtures: [], raw: {} },
+    },
+    deckConfigurationPayload: { cutout_fixtures: [], raw: {} },
+    moduleStatusSnapshot: { blockers: [] },
+    skipDeckDiff: false,
+    strictEmptyLabwareSlots: true,
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.allowed_to_play, false);
+  assert.ok(result.errors.some(e => e.code === "labware_placement_unknown"));
+  assert.equal(result.warnings.some(w => w.code === "labware_placement_unknown"), false);
+});
