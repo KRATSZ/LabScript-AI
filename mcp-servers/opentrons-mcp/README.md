@@ -25,7 +25,7 @@ The repository already includes Python-first skills for writing protocols, verif
 
 ## Tool surface (representative)
 
-Live and orchestration tools include: `robot_health`, `robot_status`, `module_status`, `get_slot_occupation`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `preflight_run_setup`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, command helpers (`load_pipette`, `load_labware`, `load_module`, module controls, `move_labware`, `cleanup_motion`), camera/file helpers, `get_protocols`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, run control, `run_history`, `experiment_history`, `restart_review`, `safe_next_action`, `probe_wells`, `health_check`, plus simulation tools above. Optional: `vision_check`, `analyze_image_with_kimi`.
+Live and orchestration tools include: `robot_health`, `robot_status`, `module_status`, `get_slot_occupation`, `list_tip_candidates`, `suggest_next_tip_well`, `is_home_safe`, `preflight_run_setup`, `live_readiness_check`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `create_run_context`, command helpers (`load_pipette`, `load_labware`, `load_module`, module controls, `move_labware`, `cleanup_motion`), camera/file helpers, `get_protocols`, `upload_protocol`, `run_protocol`, `execute_protocol_recovery`, `recover_tip_pickup`, run control, `run_history`, `experiment_history`, `restart_review`, `safe_next_action`, `probe_wells`, `health_check`, plus simulation tools above. Optional: `vision_check`, `analyze_image_with_kimi`.
 
 See `index.js` for the authoritative tool list and schemas.
 
@@ -34,6 +34,7 @@ See `index.js` for the authoritative tool list and schemas.
 | Feature / tool | Status | Notes |
 |----------------|--------|--------|
 | Simulation gate inside `run_protocol` (`doctor_local_runtime` → `simulate_protocol` → `parse_simulation_output`) | **stable** | Blocks real **play** when simulation fails. |
+| `live_readiness_check` | **stable** | Read-only live go/no-go gate; combines local runtime health, restart guidance, live status, and optional preflight. |
 | `preflight_run_setup` | **stable** | After run creation: reconciliation, readiness, Flex-oriented declared deck vs live snapshot. Overrides: `skip_preflight`, `skip_preflight_deck_diff`. |
 | Core live tools (`robot_status`, `reconcile_state`, recovery chain) | **stable** | See tests under `test/`. |
 | `vision_check` | **beta** | Local inference; observation-only JSON. Install: `uv sync --extra vision`. Checklist: [`../../docs/vision-acceptance.md`](../../docs/vision-acceptance.md). |
@@ -53,6 +54,7 @@ See `index.js` for the authoritative tool list and schemas.
 - Pair with `opentrons-document-mcp-server` for Python API lookup.
 - Live-state tools return a common envelope: `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, `timestamp`.
 - `run_protocol` gates real **play** with (1) the simulation chain above and (2) `preflight_run_setup` after run creation unless skipped via explicit flags.
+- `health_check` remains an environment/developer probe. Use `live_readiness_check` for operator-facing live gating before `create_run` or `play`.
 - Session `DeckState` lives under `data/session-state/` (override: `OPENTRONS_SESSION_STATE_DIR`). Append-only result logs under `data/result-logs/` (`OPENTRONS_RESULT_LOG_DIR`).
 - `experiment_history` filters: `session_id`, `run_id`, `tool_name`, `status`, `limit`, optional `event_kind`. **Logs are historical evidence**; committed deck truth is session state + live `reconcile_state` / `robot_status`.
 - Tests may set `OPENTRONS_RESULT_LOG_DIR` and `OPENTRONS_SESSION_STATE_DIR` (see `test/experiment-history.test.js`, `test/restart-reconcile.test.js`).

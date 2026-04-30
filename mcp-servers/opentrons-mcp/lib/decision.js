@@ -5,6 +5,7 @@ import {
   markTipWellStatus,
   setDeckSlotState,
 } from "./state.js";
+import { buildErrorTaxonomy, mapRobotBlockerToLeaf } from "./error-taxonomy.js";
 
 export const HARD_STOP_ERROR_CATEGORIES = ["HARDWARE_FAULT", "DECK_COLLISION", "UNKNOWN"];
 
@@ -459,6 +460,71 @@ function extractRuntimeErrorStrings({ run, commands } = {}) {
   };
 }
 
+function isAwaitingRecoveryRun(run) {
+  const normalizedRun = normalizeRunRecord(run) || {};
+  const runStatus = readNested(normalizedRun, [["status"]], null);
+  return (
+    String(runStatus || "").toLowerCase() === "awaiting-recovery" ||
+    Boolean(readNested(normalizedRun, [["currentlyRecoveringFrom"]], null))
+  );
+}
+
+function buildParsedErrorCapability({ errorLeaf, run } = {}) {
+  const awaitingRecovery = isAwaitingRecoveryRun(run);
+
+  switch (errorLeaf) {
+    case "TIP_PHYSICALLY_MISSING":
+      return {
+        actionability: awaitingRecovery ? "auto_executable" : "manual_only",
+        auto_executable: awaitingRecovery,
+        required_inputs: awaitingRecovery ? ["tiprack_slots"] : [],
+        requires_confirmation: false,
+        supported_in_runtime: awaitingRecovery,
+      };
+
+    case "MODULE_NOT_READY":
+      return {
+        actionability: awaitingRecovery ? "auto_executable" : "manual_only",
+        auto_executable: awaitingRecovery,
+        required_inputs: [],
+        requires_confirmation: false,
+        supported_in_runtime: awaitingRecovery,
+      };
+
+    case "DESTINATION_OCCUPIED":
+      return {
+        actionability: awaitingRecovery ? "manual_confirmation_required" : "manual_only",
+        auto_executable: awaitingRecovery,
+        required_inputs: awaitingRecovery ? ["destination_slot"] : [],
+        requires_confirmation: awaitingRecovery,
+        supported_in_runtime: awaitingRecovery,
+      };
+
+    case "MISSING_TRASH_OR_SETUP":
+    case "SYNTAX_OR_IMPORT":
+    case "API_MISUSE":
+    case "LABWARE_OR_MODULE_COMPAT":
+    case "VOLUME_OR_RANGE_VIOLATION":
+    case "OUT_OF_TIPS":
+      return {
+        actionability: "protocol_edit_required",
+        auto_executable: false,
+        required_inputs: [],
+        requires_confirmation: false,
+        supported_in_runtime: false,
+      };
+
+    default:
+      return {
+        actionability: "manual_only",
+        auto_executable: false,
+        required_inputs: [],
+        requires_confirmation: false,
+        supported_in_runtime: false,
+      };
+  }
+}
+
 export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, robotStatusSnapshot } = {}) {
   const { failed_command, joined_error_text } = extractRuntimeErrorStrings({ run, commands });
   const lowerError = joined_error_text.toLowerCase();
@@ -466,6 +532,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if ((moduleStatusSnapshot?.blockers || []).length > 0) {
     return {
       error_category: "MODULE_NOT_READY",
+      error_leaf: "MODULE_NOT_READY",
       reason: "module_status_has_blockers",
       failed_command,
     };
@@ -474,6 +541,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if ((robotStatusSnapshot?.blockers || []).includes("estop_engaged")) {
     return {
       error_category: "HARDWARE_FAULT",
+      error_leaf: "ESTOP_ENGAGED",
       reason: "estop_engaged",
       failed_command,
     };
@@ -482,7 +550,17 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if ((robotStatusSnapshot?.blockers || []).includes("door_open")) {
     return {
       error_category: "HARDWARE_FAULT",
+      error_leaf: "DOOR_OPEN",
       reason: "door_open",
+      failed_command,
+    };
+  }
+
+  if ((robotStatusSnapshot?.blockers || []).includes("instrument_not_ready")) {
+    return {
+      error_category: "HARDWARE_FAULT",
+      error_leaf: "INSTRUMENT_NOT_READY",
+      reason: "instrument_not_ready",
       failed_command,
     };
   }
@@ -490,6 +568,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if (lowerError.includes("notrashdefinederror")) {
     return {
       error_category: "PROTOCOL_SETUP_ERROR",
+      error_leaf: "MISSING_TRASH_OR_SETUP",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -501,6 +580,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   ) {
     return {
       error_category: "DESTINATION_UNAVAILABLE",
+      error_leaf: "DESTINATION_UNAVAILABLE",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -509,6 +589,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if (lowerError.includes("locationisoccupiederror")) {
     return {
       error_category: "DESTINATION_OCCUPIED",
+      error_leaf: "DESTINATION_OCCUPIED",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -522,6 +603,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   ) {
     return {
       error_category: "INSUFFICIENT_VOLUME",
+      error_leaf: "INSUFFICIENT_VOLUME",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -530,6 +612,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if (lowerError.includes("air bubble") || lowerError.includes("bubble")) {
     return {
       error_category: "AIR_BUBBLE",
+      error_leaf: "AIR_BUBBLE",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -538,6 +621,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if (lowerError.includes("clog")) {
     return {
       error_category: "TIP_CLOG",
+      error_leaf: "TIP_CLOG",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -546,6 +630,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if (lowerError.includes("collision") || lowerError.includes("stallorcollision")) {
     return {
       error_category: "DECK_COLLISION",
+      error_leaf: "DECK_COLLISION",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -558,6 +643,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   ) {
     return {
       error_category: "LIQUID_PROPERTY_ERROR",
+      error_leaf: "LIQUID_PROPERTY_ERROR",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -566,6 +652,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
   if (lowerError.includes("tipphysicallymissing") || lowerError.includes("no tip detected")) {
     return {
       error_category: "TIP_PHYSICALLY_MISSING",
+      error_leaf: "TIP_PHYSICALLY_MISSING",
       reason: "runtime_error_match",
       failed_command,
     };
@@ -573,6 +660,7 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
 
   return {
     error_category: "UNKNOWN",
+    error_leaf: "UNKNOWN_NEEDS_HUMAN",
     reason: "no_known_pattern",
     failed_command,
   };
@@ -596,18 +684,28 @@ export function parseRuntimeError({ run, commands, moduleStatusSnapshot, robotSt
   const sourceLabwareId = readNested(failed_command, [["params", "labwareId"]], null);
   const failedWell = readNested(failed_command, [["params", "wellName"]], null);
   const errorDetail = readNested(failed_command, [["error", "detail"]], null);
+  const capability = buildParsedErrorCapability({
+    errorLeaf: classification.error_leaf,
+    run,
+  });
+  const taxonomy = buildErrorTaxonomy({
+    phase: "runtime",
+    errorLeaf: classification.error_leaf,
+    overrides: {
+      actionability: capability.actionability,
+      auto_executable: capability.auto_executable,
+      required_inputs: capability.required_inputs,
+      requires_confirmation: capability.requires_confirmation,
+      evidence_sources: ["run_history", "commands", "robot_status", "module_status"],
+    },
+  });
 
   return {
     error_category: classification.error_category,
+    ...taxonomy,
     reason: classification.reason,
     summary_message: primaryMessage || errorDetail || "No runtime error detail available.",
-    severity: ["DECK_COLLISION", "HARDWARE_FAULT", "DESTINATION_OCCUPIED"].includes(
-      classification.error_category,
-    )
-      ? "error"
-      : classification.error_category === "UNKNOWN"
-        ? "warning"
-        : "error",
+    severity: taxonomy.severity,
     failed_command: failed_command
       ? {
           id: readNested(failed_command, [["id"]], null),
@@ -620,11 +718,7 @@ export function parseRuntimeError({ run, commands, moduleStatusSnapshot, robotSt
     target_slot: targetSlot,
     notes,
     raw_error_text: joined_error_text,
-    likely_fixable_by_runtime_action: ![
-      "PROTOCOL_SETUP_ERROR",
-      "DESTINATION_UNAVAILABLE",
-      "UNKNOWN",
-    ].includes(classification.error_category),
+    likely_fixable_by_runtime_action: capability.supported_in_runtime,
     hard_stop: isHardStopErrorCategory(classification.error_category),
     escalate_to_human: [
       "HARDWARE_FAULT",
@@ -775,6 +869,7 @@ export function applyObservedDeckToSessionState(sessionState, proposedCommit) {
 
 export function buildRecoverySuggestion({
   errorCategory,
+  errorLeaf = null,
   run,
   commands,
   robotStatusSnapshot,
@@ -786,161 +881,281 @@ export function buildRecoverySuggestion({
 } = {}) {
   const normalizedRun = normalizeRunRecord(run) || {};
   const runStatus = readNested(normalizedRun, [["status"]], null);
-  const awaitingRecovery =
-    runStatus === "awaiting-recovery" ||
-    Boolean(readNested(normalizedRun, [["currentlyRecoveringFrom"]], null));
+  const awaitingRecovery = isAwaitingRecoveryRun(run);
   const { failed_command } = extractRuntimeErrorStrings({ run, commands });
+  const resolvedErrorLeaf = errorLeaf || errorCategory || "UNKNOWN_NEEDS_HUMAN";
+  const robotBlockers = robotStatusSnapshot?.blockers || [];
+  const onlyModuleBlockerDiffs =
+    Array.isArray(reconciliation?.diffs) &&
+    reconciliation.diffs.length > 0 &&
+    reconciliation.diffs.every(diff => diff?.type === "module_blockers");
+  const reconciliationErrorLeaf = onlyModuleBlockerDiffs
+    ? "MODULE_NOT_READY"
+    : "SESSION_NEEDS_RECONCILIATION";
 
-  if ((robotStatusSnapshot?.blockers || []).length > 0) {
+  const manualOnly = ({
+    rationale,
+    recommendedManualAction,
+    requiredInputs = [],
+    requiresConfirmation = false,
+    extra = {},
+  } = {}) => ({
+    ...buildErrorTaxonomy({
+      phase: "recovery",
+      errorLeaf: resolvedErrorLeaf,
+      overrides: {
+        actionability: "manual_only",
+        auto_executable: false,
+        required_inputs: requiredInputs,
+        requires_confirmation: requiresConfirmation,
+        evidence_sources: ["run_history", "commands", "robot_status", "module_status", "session_state"],
+      },
+    }),
+    error_category: errorCategory,
+    action: "manual_only",
+    recommended_manual_action: recommendedManualAction || null,
+    hard_stop: isHardStopErrorCategory(errorCategory),
+    escalate_to_human: true,
+    rationale,
+    ...extra,
+  });
+
+  const protocolEditRequired = ({ rationale, recommendedManualAction = null, extra = {} } = {}) => ({
+    ...buildErrorTaxonomy({
+      phase: "recovery",
+      errorLeaf: resolvedErrorLeaf,
+      overrides: {
+        actionability: "protocol_edit_required",
+        auto_executable: false,
+        required_inputs: [],
+        requires_confirmation: false,
+        evidence_sources: ["run_history", "commands", "protocol_source"],
+      },
+    }),
+    error_category: errorCategory,
+    action: "protocol_edit_required",
+    recommended_manual_action: recommendedManualAction,
+    hard_stop: false,
+    escalate_to_human: false,
+    rationale,
+    ...extra,
+  });
+
+  if (robotBlockers.length > 0) {
+    const blockerLeaf = mapRobotBlockerToLeaf(robotBlockers[0]);
     return {
-      error_category: "HARDWARE_FAULT",
-      action: "stop_and_notify_human",
-      hard_stop: true,
-      escalate_to_human: true,
-      rationale: "robot_status_has_blockers",
-      blockers: robotStatusSnapshot.blockers,
+      ...manualOnly({
+        rationale: "robot_status_has_blockers",
+        recommendedManualAction: "stop_and_notify_human",
+        extra: {
+          blockers: robotBlockers,
+        },
+      }),
+      ...buildErrorTaxonomy({
+        phase: "recovery",
+        errorLeaf: blockerLeaf,
+        overrides: {
+          actionability: "manual_only",
+          auto_executable: false,
+          evidence_sources: ["robot_status"],
+        },
+      }),
     };
   }
 
   if (reconciliation?.diffs?.length > 0) {
+    if (awaitingRecovery && onlyModuleBlockerDiffs) {
+      return {
+        ...buildErrorTaxonomy({
+          phase: "recovery",
+          errorLeaf: reconciliationErrorLeaf,
+          overrides: {
+            actionability: "auto_executable",
+            auto_executable: true,
+            required_inputs: [],
+            requires_confirmation: false,
+            evidence_sources: ["session_state", "module_status"],
+          },
+        }),
+        error_category: errorCategory,
+        action: "reconcile_state_first",
+        hard_stop: false,
+        escalate_to_human: false,
+        rationale: "deck_state_diff_detected",
+        diffs: reconciliation.diffs,
+      };
+    }
+
     return {
-      error_category: errorCategory,
-      action: "reconcile_state_first",
+      ...manualOnly({
+        rationale: "deck_state_diff_detected",
+        recommendedManualAction: "reconcile_state_first",
+        extra: {
+          diffs: reconciliation.diffs,
+        },
+      }),
+      ...buildErrorTaxonomy({
+        phase: "recovery",
+        errorLeaf: reconciliationErrorLeaf,
+        overrides: {
+          actionability: "manual_only",
+          auto_executable: false,
+          evidence_sources: ["session_state", "module_status", "deck_configuration"],
+        },
+      }),
       escalate_to_human: reconciliation.escalate_to_human,
-      rationale: "deck_state_diff_detected",
-      diffs: reconciliation.diffs,
     };
   }
 
-  switch (errorCategory) {
+  switch (resolvedErrorLeaf) {
     case "MODULE_NOT_READY":
-      return {
-        error_category: errorCategory,
-        action: "wait_and_poll_module_status",
-        hard_stop: false,
-        escalate_to_human: false,
+      if (awaitingRecovery) {
+        return {
+          ...buildErrorTaxonomy({
+            phase: "recovery",
+            errorLeaf: resolvedErrorLeaf,
+            overrides: {
+              actionability: "auto_executable",
+              auto_executable: true,
+              required_inputs: [],
+              requires_confirmation: false,
+              evidence_sources: ["module_status"],
+            },
+          }),
+          error_category: errorCategory,
+          action: "wait_and_poll_module_status",
+          hard_stop: false,
+          escalate_to_human: false,
+          rationale: "module_status_has_blockers",
+          blockers: moduleStatusSnapshot?.blockers || [],
+        };
+      }
+      return manualOnly({
         rationale: "module_status_has_blockers",
-        blockers: moduleStatusSnapshot?.blockers || [],
-      };
+        recommendedManualAction: "wait_and_poll_module_status",
+        extra: {
+          blockers: moduleStatusSnapshot?.blockers || [],
+        },
+      });
 
     case "TIP_PHYSICALLY_MISSING":
-      if (nextTipSuggestion?.next_candidate) {
+      if (awaitingRecovery && nextTipSuggestion?.next_candidate) {
         return {
+          ...buildErrorTaxonomy({
+            phase: "recovery",
+            errorLeaf: resolvedErrorLeaf,
+            overrides: {
+              actionability: "auto_executable",
+              auto_executable: true,
+              required_inputs: ["tiprack_slots"],
+              requires_confirmation: false,
+              evidence_sources: ["commands", "session_state"],
+            },
+          }),
           error_category: errorCategory,
           action: "retry_pick_up_tip_with_next_candidate",
           hard_stop: false,
           escalate_to_human: false,
-          rationale: awaitingRecovery ? "run_is_awaiting_recovery" : "retry_in_same_context",
+          rationale: "run_is_awaiting_recovery",
           failed_command_type: readNested(failed_command, [["commandType"]]),
           failed_well: readNested(failed_command, [["params", "wellName"]], null),
           suggested_tip: nextTipSuggestion.next_candidate,
-          intent: awaitingRecovery ? "fixit" : "normal",
-          should_resume_run: awaitingRecovery,
+          intent: "fixit",
+          should_resume_run: true,
         };
       }
-      return {
-        error_category: errorCategory,
-        action: "escalate_tip_search_exhausted",
-        hard_stop: false,
-        escalate_to_human: true,
-        rationale: "no_viable_tip_candidates",
-      };
+      return manualOnly({
+        rationale: nextTipSuggestion?.next_candidate ? "retry_requires_recovery_context" : "no_viable_tip_candidates",
+        recommendedManualAction: nextTipSuggestion?.next_candidate
+          ? "retry_pick_up_tip_with_next_candidate"
+          : "escalate_tip_search_exhausted",
+      });
 
     case "DESTINATION_OCCUPIED":
-      if (alternativeSlots.length > 0) {
-        const hasConfidentCandidate = alternativeSlots.some(slot => slot.confidence === "high");
+      if (awaitingRecovery && alternativeSlots.length > 0) {
         return {
+          ...buildErrorTaxonomy({
+            phase: "recovery",
+            errorLeaf: resolvedErrorLeaf,
+            overrides: {
+              actionability: "manual_confirmation_required",
+              auto_executable: true,
+              required_inputs: ["destination_slot"],
+              requires_confirmation: true,
+              evidence_sources: ["commands", "deck_state"],
+            },
+          }),
           error_category: errorCategory,
           action: "suggest_new_destination_slot",
           hard_stop: false,
-          escalate_to_human: awaitingRecovery || !hasConfidentCandidate,
-          rationale: awaitingRecovery
-            ? "protocol_context_destination_occupied"
-            : "alternative_destination_slots_available",
+          escalate_to_human: true,
+          rationale: "protocol_context_destination_occupied",
           slot_occupation: slotOccupation,
           candidate_destination_slots: alternativeSlots,
         };
       }
-      return {
-        error_category: errorCategory,
-        action: "choose_new_slot_or_escalate",
-        hard_stop: false,
-        escalate_to_human: true,
-        rationale: "destination_slot_is_occupied",
-        slot_occupation: slotOccupation,
-      };
+      return manualOnly({
+        rationale: alternativeSlots.length > 0
+          ? "alternative_destination_slots_available"
+          : "destination_slot_is_occupied",
+        recommendedManualAction: alternativeSlots.length > 0
+          ? "suggest_new_destination_slot"
+          : "choose_new_slot_or_escalate",
+        requiredInputs: alternativeSlots.length > 0 ? ["destination_slot"] : [],
+        requiresConfirmation: alternativeSlots.length > 0,
+        extra: {
+          slot_occupation: slotOccupation,
+          candidate_destination_slots: alternativeSlots,
+        },
+      });
+
+    case "MISSING_TRASH_OR_SETUP":
+      return protocolEditRequired({
+        rationale: "simulation_or_protocol_edit_required",
+        recommendedManualAction: "stop_and_fix_protocol_source",
+      });
 
     case "DESTINATION_UNAVAILABLE":
-      return {
-        error_category: errorCategory,
-        action: "fix_deck_configuration_or_protocol",
-        hard_stop: false,
-        escalate_to_human: true,
+      return manualOnly({
         rationale: "slot_not_available_in_current_deck_configuration",
-      };
-
-    case "PROTOCOL_SETUP_ERROR":
-      return {
-        error_category: errorCategory,
-        action: "stop_and_fix_protocol_source",
-        hard_stop: false,
-        escalate_to_human: false,
-        rationale: "simulation_or_protocol_edit_required",
-      };
+        recommendedManualAction: "fix_deck_configuration_or_protocol",
+      });
 
     case "INSUFFICIENT_VOLUME":
-      return {
-        error_category: errorCategory,
-        action: "probe_or_reduce_volume_then_retry",
-        hard_stop: false,
-        escalate_to_human: false,
+      return manualOnly({
         rationale: "runtime_volume_issue_detected",
-      };
+        recommendedManualAction: "probe_or_reduce_volume_then_retry",
+      });
 
     case "AIR_BUBBLE":
-      return {
-        error_category: errorCategory,
-        action: "slow_aspirate_and_change_tip",
-        hard_stop: false,
-        escalate_to_human: false,
+      return manualOnly({
         rationale: "possible_air_bubble",
-      };
+        recommendedManualAction: "slow_aspirate_and_change_tip",
+      });
 
     case "TIP_CLOG":
-      return {
-        error_category: errorCategory,
-        action: "change_tip_and_reduce_flow_rate",
-        hard_stop: false,
-        escalate_to_human: false,
+      return manualOnly({
         rationale: "possible_tip_clog",
-      };
-
-    case "DECK_COLLISION":
-      return {
-        error_category: errorCategory,
-        action: "stop_and_request_human_check",
-        hard_stop: true,
-        escalate_to_human: true,
-        rationale: "collision_class_failure",
-      };
+        recommendedManualAction: "change_tip_and_reduce_flow_rate",
+      });
 
     case "LIQUID_PROPERTY_ERROR":
-      return {
-        error_category: errorCategory,
-        action: "adjust_liquid_class_or_parameters",
-        hard_stop: false,
-        escalate_to_human: false,
+      return manualOnly({
         rationale: "liquid_property_issue_detected",
-      };
+        recommendedManualAction: "adjust_liquid_class_or_parameters",
+      });
+
+    case "DECK_COLLISION":
+      return manualOnly({
+        rationale: "collision_class_failure",
+        recommendedManualAction: "stop_and_request_human_check",
+      });
 
     default:
-      return {
-        error_category: errorCategory || "UNKNOWN",
-        action: "escalate_unknown_failure",
-        hard_stop: true,
-        escalate_to_human: true,
+      return manualOnly({
         rationale: "no_safe_automatic_branch",
-      };
+        recommendedManualAction: "escalate_unknown_failure",
+      });
   }
 }
 
@@ -1034,6 +1249,11 @@ export function buildActionSummary({
   const summary = {
     do_what: recoverySuggestion?.action || "unknown",
     error_category: recoverySuggestion?.error_category || "UNKNOWN",
+    error_leaf: recoverySuggestion?.error_leaf || "UNKNOWN_NEEDS_HUMAN",
+    actionability: recoverySuggestion?.actionability || null,
+    auto_executable: recoverySuggestion?.auto_executable || false,
+    requires_confirmation: recoverySuggestion?.requires_confirmation || false,
+    required_inputs: recoverySuggestion?.required_inputs || [],
     escalate_to_human: recoverySuggestion?.escalate_to_human || false,
     rationale: recoverySuggestion?.rationale || null,
     params: {},
@@ -1128,6 +1348,22 @@ export function buildActionSummary({
         diffs: recoverySuggestion?.diffs || [],
       };
       summary.if_fails = "escalate_reconciliation_failed";
+      break;
+
+    case "manual_only":
+      summary.params = {
+        recommended_manual_action: recoverySuggestion?.recommended_manual_action || null,
+        candidate_destination_slots: recoverySuggestion?.candidate_destination_slots || [],
+        blockers: recoverySuggestion?.blockers || [],
+      };
+      summary.if_fails = "manual_intervention";
+      break;
+
+    case "protocol_edit_required":
+      summary.params = {
+        recommended_manual_action: recoverySuggestion?.recommended_manual_action || null,
+      };
+      summary.if_fails = "edit_protocol_and_retry_simulation";
       break;
 
     default:

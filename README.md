@@ -40,23 +40,24 @@ Opentrons-Lab-Agent/
 ├── vision/                              # Optional vision scripts/docs/placeholders (weights stay out of git)
 ├── reference-protocols/Protocols-develop/ # 833 reference protocols (read-only)
 ├── tests/                               # Python + Node.js tests
-├── CLAUDE.md                            # Short agent index → canonical docs
+├── AGENTS.md                            # Short agent index → canonical docs
 ├── docs/safety-policy.md                # Canonical safety policy
 ├── docs/workflows.md                    # Canonical workflows
 └── .claude-plugin/plugin.json           # Plugin metadata
 ```
 
-Workspace parent (`Flexagent/`) keeps static legacy MCP notes at `../reference/opentrons-mcp/` only; do not use that folder as a runtime MCP install.
+Workspace parent (`Flexagent/`) is a local container. Non-primary materials live under `../workspace-archive/`. Static legacy MCP notes remain at `../reference/opentrons-mcp/` only; do not use that folder as a runtime MCP install.
 
-MCP server provides: `doctor_local_runtime`, `simulate_protocol`, `run_protocol` (simulation-gated), `robot_status`, `module_status`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `execute_protocol_recovery`, `recover_tip_pickup`, `restart_review`, `probe_wells`, `experiment_history`, `health_check`, optional **`vision_check`** / camera helpers (`camera_status`, `capture_preview_image`, …), and 30+ more tools. Vision workflow: [`docs/workflows.md`](docs/workflows.md) → *Optional deck vision*.
+MCP server provides: `doctor_local_runtime`, `simulate_protocol`, `run_protocol` (simulation-gated), `live_readiness_check`, `robot_status`, `module_status`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `execute_protocol_recovery`, `recover_tip_pickup`, `restart_review`, `probe_wells`, `experiment_history`, `health_check`, optional **`vision_check`** / camera helpers (`camera_status`, `capture_preview_image`, …), and 30+ more tools. Vision workflow: [`docs/workflows.md`](docs/workflows.md) → *Optional deck vision*.
 
 ## Documentation index / 文档索引
 
 - **Workflow (canonical):** [`docs/workflows.md`](docs/workflows.md)
 - **Safety policy (canonical):** [`docs/safety-policy.md`](docs/safety-policy.md)
 - **Errors & recovery (canonical):** [`docs/error-response.md`](docs/error-response.md)
+- **Live readiness gate:** [`docs/live-readiness-runbook.md`](docs/live-readiness-runbook.md)
 - **Architecture:** [`docs/architecture.md`](docs/architecture.md)
-- **Agent index:** [`CLAUDE.md`](CLAUDE.md) (short; points to the files above)
+- **Agent index:** [`AGENTS.md`](AGENTS.md) (short; points to the files above)
 
 ## Quick Start / 快速开始
 
@@ -136,6 +137,7 @@ Full sequences and tool order: [`docs/workflows.md`](docs/workflows.md). In shor
 2. The agent asks at most one blocking clarification round.
 3. If runnable code exists, the agent simulates by default, repairs if needed,
    and returns a short status: `ready`, `needs_confirmation`, or `blocked`.
+4. For cautious live bring-up, use `live_readiness_check` before `create_run` or `play`.
 
 This keeps the simulation gate mandatory without making the operator manually
 drive every intermediate step.

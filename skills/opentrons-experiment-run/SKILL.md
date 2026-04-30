@@ -11,6 +11,7 @@ mcp_tools:
   - suggest_recovery_action
   - execute_protocol_recovery
   - recover_tip_pickup
+  - live_readiness_check
   - safe_next_action
   - restart_review
   - experiment_history
@@ -62,6 +63,7 @@ not wait for the user to explicitly ask for simulate.
 
 ### Phase 3 — Live Preflight
 
+- If the operator explicitly wants a cautious live bring-up gate: `health_check` -> `live_readiness_check` before `create_run` or `play`.
 - After MCP/host restart or when the operator is lost: prefer **`safe_next_action`** (same inputs as `restart_review`) for `recommended_next_tool` and `operator_steps`; fall back to **`restart_review`** for the full raw bundle.
 - If `guidance.reconcile_first` -> `reconcile_state`.
 - `robot_status`, `module_status` — verify robot reachable and modules ready.
@@ -79,7 +81,7 @@ not wait for the user to explicitly ask for simulate.
 ### Phase 5 — Failure / Recovery
 
 - `run_history` -> `parse_error` -> `suggest_recovery_action`.
-- Execute supported branches: `execute_protocol_recovery` / `recover_tip_pickup`.
+- Execute only branches that come back with `auto_executable: true`: `execute_protocol_recovery` / `recover_tip_pickup`.
 - Hard stops and DESTINATION_OCCUPIED human-review rules per `docs/safety-policy.md` and `docs/error-response.md`.
 
 ### Phase 6 — Audit

@@ -282,6 +282,7 @@ test("classifyRecoveryError prioritizes run-level protocol setup errors", () => 
   });
 
   assert.equal(classification.error_category, "PROTOCOL_SETUP_ERROR");
+  assert.equal(classification.error_leaf, "MISSING_TRASH_OR_SETUP");
 });
 
 test("parseRuntimeError extracts move destination and escalation", () => {
@@ -314,10 +315,13 @@ test("parseRuntimeError extracts move destination and escalation", () => {
   });
 
   assert.equal(parsed.error_category, "DESTINATION_OCCUPIED");
+  assert.equal(parsed.error_leaf, "DESTINATION_OCCUPIED");
   assert.equal(parsed.target_slot, "B1");
   assert.equal(parsed.source_labware_id, "labware-1");
   assert.equal(parsed.escalate_to_human, true);
   assert.equal(parsed.hard_stop, false);
+  assert.equal(parsed.actionability, "manual_only");
+  assert.equal(parsed.auto_executable, false);
 });
 
 test("listAvailableSlots groups slots by availability", () => {
@@ -467,6 +471,7 @@ test("suggestAlternativeSlots returns addressable non-occupied slots with confid
 test("buildRecoverySuggestion recommends alternative destination slots when available", () => {
   const suggestion = buildRecoverySuggestion({
     errorCategory: "DESTINATION_OCCUPIED",
+    errorLeaf: "DESTINATION_OCCUPIED",
     run: { data: { status: "running" } },
     commands: { data: [] },
     robotStatusSnapshot: { blockers: [] },
@@ -484,8 +489,13 @@ test("buildRecoverySuggestion recommends alternative destination slots when avai
     ],
   });
 
-  assert.equal(suggestion.action, "suggest_new_destination_slot");
-  assert.equal(suggestion.escalate_to_human, false);
+  assert.equal(suggestion.action, "manual_only");
+  assert.equal(suggestion.actionability, "manual_only");
+  assert.equal(suggestion.auto_executable, false);
+  assert.equal(suggestion.requires_confirmation, true);
+  assert.equal(suggestion.required_inputs[0], "destination_slot");
+  assert.equal(suggestion.recommended_manual_action, "suggest_new_destination_slot");
+  assert.equal(suggestion.escalate_to_human, true);
   assert.equal(suggestion.candidate_destination_slots[0].slot_name, "C2");
   assert.equal(suggestion.hard_stop, false);
 });
@@ -493,6 +503,7 @@ test("buildRecoverySuggestion recommends alternative destination slots when avai
 test("buildRecoverySuggestion keeps protocol destination recovery human-reviewed even with confident slot", () => {
   const suggestion = buildRecoverySuggestion({
     errorCategory: "DESTINATION_OCCUPIED",
+    errorLeaf: "DESTINATION_OCCUPIED",
     run: { data: { status: "awaiting-recovery", currentlyRecoveringFrom: "cmd-1" } },
     commands: { data: [] },
     robotStatusSnapshot: { blockers: [] },
@@ -508,6 +519,9 @@ test("buildRecoverySuggestion keeps protocol destination recovery human-reviewed
   });
 
   assert.equal(suggestion.action, "suggest_new_destination_slot");
+  assert.equal(suggestion.actionability, "manual_confirmation_required");
+  assert.equal(suggestion.auto_executable, true);
+  assert.equal(suggestion.requires_confirmation, true);
   assert.equal(suggestion.escalate_to_human, true);
   assert.equal(suggestion.rationale, "protocol_context_destination_occupied");
   assert.equal(suggestion.hard_stop, false);
@@ -516,6 +530,7 @@ test("buildRecoverySuggestion keeps protocol destination recovery human-reviewed
 test("buildRecoverySuggestion escalates when destination recovery has no candidates", () => {
   const suggestion = buildRecoverySuggestion({
     errorCategory: "DESTINATION_OCCUPIED",
+    errorLeaf: "DESTINATION_OCCUPIED",
     run: { data: { status: "running" } },
     commands: { data: [] },
     robotStatusSnapshot: { blockers: [] },
@@ -530,9 +545,28 @@ test("buildRecoverySuggestion escalates when destination recovery has no candida
     alternativeSlots: [],
   });
 
-  assert.equal(suggestion.action, "choose_new_slot_or_escalate");
+  assert.equal(suggestion.action, "manual_only");
+  assert.equal(suggestion.actionability, "manual_only");
+  assert.equal(suggestion.recommended_manual_action, "choose_new_slot_or_escalate");
   assert.equal(suggestion.escalate_to_human, true);
   assert.equal(suggestion.hard_stop, false);
+});
+
+test("buildRecoverySuggestion keeps liquid issues manual-only when no supported fixit exists", () => {
+  const suggestion = buildRecoverySuggestion({
+    errorCategory: "INSUFFICIENT_VOLUME",
+    errorLeaf: "INSUFFICIENT_VOLUME",
+    run: { data: { status: "awaiting-recovery" } },
+    commands: { data: [] },
+    robotStatusSnapshot: { blockers: [] },
+    moduleStatusSnapshot: { blockers: [] },
+    reconciliation: { diffs: [] },
+  });
+
+  assert.equal(suggestion.action, "manual_only");
+  assert.equal(suggestion.actionability, "manual_only");
+  assert.equal(suggestion.auto_executable, false);
+  assert.equal(suggestion.recommended_manual_action, "probe_or_reduce_volume_then_retry");
 });
 
 test("collision and unknown classes are explicit hard stops", () => {
