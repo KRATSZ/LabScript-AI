@@ -1,6 +1,6 @@
 # Workflow sequences (canonical)
 
-This file is the **single source of truth** for end-to-end and tool-order workflows. Other docs (root `README.md`, `CLAUDE.md`, skill files) should link here instead of copying full sequences.
+This file is the **single source of truth** for end-to-end and tool-order workflows. Other docs (root `README.md`, `AGENTS.md`, lightweight compatibility stubs, skill files) should link here instead of copying full sequences.
 
 ## New experiment (end-to-end)
 
@@ -10,6 +10,7 @@ user intent / SOP
   →  protocol-author draft
   →  doctor_local_runtime → simulate_protocol → parse_simulation_output
   →  (fix loop if failed)
+  →  live_readiness_check (robot_ip, session_id?, file_path?) when the operator wants a read-only live gate
   →  return status: ready | needs_confirmation | blocked
   →  run_protocol (robot_ip, file_path, session_id) only after confirmation
 ```
@@ -36,6 +37,17 @@ If the user only wants validation or labware inspection, stop after the check an
 parse_error (robot_ip, run_id) → suggest_recovery_action (error_category, target_slot)
   → execute_protocol_recovery (run_id, robot_ip, recovery_branch, ...)
 ```
+
+## Live readiness gate (read-only)
+
+```
+health_check
+  → live_readiness_check (robot_ip, session_id?, file_path?, run_id?)
+  → if fail: stop and follow recommended_next_tools
+  → if pass/warn: create_run or run_protocol only after operator confirmation
+```
+
+`health_check` is the developer/environment probe. `live_readiness_check` is the operator-facing live gate.
 
 ## After MCP restart or host reboot
 

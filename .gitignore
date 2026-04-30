@@ -6,11 +6,17 @@ __pycache__/
 /artifacts/
 /weights
 /runs/
+/vision/runs/
+/vision/data/camera-captures/
+/vision/data/frames/
+/vision/models/weights/
+/mcp-servers/opentrons-mcp/data/camera-captures/
 /labagentyolo/
 node_modules/
 mcp-servers/**/node_modules/
 mcp-servers/opentrons-mcp/data/session-state/
 mcp-servers/opentrons-mcp/data/result-logs/
+mcp-servers/opentrons-mcp/data/tmp/
 skills/opentrons-robot-lan/data/robot-connection.json
 /src/
 /scripts/*

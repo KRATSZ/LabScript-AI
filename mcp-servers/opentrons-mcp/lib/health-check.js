@@ -3,9 +3,19 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
+import { normalizeBaseUrl } from "./http.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, "../../../");
+
+function resolveHealthPython(args = {}) {
+  return (
+    args.python_executable ||
+    process.env.OPENTRONS_PYTHON ||
+    path.join(PROJECT_ROOT, ".venv/bin/python")
+  );
+}
 
 /**
  * Run a comprehensive health check of the MCP server environment.
@@ -15,6 +25,7 @@ const PROJECT_ROOT = path.resolve(__dirname, "../../../");
  * @returns {object} Structured health report.
  */
 export function buildHealthCheck(args = {}) {
+  const selectedPython = resolveHealthPython(args);
   const report = {
     timestamp: new Date().toISOString(),
     mcp_server: { status: "ok" },
@@ -25,7 +36,8 @@ export function buildHealthCheck(args = {}) {
   };
 
   // --- Venv check ---
-  const venvPython = path.join(PROJECT_ROOT, ".venv/bin/python");
+  const venvPython = selectedPython;
+  report.venv.python_executable = venvPython;
   if (fs.existsSync(venvPython)) {
     try {
       const version = execSync(`${venvPython} -c "import sys; print(sys.version.split()[0])"`, {
@@ -51,7 +63,9 @@ export function buildHealthCheck(args = {}) {
     }
   } else {
     report.venv.status = "missing";
-    report.venv.hint = "Run: uv venv .venv && uv sync --extra protocol";
+    report.venv.hint = args.python_executable || process.env.OPENTRONS_PYTHON
+      ? "Provided python_executable does not exist; check the path or OPENTRONS_PYTHON."
+      : "Run: uv venv .venv && uv sync --extra protocol";
   }
 
   // --- Git state ---
@@ -95,9 +109,7 @@ export function buildHealthCheck(args = {}) {
 export async function checkRobotHealth(robotIp) {
   if (!robotIp) return { status: "not_checked" };
 
-  const url = robotIp.includes("://")
-    ? `${robotIp}/health`
-    : `http://${robotIp}:31950/health`;
+  const url = `${normalizeBaseUrl(robotIp)}/health`;
 
   try {
     const controller = new AbortController();

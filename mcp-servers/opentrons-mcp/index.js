@@ -90,6 +90,8 @@ import {
 } from "./lib/vision.js";
 import { buildHealthCheck, checkRobotHealth } from "./lib/health-check.js";
 import { runVisionCheck } from "./lib/vision-check.js";
+import { buildErrorTaxonomy, buildTaxonomyIssue } from "./lib/error-taxonomy.js";
+import { buildLiveReadinessReport } from "./lib/live-readiness.js";
 import {
   buildDeckPhotoAnalysisPrompt,
   buildImageDataUrl,
@@ -1153,7 +1155,36 @@ const TOOL_DEFINITIONS = [
       type: "object",
       properties: {
         robot_ip: { type: "string", description: "Optional robot IP to check connectivity (e.g. 10.31.2.149)" },
+        python_executable: {
+          type: "string",
+          description: "Optional Python interpreter to inspect instead of the repo-local .venv.",
+        },
       },
+    },
+  },
+  {
+    name: "live_readiness_check",
+    description:
+      "Read-only live readiness gate for Flex: combines local runtime health, restart/session guidance, robot/module status, home safety, and optional preflight into pass/warn/fail checks before create_run or play.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        session_id: { type: "string" },
+        file_path: {
+          type: "string",
+          description: "Optional protocol file path; when set, also runs preflight_run_setup read-only checks.",
+        },
+        python_executable: {
+          type: "string",
+          description: "Optional Python interpreter for the local runtime readiness check.",
+        },
+        run_id: {
+          type: "string",
+          description: "Optional current run id for context; forwarded to preflight when provided.",
+        },
+      },
+      required: ["robot_ip"],
     },
   },
   {
@@ -1804,12 +1835,34 @@ async function readRunFailureGuidance(args, runId, sessionId = null) {
 async function enforceSimulationGate(args) {
   const doctor = await runDoctorTool(args);
   if (!doctor?.ok || !doctor?.opentrons_simulate?.ok) {
+    const doctorIssue = buildTaxonomyIssue({
+      phase: "simulation",
+      errorLeaf: doctor?.python ? "RUNTIME_UNAVAILABLE" : "PYTHON_ENV_BROKEN",
+      message: "Simulation gate blocked because the local runtime is not ready.",
+      overrides: {
+        default_next_step: "doctor_local_runtime",
+        evidence_sources: ["doctor_local_runtime"],
+      },
+    });
     const error = new Error("Simulation gate blocked real execution because the local runtime is not ready.");
     error.toolContext = {
       data: {
         blocked_real_execution: true,
         gate_stage: "doctor_local_runtime",
         doctor_local_runtime: doctor,
+        parsed_simulation_output: {
+          success: false,
+          phase: "simulation",
+          status: "failed",
+          primary_issue: doctorIssue,
+          error_domain: doctorIssue.error_domain,
+          error_leaf: doctorIssue.error_leaf,
+          recoverability: doctorIssue.recoverability,
+          requires_human_review: doctorIssue.requires_human_review,
+          default_next_step: doctorIssue.default_next_step,
+          evidence_sources: doctorIssue.evidence_sources,
+          issues: [doctorIssue],
+        },
       },
     };
     throw error;
@@ -2002,6 +2055,14 @@ async function executeProtocolRecovery(args, { expectedAction = null } = {}) {
   if (guardedExpectedAction && action !== guardedExpectedAction) {
     throw new Error(
       `execute_protocol_recovery expected ${guardedExpectedAction}, got ${action || "unknown"}.`,
+    );
+  }
+
+  if (recovery.auto_executable !== true) {
+    throw new Error(
+      `execute_protocol_recovery only supports recovery branches marked auto_executable=true; got ${String(
+        recovery.auto_executable,
+      )} for action ${action || "unknown"}.`,
     );
   }
 
@@ -2253,6 +2314,140 @@ async function executeRestartReview(args) {
     hardwareSnapshot,
     stateRevision: sessionState.state_revision,
     sessionId,
+  };
+}
+
+function buildReadinessErrorCheck(name, summary, errorLeaf, error, evidenceSources = []) {
+  return {
+    name,
+    status: "fail",
+    summary,
+    ...buildErrorTaxonomy({
+      phase: "live_readiness",
+      errorLeaf,
+      overrides: {
+        auto_executable: false,
+        evidence_sources: evidenceSources,
+      },
+    }),
+    error: error?.message || String(error || ""),
+  };
+}
+
+async function executeLiveReadinessCheck(args) {
+  const healthReport = buildHealthCheck(args);
+  healthReport.robot = await checkRobotHealth(args.robot_ip);
+
+  const hardwareSnapshot = {};
+  const extraChecks = [];
+  let robotStatusResult = null;
+  let moduleStatusResult = null;
+  let homeSafety = null;
+  let preflight = null;
+  let sessionId = args.session_id || DEFAULT_SESSION_ID;
+  let sessionState = readSessionState(sessionId);
+
+  if (healthReport.robot.status === "reachable") {
+    try {
+      robotStatusResult = await readRobotStatus(args);
+      Object.assign(hardwareSnapshot, robotStatusResult.hardwareSnapshot);
+      sessionId = resolveSessionId(args, robotStatusResult);
+      sessionState = readSessionState(sessionId);
+      homeSafety = buildHomeSafetyResult({
+        robotStatusSnapshot: robotStatusResult.data,
+        sessionState,
+      });
+    } catch (error) {
+      extraChecks.push(
+        buildReadinessErrorCheck(
+          "robot_status",
+          "Robot health endpoint is reachable, but live status endpoints failed.",
+          "MCP_CONFIG_MISMATCH",
+          error,
+          ["robot_status"],
+        ),
+      );
+    }
+
+    try {
+      moduleStatusResult = await readModuleStatus(args);
+      Object.assign(hardwareSnapshot, moduleStatusResult.hardwareSnapshot);
+    } catch (error) {
+      extraChecks.push(
+        buildReadinessErrorCheck(
+          "module_status",
+          "Live module status could not be read from the robot.",
+          "MCP_CONFIG_MISMATCH",
+          error,
+          ["module_status"],
+        ),
+      );
+    }
+
+    if (args.file_path && robotStatusResult && moduleStatusResult) {
+      try {
+        const preflightWrap = await runPreflightRunSetup({
+          robot_ip: args.robot_ip,
+          file_path: args.file_path,
+          session_id: sessionId,
+          run_id: args.run_id,
+        });
+        preflight = preflightWrap.data;
+      } catch (error) {
+        preflight = {
+          ok: false,
+          allowed_to_play: false,
+          robot_model: robotStatusResult?.data?.health_summary?.robot_model || null,
+          deck_model: "flex_12_slot",
+          blocking_checks: [
+            {
+              status: "fail",
+              code: "preflight_execution_failed",
+              message: error?.message || "preflight_run_setup failed unexpectedly.",
+              ...buildErrorTaxonomy({
+                phase: "preflight",
+                errorLeaf: "UNKNOWN_NEEDS_HUMAN",
+                overrides: {
+                  auto_executable: false,
+                  evidence_sources: ["preflight_run_setup"],
+                },
+              }),
+            },
+          ],
+          warning_checks: [],
+          errors: [],
+          warnings: [],
+          summary: error?.message || "preflight_run_setup failed unexpectedly.",
+        };
+      }
+    }
+  }
+
+  const logEntries = readResultLogEntries({ session_id: sessionId, limit: 20 });
+  const restartReviewData = buildRestartReview({
+    sessionState,
+    logEntries,
+    homeSafety,
+  });
+  const safeNextAction = buildSafeNextAction(restartReviewData);
+  const readiness = buildLiveReadinessReport({
+    healthReport,
+    restartReviewData,
+    safeNextAction,
+    robotStatusSnapshot: robotStatusResult?.data || null,
+    moduleStatusSnapshot: moduleStatusResult?.data || null,
+    homeSafety,
+    preflight,
+    hasFilePath: Boolean(args.file_path),
+    extraChecks,
+  });
+
+  return {
+    data: readiness,
+    hardwareSnapshot,
+    stateRevision: sessionState.state_revision,
+    sessionId,
+    runId: args.run_id || sessionState.last_run_id || null,
   };
 }
 
@@ -2565,6 +2760,7 @@ const TOOL_HANDLERS = {
         : [];
     const recoverySuggestion = buildRecoverySuggestion({
       errorCategory: args.error_category || classification.error_category,
+      errorLeaf: classification.error_leaf,
       run: runContext.run,
       commands: runContext.commands,
       robotStatusSnapshot: robotStatusResult.data,
@@ -3791,7 +3987,7 @@ const TOOL_HANDLERS = {
         fallbackSessionId: args.session_id || DEFAULT_SESSION_ID,
         fallbackStatus: error?.toolContext?.data?.blocked_real_execution ? "blocked" : "error",
         summary: error?.toolContext?.data?.blocked_real_execution
-          ? "Simulation gate blocked real execution."
+          ? `Real execution blocked at ${error?.toolContext?.data?.gate_stage || "unknown_gate"}.`
           : "Protocol run failed before completion.",
         data: {
           blocked_real_execution: error?.toolContext?.data?.blocked_real_execution || false,
@@ -4154,6 +4350,10 @@ const TOOL_HANDLERS = {
       report.robot = await checkRobotHealth(args.robot_ip);
     }
     return { data: report };
+  },
+
+  async live_readiness_check(args) {
+    return executeLiveReadinessCheck(args);
   },
 };
 

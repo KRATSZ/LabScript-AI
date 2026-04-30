@@ -9,7 +9,7 @@
 | [docs/error-response.md](docs/error-response.md) | **Errors & recovery** — categories, branches, Phase 2/4 invariants |
 | [docs/architecture.md](docs/architecture.md) | **Architecture** — layers and pointers to diagrams |
 
-This file stays short for the agent host; do not duplicate long policy text here.
+This is the primary agent instruction entrypoint for this repository. Keep it short and link to canonical docs instead of duplicating policy text.
 
 ## Skills
 

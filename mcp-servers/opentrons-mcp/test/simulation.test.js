@@ -12,6 +12,8 @@ test("parseSimulationLog classifies missing trash errors", () => {
 
   assert.equal(result.success, false);
   assert.equal(result.issues[0].category, "MISSING_TRASH_OR_SETUP");
+  assert.equal(result.issues[0].error_leaf, "MISSING_TRASH_OR_SETUP");
+  assert.equal(result.primary_issue.error_domain, "protocol");
   assert.equal(result.issues[0].fixable_by_edit, true);
 });
 
@@ -25,6 +27,8 @@ test("parseSimulationLog classifies syntax errors", () => {
 
   assert.equal(result.success, false);
   assert.equal(result.issues[0].category, "SYNTAX_OR_IMPORT");
+  assert.equal(result.error_leaf, "SYNTAX_OR_IMPORT");
+  assert.equal(result.default_next_step, "edit_protocol_and_retry_simulation");
   assert.equal(result.line_references[0].line, 8);
 });
 
@@ -37,6 +41,7 @@ test("parseSimulationLog passes clean output", () => {
 
   assert.equal(result.success, true);
   assert.equal(result.issue_count, 0);
+  assert.equal(result.error_leaf, null);
   assert.equal(result.suggested_next_step, "simulation_passed_ready_for_execution");
 });
 

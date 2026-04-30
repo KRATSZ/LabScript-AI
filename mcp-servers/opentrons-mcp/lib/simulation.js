@@ -3,6 +3,8 @@ import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
 
+import { buildTaxonomyIssue, mapSimulationCategoryToLeaf } from "./error-taxonomy.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const helperScriptPath = path.resolve(__dirname, "../scripts/local_simulation.py");
@@ -217,8 +219,21 @@ export function parseSimulationLog({
 
   for (const pattern of patterns) {
     if (pattern.regex.test(combinedLog)) {
+      const errorLeaf = mapSimulationCategoryToLeaf(pattern.category);
       issues.push({
+        ...buildTaxonomyIssue({
+          phase: "simulation",
+          errorLeaf,
+          message: pattern.message,
+          overrides: {
+            default_next_step: pattern.fixable_by_edit
+              ? "edit_protocol_and_retry_simulation"
+              : undefined,
+            evidence_sources: ["stdout", "stderr", "protocol_source"],
+          },
+        }),
         category: pattern.category,
+        error_category: pattern.category,
         severity: pattern.severity,
         message: pattern.message,
         fixable_by_edit: pattern.fixable_by_edit,
@@ -230,8 +245,18 @@ export function parseSimulationLog({
   }
 
   if ((exit_code ?? 1) !== 0 && issues.length === 0) {
+    const errorLeaf = mapSimulationCategoryToLeaf("UNKNOWN_NEEDS_HUMAN");
     issues.push({
+      ...buildTaxonomyIssue({
+        phase: "simulation",
+        errorLeaf,
+        message: "仿真失败，但未匹配到已知问题模式。",
+        overrides: {
+          evidence_sources: ["stdout", "stderr"],
+        },
+      }),
       category: "UNKNOWN_NEEDS_HUMAN",
+      error_category: "UNKNOWN_NEEDS_HUMAN",
       severity: "error",
       message: "仿真失败，但未匹配到已知问题模式。",
       fixable_by_edit: false,
@@ -243,15 +268,24 @@ export function parseSimulationLog({
   const normalizedIssues = uniqueIssues(issues);
   const status =
     (exit_code ?? 1) === 0 && normalizedIssues.length === 0 ? "passed" : "failed";
+  const primaryIssue = normalizedIssues[0] || null;
 
   return {
     success: status === "passed",
+    phase: "simulation",
     status,
     exit_code,
     protocol_path,
     line_references: lineReferences,
     issue_count: normalizedIssues.length,
     issues: normalizedIssues,
+    primary_issue: primaryIssue,
+    error_domain: primaryIssue?.error_domain || null,
+    error_leaf: primaryIssue?.error_leaf || null,
+    recoverability: primaryIssue?.recoverability || null,
+    requires_human_review: primaryIssue?.requires_human_review ?? null,
+    default_next_step: primaryIssue?.default_next_step || null,
+    evidence_sources: primaryIssue?.evidence_sources || [],
     suggested_next_step:
       status === "passed"
         ? "simulation_passed_ready_for_execution"
