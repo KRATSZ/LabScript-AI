@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labscriptai.local/schemas/adapters/opentrons.schema.json",
+  "title": "Opentrons adapter extension for execution packages",
+  "description": "Optional manifest fields when the execution backend is Opentrons OT-2 / Flex.",
+  "type": "object",
+  "properties": {
+    "adapter": {
+      "type": "object",
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "type": "string", "const": "opentrons" },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

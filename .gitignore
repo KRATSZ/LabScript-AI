@@ -2,6 +2,10 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .venv/
+.venv-protocol/
+.env
+.env.*
+!.env.example
 .DS_Store
 /artifacts/
 /weights
@@ -18,6 +22,7 @@ mcp-servers/opentrons-mcp/data/session-state/
 mcp-servers/opentrons-mcp/data/result-logs/
 mcp-servers/opentrons-mcp/data/tmp/
 skills/opentrons-robot-lan/data/robot-connection.json
-/src/
 /scripts/*
 !/scripts/download_vision_weights.sh
+!/scripts/render_authoring_tasks_catalog_pdf.py
+!/scripts/run_codex_authoring_baseline.py

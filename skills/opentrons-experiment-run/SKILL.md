@@ -68,7 +68,7 @@ not wait for the user to explicitly ask for simulate.
 - If `guidance.reconcile_first` -> `reconcile_state`.
 - `robot_status`, `module_status` — verify robot reachable and modules ready.
 - `reconcile_state` — confirm deck matches expected layout.
-- **Deck vision (observation-only) — ONLY if the operator explicitly requests a visual check or image-based deck confirmation:** `camera_status` → `capture_preview_image` → `vision_check` on the saved image. Canonical sequence and setup: **`docs/workflows.md`** → section *Optional deck vision (observation-only)* and `docs/vision-acceptance.md`. Do **not** pull vision into the default preflight path. Treat output as hints; **do not** treat vision as committed deck truth — compare with `reconcile_state` and robot APIs. Prefer in-repo `vision/models/weights/` auto-resolution (or local `vision/runs/detect/...`); legacy sibling `labagentyolo` paths still work during migration. Override with `weights` / `OPENTRONS_DECK_YOLO_WEIGHTS` if needed.
+- **Deck vision (observation-only) — ONLY if the operator explicitly requests a visual check or image-based deck confirmation:** `camera_status` → `capture_preview_image` → `vision_check` on the saved image. Canonical sequence and setup: **`docs/rules/workflows.md`** → section *Optional deck vision (observation-only)* and `docs/runbooks/vision-acceptance.md`. Do **not** pull vision into the default preflight path. Treat output as hints; **do not** treat vision as committed deck truth — compare with `reconcile_state` and robot APIs. Prefer in-repo `vision/models/weights/` auto-resolution (or local `vision/runs/detect/...`); legacy sibling `labagentyolo` paths still work during migration. Override with `weights` / `OPENTRONS_DECK_YOLO_WEIGHTS` if needed.
 - Before `home`: `is_home_safe`.
 
 ### Phase 4 — Execute
@@ -82,7 +82,7 @@ not wait for the user to explicitly ask for simulate.
 
 - `run_history` -> `parse_error` -> `suggest_recovery_action`.
 - Execute only branches that come back with `auto_executable: true`: `execute_protocol_recovery` / `recover_tip_pickup`.
-- Hard stops and DESTINATION_OCCUPIED human-review rules per `docs/safety-policy.md` and `docs/error-response.md`.
+- Hard stops and DESTINATION_OCCUPIED human-review rules per `docs/rules/safety-policy.md` and `docs/rules/error-response.md`.
 
 ### Phase 6 — Audit
 

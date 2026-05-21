@@ -1,0 +1,3 @@
+sample_id,source_well,destination_well,target_volume_uL
+pos_control,A1,A1,20
+neg_control,H12,H12,20

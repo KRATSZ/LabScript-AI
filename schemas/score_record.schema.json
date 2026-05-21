@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labscriptai.local/schemas/score_record.schema.json",
+  "title": "LabscriptAI authoring benchmark score record",
+  "type": "object",
+  "required": [
+    "task_id",
+    "system_id",
+    "model_id",
+    "scaffold_id",
+    "first_pass_success",
+    "best_of_budget_success",
+    "attempts",
+    "wall_time_sec",
+    "simulation_pass",
+    "package_complete",
+    "critical_failures"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^T[0-9]{3}$" },
+    "system_id": { "type": "string" },
+    "model_id": { "type": "string" },
+    "scaffold_id": { "type": "string" },
+    "first_pass_success": { "type": "boolean" },
+    "best_of_budget_success": { "type": "boolean" },
+    "attempts": { "type": "integer", "minimum": 0 },
+    "wall_time_sec": { "type": "number", "minimum": 0 },
+    "input_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "output_tokens": { "type": ["integer", "null"], "minimum": 0 },
+    "simulation_pass": { "type": "boolean" },
+    "package_complete": { "type": "boolean" },
+    "deck_consistency_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "volume_feasibility_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "tip_budget_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "contamination_safety_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "risk_flag_recall": { "type": "number", "minimum": 0, "maximum": 1 },
+    "handoff_declared_score": { "type": "number", "minimum": 0, "maximum": 1 },
+    "task_alignment_score": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+    "biological_reasonableness_score": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+    "liquid_handling_quality_score": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+    "safety_control_score": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+    "code_quality_score": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+    "expert_score_mean": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
+    "critical_failures": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "collision",
+          "tip_exhaustion",
+          "deck_conflict",
+          "reagent_underfill",
+          "cross_contamination",
+          "volume_infeasible",
+          "module_misuse",
+          "schema_invalid",
+          "other"
+        ]
+      }
+    },
+    "review_notes_path": { "type": ["string", "null"] }
+  },
+  "additionalProperties": true
+}
+

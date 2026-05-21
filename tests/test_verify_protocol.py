@@ -38,7 +38,8 @@ class VerifyProtocolTests(unittest.TestCase):
         self.assertFalse(paths.source_layout_ready)
 
     def test_handle_doctor_returns_nonzero_when_runtime_probes_fail(self) -> None:
-        original_probe_module = _mod_dict["probe_module"]
+        globals_dict = MODULE.handle_doctor.__globals__
+        original_probe_module = globals_dict["probe_module"]
 
         def fake_probe_module(python_executable, paths, module_name):
             return {
@@ -49,7 +50,7 @@ class VerifyProtocolTests(unittest.TestCase):
                 "error": "No module named 'opentrons'",
             }
 
-        _mod_dict["probe_module"] = fake_probe_module
+        globals_dict["probe_module"] = fake_probe_module
         try:
             output = io.StringIO()
             args = types.SimpleNamespace(
@@ -64,7 +65,7 @@ class VerifyProtocolTests(unittest.TestCase):
             self.assertEqual(exit_code, 1)
             self.assertIn('"ok": false', output.getvalue())
         finally:
-            _mod_dict["probe_module"] = original_probe_module
+            globals_dict["probe_module"] = original_probe_module
 
 
 if __name__ == "__main__":

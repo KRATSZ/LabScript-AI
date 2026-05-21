@@ -1,0 +1,6 @@
+{
+  "sample_mapping": {
+    "pos_control": "A1",
+    "neg_control": "H12"
+  }
+}

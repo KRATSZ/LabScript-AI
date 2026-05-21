@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labscriptai.local/schemas/runtime_state.schema.json",
+  "title": "LabscriptAI runtime state",
+  "type": "object",
+  "required": ["schema_version", "run_id", "phase", "expected", "committed", "observed", "risks"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "run_id": { "type": "string" },
+    "phase": {
+      "enum": ["preflight", "simulating", "ready", "running", "recovering", "paused", "completed", "aborted"]
+    },
+    "robot": {
+      "type": "object",
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "host": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "expected": { "type": "object", "additionalProperties": true },
+    "committed": { "type": "object", "additionalProperties": true },
+    "observed": { "type": "object", "additionalProperties": true },
+    "completed_commands": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "failed_commands": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "used_tips": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "treated_wells": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "liquid_transfers": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "remaining_plan": {
+      "type": "array",
+      "items": { "type": "object", "additionalProperties": true }
+    },
+    "risks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "properties": {
+          "code": { "type": "string" },
+          "severity": { "enum": ["info", "warning", "blocker"] },
+          "message": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

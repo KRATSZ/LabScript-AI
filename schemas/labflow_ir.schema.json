@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labscriptai.local/schemas/labflow_ir.schema.json",
+  "title": "LabFlow minimal liquid-handling IR",
+  "type": "object",
+  "required": ["schema_version", "protocol_id", "resources", "operations"],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "protocol_id": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": {
+            "enum": ["plate", "tiprack", "reservoir", "tube_rack", "module", "pipette"]
+          },
+          "name": { "type": "string" },
+          "slot": { "type": "string" },
+          "mount": { "type": "string" },
+          "backend_name": { "type": "string" },
+          "metadata": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "op"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "op": {
+            "enum": [
+              "pick_up_tip",
+              "drop_tip",
+              "aspirate",
+              "dispense",
+              "transfer",
+              "mix",
+              "pause",
+              "request_confirmation",
+              "module_wait",
+              "thermocycler_step"
+            ]
+          },
+          "source": { "type": "string" },
+          "destination": { "type": "string" },
+          "volume_ul": { "type": "number", "exclusiveMinimum": 0 },
+          "reagent": { "type": "string" },
+          "repetitions": { "type": "integer", "minimum": 1 },
+          "message": { "type": "string" },
+          "module": { "type": "string" },
+          "condition": { "type": "string" },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "tip_policy": { "enum": ["new_tip", "reuse_tip", "once"] },
+              "avoid_contamination": { "type": "boolean" },
+              "min_source_volume_ul": { "type": "number", "minimum": 0 },
+              "max_volume_ul": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "runtime_state": {
+      "type": "object",
+      "properties": {
+        "expected": { "type": "object" },
+        "committed": { "type": "object" },
+        "observed": { "type": "object" },
+        "risk": { "type": "object" },
+        "allowed_recovery": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

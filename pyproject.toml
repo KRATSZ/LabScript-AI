@@ -9,7 +9,9 @@ authors = [
   { name = "SmartisanNaive" }
 ]
 keywords = ["opentrons", "claude-code", "agent-skills", "lab-automation", "ot-2", "flex"]
-dependencies = []
+dependencies = [
+  "textual>=0.85,<1.0",
+]
 
 [project.optional-dependencies]
 # Robot API + protocol helpers (pins numpy 1.x stack; pair with `vision` only if versions resolve).
@@ -27,4 +29,4 @@ Homepage = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
 Repository = "https://github.com/SmartisanNaive/Opentrons-Lab-Agent"
 
 [tool.pytest.ini_options]
-
+pythonpath = ["src"]

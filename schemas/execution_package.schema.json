@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labscriptai.local/schemas/execution_package.schema.json",
+  "title": "LabscriptAI execution package manifest",
+  "type": "object",
+  "required": [
+    "task_id",
+    "system_id",
+    "model_id",
+    "scaffold_id",
+    "prompt_hash",
+    "retry_budget",
+    "tool_permissions",
+    "timestamp"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^T[0-9]{3}$" },
+    "system_id": { "type": "string", "minLength": 1 },
+    "model_id": { "type": "string", "minLength": 1 },
+    "scaffold_id": { "type": "string", "minLength": 1 },
+    "prompt_hash": { "type": "string", "minLength": 1 },
+    "retry_budget": {
+      "type": "object",
+      "required": ["max_attempts", "max_wall_time_sec", "max_output_tokens", "max_tool_calls"],
+      "properties": {
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "max_wall_time_sec": { "type": "integer", "minimum": 1, "maximum": 1800 },
+        "max_output_tokens": { "type": "integer", "minimum": 1, "maximum": 24000 },
+        "max_tool_calls": { "type": "integer", "minimum": 0, "maximum": 80 }
+      },
+      "additionalProperties": true
+    },
+    "tool_permissions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "timestamp": { "type": "string", "minLength": 1 },
+    "metric_unavailable": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}
+

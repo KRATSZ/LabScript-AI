@@ -6,10 +6,10 @@ This folder contains the canonical MCP server for `Opentrons-Lab-Agent`: local s
 
 | Topic | Path |
 |-------|------|
-| Workflows | [`../../docs/workflows.md`](../../docs/workflows.md) |
-| Safety policy | [`../../docs/safety-policy.md`](../../docs/safety-policy.md) |
-| Errors, recovery branches, Phase 2/4 policy | [`../../docs/error-response.md`](../../docs/error-response.md) |
-| Architecture | [`../../docs/architecture.md`](../../docs/architecture.md) |
+| Workflows | [`../../docs/rules/workflows.md`](../../docs/rules/workflows.md) |
+| Safety policy | [`../../docs/rules/safety-policy.md`](../../docs/rules/safety-policy.md) |
+| Errors, recovery branches, Phase 2/4 policy | [`../../docs/rules/error-response.md`](../../docs/rules/error-response.md) |
+| Architecture | [`../../docs/architecture/architecture.md`](../../docs/architecture/architecture.md) |
 
 Do not duplicate long policy text here; link the files above.
 
@@ -37,15 +37,15 @@ See `index.js` for the authoritative tool list and schemas.
 | `live_readiness_check` | **stable** | Read-only live go/no-go gate; combines local runtime health, restart guidance, live status, and optional preflight. |
 | `preflight_run_setup` | **stable** | After run creation: reconciliation, readiness, Flex-oriented declared deck vs live snapshot. Overrides: `skip_preflight`, `skip_preflight_deck_diff`. |
 | Core live tools (`robot_status`, `reconcile_state`, recovery chain) | **stable** | See tests under `test/`. |
-| `vision_check` | **beta** | Local inference; observation-only JSON. Install: `uv sync --extra vision`. Checklist: [`../../docs/vision-acceptance.md`](../../docs/vision-acceptance.md). |
+| `vision_check` | **beta** | Local inference; observation-only JSON. Install: `uv sync --extra vision`. Checklist: [`../../docs/runbooks/vision-acceptance.md`](../../docs/runbooks/vision-acceptance.md). |
 | `analyze_image_with_kimi` | **beta** | External chat API; deck-level hints, not liquid-volume truth. |
-| `probe_wells` | **experimental** | Default simulate-only; live motion requires `OPENTRONS_ENABLE_PROBE_WELLS=1` and operator sign-off ([`../../docs/probe-wells-live-validation.md`](../../docs/probe-wells-live-validation.md)). |
+| `probe_wells` | **experimental** | Default simulate-only; live motion requires `OPENTRONS_ENABLE_PROBE_WELLS=1` and operator sign-off ([`../../docs/runbooks/probe-wells-live-validation.md`](../../docs/runbooks/probe-wells-live-validation.md)). |
 
 ## Operator runbooks (this repo)
 
-- Restart / reconcile: [`../../docs/restart-review-runbook.md`](../../docs/restart-review-runbook.md)
-- Live `probe_wells` validation: [`../../docs/probe-wells-live-validation.md`](../../docs/probe-wells-live-validation.md)
-- Vision acceptance: [`../../docs/vision-acceptance.md`](../../docs/vision-acceptance.md)
+- Restart / reconcile: [`../../docs/runbooks/restart-review-runbook.md`](../../docs/runbooks/restart-review-runbook.md)
+- Live `probe_wells` validation: [`../../docs/runbooks/probe-wells-live-validation.md`](../../docs/runbooks/probe-wells-live-validation.md)
+- Vision acceptance: [`../../docs/runbooks/vision-acceptance.md`](../../docs/runbooks/vision-acceptance.md)
 
 ## Implementation notes (MCP-specific)
 
@@ -63,7 +63,7 @@ See `index.js` for the authoritative tool list and schemas.
 
 ## Recovery policy (Phase 2 / Phase 4)
 
-Full rules and the error table live in [`../../docs/error-response.md`](../../docs/error-response.md).
+Full rules and the error table live in [`../../docs/rules/error-response.md`](../../docs/rules/error-response.md).
 
 ## Real Response Samples
 
@@ -154,7 +154,7 @@ npm test
 
 ### What the tests prove
 
-Policy mapping: [`../../docs/error-response.md`](../../docs/error-response.md).
+Policy mapping: [`../../docs/rules/error-response.md`](../../docs/rules/error-response.md).
 
 | Area | Primary test files |
 |------|-------------------|

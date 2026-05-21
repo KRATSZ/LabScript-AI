@@ -1,0 +1,1136 @@
+# External community authoring mini-benchmark manifest.
+# This is a smoke-scale supplement to the main 90-task benchmark. It should not
+# be merged into the main score because the source distribution is different.
+schema_version: "0.1"
+adapter_default: opentrons
+required_package_files:
+  - protocol.py
+  - deck_plan.json
+  - reagent_plan.json
+  - tip_plan.json
+  - runbook.md
+  - risk_checklist.json
+  - manifest.json
+tasks:
+  - id: EOPL001
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/85b0dc
+    legacy_type: community_csv_pcr_cherrypick
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library workflow into a seven-file execution package.
+
+      Source workflow: Sybr Green PCR prep with cherry-picking, based on Protocol Library entry 85b0dc.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Use a P20 single-channel pipette and 20 uL tips.
+      3. Support a CSV mapping with columns: source well, mastermix tube, destination well.
+      4. For each row, transfer user-specified master mix volume from a 1.5 mL tube rack to the PCR destination plate.
+      5. Then transfer user-specified DNA sample volume from the source aluminum block to the same destination well.
+      6. Use fresh tips for DNA/template transfers and avoid returning a template-contaminated tip to any master-mix source.
+      7. Document the CSV format, deck layout, tip policy, and manual pre-run checks in the package.
+  - id: EOPL002
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/797dee-normalization
+    legacy_type: community_csv_normalization
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library workflow into a seven-file execution package.
+
+      Source workflow: concentration normalization with a 50 mL diluent tube, based on Protocol Library entry 797dee-normalization.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV-like 96-well table where each value is the diluent volume in uL for the matching destination well; zero means skip that well.
+      3. Load one source plate, one destination plate, one 50 mL tube rack containing diluent, one compatible single-channel pipette, and enough tips.
+      4. Transfer the requested diluent volume into each non-zero destination well.
+      5. Split transfers that exceed pipette capacity.
+      6. Track the starting diluent volume and flag when requested total volume plus dead volume is infeasible.
+      7. Document portrait-vs-landscape CSV orientation assumptions in runbook.md and risk_checklist.json.
+  - id: EOPL003
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/0845ab
+    legacy_type: community_magnetic_cleanup_digest
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library workflow into a seven-file execution package.
+
+      Source workflow: digestion and bead cleanup, based on Protocol Library entry 0845ab.
+
+      Requirements:
+      1. Support 16, 32, or 48 samples.
+      2. Use a magnetic module for bead cleanup and clearly separate magnet-engaged aspiration from magnet-disengaged resuspension.
+      3. Add bead solution, sample, acetonitrile, ethanol washes, digestion solution, TEAB, TMT/buffer mix, hydroxylamine, and formic acid in the correct phases.
+      4. Include pauses for off-deck heater-shaker incubation and overnight digestion instead of pretending the OT-2 can automate those steps.
+      5. Use fresh tips for sample and labeling transfers where cross-contamination matters.
+      6. Document module state, handoff pauses, reagent locations, and high-risk manual checks.
+  - id: EOPL004
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/pcr-mastermix-distribution
+    legacy_type: community_pcr_mastermix_multichannel
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style PCR master-mix distribution workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Load a 96-well PCR plate, a 12-channel reservoir, one p20 or p300 multi-channel pipette, and enough tips.
+      3. Support columns_to_fill from 1 to 12.
+      4. Dispense 18 uL PCR master mix into each selected column.
+      5. Keep master mix cold in the runbook and require the operator to pre-chill the plate if available.
+      6. Calculate total master-mix volume with at least 10% overage and document dead-volume assumptions.
+      7. Use fresh tips when contamination risk changes and record the policy in tip_plan.json.
+  - id: EOPL005
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/serial-dilution-96
+    legacy_type: community_serial_dilution_plate
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style serial dilution workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Load a 96-well plate, a reservoir with diluent, a p300 single-channel pipette, and one 300 uL tip rack.
+      3. Add 90 uL diluent to wells A2-A12.
+      4. Transfer 10 uL sample from A1 to A2, mix, then serially transfer 10 uL through A12.
+      5. Use a fresh tip for each dilution transfer unless the package clearly justifies same-tip serial dilution.
+      6. Document the dilution factor, final volume, and cross-contamination risk.
+  - id: EOPL006
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/cherry-pick-plate-copy
+    legacy_type: community_cherrypick_plate_copy
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style cherry-pick plate-copy workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV mapping with columns source_plate, source_well, destination_plate, destination_well, volume_ul.
+      3. Load two source plates and two destination plates.
+      4. Split transfers above pipette capacity and skip rows with zero volume.
+      5. Use fresh tips for every source well to avoid cross-contamination.
+      6. Include CSV validation instructions and a runbook section for failed row handling.
+  - id: EOPL007
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/magnetic-bead-cleanup-96
+    legacy_type: community_magnetic_bead_cleanup
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style magnetic bead cleanup workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2 and a magnetic module.
+      2. Support sample_count of 24, 48, or 96.
+      3. Add beads, mix thoroughly, pause for binding, engage magnet, remove supernatant, perform two ethanol washes, air-dry, disengage magnet, and elute.
+      4. Never add elution buffer while the magnet remains engaged.
+      5. Document magnet states, drying limits, ethanol carryover risk, and operator pauses.
+      6. Use fresh tips for sample/bead handling and avoid disturbing beads during supernatant removal.
+  - id: EOPL008
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/qpcr-setup-triplicates
+    legacy_type: community_qpcr_triplicate_setup
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style qPCR setup workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Support 16 samples, each plated in technical triplicate.
+      3. Add qPCR master mix and then template into a 96-well qPCR plate.
+      4. Include no-template controls and positive controls.
+      5. Use fresh tips for template transfers and keep master mix/template contamination separated.
+      6. Document replicate mapping, control wells, cold-chain assumptions, and total reagent volume.
+  - id: EOPL009
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/normalization-with-water
+    legacy_type: community_normalization_variable_water
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style normalization workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV with sample_well, destination_well, sample_volume_ul, water_volume_ul.
+      3. Transfer water first, then sample, into a destination plate.
+      4. Skip invalid rows and document how the operator should correct the CSV.
+      5. Split large water transfers across multiple aspirations if needed.
+      6. Track water reservoir total volume plus dead volume.
+  - id: EOPL010
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/illumina-library-pooling
+    legacy_type: community_library_pooling
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style library pooling workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV with source_well and pool_volume_ul for up to 96 indexed libraries.
+      3. Transfer each library into one pool tube.
+      4. Use fresh tips for every library and document barcode cross-contamination risk.
+      5. Split transfers if the requested volume exceeds pipette capacity.
+      6. Track total pool volume and require the operator to confirm tube capacity before run start.
+  - id: EOPL011
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/plate-reformat-384-to-96
+    legacy_type: community_plate_reformat_384_to_96
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style 384-to-96 plate reformat workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Load one 384-well source plate and four 96-well destination plates.
+      3. Map quadrants from the 384-well plate into the four 96-well plates.
+      4. Transfer 5 uL per well using a low-volume pipette.
+      5. Use fresh tips for each source well and document tip count feasibility.
+      6. Include a clear mapping explanation in runbook.md.
+  - id: EOPL012
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/bacterial-transformation-setup
+    legacy_type: community_transformation_setup
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style transformation setup workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Combine competent cells and plasmid DNA in chilled wells for 24 reactions.
+      3. Insert manual pauses for ice incubation, heat shock, recovery medium addition, and off-deck incubation.
+      4. Never pretend the robot performs heat shock unless a supported module and safe method are specified.
+      5. Use fresh tips for DNA transfer and document biosafety/manual handling notes.
+  - id: EOPL013
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/enzyme-digest-reaction-setup
+    legacy_type: community_enzyme_digest_setup
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style enzyme digest setup workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Prepare 32 enzyme-digest reactions with buffer, DNA, enzyme, and nuclease-free water.
+      3. Keep enzyme cold and add it last.
+      4. Calculate reagent totals with dead volume and document maximum room-temperature exposure.
+      5. Use fresh tips for enzyme and DNA transfers.
+      6. Add an off-deck incubation pause instead of unsupported automation.
+  - id: EOPL014
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/antibody-plate-wash
+    legacy_type: community_elisa_wash
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style ELISA plate wash workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Wash a 96-well plate three times with 250 uL wash buffer per well.
+      3. Aspirate waste without scraping the well bottom.
+      4. Track total wash buffer and total liquid sent to waste or trash.
+      5. Include operator checks for residual liquid, splash risk, and waste capacity.
+  - id: EOPL015
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/media-addition-multiplate
+    legacy_type: community_media_addition_multiplate
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style media addition workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2 and an 8-channel p300 pipette.
+      2. Add 180 uL media from a reservoir to four 96-well destination plates.
+      3. Process only columns 1-12 and document how partial plates are handled.
+      4. Calculate reservoir volume with dead volume and warn when one reservoir channel is insufficient.
+      5. Keep deck_plan.json consistent with every loaded plate and tip rack.
+  - id: EOPL016
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/96-well-hit-picking
+    legacy_type: community_hit_picking
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style hit-picking workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV listing hit wells from a source plate and destination wells in a confirmation plate.
+      3. Transfer 20 uL from each hit to the destination.
+      4. Use one fresh tip per hit.
+      5. Include pre-run validation for duplicated destination wells and out-of-range well names.
+      6. Document how the operator should review the generated hit map before starting.
+  - id: EOPL017
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/thermocycler-pcr
+    legacy_type: community_thermocycler_pcr_program
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style thermocycler PCR workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 or Flex style protocol with API v2 and a thermocycler module.
+      2. Set up 24 PCR reactions and then run a PCR program.
+      3. Do not pipette into the thermocycler while its block or lid is unsafe for liquid handling.
+      4. Include lid temperature, initial denaturation, cycling, final extension, and hold steps.
+      5. Document all module state changes and manual seal/unseal steps.
+  - id: EOPL018
+    source: opentrons_protocol_library
+    upstream_id: Protocols-develop/protocols/plate-stamping
+    legacy_type: community_plate_stamping
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this Opentrons Protocol Library style plate-stamping workflow into a seven-file execution package.
+
+      Requirements:
+      1. Use an OT-2 style protocol with API v2 and an 8-channel pipette.
+      2. Copy 50 uL from one 96-well source plate to one 96-well destination plate by column.
+      3. Support columns_to_copy from 1 to 12.
+      4. Use fresh tips per column unless the runbook explicitly justifies a different policy.
+      5. Document deck layout, column mapping, tip count, and source volume checks.
+  - id: EOPEN001
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_001
+    legacy_type: openplant_glycerol_stocks
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: OP_PY_001, Glycerol stocks from 96-well cultures.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Use an 8-channel p300 pipette on the right mount.
+      3. Slot 1 contains a 96-deepwell plate with bacterial cultures, about 0.5 mL per well.
+      4. Slot 4 contains a reservoir with 50% glycerol.
+      5. Slot 7 contains a p300 tip rack.
+      6. Slots 2, 3, 5, and 6 contain destination 96-well plates for glycerol stocks.
+      7. Support a runtime parameter columns_to_process from 1 to 12.
+      8. For each selected column, add glycerol and culture to destination wells using the 8-channel pipette, then mix gently.
+      9. Document the column-count setting, deck setup, destination-plate mapping, and operator monitoring note in runbook.md.
+  - id: EOPEN002
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_002
+    legacy_type: openplant_od_normalization
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant-style OD normalization workflow into a seven-file execution package.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV with culture_well, destination_well, culture_volume_ul, diluent_volume_ul.
+      3. Add diluent first, then culture, into a destination 96-well plate.
+      4. Split transfers above pipette capacity.
+      5. Use fresh tips for each culture.
+      6. Document CSV review, reservoir volume, sterility checks, and biological replicate mapping.
+  - id: EOPEN003
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_003
+    legacy_type: openplant_induction_plate
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant-style induction setup workflow into a seven-file execution package.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Add 2 uL inducer from a tube rack to selected wells in a 96-well culture plate.
+      3. Support an inducer_map CSV with inducer_name, source_tube, destination_well.
+      4. Use fresh tips between different inducers.
+      5. Document manual sealing, shaking/incubation handoff, and inducer cross-contamination risk.
+  - id: EOPEN004
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_004
+    legacy_type: openplant_colony_pcr_setup
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant-style colony PCR setup workflow into a seven-file execution package.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Prepare 48 colony PCR reactions in a PCR plate.
+      3. Add PCR master mix first, then colony template suspension.
+      4. Include positive and negative controls.
+      5. Use fresh tips for template additions and document how colonies are pre-suspended off-deck.
+      6. Keep polymerase cold and document thermocycler handoff.
+  - id: EOPEN005
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_005
+    legacy_type: openplant_assembly_mix
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant-style DNA assembly setup workflow into a seven-file execution package.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV describing assembly_id, part_source_well, destination_well, part_volume_ul.
+      3. Add assembly master mix to each destination, then add DNA parts.
+      4. Use fresh tips for every DNA part.
+      5. Keep enzyme-containing master mix cold and add it close to the end of setup.
+      6. Document part mapping, total volume checks, off-deck incubation, and risk controls.
+  - id: EOPEN006
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_006
+    legacy_type: openplant_media_gradient
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant-style media gradient workflow into a seven-file execution package.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Create a 12-column media gradient in a 96-well plate using media A and media B.
+      3. Each well should end with 200 uL total volume.
+      4. Volumes must change by column rather than being hard-coded to one condition.
+      5. Document the gradient table, reservoir requirements, mixing policy, and operator checks.
+  - id: EPLR001
+    source: pylabrobot_community_backend
+    upstream_id: standard_transfer_ir_001
+    legacy_type: cross_platform_basic_transfer
+    difficulty: Easy
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a cross-platform liquid-handling task inspired by PyLabRobot community/backend-neutral actions.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
+      2. Transfer 50 uL from source wells A1-A8 to destination wells B1-B8.
+      3. Use one fresh tip per transfer.
+      4. Express the operation in runbook.md as simple transfer actions: pick_up_tip, aspirate, dispense, drop_tip.
+      5. Keep labware choices standard enough that the task could be mapped to another liquid-handling backend.
+  - id: EPLR002
+    source: pylabrobot_community_backend
+    upstream_id: standard_serial_dilution_ir_002
+    legacy_type: cross_platform_serial_dilution
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a cross-platform serial dilution task inspired by PyLabRobot community/backend-neutral actions.
+
+      Workflow:
+      1. Load a 96-well plate, diluent reservoir, tip rack, and a single-channel pipette.
+      2. Add 90 uL diluent to wells A2-A8.
+      3. Transfer 10 uL sample from A1 to A2, mix, then serially transfer 10 uL from A2 to A3 through A8.
+      4. Use a fresh tip at each dilution step unless the runbook explicitly justifies a same-tip serial-dilution policy.
+      5. Document the dilution factor, expected final volume, and contamination risk.
+  - id: EPLR003
+    source: pylabrobot_community_backend
+    upstream_id: standard_mix_ir_003
+    legacy_type: cross_platform_mix_after_transfer
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a cross-platform mix-after-transfer task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
+
+      Workflow:
+      1. Load a reservoir, destination plate, tip rack, and a single-channel pipette.
+      2. Transfer 100 uL buffer from reservoir A1 to plate wells A1-A6.
+      3. Mix each destination well 5 times with 50 uL after dispensing.
+      4. Express the core operations as transfer and mix actions in runbook.md.
+      5. Document why these operations are backend-neutral.
+  - id: EPLR004
+    source: pylabrobot_community_backend
+    upstream_id: standard_pooling_ir_004
+    legacy_type: cross_platform_pooling
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a cross-platform sample pooling task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
+
+      Workflow:
+      1. Load a source plate, a tube rack or destination plate, tip rack, and a single-channel pipette.
+      2. Transfer 20 uL from source wells A1-H1 into one pool destination.
+      3. Use one fresh tip per source well.
+      4. Track final pool volume and tube capacity.
+      5. Express pick_up_tip, aspirate, dispense, and drop_tip action order in runbook.md.
+  - id: EPLR005
+    source: pylabrobot_community_backend
+    upstream_id: standard_reagent_distribution_ir_005
+    legacy_type: cross_platform_reagent_distribution
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a cross-platform reagent distribution task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
+
+      Workflow:
+      1. Load a reservoir, destination 96-well plate, tip rack, and an 8-channel or single-channel pipette.
+      2. Dispense 75 uL reagent into columns 1-4 of the destination plate.
+      3. Use a policy that avoids running the reservoir below practical dead volume.
+      4. Document total reagent requirement and action-level transfer sequence.
+  - id: EPLR006
+    source: pylabrobot_community_backend
+    upstream_id: standard_pause_ir_006
+    legacy_type: cross_platform_pause_and_confirm
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a cross-platform workflow with an operator confirmation step that should compile to LabFlow IR and PyLabRobot backend-neutral actions where supported.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
+      2. Transfer 30 uL from source wells B1-B6 to destination wells C1-C6.
+      3. Pause after the first three transfers and ask the operator to confirm there are no bubbles.
+      4. Resume the remaining three transfers after confirmation.
+      5. Document which parts are standard liquid-handling actions and which part is an operator pause.
+  - id: EPLR007
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_readme_basic_plate_copy
+    legacy_type: pylabrobot_backend_plate_copy
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package inspired by PyLabRobot's backend-neutral LiquidHandler examples.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
+      2. Transfer 100 uL from source A1-A12 to destination B1-B12.
+      3. Use one fresh tip per source well.
+      4. Document the action order as pick_up_tip, aspirate, dispense, drop_tip.
+      5. Keep resource naming generic enough for Opentrons, Hamilton, or Tecan backend mapping.
+  - id: EPLR008
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_pooling_actions
+    legacy_type: pylabrobot_backend_many_to_one_pooling
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral pooling workflow.
+
+      Workflow:
+      1. Load a 96-well source plate, a destination tube rack or deep-well plate, tip rack, and a single-channel pipette.
+      2. Transfer 15 uL from wells A1-H3 into one pool destination.
+      3. Use a fresh tip for each source well.
+      4. Track final pool volume and require the operator to confirm destination capacity.
+      5. Document how the same action list could be executed by a PyLabRobot serializing backend.
+  - id: EPLR009
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_normalization_actions
+    legacy_type: pylabrobot_backend_variable_volume_normalization
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for backend-neutral variable-volume normalization.
+
+      Workflow:
+      1. Load a water reservoir, source plate, destination plate, tip rack, and a single-channel pipette.
+      2. Accept a small table with destination wells A1-A8 and water_volume_ul values: 10, 20, 30, 40, 50, 60, 70, 80.
+      3. Dispense water first, then transfer 20 uL sample from matching source wells.
+      4. Split transfers if any volume exceeds pipette capacity.
+      5. Document total water use, fresh-tip policy, and backend-neutral action sequence.
+  - id: EPLR010
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_mix_actions
+    legacy_type: pylabrobot_backend_mix_and_transfer
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a mix-and-transfer workflow.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
+      2. Mix source wells A1-A6 three times with 40 uL.
+      3. Transfer 25 uL from each mixed source well to destination wells D1-D6.
+      4. Use fresh tips between wells.
+      5. Document mix, aspirate, dispense, and drop_tip actions in runbook.md.
+  - id: EPLR011
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_reagent_distribution
+    legacy_type: pylabrobot_backend_reagent_distribution_96
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for backend-neutral reagent distribution.
+
+      Workflow:
+      1. Load a reservoir, 96-well destination plate, tip rack, and compatible pipette.
+      2. Dispense 50 uL reagent into wells A1-H6.
+      3. Minimize tip use only if the same reagent is being dispensed and contamination risk is low.
+      4. Calculate total reagent volume plus 10% overage.
+      5. Document how the plan maps to PyLabRobot liquid handler aspirate/dispense calls.
+  - id: EPLR012
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_two_reagent_distribution
+    legacy_type: pylabrobot_backend_two_reagent_distribution
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a two-reagent backend-neutral distribution task.
+
+      Workflow:
+      1. Load a reservoir with reagent A and reagent B, a destination plate, tip rack, and compatible pipette.
+      2. Dispense 40 uL reagent A into columns 1-3.
+      3. Dispense 40 uL reagent B into columns 4-6.
+      4. Never reuse tips between reagent A and reagent B.
+      5. Document reagent totals, tip policy, and action-level sequence.
+  - id: EPLR013
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_column_serial_dilution
+    legacy_type: pylabrobot_backend_column_serial_dilution
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a column-wise serial dilution.
+
+      Workflow:
+      1. Load a 96-well plate, diluent reservoir, tip rack, and compatible pipette.
+      2. Add 180 uL diluent to wells B1-H1.
+      3. Transfer 20 uL from A1 to B1, mix, then continue B1 to C1 through H1.
+      4. State whether the same tip is intentionally used for the dilution chain or fresh tips are used.
+      5. Document final dilution factor and backend-neutral action list.
+  - id: EPLR014
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_cherrypick_actions
+    legacy_type: pylabrobot_backend_cherrypick_sparse_plate
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for sparse cherry-picking.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and single-channel pipette.
+      2. Transfer 10 uL from source wells A1, B3, C5, D7, E9, F11 to destination wells H1, G3, F5, E7, D9, C11.
+      3. Use a fresh tip for every source well.
+      4. Include a mapping table in runbook.md.
+      5. Keep the core transfer list compatible with PyLabRobot backend-neutral action export.
+  - id: EPLR015
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_384_to_96_mapping
+    legacy_type: pylabrobot_backend_384_to_96_subset
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral 384-to-96 subset transfer.
+
+      Workflow:
+      1. Load one 384-well source plate, one 96-well destination plate, tip rack, and low-volume pipette.
+      2. Transfer 5 uL from 384-well source A1, A3, A5, A7, B1, B3, B5, B7 to 96-well destination A1-A8.
+      3. Use fresh tips for each source well.
+      4. Document the quadrant/subset mapping clearly.
+      5. Flag that exact labware geometry must be validated per backend before physical execution.
+  - id: EPLR016
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_pause_confirmation
+    legacy_type: pylabrobot_backend_pause_after_reagent
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral workflow with a manual checkpoint.
+
+      Workflow:
+      1. Load a reservoir, destination plate, tip rack, and compatible pipette.
+      2. Dispense 100 uL buffer into wells A1-A6.
+      3. Pause and ask the operator to confirm all wells contain liquid and no tip crash occurred.
+      4. Resume and dispense 20 uL additive into the same wells.
+      5. Separate liquid-handling actions from the manual confirmation in the runbook.
+  - id: EPLR017
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_dead_volume_check
+    legacy_type: pylabrobot_backend_reservoir_dead_volume
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a reservoir dead-volume check.
+
+      Workflow:
+      1. Load a reservoir, destination plate, tip rack, and compatible pipette.
+      2. Dispense 120 uL media into wells A1-H4.
+      3. Require a starting reservoir volume that covers requested volume plus 1 mL dead volume.
+      4. If volume is insufficient, the runbook must tell the operator to refill before starting.
+      5. Document the volume calculation and backend-neutral dispense sequence.
+  - id: EPLR018
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_multi_source_copy
+    legacy_type: pylabrobot_backend_multi_source_copy
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for multi-source plate copying.
+
+      Workflow:
+      1. Load two source plates, one destination plate, tip rack, and single-channel pipette.
+      2. Transfer 30 uL from source plate 1 A1-A6 to destination A1-A6.
+      3. Transfer 30 uL from source plate 2 B1-B6 to destination B1-B6.
+      4. Use fresh tips and prevent source plate confusion.
+      5. Document resource IDs clearly for backend-neutral action export.
+  - id: EPLR019
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_docs_low_volume_transfer
+    legacy_type: pylabrobot_backend_low_volume_replicates
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for low-volume technical replicates.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and low-volume pipette.
+      2. Transfer 2 uL from source wells A1-A4 into triplicate destination wells A1-C4.
+      3. Use fresh tips for each source sample or justify a safe replicate policy.
+      4. Document low-volume accuracy limits and backend-specific calibration concerns.
+      5. Keep the core operation list compatible with PyLabRobot aspirate/dispense actions.
+  - id: EPLR020
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_readme_cross_backend_transfer
+    legacy_type: pylabrobot_backend_cross_platform_demo
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for the canonical cross-backend transfer pattern described by PyLabRobot.
+
+      Workflow:
+      1. Load a plate, tip rack, and single-channel pipette.
+      2. Move 100 uL from plate well A1 to plate well A2.
+      3. Express the core steps as pick_up_tip, aspirate, dispense, and drop_tip.
+      4. Explain in runbook.md that the same high-level liquid-handling action can be mapped to Opentrons, Hamilton, or Tecan backends after resource validation.
+      5. Include a safety note that physical execution still requires backend-specific deck calibration.
+  - id: EOPEN007
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_007
+    legacy_type: openplant_golden_gate_multiplasmid
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: Golden Gate assembly setup for multiple plasmids from a part map.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV with assembly_id, destination_well, part_well, part_volume_ul, enzyme_mix_volume_ul.
+      3. Add water first, then DNA parts, then enzyme-containing master mix last.
+      4. Keep enzyme mix cold and document a maximum room-temperature exposure window.
+      5. Use fresh tips for every DNA part and never reuse tips across different assemblies.
+      6. Insert an off-deck thermocycler/incubation handoff instead of pretending unsupported incubation happens on deck.
+  - id: EOPEN008
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_008
+    legacy_type: openplant_sensor_gradient_dual_inducer
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: dual-inducer sensor response matrix in a 96-well plate.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Create a 6-by-8 matrix: inducer A varies by row and inducer B varies by column.
+      3. Each destination well receives media, culture, inducer A, and inducer B to a final 200 uL volume.
+      4. Volumes must be calculated from the matrix, not hard-coded as one repeated condition.
+      5. Use fresh tips when switching cultures or inducer stocks.
+      6. Document the matrix layout, reservoir/tube locations, and shaking/incubation handoff.
+  - id: EOPEN009
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_009
+    legacy_type: openplant_competent_cell_heatshock_handoff
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: competent-cell transformation setup with manual heat shock.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Combine chilled competent cells and plasmid DNA for 24 reactions.
+      3. Keep cells cold and add DNA gently without repeated aggressive mixing.
+      4. Pause for manual ice incubation, heat shock, recovery media addition, and off-deck recovery.
+      5. Do not claim the robot performs heat shock on deck.
+      6. Document biosafety, timing sensitivity, and which steps are manual handoffs.
+  - id: EOPEN010
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_010
+    legacy_type: openplant_plate_reader_assay_setup
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: plate-reader assay setup with blanks, standards, and samples.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Prepare blanks in column 1, standards in columns 2-3, and samples in columns 4-12.
+      3. Add assay reagent to every active well, then add standards/samples with fresh tips.
+      4. Avoid contaminating blank wells with sample tips.
+      5. Calculate total assay reagent volume with 10% overage.
+      6. Document the plate-reader handoff and operator checks for bubbles before reading.
+  - id: EOPEN011
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_011
+    legacy_type: openplant_colony_pick_resuspension
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: colony resuspension plate setup from a colony map.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV with colony_id, destination_well, media_volume_ul, glycerol_volume_ul.
+      3. Dispense media and glycerol to destination wells before manual colony picking.
+      4. Pause for the operator to pick colonies into the prepared wells.
+      5. Do not generate robotic colony picking motions.
+      6. Document plate map review, sterile technique, and manual picking handoff.
+  - id: EOPEN012
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_012
+    legacy_type: openplant_dna_quant_normalization
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: DNA quantification normalization from concentration table.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a CSV with source_well, concentration_ng_per_ul, target_mass_ng, final_volume_ul, destination_well.
+      3. Calculate DNA and water volumes per sample and flag impossible rows where DNA volume exceeds final volume.
+      4. Add water first, then DNA sample.
+      5. Split transfers above pipette capacity and skip invalid rows with a clear runbook instruction.
+      6. Document the formula, rounding policy, and dead-volume requirements.
+  - id: EOPEN013
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_013
+    legacy_type: openplant_antibiotic_plate_layout
+    difficulty: Medium
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: antibiotic screening plate setup.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Prepare three antibiotic conditions across columns 1-4, 5-8, and 9-12.
+      3. Add media to all wells, then add antibiotic stocks by condition.
+      4. Never reuse tips between antibiotic stocks.
+      5. Include no-antibiotic controls in column 12 if requested by the operator.
+      6. Document stock locations, condition map, and downstream incubation handoff.
+  - id: EOPEN014
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_014
+    legacy_type: openplant_timecourse_sampling
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: culture time-course sampling into a quench plate.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Transfer 20 uL samples from culture wells into quench wells at three named time points.
+      3. The robot may perform one time-point transfer per run segment, but timing between segments is an operator-controlled pause.
+      4. Use fresh tips for every culture sample.
+      5. Document the schedule, pause/resume instructions, and what to do if a time point is missed.
+      6. Keep the runbook clear that incubation between time points is off-deck.
+  - id: EOPEN015
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_015
+    legacy_type: openplant_mastermix_plus_template_trap
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: PCR setup for plant colony screening. A draft note says to save tips by using one template tip for all wells; the package must correct this unsafe note.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Prepare 32 PCR wells with master mix and colony template suspension.
+      3. Master mix may be distributed efficiently if the same reagent is used.
+      4. Template additions must use fresh tips per colony to avoid cross-contamination.
+      5. Include positive and negative controls.
+      6. Document that the unsafe shared-template-tip suggestion was rejected.
+  - id: EOPEN016
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_016
+    legacy_type: openplant_media_exchange_waste
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: media exchange in a 96-well culture plate.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Aspirate 150 uL spent media from each active well without touching the bottom.
+      3. Dispense 150 uL fresh media into each active well.
+      4. Track total waste and fresh media volume, including reservoir dead volume.
+      5. Add an operator pause if waste capacity or reservoir volume is not sufficient.
+      6. Document splash/aerosol risk and gentle aspiration height.
+  - id: EOPEN017
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_017
+    legacy_type: openplant_replicate_randomization
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: randomized biological replicate plating.
+
+      Workflow:
+      1. Use an OT-2 style protocol with API v2.
+      2. Accept a table mapping strain_id, replicate_id, source_well, destination_well.
+      3. Transfer 30 uL culture for 24 randomized destinations.
+      4. Use fresh tips for every source strain.
+      5. Validate duplicate destination wells before starting.
+      6. Document randomization, replicate tracking, and operator review of the map.
+  - id: EOPEN018
+    source: openplant_automation_protocols
+    upstream_id: OP_PY_018
+    legacy_type: openplant_module_temperature_handoff
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+
+      Source workflow: cold enzyme reaction setup with temperature control and off-deck incubation.
+
+      Workflow:
+      1. Use an OT-2 or Flex style protocol with API v2 and a temperature module if available.
+      2. Keep enzyme and reaction mix cold during setup.
+      3. Add buffer, DNA, water, and enzyme in the correct order, with enzyme last.
+      4. If a temperature module is unavailable, require a chilled block and explicit operator timing checks.
+      5. Pause for manual transfer to incubator after setup.
+      6. Document module state, fallback cold-chain plan, and maximum allowed setup time.
+  - id: EPLR021
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_capability_branching
+    legacy_type: pylabrobot_backend_capability_branching
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a PyLabRobot community/backend-neutral workflow that exposes backend capability differences.
+
+      Workflow:
+      1. Load a source plate, destination plate, tip rack, and a compatible pipette.
+      2. Transfer 20 uL from A1-A8 to B1-B8.
+      3. If the backend supports a plate gripper, the runbook may mention optional plate movement; otherwise the operator must move plates manually.
+      4. The protocol.py should stay runnable on an OT-2-style simulator and must not call unsupported gripper APIs.
+      5. Document the backend capability branch in runbook.md and risk_checklist.json.
+  - id: EPLR022
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_96_head_fallback
+    legacy_type: pylabrobot_backend_96_head_fallback
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral 96-well reagent dispense with a fallback plan.
+
+      Workflow:
+      1. Dispense 25 uL reagent into every well of a 96-well plate.
+      2. Prefer a 96-head or 8-channel action when available, but provide a single-channel fallback that remains simulator-runnable.
+      3. Calculate total reagent volume plus 10% overage and reservoir dead volume.
+      4. Use a tip policy that is safe for one reagent without wasting 96 tips unnecessarily.
+      5. Document how the same logical action maps differently to Opentrons, Hamilton, and Tecan backends.
+  - id: EPLR023
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_tip_tracking_across_racks
+    legacy_type: pylabrobot_backend_tip_tracking_across_racks
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for backend-neutral cherry-picking that requires more than one tip rack.
+
+      Workflow:
+      1. Transfer 10 uL from 120 listed source wells to matching destination wells.
+      2. Use one fresh tip per source well.
+      3. Load enough tip racks and document how the second rack is used after the first 96 tips.
+      4. The protocol.py may include a compact generated transfer list rather than writing all 120 operations by hand.
+      5. Document tip exhaustion checks and backend-neutral tip tracking.
+  - id: EPLR024
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_action_order_trap
+    legacy_type: pylabrobot_backend_action_order_trap
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral transfer workflow. A draft note says to dispense before aspirating because the destination plate is easier to reach first; the package must reject that impossible action order.
+
+      Workflow:
+      1. Load a reservoir, destination plate, tip rack, and compatible pipette.
+      2. Transfer 80 uL buffer to wells A1-A12.
+      3. The correct action order is pick_up_tip, aspirate, dispense, and drop_tip.
+      4. Do not encode the unsafe draft note into protocol.py.
+      5. Document the rejected action-order mistake in risk_checklist.json.
+  - id: EPLR025
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_labware_geometry_mapping
+    legacy_type: pylabrobot_backend_labware_geometry_mapping
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral labware-geometry mapping task.
+
+      Workflow:
+      1. Transfer 5 uL from a 384-well source subset A1, A3, A5, A7, C1, C3, C5, C7 into a 96-well destination row A.
+      2. Use a low-volume pipette and fresh tips.
+      3. Flag that exact 384-well geometry and offsets must be validated per backend before physical execution.
+      4. Keep protocol.py simulator-runnable with known Opentrons labware.
+      5. Document the mapping table and backend calibration risk.
+  - id: EPLR026
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_liquid_class_limits
+    legacy_type: pylabrobot_backend_liquid_class_limits
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for viscous-liquid handling across backends.
+
+      Workflow:
+      1. Dispense 30 uL glycerol-containing reagent into wells A1-H3.
+      2. Use slower aspiration/dispense rates or document backend liquid-class requirements.
+      3. Add mix-after-dispense only where safe and avoid bubbles.
+      4. Calculate total viscous reagent volume with overage.
+      5. Keep protocol.py runnable while documenting that physical backends need liquid-class calibration.
+  - id: EPLR027
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_dynamic_worklist
+    legacy_type: pylabrobot_backend_dynamic_worklist
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral dynamic worklist.
+
+      Workflow:
+      1. Accept a CSV/worklist with source_well, destination_well, volume_ul, reagent_id.
+      2. Skip zero-volume rows and split transfers above pipette capacity.
+      3. Use fresh tips when reagent_id changes or when source_well changes.
+      4. Validate duplicate destination wells and out-of-range well names before starting.
+      5. Document the worklist schema and backend-neutral action export.
+  - id: EPLR028
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_pause_recovery
+    legacy_type: pylabrobot_backend_pause_recovery
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral pause-and-recovery workflow.
+
+      Workflow:
+      1. Dispense 60 uL reagent into wells A1-A6.
+      2. Pause for the operator to inspect bubbles and liquid levels.
+      3. If inspection fails, the runbook should stop and instruct the operator to discard the plate; if it passes, continue to wells B1-B6.
+      4. Keep the protocol.py simulator-runnable with a normal pause.
+      5. Document which recovery decision is manual and backend-independent.
+  - id: EPLR029
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_resource_renaming
+    legacy_type: pylabrobot_backend_resource_renaming
+    difficulty: Hard
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral resource naming task.
+
+      Workflow:
+      1. Use logical resources named source_plate, assay_plate, buffer_reservoir, and tips.
+      2. Map those logical names to concrete Opentrons labware in deck_plan.json and protocol.py.
+      3. Transfer 40 uL buffer to assay_plate wells C1-C8, then 10 uL sample from source_plate A1-A8 to the same wells.
+      4. Avoid confusing logical names with physical slot numbers.
+      5. Document how PyLabRobot-style resource objects would use the same logical names.
+  - id: EPLR030
+    source: pylabrobot_community_backend
+    upstream_id: pylabrobot_backend_cross_platform_controls
+    legacy_type: pylabrobot_backend_cross_platform_controls
+    difficulty: Expert
+    holdout: true
+    output_contract: execution_package
+    prompt: |
+      Author a seven-file execution package for a backend-neutral assay setup with controls.
+
+      Workflow:
+      1. Add assay buffer to wells A1-H4.
+      2. Add positive control to A1-A2 and negative control to B1-B2.
+      3. Add samples to the remaining wells in columns 1-4 without overwriting controls.
+      4. Use fresh tips between controls and samples.
+      5. Document control placement, collision with sample map, and backend-neutral action order.

@@ -28,35 +28,50 @@ This repository is a [Claude Code plugin](https://docs.anthropic.com/en/docs/cla
 | `opentrons-protocol-author` | Write/revise Python protocols | 编写/修改 Python 协议 |
 | `opentrons-protocol-library` | Search 833 reference protocols via catalog | 搜索参考协议库 |
 | `opentrons-protocol-verify` | Local doctor/analyze/simulate | 本地环境检查与仿真 |
-| `opentrons-robot-lan` | Fallback HTTP API when MCP unavailable | MCP 不可用时的 LAN API 备选 |
+| `opentrons-robot-lan` | Formal robot HTTP route for fallback/debug runs | MCP 备选、MCP 调试、显式选择 HTTP 路线 |
 | `opentrons-simulation-repair` | Iterative edit-simulate fix loop | 仿真→修复迭代循环 |
 
 ## Architecture / 架构
 
 ```
 Opentrons-Lab-Agent/
+├── src/labscriptai/                     # STA core: authoring loop, runtime loop, benchmark logic, IR helpers
+├── benchmarks/                          # Main 90-task authoring benchmark plus external supplement tasks
+├── schemas/                             # Execution package, score, runtime state, trace schemas
 ├── skills/                              # 7 agent skills
 ├── mcp-servers/opentrons-mcp/           # MCP server (local simulation + live robot control)
 ├── vision/                              # Optional vision scripts/docs/placeholders (weights stay out of git)
 ├── reference-protocols/Protocols-develop/ # 833 reference protocols (read-only)
 ├── tests/                               # Python + Node.js tests
 ├── AGENTS.md                            # Short agent index → canonical docs
-├── docs/safety-policy.md                # Canonical safety policy
-├── docs/workflows.md                    # Canonical workflows
+├── docs/README.md                       # Doc map: rules / architecture / runbooks / guides / research
+├── docs/rules/                          # Canonical safety, workflows, errors (highest priority)
+├── docs/architecture/                   # Architecture text + diagrams/
+├── docs/runbooks/                       # Live readiness, restart, probe, vision acceptance
+├── docs/guides/                         # Experiment SOP, agent UX
+├── docs/research/                       # Benchmark plans, changelogs, internal research notes
+├── docs/paper/                          # In-repo paper manuscript/materials
 └── .claude-plugin/plugin.json           # Plugin metadata
 ```
 
 Workspace parent (`Flexagent/`) is a local container. Non-primary materials live under `../workspace-archive/`. Static legacy MCP notes remain at `../reference/opentrons-mcp/` only; do not use that folder as a runtime MCP install.
 
-MCP server provides: `doctor_local_runtime`, `simulate_protocol`, `run_protocol` (simulation-gated), `live_readiness_check`, `robot_status`, `module_status`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `execute_protocol_recovery`, `recover_tip_pickup`, `restart_review`, `probe_wells`, `experiment_history`, `health_check`, optional **`vision_check`** / camera helpers (`camera_status`, `capture_preview_image`, …), and 30+ more tools. Vision workflow: [`docs/workflows.md`](docs/workflows.md) → *Optional deck vision*.
+MCP server provides: `doctor_local_runtime`, `simulate_protocol`, `run_protocol` (simulation-gated), `live_readiness_check`, `robot_status`, `module_status`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `execute_protocol_recovery`, `recover_tip_pickup`, `restart_review`, `probe_wells`, `experiment_history`, `health_check`, optional **`vision_check`** / camera helpers (`camera_status`, `capture_preview_image`, …), and 30+ more tools. Robot HTTP via `opentrons-robot-lan` is a formal fallback/debug route when MCP is unavailable or explicitly selected; do not control the same robot through MCP and HTTP in parallel. Vision workflow: [`docs/rules/workflows.md`](docs/rules/workflows.md) → *Optional deck vision*.
+
+Core code follows the STA agent-loop split:
+
+- **Authoring loop**: reads task spec and skills, writes the three-piece execution package (`protocol.py`, `setup_card.html`, `manifest.json`), then uses validate/simulate feedback to repair. Legacy seven-file packages are compatibility input, not the new main path.
+- **Runtime loop**: reads robot/simulator/vision state, asks the model only for a candidate JSON action, checks it with a deterministic gatekeeper, then calls approved tools.
+- **Benchmark**: `benchmarks/authoring/tasks.yaml` is the main 90-task table; `benchmarks/external_community/tasks.yaml` is a supplementary table for outside-source sanity checks.
 
 ## Documentation index / 文档索引
 
-- **Workflow (canonical):** [`docs/workflows.md`](docs/workflows.md)
-- **Safety policy (canonical):** [`docs/safety-policy.md`](docs/safety-policy.md)
-- **Errors & recovery (canonical):** [`docs/error-response.md`](docs/error-response.md)
-- **Live readiness gate:** [`docs/live-readiness-runbook.md`](docs/live-readiness-runbook.md)
-- **Architecture:** [`docs/architecture.md`](docs/architecture.md)
+- **Doc map (start here):** [`docs/README.md`](docs/README.md)
+- **Workflow (canonical):** [`docs/rules/workflows.md`](docs/rules/workflows.md)
+- **Safety policy (canonical):** [`docs/rules/safety-policy.md`](docs/rules/safety-policy.md)
+- **Errors & recovery (canonical):** [`docs/rules/error-response.md`](docs/rules/error-response.md)
+- **Live readiness gate:** [`docs/runbooks/live-readiness-runbook.md`](docs/runbooks/live-readiness-runbook.md)
+- **Architecture:** [`docs/architecture/architecture.md`](docs/architecture/architecture.md)
 - **Agent index:** [`AGENTS.md`](AGENTS.md) (short; points to the files above)
 
 ## Quick Start / 快速开始
@@ -99,6 +114,54 @@ uv run python skills/opentrons-protocol-library/scripts/search_protocols.py show
 
 # Query a robot on LAN
 uv run python skills/opentrons-robot-lan/scripts/opentrons_robot_api.py health  # uses saved connection if present
+
+# Run the LabscriptAI runtime smoke demo without robot API calls
+PYTHONPATH=src uv run python -m labscriptai.runtime.smoke_benchmark \
+  --provider offline \
+  --output-dir runs/runtime-smoke/offline-demo
+
+# Run a real LLM/gatekeeper/trace smoke sample with an OpenAI-compatible DeepSeek endpoint
+DEEPSEEK_API_KEY=<your-key> DEEPSEEK_BASE_URL=https://api.deepseek.com DEEPSEEK_MODEL=deepseek-v4-pro \
+DEEPSEEK_TIMEOUT_SEC=120 DEEPSEEK_MAX_TOKENS=1024 PYTHONPATH=src \
+uv run python -m labscriptai.runtime.smoke_benchmark \
+  --provider deepseek \
+  --output-dir runs/runtime-smoke/deepseek-demo \
+  --per-level 2 \
+  --max-steps-per-task 1 \
+  --retry-attempts 2
+
+# Run runtime recovery scenarios without robot API calls
+DEEPSEEK_API_KEY=<your-key> DEEPSEEK_BASE_URL=https://api.deepseek.com DEEPSEEK_MODEL=deepseek-v4-pro \
+DEEPSEEK_TIMEOUT_SEC=120 DEEPSEEK_MAX_TOKENS=2048 PYTHONPATH=src \
+uv run python -m labscriptai.runtime.scenario_benchmark \
+  --provider deepseek \
+  --output-dir runs/runtime-scenarios/deepseek-demo
+
+# Run a small authoring benchmark pilot that writes three-piece protocol packages
+DEEPSEEK_API_KEY=<your-key> DEEPSEEK_BASE_URL=https://api.deepseek.com DEEPSEEK_MODEL=deepseek-v4-pro \
+DEEPSEEK_TIMEOUT_SEC=240 DEEPSEEK_MAX_TOKENS=12000 PYTHONPATH=src \
+uv run python -m labscriptai.benchmark.authoring_pilot \
+  --provider deepseek \
+  --output-dir runs/authoring-pilot/deepseek-demo \
+  --limit 3 \
+  --retry-attempts 2
+
+# Run the ReAct authoring scaffold provider
+DEEPSEEK_API_KEY=<your-key> DEEPSEEK_BASE_URL=https://api.deepseek.com DEEPSEEK_MODEL=deepseek-v4-pro \
+DEEPSEEK_TIMEOUT_SEC=240 DEEPSEEK_MAX_TOKENS=12000 PYTHONPATH=src \
+uv run python -m labscriptai.benchmark.authoring_pilot \
+  --provider labscriptai-authoring \
+  --simulate \
+  --output-dir runs/authoring-pilot/labscriptai-authoring-demo \
+  --limit 3
+
+# Include local Opentrons simulation in the authoring pilot score
+PYTHONPATH=src uv run python -m labscriptai.benchmark.authoring_pilot \
+  --provider offline \
+  --simulate \
+  --output-dir runs/authoring-pilot/offline-sim-demo \
+  --limit 1 \
+  --retry-attempts 2
 ```
 
 ## Using in Other Projects / 在其他项目中使用
@@ -125,13 +188,13 @@ git submodule add https://github.com/SmartisanNaive/Opentrons-Lab-Agent.git open
 ## Python Environment / Python 环境
 
 - Managed with `uv`: `uv venv .venv`, then `uv run ...`
-- Optional vision deps: `uv sync --extra vision` (YOLOE/Ultralytics for local deck vision); acceptance checklist: `docs/vision-acceptance.md`
+- Optional vision deps: `uv sync --extra vision` (YOLOE/Ultralytics for local deck vision); acceptance checklist: `docs/runbooks/vision-acceptance.md`
 - Optional vision workspace: `vision/` holds scripts/docs; model binaries download into `vision/models/weights/` via `bash scripts/download_vision_weights.sh`
 - Optional protocol deps: `uv sync --extra protocol` (opentrons runtime for local simulate)
 
 ## Recommended Operator Flow / 推荐使用流程
 
-Full sequences and tool order: [`docs/workflows.md`](docs/workflows.md). In short:
+Full sequences and tool order: [`docs/rules/workflows.md`](docs/rules/workflows.md). In short:
 
 1. Give one natural-language request or SOP document.
 2. The agent asks at most one blocking clarification round.

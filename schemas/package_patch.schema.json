@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://labscriptai.local/schemas/package_patch.schema.json",
+  "title": "LabscriptAI authoring package patch log entry",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "entry_id",
+    "timestamp",
+    "run_id",
+    "tool",
+    "arguments",
+    "result"
+  ],
+  "properties": {
+    "schema_version": { "const": "0.1" },
+    "entry_id": { "type": "string", "minLength": 1 },
+    "timestamp": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "tool": {
+      "enum": [
+        "write_file",
+        "str_replace",
+        "json_set",
+        "append_md",
+        "run_simulate",
+        "validate_package"
+      ]
+    },
+    "target_path": { "type": ["string", "null"] },
+    "reason": { "type": "string" },
+    "arguments": { "type": "object" },
+    "result": {
+      "type": "object",
+      "required": ["ok"],
+      "properties": {
+        "ok": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
