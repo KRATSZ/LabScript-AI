@@ -1,14 +1,14 @@
 [project]
 name = "opentrons-lab-agent"
 version = "0.1.0"
-description = "Claude Code skills and helper scripts for Opentrons protocol authoring, validation, and LAN robot control."
+description = "LabscriptAI: Opentrons protocol authoring agent, MCP runtime, benchmarks, and operator workflows."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
   { name = "SmartisanNaive" }
 ]
-keywords = ["opentrons", "claude-code", "agent-skills", "lab-automation", "ot-2", "flex"]
+keywords = ["opentrons", "labscriptai", "agent", "lab-automation", "ot-2", "flex", "mcp"]
 dependencies = [
   "textual>=0.85,<1.0",
 ]

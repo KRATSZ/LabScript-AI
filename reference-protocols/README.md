@@ -2,6 +2,8 @@
 
 This directory contains the **Opentrons Protocol Library** snapshot — a collection of 833 validated lab automation protocols for the OT-2 robot.
 
+**Layout note:** This is optional **data**, not application code. It may move to a git submodule later to shrink the main repo; search paths default to `reference-protocols/Protocols-develop` (see `skills/opentrons-protocol-library/scripts/search_protocols.py`).
+
 ## Contents
 
 | Path | Description |

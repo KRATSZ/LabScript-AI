@@ -3,7 +3,7 @@
     "opentrons-lab": {
       "command": "node",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/mcp-servers/opentrons-mcp/index.js"
+        "mcp-servers/opentrons-mcp/index.js"
       ]
     },
     "opentrons-docs": {

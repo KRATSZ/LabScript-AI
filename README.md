@@ -1,13 +1,11 @@
-# Opentrons Lab Agent
+# Opentrons Lab Agent (LabscriptAI)
 
-> AI agent skills for Opentrons OT-2 and Flex laboratory robots — protocol authoring, simulation-first validation, live execution, and self-repair.
-> AI agent 技能集，用于 Opentrons OT-2/Flex 实验室机器人——协议编写、仿真验证、真机执行与自我修复。
+> Lab automation agent stack for Opentrons OT-2/Flex — protocol authoring, simulation-first validation, live execution via MCP, and recovery.
+> Opentrons 实验室机器人 Agent 栈：协议编写、仿真门禁、MCP 真机执行与恢复。
 
 ## What It Does / 功能
 
-This repository is a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code/plugins) that teaches an AI agent to:
-
-本仓库是一个 Claude Code 插件，让 AI agent 能够：
+This repository provides a Python agent library, Node MCP server, and operator workflows for:
 
 - **Write/revise Python protocols** for OT-2 and Flex
 - **Validate locally** via analyze/simulate before touching hardware
@@ -31,41 +29,49 @@ This repository is a [Claude Code plugin](https://docs.anthropic.com/en/docs/cla
 | `opentrons-robot-lan` | Formal robot HTTP route for fallback/debug runs | MCP 备选、MCP 调试、显式选择 HTTP 路线 |
 | `opentrons-simulation-repair` | Iterative edit-simulate fix loop | 仿真→修复迭代循环 |
 
-## Architecture / 架构
+## Repository layout / 目录分层
+
+Full map: [`docs/REPO_LAYOUT.md`](docs/REPO_LAYOUT.md).
+
+| Layer | Paths |
+|-------|--------|
+| **Code** | `src/`, `tests/`, `mcp-servers/`, `skills/`, `schemas/`, `scripts/`, `vision/` |
+| **Benchmark** | `benchmarks/` (frozen task YAML only) |
+| **Docs** | `docs/` (`rules/`, `architecture/`, `runbooks/`, `research/`, …) |
+| **Optional data** | `reference-protocols/` (833 protocols; submodule candidate) |
+| **Local output** | `runs/`, `artifacts/` (gitignored) |
 
 ```
 Opentrons-Lab-Agent/
-├── src/labscriptai/                     # STA core: authoring loop, runtime loop, benchmark logic, IR helpers
-├── benchmarks/                          # Main 90-task authoring benchmark plus external supplement tasks
-├── schemas/                             # Execution package, score, runtime state, trace schemas
-├── skills/                              # 7 agent skills
-├── mcp-servers/opentrons-mcp/           # MCP server (local simulation + live robot control)
-├── vision/                              # Optional vision scripts/docs/placeholders (weights stay out of git)
-├── reference-protocols/Protocols-develop/ # 833 reference protocols (read-only)
-├── tests/                               # Python + Node.js tests
-├── AGENTS.md                            # Short agent index → canonical docs
-├── docs/README.md                       # Doc map: rules / architecture / runbooks / guides / research
-├── docs/rules/                          # Canonical safety, workflows, errors (highest priority)
-├── docs/architecture/                   # Architecture text + diagrams/
-├── docs/runbooks/                       # Live readiness, restart, probe, vision acceptance
-├── docs/guides/                         # Experiment SOP, agent UX
-├── docs/research/                       # Benchmark plans, changelogs, internal research notes
-├── docs/paper/                          # In-repo paper manuscript/materials
-└── .claude-plugin/plugin.json           # Plugin metadata
+├── src/labscriptai/                     # Python: agent loop, runtime, benchmark, IR
+├── tests/
+├── benchmarks/                          # authoring + external + runtime task tables
+├── mcp-servers/opentrons-mcp/           # Node MCP (simulate, live robot, recovery)
+├── skills/                              # Operator SKILL.md + helper scripts
+├── schemas/
+├── scripts/                             # Maintainer tools (scripts/local/ ignored)
+├── vision/
+├── reference-protocols/Protocols-develop/ # Optional reference catalog
+├── docs/                                # Policy, architecture, research, paper
+├── AGENTS.md                            # Agent entry → docs/rules/
+├── .mcp.json                            # MCP config (repo-relative paths)
+└── runs/                                # Outputs (gitignored; see docs/research/evidence/)
 ```
 
 Workspace parent (`Flexagent/`) is a local container. Non-primary materials live under `../workspace-archive/`. Static legacy MCP notes remain at `../reference/opentrons-mcp/` only; do not use that folder as a runtime MCP install.
 
 MCP server provides: `doctor_local_runtime`, `simulate_protocol`, `run_protocol` (simulation-gated), `live_readiness_check`, `robot_status`, `module_status`, `reconcile_state`, `parse_error`, `suggest_recovery_action`, `execute_protocol_recovery`, `recover_tip_pickup`, `restart_review`, `probe_wells`, `experiment_history`, `health_check`, optional **`vision_check`** / camera helpers (`camera_status`, `capture_preview_image`, …), and 30+ more tools. Robot HTTP via `opentrons-robot-lan` is a formal fallback/debug route when MCP is unavailable or explicitly selected; do not control the same robot through MCP and HTTP in parallel. Vision workflow: [`docs/rules/workflows.md`](docs/rules/workflows.md) → *Optional deck vision*.
 
-Core code follows the STA agent-loop split:
+Core code is moving toward one STA agent loop:
 
-- **Authoring loop**: reads task spec and skills, writes the three-piece execution package (`protocol.py`, `setup_card.html`, `manifest.json`), then uses validate/simulate feedback to repair. Legacy seven-file packages are compatibility input, not the new main path.
-- **Runtime loop**: reads robot/simulator/vision state, asks the model only for a candidate JSON action, checks it with a deterministic gatekeeper, then calls approved tools.
+- **One agent, two modes**: `author` writes the three-piece execution package (`protocol.py`, `setup_card.html`, `manifest.json`); `run` reads robot/simulator state, parses errors, and suggests recovery.
+- **Ten stable tools**: package read/write, validate, simulate, robot inspect, gated run control, error parse, recovery suggest, skill load, memory read/write, and protocol search.
+- **Gatekeeper first**: every model-proposed tool call is checked before execution; legacy seven-file packages remain compatibility input, not the new main path.
 - **Benchmark**: `benchmarks/authoring/tasks.yaml` is the main 90-task table; `benchmarks/external_community/tasks.yaml` is a supplementary table for outside-source sanity checks.
 
 ## Documentation index / 文档索引
 
+- **Folder map:** [`docs/REPO_LAYOUT.md`](docs/REPO_LAYOUT.md)
 - **Doc map (start here):** [`docs/README.md`](docs/README.md)
 - **Workflow (canonical):** [`docs/rules/workflows.md`](docs/rules/workflows.md)
 - **Safety policy (canonical):** [`docs/rules/safety-policy.md`](docs/rules/safety-policy.md)

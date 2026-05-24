@@ -9,7 +9,7 @@
 | [docs/rules/error-response.md](docs/rules/error-response.md) | **Errors & recovery** — categories, branches, Phase 2/4 invariants |
 | [docs/architecture/architecture.md](docs/architecture/architecture.md) | **Architecture** — layers and pointers to diagrams |
 
-**Documentation layout (LLM routing):** [docs/README.md](docs/README.md) — which folder to open for rules vs runbooks vs research.
+**Documentation layout (LLM routing):** [docs/README.md](docs/README.md) — which folder to open for rules vs runbooks vs research. **Code / benchmark / docs folders:** [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md).
 
 This is the primary agent instruction entrypoint for this repository. Keep it short and link to canonical docs instead of duplicating policy text.
 
