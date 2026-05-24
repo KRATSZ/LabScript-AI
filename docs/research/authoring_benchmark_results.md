@@ -1,6 +1,23 @@
 # Authoring Benchmark Results
 
-This page records the current 90-task authoring benchmark result used for the Table S3 scaffold comparison draft. The run fixes the author model to `deepseek-v4-flash` and the reviewer model to `deepseek-v4-pro`.
+This page records authoring benchmark runs for paper tables. Paper table mapping: [`paper_deliverables.md`](paper_deliverables.md).
+
+## Paper-facing tables (freeze v0.4)
+
+| Manuscript table | Source | Notes |
+| --- | --- | --- |
+| **Table 1** (authoring) | TBD multi-system runs | LabscriptAI placeholder: composite BoB **56/90** (`authoring-light`, freeze 20260520) — **not** full-system |
+| **Table S1** | `freeze-v04-20260520/authoring90/` | direct 23/90 · fix-loop 45/90 · LabscriptAI 56/90 composite |
+| **Table S2A** | `freeze-v04-20260520/external66/` | fix-loop 61/66 vs LabscriptAI 60/66 — side evidence only |
+| **Table S2B** | `tests/test_pylabrobot_smoke` | software/backend IR proof |
+
+**Before freeze export**: aggregate **FP composite** (first attempt) via `analyze_authoring_run` for S1 and Table 1 LabscriptAI row.
+
+---
+
+## Table S1 draft (legacy heading: Table S3)
+
+The run fixes the author model to `deepseek-v4-flash` and the reviewer model to `deepseek-v4-pro`.
 
 Evidence bundle:
 
@@ -12,7 +29,7 @@ Failure audit:
 
 - `docs/research/authoring_failure_audit.md`
 
-## Table S3 Draft: Same Base Model, Different Scaffolds
+## Table S1 Draft: Same Base Model, Different Scaffolds
 
 | Scaffold | Sim pass | Validator OK | Semantic OK | First-pass sim | Best-of-budget sim | Repaired sim | Reviewer mean | Bio | Liquid | Safety | Tokens/task | Wall min | Sim calls | Repair rounds | Tool calls | Skill loads |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -55,10 +72,10 @@ Reading:
 
 ## hard35 v2 Composite Rescore
 
-After the manual audit of LabscriptAI false negatives, the semantic validator was updated to accept real package-schema variants:
+After the manual audit of LabscriptAI false negatives, the semantic validator was updated to accept real v0.4 package-schema variants:
 
-- `tip_plan.json`: nested totals, dict/list `tip_racks`, `pipettes.*.tips_used`, and `tip_usage[*].total_tips`.
-- `reagent_plan.json`: alias keys such as `total_volume_required`, `total_volume_required_ul`, `total_volume_needed_ul`, and dict-form `reagents`.
+- `manifest.tips`: nested totals, dict/list `tip_racks`, `pipettes.*.tips_used`, and `tip_usage[*].total_tips`.
+- `manifest.reagents`: alias keys such as `total_volume_required`, `total_volume_required_ul`, `total_volume_needed_ul`, and dict-form `reagents`.
 - dynamic tasks: static reagent-total matching is deferred when the task depends on runtime parameters or CSV input.
 
 The analysis pass now reports `task_pass = simulation_ok ∧ validator_ok ∧ semantic_ok ∧ param_sweep_ok`. The `param_sweep` hook is a deterministic v1 check: dynamic tasks must expose the expected runtime parameters and document how package plans change with those parameters. It does not yet inject two runtime values into the Opentrons simulator.
@@ -135,13 +152,17 @@ Evidence bundle:
 
 Reading:
 
-- The raw minimal-prompt run is intentionally harsh. It only gave Codex the seven filenames, task text, and manifest requirements. It is useful as a very clean general coding-agent baseline, but it is not prompt-aligned with direct DeepSeek.
+- The raw minimal-prompt run is intentionally harsh. It only gave Codex the required package filenames, task text, and manifest requirements. It is useful as a very clean general coding-agent baseline, but it is not prompt-aligned with direct DeepSeek.
 - The direct-aligned run adds the same package rules that direct DeepSeek received and then applies the same deterministic metadata repair externally. That moves Codex from `0/35` validator pass to `19/35` validator pass and reaches `4/35` composite task pass, which is the fairer comparison point.
 - After quota refresh, `T089` and `T090` were rerun successfully. The final direct-aligned Codex row is now a complete `35/35` result with `0` provider errors. The remaining gap is content quality, not infrastructure availability.
 
 ## External Community Bench: 66 Tasks
 
-This expanded external bench checks whether the same author model, `deepseek-v4-flash`, can turn outside protocol descriptions into execution packages. The set now contains 18 Opentrons Protocol Library-style tasks, 18 OpenPlant Automation Protocols-style tasks, and 30 PyLabRobot community/backend-neutral tasks.
+This expanded external bench checks whether the same author model, `deepseek-v4-flash`, can turn outside protocol descriptions into execution packages. The manifest now contains 18 public Opentrons Protocols adaptations, 18 source-strict OpenPlant Automation Protocols adaptations, and 30 PyLabRobot/backend-neutral tasks.
+
+Current source levels in `benchmarks/external_community/tasks.yaml`: 18 `public_protocol_entry_adapted` Opentrons Protocols tasks, 18 `authentic_public_source_adapted` OpenPlant tasks, 13 `pylabrobot_doc_derived` PyLabRobot documentation/API concept tasks, and 17 `project_synthetic_backend_stress` backend-neutral stress tasks. Do not describe all 66 as authentic public protocols; the Opentrons 18 and OpenPlant 18 have public folder/page/file provenance, while PyLabRobot contributes documentation-derived concepts plus clearly labeled synthetic stress cases.
+
+Provenance caveat: the current `EOPL001`-`EOPL018` rows now all point to real Opentrons Protocols folders, and `EOPEN001`-`EOPEN018` rows have been replaced with a public-web-derived source-strict OpenPlant 18 audited in `benchmarks/external_community/OPENPLANT_PROVENANCE.md`. The historical results below were generated against older prompts, so this section must be rerun before claiming current source-strict external-66 scores.
 
 The merged table reuses the earlier external runs where task definitions were unchanged, then adds the new `external-expanded-v2` run for `EOPEN007`-`EOPEN018` and `EPLR021`-`EPLR030`. When task IDs overlap, the newer source-specific run is treated as canonical.
 
@@ -167,15 +188,15 @@ Evidence bundle:
 - `runs/authoring-pilot/external-expanded-v2/labscriptai-authoring-flash/summary.json`
 - `runs/authoring-pilot/external-expanded-v2/labscriptai-authoring-flash-analysis/attribution-summary.json`
 
-Paper-facing source breakdown, composite task pass:
+Historical source breakdown, composite task pass:
 
-| Scaffold | Opentrons Library 18 | OpenPlant 18 | PyLabRobot community/backend 30 |
+| Scaffold | Opentrons Library 18 | Historical OpenPlant-style 18 | PyLabRobot community/backend 30 |
 |---|---:|---:|---:|
 | direct DeepSeek | 10/18 | 9/18 | 16/30 |
 | direct DeepSeek + fix-loop | 14/18 | 16/18 | 30/30 |
 | LabscriptAI authoring | 18/18 | 15/18 | 29/30 |
 
-OpenPlant 18 detail:
+Historical OpenPlant-style 18 detail:
 
 | Scaffold | Sim pass | Validator OK | Composite task pass | First-pass sim | Repaired sim | Repair rounds | Failed task IDs |
 |---|---:|---:|---:|---:|---:|---:|---|
@@ -207,7 +228,7 @@ After the first external run, four LabscriptAI failures were traced to simple en
 - Split common oversized aspirate/dispense pairs that use `pipette.current_volume`.
 - Open thermocycler lids immediately after thermocycler labware loading when later pipetting into that labware.
 - Make reagent `slot`/`well` lookup tolerant of common plan aliases.
-- Sync package JSON plan files into `/tmp` before simulation when generated protocols read `/tmp/deck_plan.json`, `/tmp/reagent_plan.json`, or `/tmp/tip_plan.json`.
+- Sync `manifest.json` into `/tmp` before simulation when generated protocols read `/tmp/manifest.json`.
 
 Targeted regression evidence uses the previous failed packages copied from `runs/authoring-pilot/external-expanded-v2/labscriptai-authoring-flash/*/attempt4/package`, without any new model calls:
 
@@ -220,7 +241,7 @@ Targeted regression evidence uses the previous failed packages copied from `runs
 
 Projected paper-facing impact if only these known failures change and all other rows stay fixed:
 
-| Scaffold | OpenPlant 18 | PyLabRobot community/backend 30 | New 22-task expansion |
+| Scaffold | Historical OpenPlant-style 18 | PyLabRobot community/backend 30 | New 22-task expansion |
 |---|---:|---:|---:|
 | direct DeepSeek | 9/18 | 16/30 | 12/22 |
 | direct DeepSeek + fix-loop | 16/18 | 30/30 | 21/22 |
@@ -255,12 +276,13 @@ Task selection:
 Decision:
 
 - The three-piece compatibility layer is live enough for the next broader benchmark stage.
-- The legacy seven-file reader stays in place because historical 90-task baselines still need to load old packages.
-- Do not delete old readers until the 90-task baseline has either been migrated or regenerated.
+- v0.4 three-piece is now the only package-validation main path. Historical rows above are retained as background only until replaced by the frozen full rerun.
 
-### Three-Piece Package Full Rerun: OpenPlant 18
+### Three-Piece Package Full Rerun: Historical OpenPlant-Style 18
 
 This live rerun regenerates all `EOPEN001`-`EOPEN018` tasks with the v0.4 three-piece format:
+
+Provenance note: these scores were generated before the `EOPEN` tasks were replaced with the source-strict OpenPlant 18 listed in `benchmarks/external_community/OPENPLANT_PROVENANCE.md`; rerun before using them as current OpenPlant evidence.
 
 - `protocol.py`
 - `setup_card.html`

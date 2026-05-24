@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>External 66 Model Compare</title>
+  <style>
+    body { margin: 0; background: #f7f8f6; color: #202623; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI", sans-serif; line-height: 1.45; }
+    main { max-width: 1500px; margin: 0 auto; padding: 28px; }
+    section { background: #fff; border: 1px solid #dce2dc; border-radius: 8px; padding: 20px; margin-bottom: 16px; overflow-x: auto; }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    h2 { margin: 0 0 12px; font-size: 20px; }
+    p, li, td, th { font-size: 13px; }
+    p { margin: 6px 0; color: #42504a; }
+    code { background: #eef2ef; border: 1px solid #dce2dc; border-radius: 5px; padding: 1px 5px; white-space: nowrap; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border-top: 1px solid #dce2dc; padding: 8px; text-align: left; vertical-align: top; }
+    thead th { border-top: 0; color: #617069; font-size: 11px; text-transform: uppercase; white-space: nowrap; }
+    tbody td:first-child { font-weight: 700; white-space: nowrap; }
+    .num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .warn { color: #9a5d1e; }
+    .bad { color: #953d37; }
+    .good { color: #1f6f55; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <section>
+    <h1>External community 66 benchmark: DeepSeek model compare</h1>
+    <p>Run date: 2026-05-22. Source manifest: <code>benchmarks/external_community/tasks.yaml</code>. No changes were written to <code>status.html</code>.</p>
+    <p>Rows used <code>--simulate</code>, <code>--retry-attempts 1</code>, <code>--simulation-timeout-sec 180</code>, <code>--agent-max-steps 12</code>, <code>--authoring-skill-mode light</code>, <code>--tool-profile kb</code>. API concurrency was capped at 5 task processes per row. DeepSeek credentials came from <code>.env</code>; each run explicitly set <code>DEEPSEEK_MODEL</code>.</p>
+    <p>Output root: <code>runs/external66_model_compare/</code>. Smoke runs live under <code>runs/external66_model_compare/_smoke/</code>. Provider/API error retries live under <code>runs/external66_model_compare/api_error_retry_20260523/</code> and <code>runs/external66_model_compare/api_error_retry2_20260523/</code>; final retry-merged summaries live under <code>runs/external66_model_compare/api_error_retry2_merged_20260523/</code>.</p>
+  </section>
+
+  <section>
+    <h2>deepseek-v4-flash</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>row</th><th>task_count</th><th>package_complete_count</th><th>validator_ok_count</th><th>simulation_pass_count</th><th>first_pass_simulation_pass_count</th><th>provider_error_count</th><th>total_attempts</th><th>repair_success_count</th><th>simulation_repair_attempts</th><th>tool_calls</th><th>simulator_calls</th><th>total_tokens</th><th>wall_time</th><th>note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>direct</td><td class="num">66</td><td class="num">66</td><td class="num">26</td><td class="num">27</td><td class="num">27</td><td class="num">0</td><td class="num">66</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">66</td><td class="num">309,068</td><td class="num">47.4 min</td><td>Clean provider run, but low validator/simulator pass.</td></tr>
+        <tr><td>direct-fixloop</td><td class="num">66</td><td class="num">66</td><td class="num">49</td><td class="num">59</td><td class="num">26</td><td class="num">0</td><td class="num">136</td><td class="num">33</td><td class="num">70</td><td class="num">0</td><td class="num">136</td><td class="num">616,964</td><td class="num">76.3 min</td><td class="good">Best flash row after retry; provider errors cleared.</td></tr>
+        <tr><td>labscriptai-unified</td><td class="num">66</td><td class="num">60</td><td class="num">55</td><td class="num">57</td><td class="num">45</td><td class="num">6</td><td class="num">89</td><td class="num">12</td><td class="num">23</td><td class="num">785</td><td class="num">189</td><td class="num">4,335,721</td><td class="num">73.1 min</td><td class="warn">Two retry rounds rescued many tasks, but 6 provider/contract errors persisted.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Flash conclusion:</strong> after two retry rounds for provider/API failures, <code>direct-fixloop</code> remains the practical winner at 59/66. Unified improved from 30/66 to 57/66, but it still has 6 persistent package-contract/provider failures.</p>
+  </section>
+
+  <section>
+    <h2>deepseek-v4-pro</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>row</th><th>task_count</th><th>package_complete_count</th><th>validator_ok_count</th><th>simulation_pass_count</th><th>first_pass_simulation_pass_count</th><th>provider_error_count</th><th>total_attempts</th><th>repair_success_count</th><th>simulation_repair_attempts</th><th>tool_calls</th><th>simulator_calls</th><th>total_tokens</th><th>wall_time</th><th>note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>direct</td><td class="num">66</td><td class="num">60</td><td class="num">23</td><td class="num">29</td><td class="num">29</td><td class="num">6</td><td class="num">66</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">60</td><td class="num">565,662</td><td class="num">165.0 min</td><td>Retries reduced provider errors, but direct remains weak.</td></tr>
+        <tr><td>direct-fixloop</td><td class="num">66</td><td class="num">60</td><td class="num">39</td><td class="num">55</td><td class="num">26</td><td class="num">6</td><td class="num">123</td><td class="num">29</td><td class="num">57</td><td class="num">0</td><td class="num">117</td><td class="num">840,486</td><td class="num">213.0 min</td><td>Repair loop helps, but persistent empty/truncated outputs remain.</td></tr>
+        <tr><td>labscriptai-unified</td><td class="num">66</td><td class="num">66</td><td class="num">63</td><td class="num">63</td><td class="num">48</td><td class="num">0</td><td class="num">93</td><td class="num">15</td><td class="num">27</td><td class="num">729</td><td class="num">208</td><td class="num">5,066,382</td><td class="num">146.0 min</td><td class="good">Best pro row; provider errors cleared after retry.</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Pro conclusion:</strong> <code>labscriptai-unified</code> is clearly strongest with pro: 63/66 simulation pass, 63/66 validator OK, complete packages for all 66 tasks, and 0 provider-format failures after retry.</p>
+  </section>
+
+  <section>
+    <h2>Provider/API Error Summary</h2>
+    <div class="grid">
+      <div>
+        <h3>Flash</h3>
+        <ul>
+          <li><code>direct</code>: none.</li>
+          <li><code>direct-fixloop</code>: initial 2 missing <code>files</code> object errors cleared after retry.</li>
+          <li><code>unified</code>: initial 33 errors reduced to 6 persistent errors after two retries: 1 missing <code>protocol.py</code> and 5 non-JSON decode failures.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Pro</h3>
+        <ul>
+          <li><code>direct</code>: initial 21 errors reduced to 6 persistent errors after two retries: 4 empty responses and 2 JSON truncations.</li>
+          <li><code>direct-fixloop</code>: initial 12 errors reduced to 6 persistent errors after two retries: 3 empty responses and 3 JSON truncations.</li>
+          <li><code>unified</code>: initial 1 non-JSON decode failure cleared after retry.</li>
+        </ul>
+      </div>
+    </div>
+    <p>Provider errors were not counted as success. Tasks without a completed <code>record.json</code> would have been merged as explicit failed records; no final row or retry row needed that timeout placeholder.</p>
+  </section>
+
+  <section>
+    <h2>Unified Lift</h2>
+    <p><strong>Flash:</strong> unified improved after retries, but still did not beat <code>direct-fixloop</code>: 57/66 vs 59/66 simulation pass. The remaining gap is mostly package-contract stability, not simulator behavior.</p>
+    <p><strong>Pro:</strong> unified improved over both baselines: +34 simulation passes over direct (63 vs 29), +8 over direct-fixloop (63 vs 55), +24 validator OK over direct-fixloop (63 vs 39), and provider errors fell to 0. The gain is package-level planning plus tool-guided validation, not just the protocol repair loop.</p>
+  </section>
+</main>
+</body>
+</html>

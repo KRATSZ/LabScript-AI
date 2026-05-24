@@ -20,7 +20,7 @@
 - contamination and biological quality
 - human setup clarity
 
-最终主表可以仍然显示 `FP x/90` 和 `BoB x/90`，但补充材料必须保留逐题多维评分。
+正文 Table 1 显示 `FP` / `BoB`（composite）；Table S1 保留 scaffold 细节与逐题多维评分（见 `paper_deliverables.md`）。
 
 ## 2. 90 题结构
 
@@ -260,12 +260,14 @@ manifest.json
 
 | 集合 | 规模建议 | 是否进正文主表 | 作用 | 验证口径 |
 | --- | ---: | --- | --- | --- |
-| Opentrons Protocol Library / `Opentrons/Protocols` | 30-50 | 副表或补充表 | 真实社区协议泛化 | NL→三件套 package；Opentrons simulator/analyze；package validator |
-| OpenPlant Automation Protocols | 10-20 | 补充表 | 社区教程/Notebook/Protocol Designer 风格迁移 | 教程描述→Opentrons package；simulation + package consistency |
-| PyLabRobot mini set | 5-10 | 补充材料 | 跨品牌液体处理概念 sanity check | 任务→LabFlow IR→Opentrons compile + PyLabRobot-style action compile |
-| BioCoder / LAB-Bench / AutoBio | 小样本或 related work | 不进主表 | 说明生物/自动化 benchmark 背景 | 不与 90 题合并计分；只在问题匹配时做旁证 |
+| Opentrons Protocol Library / `Opentrons/Protocols` | 30-50 | **Table S2A** only | 真实社区协议泛化 | NL→三件套 package；Opentrons simulator/analyze；package validator |
+| OpenPlant Automation Protocols | 10-20 | **Table S2A** only | 社区教程/Notebook/Protocol Designer 风格迁移 | 教程描述→Opentrons package；source-strict 任务按 `benchmarks/external_community/OPENPLANT_PROVENANCE.md` |
+| PyLabRobot mini set | 5-10 | **Table S2B** only | 跨品牌液体处理 IR sanity | 任务→LabFlow IR→Opentrons compile + PyLabRobot-style action compile |
+| BioCoder / LAB-Bench / AutoBio | 小样本或 related work | 不进主表 | related work 背景 | 不与 90 题合并计分 |
 
-推荐补充材料表：
+External 66 **不**进入正文 Table 1。主 authoring 结论以 90 题 Table S1 为准。
+
+**Table S2B**（IR portability；不与 S2A 合并为宽表）：
 
 | Task ID | Task | IR valid | Opentrons compile | PyLabRobot compile | Autoprotocol export | Notes |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
@@ -277,7 +279,7 @@ manifest.json
 | X006 | Module wait / thermocycler | TBD | TBD | N/A | TBD | backend 覆盖差异需标注 |
 | X007 | Contamination-sensitive transfer | TBD | TBD | TBD | TBD | tip policy + ordering |
 
-`IR valid` 至少包含两层：JSON/schema valid，以及确定性语义检查通过。语义检查应尽量复用 `package_validator` / `validators/core.py` 已有的资源、体积、tip、risk 规则；不要为 cross-platform sanity set 另起一套宽松规则。missing-tip、destination occupied、module polling 等恢复场景归入 runtime benchmark / Table S4，不放入 cross-platform authoring compile 表。
+`IR valid` 至少包含两层：JSON/schema valid，以及确定性语义检查通过。语义检查应尽量复用 `package_validator` / `validators/core.py` 已有的资源、体积、tip、risk 规则；不要为 cross-platform sanity set 另起一套宽松规则。missing-tip、destination occupied、module polling 等恢复场景归入 Extended Data Fig. / `supplementary/runtime_cases.csv`，不放入 Table S2B。
 
 ### 8.1 LabFlow IR 边界
 

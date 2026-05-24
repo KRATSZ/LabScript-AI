@@ -1,28 +1,30 @@
 # External community authoring mini-benchmark manifest.
 # This is a smoke-scale supplement to the main 90-task benchmark. It should not
 # be merged into the main score because the source distribution is different.
-schema_version: "0.1"
+schema_version: "0.4"
 adapter_default: opentrons
 required_package_files:
   - protocol.py
-  - deck_plan.json
-  - reagent_plan.json
-  - tip_plan.json
-  - runbook.md
-  - risk_checklist.json
+  - setup_card.html
   - manifest.json
 tasks:
   - id: EOPL001
     source: opentrons_protocol_library
+    source_level: public_protocol_entry_adapted
     upstream_id: Protocols-develop/protocols/85b0dc
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/85b0dc
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/85b0dc/pcr_prep.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_csv_pcr_cherrypick
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library workflow into a seven-file execution package.
+      Convert this Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
 
       Source workflow: Sybr Green PCR prep with cherry-picking, based on Protocol Library entry 85b0dc.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/85b0dc
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/85b0dc/pcr_prep.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -34,15 +36,21 @@ tasks:
       7. Document the CSV format, deck layout, tip policy, and manual pre-run checks in the package.
   - id: EOPL002
     source: opentrons_protocol_library
+    source_level: public_protocol_entry_adapted
     upstream_id: Protocols-develop/protocols/797dee-normalization
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/797dee-normalization
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/797dee-normalization/normalization.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_csv_normalization
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library workflow into a seven-file execution package.
+      Convert this Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
 
       Source workflow: concentration normalization with a 50 mL diluent tube, based on Protocol Library entry 797dee-normalization.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/797dee-normalization
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/797dee-normalization/normalization.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -51,18 +59,24 @@ tasks:
       4. Transfer the requested diluent volume into each non-zero destination well.
       5. Split transfers that exceed pipette capacity.
       6. Track the starting diluent volume and flag when requested total volume plus dead volume is infeasible.
-      7. Document portrait-vs-landscape CSV orientation assumptions in runbook.md and risk_checklist.json.
+      7. Document portrait-vs-landscape CSV orientation assumptions in setup_card.html and manifest.json.
   - id: EOPL003
     source: opentrons_protocol_library
+    source_level: public_protocol_entry_adapted
     upstream_id: Protocols-develop/protocols/0845ab
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/0845ab
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/0845ab/0845ab.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_magnetic_cleanup_digest
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library workflow into a seven-file execution package.
+      Convert this Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
 
       Source workflow: digestion and bead cleanup, based on Protocol Library entry 0845ab.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/0845ab
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/0845ab/0845ab.ot2.apiv2.py
 
       Requirements:
       1. Support 16, 32, or 48 samples.
@@ -73,13 +87,21 @@ tasks:
       6. Document module state, handoff pauses, reagent locations, and high-risk manual checks.
   - id: EOPL004
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/pcr-mastermix-distribution
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/29effa-mastermix
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/29effa-mastermix
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/29effa-mastermix/29effa-mastermix.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_pcr_mastermix_multichannel
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style PCR master-mix distribution workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Lyra Direct Covid-19 Mastermix Distribution, based on Protocol Library entry 29effa-mastermix.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/29effa-mastermix
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/29effa-mastermix/29effa-mastermix.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -88,16 +110,24 @@ tasks:
       4. Dispense 18 uL PCR master mix into each selected column.
       5. Keep master mix cold in the runbook and require the operator to pre-chill the plate if available.
       6. Calculate total master-mix volume with at least 10% overage and document dead-volume assumptions.
-      7. Use fresh tips when contamination risk changes and record the policy in tip_plan.json.
+      7. Use fresh tips when contamination risk changes and record the policy in manifest.json.
   - id: EOPL005
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/serial-dilution-96
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/customizable_serial_dilution_ot2
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/customizable_serial_dilution_ot2
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/customizable_serial_dilution_ot2/customizable_serial_dilution.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_serial_dilution_plate
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style serial dilution workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Customizable Serial Dilution for OT-2, based on Protocol Library entry customizable_serial_dilution_ot2.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/customizable_serial_dilution_ot2
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/customizable_serial_dilution_ot2/customizable_serial_dilution.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -108,13 +138,21 @@ tasks:
       6. Document the dilution factor, final volume, and cross-contamination risk.
   - id: EOPL006
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/cherry-pick-plate-copy
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/cherrypicking
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/cherrypicking
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/cherrypicking/cherrypicking.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_cherrypick_plate_copy
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style cherry-pick plate-copy workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Cherrypicking, based on Protocol Library entry cherrypicking.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/cherrypicking
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/cherrypicking/cherrypicking.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -125,13 +163,21 @@ tasks:
       6. Include CSV validation instructions and a runbook section for failed row handling.
   - id: EOPL007
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/magnetic-bead-cleanup-96
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/nucleic_acid_purification_with_magnetic_beads
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/nucleic_acid_purification_with_magnetic_beads
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/nucleic_acid_purification_with_magnetic_beads/dna_purification.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_magnetic_bead_cleanup
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style magnetic bead cleanup workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Nucleic Acid Purification with Magnetic Beads, based on Protocol Library entry nucleic_acid_purification_with_magnetic_beads.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/nucleic_acid_purification_with_magnetic_beads
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/nucleic_acid_purification_with_magnetic_beads/dna_purification.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2 and a magnetic module.
@@ -142,13 +188,21 @@ tasks:
       6. Use fresh tips for sample/bead handling and avoid disturbing beads during supernatant removal.
   - id: EOPL008
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/qpcr-setup-triplicates
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/generic_pcr_prep_1
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/generic_pcr_prep_1
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/generic_pcr_prep_1/generic_pcr_prep_1.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_qpcr_triplicate_setup
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style qPCR setup workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Generic PCR Prep Part 1 - Mastermix Creation, based on Protocol Library entry generic_pcr_prep_1.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/generic_pcr_prep_1
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/generic_pcr_prep_1/generic_pcr_prep_1.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -159,13 +213,21 @@ tasks:
       6. Document replicate mapping, control wells, cold-chain assumptions, and total reagent volume.
   - id: EOPL009
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/normalization-with-water
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/979d28-normalization
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/979d28-normalization
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/979d28-normalization/normalization.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_normalization_variable_water
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style normalization workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Normalization, based on Protocol Library entry 979d28-normalization.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/979d28-normalization
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/979d28-normalization/normalization.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -176,13 +238,21 @@ tasks:
       6. Track water reservoir total volume plus dead volume.
   - id: EOPL010
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/illumina-library-pooling
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/7aa3fd-library-pooling
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/7aa3fd-library-pooling
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/7aa3fd-library-pooling/lib_pooling.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_library_pooling
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style library pooling workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: NGS Prep Part 3/3: Library Pooling, based on Protocol Library entry 7aa3fd-library-pooling.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/7aa3fd-library-pooling
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/7aa3fd-library-pooling/lib_pooling.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -193,13 +263,21 @@ tasks:
       6. Track total pool volume and require the operator to confirm tube capacity before run start.
   - id: EOPL011
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/plate-reformat-384-to-96
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/384b23-plate-transfer
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/384b23-plate-transfer
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/384b23-plate-transfer/384b23-plate-transfer.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_plate_reformat_384_to_96
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style 384-to-96 plate reformat workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Sample Transfer to 96 Well-Plate, based on Protocol Library entry 384b23-plate-transfer.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/384b23-plate-transfer
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/384b23-plate-transfer/384b23-plate-transfer.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -207,32 +285,48 @@ tasks:
       3. Map quadrants from the 384-well plate into the four 96-well plates.
       4. Transfer 5 uL per well using a low-volume pipette.
       5. Use fresh tips for each source well and document tip count feasibility.
-      6. Include a clear mapping explanation in runbook.md.
+      6. Include a clear mapping explanation in setup_card.html.
   - id: EOPL012
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/bacterial-transformation-setup
-    legacy_type: community_transformation_setup
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/4b4a80-adapter_ligation
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/4b4a80-adapter_ligation
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/4b4a80-adapter_ligation/4b4a80-adapter_ligation.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
+    legacy_type: community_adapter_ligation_setup
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style transformation setup workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: NEBNext Ultra II FS DNA Library Prep Kit for Illumina E6177S/L, Step 2 of 4: Adapter Ligation, based on Protocol Library entry 4b4a80-adapter_ligation.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/4b4a80-adapter_ligation
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/4b4a80-adapter_ligation/4b4a80-adapter_ligation.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
-      2. Combine competent cells and plasmid DNA in chilled wells for 24 reactions.
-      3. Insert manual pauses for ice incubation, heat shock, recovery medium addition, and off-deck incubation.
-      4. Never pretend the robot performs heat shock unless a supported module and safe method are specified.
-      5. Use fresh tips for DNA transfer and document biosafety/manual handling notes.
+      2. Prepare adapter-ligation reactions with DNA sample, ligation master mix, ligation enhancer, and adapter reagent.
+      3. Keep enzymes and adapter reagents cold and add sensitive reagents late in the setup.
+      4. Include an off-deck incubation or thermocycler handoff pause instead of pretending unsupported incubation is automated.
+      5. Use fresh tips for sample and adapter transfers and document barcode/index cross-contamination risk.
   - id: EOPL013
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/enzyme-digest-reaction-setup
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/010526
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/010526
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/010526/010526.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_enzyme_digest_setup
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style enzyme digest setup workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Restriction Digests, based on Protocol Library entry 010526.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/010526
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/010526/010526.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -243,13 +337,21 @@ tasks:
       6. Add an off-deck incubation pause instead of unsupported automation.
   - id: EOPL014
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/antibody-plate-wash
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/0fd3dd
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/0fd3dd
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/0fd3dd/elisa.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_elisa_wash
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style ELISA plate wash workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: ELISA, based on Protocol Library entry 0fd3dd.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/0fd3dd
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/0fd3dd/elisa.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -259,29 +361,45 @@ tasks:
       5. Include operator checks for residual liquid, splash risk, and waste capacity.
   - id: EOPL015
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/media-addition-multiplate
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/01a6b9
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/01a6b9
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/01a6b9/media_filling.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_media_addition_multiplate
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style media addition workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Media Refilling, based on Protocol Library entry 01a6b9.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/01a6b9
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/01a6b9/media_filling.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2 and an 8-channel p300 pipette.
       2. Add 180 uL media from a reservoir to four 96-well destination plates.
       3. Process only columns 1-12 and document how partial plates are handled.
       4. Calculate reservoir volume with dead volume and warn when one reservoir channel is insufficient.
-      5. Keep deck_plan.json consistent with every loaded plate and tip rack.
+      5. Keep manifest.json deck entries consistent with every loaded plate and tip rack.
   - id: EOPL016
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/96-well-hit-picking
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/nextera-flex-library-prep-cherrypick-samples
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/nextera-flex-library-prep-cherrypick-samples
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/nextera-flex-library-prep-cherrypick-samples/nextera_flex_cherrypick.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_hit_picking
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style hit-picking workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Nextera DNA Flex NGS Library Prep: Cherrypick Samples, based on Protocol Library entry nextera-flex-library-prep-cherrypick-samples.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/nextera-flex-library-prep-cherrypick-samples
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/nextera-flex-library-prep-cherrypick-samples/nextera_flex_cherrypick.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2.
@@ -292,13 +410,21 @@ tasks:
       6. Document how the operator should review the generated hit map before starting.
   - id: EOPL017
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/thermocycler-pcr
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/thermocycler-csv
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/thermocycler-csv
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/thermocycler-csv/thermocycler_csv.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_thermocycler_pcr_program
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style thermocycler PCR workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: Thermocycler from .csv, based on Protocol Library entry thermocycler-csv.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/thermocycler-csv
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/thermocycler-csv/thermocycler_csv.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 or Flex style protocol with API v2 and a thermocycler module.
@@ -308,13 +434,21 @@ tasks:
       5. Document all module state changes and manual seal/unseal steps.
   - id: EOPL018
     source: opentrons_protocol_library
-    upstream_id: Protocols-develop/protocols/plate-stamping
+    source_level: public_protocol_entry_adapted
+    upstream_id: Protocols-develop/protocols/7855ef-plate
+    source_url: https://github.com/Opentrons/Protocols/tree/develop/protocols/7855ef-plate
+    source_file_url: https://github.com/Opentrons/Protocols/blob/develop/protocols/7855ef-plate/7855ef-plate.ot2.apiv2.py
+    provenance: public_protocol_entry_adapted
     legacy_type: community_plate_stamping
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this Opentrons Protocol Library style plate-stamping workflow into a seven-file execution package.
+      Convert this public Opentrons Protocol Library workflow into a three-piece v0.4 execution package.
+
+      Source workflow: AgriSeq Library Prep Part 1 - DNA Transfer (96), based on Protocol Library entry 7855ef-plate.
+      Public folder: https://github.com/Opentrons/Protocols/tree/develop/protocols/7855ef-plate
+      Public file: https://github.com/Opentrons/Protocols/blob/develop/protocols/7855ef-plate/7855ef-plate.ot2.apiv2.py
 
       Requirements:
       1. Use an OT-2 style protocol with API v2 and an 8-channel pipette.
@@ -324,15 +458,21 @@ tasks:
       5. Document deck layout, column mapping, tip count, and source volume checks.
   - id: EOPEN001
     source: openplant_automation_protocols
+    source_level: authentic_public_source_adapted
     upstream_id: OP_PY_001
     legacy_type: openplant_glycerol_stocks
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Python/OP_PY_001/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Python/OP_PY_001/OP_PY_001.py
+    provenance: source_strict_adapted
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Python workflow into a three-piece v0.4 execution package.
 
       Source workflow: OP_PY_001, Glycerol stocks from 96-well cultures.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Python/OP_PY_001/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Python/OP_PY_001/OP_PY_001.py
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
@@ -343,115 +483,163 @@ tasks:
       6. Slots 2, 3, 5, and 6 contain destination 96-well plates for glycerol stocks.
       7. Support a runtime parameter columns_to_process from 1 to 12.
       8. For each selected column, add glycerol and culture to destination wells using the 8-channel pipette, then mix gently.
-      9. Document the column-count setting, deck setup, destination-plate mapping, and operator monitoring note in runbook.md.
+      9. Document the column-count setting, deck setup, destination-plate mapping, and operator monitoring note in setup_card.html.
   - id: EOPEN002
     source: openplant_automation_protocols
-    upstream_id: OP_PY_002
-    legacy_type: openplant_od_normalization
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_JN_001
+    legacy_type: openplant_jupyter_glycerol_stocks
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_001/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_001/OP_JN_001.ipynb
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant-style OD normalization workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Jupyter workflow into a three-piece v0.4 execution package.
+
+      Source workflow: OP_JN_001, Glycerol stocks from 96-well cultures.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_001/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_001/OP_JN_001.ipynb
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Accept a CSV with culture_well, destination_well, culture_volume_ul, diluent_volume_ul.
-      3. Add diluent first, then culture, into a destination 96-well plate.
-      4. Split transfers above pipette capacity.
-      5. Use fresh tips for each culture.
-      6. Document CSV review, reservoir volume, sterility checks, and biological replicate mapping.
+      2. Use an 8-channel p300 pipette and support 1 to 96 samples by column.
+      3. Source cultures are in a 96-deepwell plate and destination glycerol stocks are in a 96-well plate.
+      4. Add glycerol to each selected destination well, then add bacterial culture and mix gently.
+      5. Use fresh tips per source column unless the runbook justifies a safe column-wise reuse policy.
+      6. Document sample-count prompts, deck setup, glycerol volume checks, and the operator monitoring note.
   - id: EOPEN003
     source: openplant_automation_protocols
-    upstream_id: OP_PY_003
-    legacy_type: openplant_induction_plate
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_JN_002
+    legacy_type: openplant_jupyter_magnetic_bead_dna_extraction
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_002/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_002/OP_JN_002.ipynb
+    provenance: source_strict_adapted
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant-style induction setup workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Jupyter workflow into a three-piece v0.4 execution package.
+
+      Source workflow: OP_JN_002, DNA extraction of 96-well cultures with magnetic beads.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_002/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_002/OP_JN_002.ipynb
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Add 2 uL inducer from a tube rack to selected wells in a 96-well culture plate.
-      3. Support an inducer_map CSV with inducer_name, source_tube, destination_well.
-      4. Use fresh tips between different inducers.
-      5. Document manual sealing, shaking/incubation handoff, and inducer cross-contamination risk.
+      2. Use an 8-channel p300 pipette, a magnetic module with a deepwell plate, buffer reservoirs, a waste reservoir, and an output 96-well plate.
+      3. Capture the protocol stages: lysis/neutralization, supernatant plus ethanol transfer to beads, magnetic separation, wash, elution, and elution transfer.
+      4. Represent centrifugation, vortexing, drying, and timed incubations as clear manual pauses or off-deck handoffs.
+      5. Track waste and buffer volume requirements for the selected sample count.
+      6. Document magnetic-module state, slow aspiration guidance near pellets/beads, and operator checks before resuming.
   - id: EOPEN004
     source: openplant_automation_protocols
-    upstream_id: OP_PY_004
-    legacy_type: openplant_colony_pcr_setup
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_JN_003
+    legacy_type: openplant_jupyter_plasmid_transformation
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_003/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_003/OP_JN_003.ipynb
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant-style colony PCR setup workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Jupyter workflow into a three-piece v0.4 execution package.
+
+      Source workflow: OP_JN_003, Transformation of plasmids in 96-well format.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_003/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_003/OP_JN_003.ipynb
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Prepare 48 colony PCR reactions in a PCR plate.
-      3. Add PCR master mix first, then colony template suspension.
-      4. Include positive and negative controls.
-      5. Use fresh tips for template additions and document how colonies are pre-suspended off-deck.
-      6. Keep polymerase cold and document thermocycler handoff.
+      2. Use an 8-channel p20 on the left mount and an 8-channel p300 on the right mount.
+      3. Transfer plasmid DNA from a 96-well PCR plate to chemically competent cells that are placed on a temperature module only when prompted.
+      4. Keep competent cells cold and avoid aggressive mixing.
+      5. Pause for manual ice incubation, external heat shock, and recovery handling; do not claim the robot performs heat shock.
+      6. Document the timing-sensitive manual handoffs, ice-bucket movement, deck setup, and biosafety/operator checks.
   - id: EOPEN005
     source: openplant_automation_protocols
-    upstream_id: OP_PY_005
-    legacy_type: openplant_assembly_mix
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_JN_004
+    legacy_type: openplant_jupyter_plasmid_transformation_thermocycler
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_004/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_004/OP_JN_004.ipynb
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant-style DNA assembly setup workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Jupyter workflow into a three-piece v0.4 execution package.
+
+      Source workflow: OP_JN_004, Transformation of plasmids in 96-well format (OT thermocycler version).
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_004/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_004/OP_JN_004.ipynb
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Accept a CSV describing assembly_id, part_source_well, destination_well, part_volume_ul.
-      3. Add assembly master mix to each destination, then add DNA parts.
-      4. Use fresh tips for every DNA part.
-      5. Keep enzyme-containing master mix cold and add it close to the end of setup.
-      6. Document part mapping, total volume checks, off-deck incubation, and risk controls.
+      2. Use p20 and p300 8-channel pipettes, a temperature module for competent cells, and a thermocycler module for the heat-shock program when available.
+      3. Transfer plasmid DNA to competent cells, then execute or document the thermocycler heat-shock sequence.
+      4. Keep cells cold before heat shock and avoid rough mixing.
+      5. If the thermocycler cannot be controlled in simulation, add explicit operator pauses instead of pretending unsupported module control succeeded.
+      6. Document thermocycler lid/block state, temperature-module state, sample-count handling, and recovery-media handoff.
   - id: EOPEN006
     source: openplant_automation_protocols
-    upstream_id: OP_PY_006
-    legacy_type: openplant_media_gradient
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_JN_005
+    legacy_type: openplant_jupyter_plating_cells_to_six_well
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_005/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_005/OP_JN_005.ipynb
+    provenance: source_strict_adapted
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant-style media gradient workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Jupyter workflow into a three-piece v0.4 execution package.
+
+      Source workflow: OP_JN_005, Plating of cells from 96-well plates.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Jupyter/OP_JN_005/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Jupyter/OP_JN_005/OP_JN_005.ipynb
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Create a 12-column media gradient in a 96-well plate using media A and media B.
-      3. Each well should end with 200 uL total volume.
-      4. Volumes must change by column rather than being hard-coded to one condition.
-      5. Document the gradient table, reservoir requirements, mixing policy, and operator checks.
+      2. Transfer cells from a 96-well source plate to multiple 6-well plates containing solid culture media.
+      3. Use p20/p300 pipetting choices that match the transfer volume and split transfers above pipette capacity.
+      4. Use fresh tips when switching source wells or strains.
+      5. Document the mapping from source wells to 6-well plates, agar/solid-media handling, and any manual plate movement.
+      6. Include operator checks for plate orientation, contamination risk, and post-plating incubation.
   - id: EPLR001
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: standard_transfer_ir_001
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/machine-agnostic-features/writing-robot-agnostic-protocols.md
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived primitive transfer task; not a public wet-lab protocol entry."
     legacy_type: cross_platform_basic_transfer
     difficulty: Easy
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a cross-platform liquid-handling task inspired by PyLabRobot community/backend-neutral actions.
+      Author a three-piece v0.4 execution package for a cross-platform liquid-handling task inspired by PyLabRobot community/backend-neutral actions.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
       2. Transfer 50 uL from source wells A1-A8 to destination wells B1-B8.
       3. Use one fresh tip per transfer.
-      4. Express the operation in runbook.md as simple transfer actions: pick_up_tip, aspirate, dispense, drop_tip.
+      4. Express the operation in setup_card.html as simple transfer actions: pick_up_tip, aspirate, dispense, drop_tip.
       5. Keep labware choices standard enough that the task could be mapped to another liquid-handling backend.
   - id: EPLR002
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: standard_serial_dilution_ir_002
+    source_note: "Project-authored serial-dilution stress task composed from backend-neutral transfer/mix actions; no one-to-one PyLabRobot public example found."
     legacy_type: cross_platform_serial_dilution
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a cross-platform serial dilution task inspired by PyLabRobot community/backend-neutral actions.
+      Author a three-piece v0.4 execution package for a cross-platform serial dilution task inspired by PyLabRobot community/backend-neutral actions.
 
       Workflow:
       1. Load a 96-well plate, diluent reservoir, tip rack, and a single-channel pipette.
@@ -461,45 +649,55 @@ tasks:
       5. Document the dilution factor, expected final volume, and contamination risk.
   - id: EPLR003
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: standard_mix_ir_003
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/00_liquid-handling/mixing.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived mix action task; not a public wet-lab protocol entry."
     legacy_type: cross_platform_mix_after_transfer
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a cross-platform mix-after-transfer task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
+      Author a three-piece v0.4 execution package for a cross-platform mix-after-transfer task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
 
       Workflow:
       1. Load a reservoir, destination plate, tip rack, and a single-channel pipette.
       2. Transfer 100 uL buffer from reservoir A1 to plate wells A1-A6.
       3. Mix each destination well 5 times with 50 uL after dispensing.
-      4. Express the core operations as transfer and mix actions in runbook.md.
+      4. Express the core operations as transfer and mix actions in setup_card.html.
       5. Document why these operations are backend-neutral.
   - id: EPLR004
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: standard_pooling_ir_004
+    source_note: "Project-authored pooling stress task; no one-to-one PyLabRobot public example found."
     legacy_type: cross_platform_pooling
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a cross-platform sample pooling task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
+      Author a three-piece v0.4 execution package for a cross-platform sample pooling task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
 
       Workflow:
       1. Load a source plate, a tube rack or destination plate, tip rack, and a single-channel pipette.
       2. Transfer 20 uL from source wells A1-H1 into one pool destination.
       3. Use one fresh tip per source well.
       4. Track final pool volume and tube capacity.
-      5. Express pick_up_tip, aspirate, dispense, and drop_tip action order in runbook.md.
+      5. Express pick_up_tip, aspirate, dispense, and drop_tip action order in setup_card.html.
   - id: EPLR005
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: standard_reagent_distribution_ir_005
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/00_liquid-handling/hamilton-star/basic.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived aspirate/dispense distribution task; not a public wet-lab protocol entry."
     legacy_type: cross_platform_reagent_distribution
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a cross-platform reagent distribution task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
+      Author a three-piece v0.4 execution package for a cross-platform reagent distribution task that should compile to LabFlow IR and PyLabRobot backend-neutral actions.
 
       Workflow:
       1. Load a reservoir, destination 96-well plate, tip rack, and an 8-channel or single-channel pipette.
@@ -508,13 +706,15 @@ tasks:
       4. Document total reagent requirement and action-level transfer sequence.
   - id: EPLR006
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: standard_pause_ir_006
+    source_note: "Project-authored manual-checkpoint stress task; no one-to-one PyLabRobot public example found."
     legacy_type: cross_platform_pause_and_confirm
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a cross-platform workflow with an operator confirmation step that should compile to LabFlow IR and PyLabRobot backend-neutral actions where supported.
+      Author a three-piece v0.4 execution package for a cross-platform workflow with an operator confirmation step that should compile to LabFlow IR and PyLabRobot backend-neutral actions where supported.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
@@ -524,13 +724,17 @@ tasks:
       5. Document which parts are standard liquid-handling actions and which part is an operator pause.
   - id: EPLR007
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_readme_basic_plate_copy
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot#readme
+    provenance: public_doc_concept_adapted
+    source_note: "README/API-derived LiquidHandler transfer task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_plate_copy
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package inspired by PyLabRobot's backend-neutral LiquidHandler examples.
+      Author a three-piece v0.4 execution package inspired by PyLabRobot's backend-neutral LiquidHandler examples.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
@@ -540,13 +744,15 @@ tasks:
       5. Keep resource naming generic enough for Opentrons, Hamilton, or Tecan backend mapping.
   - id: EPLR008
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_pooling_actions
+    source_note: "Project-authored pooling stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_many_to_one_pooling
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral pooling workflow.
+      Author a three-piece v0.4 execution package for a backend-neutral pooling workflow.
 
       Workflow:
       1. Load a 96-well source plate, a destination tube rack or deep-well plate, tip rack, and a single-channel pipette.
@@ -556,13 +762,15 @@ tasks:
       5. Document how the same action list could be executed by a PyLabRobot serializing backend.
   - id: EPLR009
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_normalization_actions
+    source_note: "Project-authored variable-volume normalization stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_variable_volume_normalization
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for backend-neutral variable-volume normalization.
+      Author a three-piece v0.4 execution package for backend-neutral variable-volume normalization.
 
       Workflow:
       1. Load a water reservoir, source plate, destination plate, tip rack, and a single-channel pipette.
@@ -572,29 +780,37 @@ tasks:
       5. Document total water use, fresh-tip policy, and backend-neutral action sequence.
   - id: EPLR010
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_docs_mix_actions
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/00_liquid-handling/mixing.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived mix plus transfer task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_mix_and_transfer
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a mix-and-transfer workflow.
+      Author a three-piece v0.4 execution package for a mix-and-transfer workflow.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and a single-channel pipette.
       2. Mix source wells A1-A6 three times with 40 uL.
       3. Transfer 25 uL from each mixed source well to destination wells D1-D6.
       4. Use fresh tips between wells.
-      5. Document mix, aspirate, dispense, and drop_tip actions in runbook.md.
+      5. Document mix, aspirate, dispense, and drop_tip actions in setup_card.html.
   - id: EPLR011
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_docs_reagent_distribution
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/00_liquid-handling/hamilton-star/basic.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived aspirate/dispense distribution task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_reagent_distribution_96
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for backend-neutral reagent distribution.
+      Author a three-piece v0.4 execution package for backend-neutral reagent distribution.
 
       Workflow:
       1. Load a reservoir, 96-well destination plate, tip rack, and compatible pipette.
@@ -604,13 +820,15 @@ tasks:
       5. Document how the plan maps to PyLabRobot liquid handler aspirate/dispense calls.
   - id: EPLR012
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_two_reagent_distribution
+    source_note: "Project-authored two-reagent contamination-policy stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_two_reagent_distribution
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a two-reagent backend-neutral distribution task.
+      Author a three-piece v0.4 execution package for a two-reagent backend-neutral distribution task.
 
       Workflow:
       1. Load a reservoir with reagent A and reagent B, a destination plate, tip rack, and compatible pipette.
@@ -620,13 +838,15 @@ tasks:
       5. Document reagent totals, tip policy, and action-level sequence.
   - id: EPLR013
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_column_serial_dilution
+    source_note: "Project-authored serial-dilution stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_column_serial_dilution
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a column-wise serial dilution.
+      Author a three-piece v0.4 execution package for a column-wise serial dilution.
 
       Workflow:
       1. Load a 96-well plate, diluent reservoir, tip rack, and compatible pipette.
@@ -636,29 +856,35 @@ tasks:
       5. Document final dilution factor and backend-neutral action list.
   - id: EPLR014
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_cherrypick_actions
+    source_note: "Project-authored sparse cherry-pick stress task composed from basic transfers; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_cherrypick_sparse_plate
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for sparse cherry-picking.
+      Author a three-piece v0.4 execution package for sparse cherry-picking.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and single-channel pipette.
       2. Transfer 10 uL from source wells A1, B3, C5, D7, E9, F11 to destination wells H1, G3, F5, E7, D9, C11.
       3. Use a fresh tip for every source well.
-      4. Include a mapping table in runbook.md.
+      4. Include a mapping table in setup_card.html.
       5. Keep the core transfer list compatible with PyLabRobot backend-neutral action export.
   - id: EPLR015
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_docs_384_to_96_mapping
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/resources/itemized-resource/plate/plate-quadrants.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived plate-quadrant/geometry task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_384_to_96_subset
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral 384-to-96 subset transfer.
+      Author a three-piece v0.4 execution package for a backend-neutral 384-to-96 subset transfer.
 
       Workflow:
       1. Load one 384-well source plate, one 96-well destination plate, tip rack, and low-volume pipette.
@@ -668,13 +894,15 @@ tasks:
       5. Flag that exact labware geometry must be validated per backend before physical execution.
   - id: EPLR016
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_pause_confirmation
+    source_note: "Project-authored manual-checkpoint stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_pause_after_reagent
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral workflow with a manual checkpoint.
+      Author a three-piece v0.4 execution package for a backend-neutral workflow with a manual checkpoint.
 
       Workflow:
       1. Load a reservoir, destination plate, tip rack, and compatible pipette.
@@ -684,13 +912,15 @@ tasks:
       5. Separate liquid-handling actions from the manual confirmation in the runbook.
   - id: EPLR017
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_dead_volume_check
+    source_note: "Project-authored reservoir dead-volume stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_reservoir_dead_volume
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a reservoir dead-volume check.
+      Author a three-piece v0.4 execution package for a reservoir dead-volume check.
 
       Workflow:
       1. Load a reservoir, destination plate, tip rack, and compatible pipette.
@@ -700,13 +930,15 @@ tasks:
       5. Document the volume calculation and backend-neutral dispense sequence.
   - id: EPLR018
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_multi_source_copy
+    source_note: "Project-authored multi-source plate-copy stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_multi_source_copy
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for multi-source plate copying.
+      Author a three-piece v0.4 execution package for multi-source plate copying.
 
       Workflow:
       1. Load two source plates, one destination plate, tip rack, and single-channel pipette.
@@ -716,13 +948,15 @@ tasks:
       5. Document resource IDs clearly for backend-neutral action export.
   - id: EPLR019
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_docs_low_volume_transfer
+    source_note: "Project-authored low-volume replicate stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_low_volume_replicates
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for low-volume technical replicates.
+      Author a three-piece v0.4 execution package for low-volume technical replicates.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and low-volume pipette.
@@ -732,273 +966,355 @@ tasks:
       5. Keep the core operation list compatible with PyLabRobot aspirate/dispense actions.
   - id: EPLR020
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_readme_cross_backend_transfer
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/machine-agnostic-features/writing-robot-agnostic-protocols.md
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived robot-agnostic transfer task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_cross_platform_demo
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for the canonical cross-backend transfer pattern described by PyLabRobot.
+      Author a three-piece v0.4 execution package for the canonical cross-backend transfer pattern described by PyLabRobot.
 
       Workflow:
       1. Load a plate, tip rack, and single-channel pipette.
       2. Move 100 uL from plate well A1 to plate well A2.
       3. Express the core steps as pick_up_tip, aspirate, dispense, and drop_tip.
-      4. Explain in runbook.md that the same high-level liquid-handling action can be mapped to Opentrons, Hamilton, or Tecan backends after resource validation.
+      4. Explain in setup_card.html that the same high-level liquid-handling action can be mapped to Opentrons, Hamilton, or Tecan backends after resource validation.
       5. Include a safety note that physical execution still requires backend-specific deck calibration.
   - id: EOPEN007
     source: openplant_automation_protocols
-    upstream_id: OP_PY_007
-    legacy_type: openplant_golden_gate_multiplasmid
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_001
+    legacy_type: openplant_designer_fluidx_glycerol_stocks
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_001/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_001/OP_PD_001.json
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: Golden Gate assembly setup for multiple plasmids from a part map.
+      Source workflow: OP_PD_001, Creating Glycerol Stocks in FluidX Tubes.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_001/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_001/OP_PD_001.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Accept a CSV with assembly_id, destination_well, part_well, part_volume_ul, enzyme_mix_volume_ul.
-      3. Add water first, then DNA parts, then enzyme-containing master mix last.
-      4. Keep enzyme mix cold and document a maximum room-temperature exposure window.
-      5. Use fresh tips for every DNA part and never reuse tips across different assemblies.
-      6. Insert an off-deck thermocycler/incubation handoff instead of pretending unsupported incubation happens on deck.
+      2. Prepare duplicate glycerol stocks in two FluidX tube racks from colony suspensions in a 96-deepwell plate.
+      3. Add glycerol to the destination tubes before transferring culture.
+      4. Support a runtime parameter for the number of source columns or samples to process.
+      5. Use fresh tips by source column unless the runbook justifies a safer alternative.
+      6. Document the two-rack destination mapping, FluidX tube orientation, glycerol volume checks, and cold-storage handoff.
   - id: EOPEN008
     source: openplant_automation_protocols
-    upstream_id: OP_PY_008
-    legacy_type: openplant_sensor_gradient_dual_inducer
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_002
+    legacy_type: openplant_designer_pcr_purification_magnetic_beads
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_002/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_002/OP_PD_002.json
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: dual-inducer sensor response matrix in a 96-well plate.
+      Source workflow: OP_PD_002, PCR Purification Using Magnetic Beads.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_002/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_002/OP_PD_002.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Create a 6-by-8 matrix: inducer A varies by row and inducer B varies by column.
-      3. Each destination well receives media, culture, inducer A, and inducer B to a final 200 uL volume.
-      4. Volumes must be calculated from the matrix, not hard-coded as one repeated condition.
-      5. Use fresh tips when switching cultures or inducer stocks.
-      6. Document the matrix layout, reservoir/tube locations, and shaking/incubation handoff.
+      2. Purify up to 96 PCR samples using magnetic beads and a magnetic module.
+      3. Include bead addition, mixing, magnetic separation, supernatant removal, wash steps, drying, elution, and transfer to an output plate.
+      4. Use timed pauses for binding, washing, drying, and elution incubations.
+      5. Track ethanol/wash/elution buffer and waste capacity, including dead-volume margin.
+      6. Document magnetic-module engagement/release, aspiration-height caution, and operator checks before each separation step.
   - id: EOPEN009
     source: openplant_automation_protocols
-    upstream_id: OP_PY_009
-    legacy_type: openplant_competent_cell_heatshock_handoff
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_003
+    legacy_type: openplant_designer_plasmid_purification_strip_kit
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_003/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_003/OP_PD_003.json
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: competent-cell transformation setup with manual heat shock.
+      Source workflow: OP_PD_003, Plasmid Purification of 48 Samples Using the Machery Nagel Strip Kit.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_003/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_003/OP_PD_003.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Combine chilled competent cells and plasmid DNA for 24 reactions.
-      3. Keep cells cold and add DNA gently without repeated aggressive mixing.
-      4. Pause for manual ice incubation, heat shock, recovery media addition, and off-deck recovery.
-      5. Do not claim the robot performs heat shock on deck.
-      6. Document biosafety, timing sensitivity, and which steps are manual handoffs.
+      2. Process 48 plasmid purification samples using strip-kit style columns/tubes and standard liquid-handling steps.
+      3. Include buffer additions, mixing, transfer steps, wash steps, and final elution into an output plate or tube rack.
+      4. Represent centrifugation, column binding, and other unsupported kit operations as manual handoffs.
+      5. Use fresh tips when moving between samples or contamination-sensitive reagents.
+      6. Document the 48-sample map, kit-stage handoffs, reagent volume checks, and waste handling.
   - id: EOPEN010
     source: openplant_automation_protocols
-    upstream_id: OP_PY_010
-    legacy_type: openplant_plate_reader_assay_setup
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_004_1
+    legacy_type: openplant_designer_transformation_spread_plates_1_4
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_1.json
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: plate-reader assay setup with blanks, standards, and samples.
+      Source workflow: OP_PD_004_1, Transformation Spreading to 6 Well Plates - Script 1.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_1.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Prepare blanks in column 1, standards in columns 2-3, and samples in columns 4-12.
-      3. Add assay reagent to every active well, then add standards/samples with fresh tips.
-      4. Avoid contaminating blank wells with sample tips.
-      5. Calculate total assay reagent volume with 10% overage.
-      6. Document the plate-reader handoff and operator checks for bubbles before reading.
+      2. Transfer transformed samples from a 96-well source plate to 6-well plates containing solid media.
+      3. Cover plates 1 through 4 from the public multi-script workflow.
+      4. Use fresh tips for each transformed sample or justify a safe column-wise policy.
+      5. Treat spreading on solid media and downstream incubation as operator-controlled handoffs if they cannot be modeled as liquid transfers.
+      6. Document the source-to-6-well mapping, plate order, orientation checks, and contamination controls.
   - id: EOPEN011
     source: openplant_automation_protocols
-    upstream_id: OP_PY_011
-    legacy_type: openplant_colony_pick_resuspension
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_004_2
+    legacy_type: openplant_designer_transformation_spread_plates_5_8
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_2.json
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: colony resuspension plate setup from a colony map.
+      Source workflow: OP_PD_004_2, Transformation Spreading to 6 Well Plates - Script 2.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_2.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Accept a CSV with colony_id, destination_well, media_volume_ul, glycerol_volume_ul.
-      3. Dispense media and glycerol to destination wells before manual colony picking.
-      4. Pause for the operator to pick colonies into the prepared wells.
-      5. Do not generate robotic colony picking motions.
-      6. Document plate map review, sterile technique, and manual picking handoff.
+      2. Transfer transformed samples from a 96-well source plate to 6-well plates containing solid media.
+      3. Cover plates 5 through 8 from the public multi-script workflow.
+      4. Use fresh tips for each transformed sample or justify a safe column-wise policy.
+      5. Treat spreading on solid media and downstream incubation as operator-controlled handoffs if they cannot be modeled as liquid transfers.
+      6. Document the source-to-6-well mapping, plate order, orientation checks, and contamination controls.
   - id: EOPEN012
     source: openplant_automation_protocols
-    upstream_id: OP_PY_012
-    legacy_type: openplant_dna_quant_normalization
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_004_3
+    legacy_type: openplant_designer_transformation_spread_plates_9_12
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_3.json
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: DNA quantification normalization from concentration table.
+      Source workflow: OP_PD_004_3, Transformation Spreading to 6 Well Plates - Script 3.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_3.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Accept a CSV with source_well, concentration_ng_per_ul, target_mass_ng, final_volume_ul, destination_well.
-      3. Calculate DNA and water volumes per sample and flag impossible rows where DNA volume exceeds final volume.
-      4. Add water first, then DNA sample.
-      5. Split transfers above pipette capacity and skip invalid rows with a clear runbook instruction.
-      6. Document the formula, rounding policy, and dead-volume requirements.
+      2. Transfer transformed samples from a 96-well source plate to 6-well plates containing solid media.
+      3. Cover plates 9 through 12 from the public multi-script workflow.
+      4. Use fresh tips for each transformed sample or justify a safe column-wise policy.
+      5. Treat spreading on solid media and downstream incubation as operator-controlled handoffs if they cannot be modeled as liquid transfers.
+      6. Document the source-to-6-well mapping, plate order, orientation checks, and contamination controls.
   - id: EOPEN013
     source: openplant_automation_protocols
-    upstream_id: OP_PY_013
-    legacy_type: openplant_antibiotic_plate_layout
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_004_4
+    legacy_type: openplant_designer_transformation_spread_plates_13_16
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_4.json
+    provenance: source_strict_adapted
     difficulty: Medium
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: antibiotic screening plate setup.
+      Source workflow: OP_PD_004_4, Transformation Spreading to 6 Well Plates - Script 4.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_004/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_004/OP_PD_004_4.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Prepare three antibiotic conditions across columns 1-4, 5-8, and 9-12.
-      3. Add media to all wells, then add antibiotic stocks by condition.
-      4. Never reuse tips between antibiotic stocks.
-      5. Include no-antibiotic controls in column 12 if requested by the operator.
-      6. Document stock locations, condition map, and downstream incubation handoff.
+      2. Transfer transformed samples from a 96-well source plate to 6-well plates containing solid media.
+      3. Cover plates 13 through 16 from the public multi-script workflow.
+      4. Use fresh tips for each transformed sample or justify a safe column-wise policy.
+      5. Treat spreading on solid media and downstream incubation as operator-controlled handoffs if they cannot be modeled as liquid transfers.
+      6. Document the source-to-6-well mapping, plate order, orientation checks, and contamination controls.
   - id: EOPEN014
     source: openplant_automation_protocols
-    upstream_id: OP_PY_014
-    legacy_type: openplant_timecourse_sampling
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_005_1
+    legacy_type: openplant_designer_bacterial_transformation_quarter_1
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_1.json
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: culture time-course sampling into a quench plate.
+      Source workflow: OP_PD_005_1, Bacterial Transformation Protocol - Script 1.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_1.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Transfer 20 uL samples from culture wells into quench wells at three named time points.
-      3. The robot may perform one time-point transfer per run segment, but timing between segments is an operator-controlled pause.
-      4. Use fresh tips for every culture sample.
-      5. Document the schedule, pause/resume instructions, and what to do if a time point is missed.
-      6. Keep the runbook clear that incubation between time points is off-deck.
+      2. Convert the quarter-1 transformation transfer from a 384-well source layout into a 96-well destination handling plan.
+      3. Preserve the public script's quarter-specific sample mapping instead of treating all 384 wells as one flat plate.
+      4. Use p20-appropriate low-volume transfers and fresh tips when changing samples.
+      5. Represent heat shock, recovery, plating, or incubation steps outside the liquid transfer as manual handoffs.
+      6. Document the quarter-1 mapping, source/destination orientation, low-volume accuracy limits, and operator checks.
   - id: EOPEN015
     source: openplant_automation_protocols
-    upstream_id: OP_PY_015
-    legacy_type: openplant_mastermix_plus_template_trap
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_005_2
+    legacy_type: openplant_designer_bacterial_transformation_quarter_2
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_2.json
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: PCR setup for plant colony screening. A draft note says to save tips by using one template tip for all wells; the package must correct this unsafe note.
+      Source workflow: OP_PD_005_2, Bacterial Transformation Protocol - Script 2.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_2.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Prepare 32 PCR wells with master mix and colony template suspension.
-      3. Master mix may be distributed efficiently if the same reagent is used.
-      4. Template additions must use fresh tips per colony to avoid cross-contamination.
-      5. Include positive and negative controls.
-      6. Document that the unsafe shared-template-tip suggestion was rejected.
+      2. Convert the quarter-2 transformation transfer from a 384-well source layout into a 96-well destination handling plan.
+      3. Preserve the public script's quarter-specific sample mapping instead of treating all 384 wells as one flat plate.
+      4. Use p20-appropriate low-volume transfers and fresh tips when changing samples.
+      5. Represent heat shock, recovery, plating, or incubation steps outside the liquid transfer as manual handoffs.
+      6. Document the quarter-2 mapping, source/destination orientation, low-volume accuracy limits, and operator checks.
   - id: EOPEN016
     source: openplant_automation_protocols
-    upstream_id: OP_PY_016
-    legacy_type: openplant_media_exchange_waste
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_005_3
+    legacy_type: openplant_designer_bacterial_transformation_quarter_3
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_3.json
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: media exchange in a 96-well culture plate.
+      Source workflow: OP_PD_005_3, Bacterial Transformation Protocol - Script 3.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_3.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Aspirate 150 uL spent media from each active well without touching the bottom.
-      3. Dispense 150 uL fresh media into each active well.
-      4. Track total waste and fresh media volume, including reservoir dead volume.
-      5. Add an operator pause if waste capacity or reservoir volume is not sufficient.
-      6. Document splash/aerosol risk and gentle aspiration height.
+      2. Convert the quarter-3 transformation transfer from a 384-well source layout into a 96-well destination handling plan.
+      3. Preserve the public script's quarter-specific sample mapping instead of treating all 384 wells as one flat plate.
+      4. Use p20-appropriate low-volume transfers and fresh tips when changing samples.
+      5. Represent heat shock, recovery, plating, or incubation steps outside the liquid transfer as manual handoffs.
+      6. Document the quarter-3 mapping, source/destination orientation, low-volume accuracy limits, and operator checks.
   - id: EOPEN017
     source: openplant_automation_protocols
-    upstream_id: OP_PY_017
-    legacy_type: openplant_replicate_randomization
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_005_4
+    legacy_type: openplant_designer_bacterial_transformation_quarter_4
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_4.json
+    provenance: source_strict_adapted
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: randomized biological replicate plating.
+      Source workflow: OP_PD_005_4, Bacterial Transformation Protocol - Script 4.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_005/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_005/OP_PD_005_4.json
 
       Workflow:
       1. Use an OT-2 style protocol with API v2.
-      2. Accept a table mapping strain_id, replicate_id, source_well, destination_well.
-      3. Transfer 30 uL culture for 24 randomized destinations.
-      4. Use fresh tips for every source strain.
-      5. Validate duplicate destination wells before starting.
-      6. Document randomization, replicate tracking, and operator review of the map.
+      2. Convert the quarter-4 transformation transfer from a 384-well source layout into a 96-well destination handling plan.
+      3. Preserve the public script's quarter-specific sample mapping instead of treating all 384 wells as one flat plate.
+      4. Use p20-appropriate low-volume transfers and fresh tips when changing samples.
+      5. Represent heat shock, recovery, plating, or incubation steps outside the liquid transfer as manual handoffs.
+      6. Document the quarter-4 mapping, source/destination orientation, low-volume accuracy limits, and operator checks.
   - id: EOPEN018
     source: openplant_automation_protocols
-    upstream_id: OP_PY_018
-    legacy_type: openplant_module_temperature_handoff
+    source_level: authentic_public_source_adapted
+    upstream_id: OP_PD_006
+    legacy_type: openplant_designer_pcr_plate_preparation
+    source_url: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_006/
+    source_file_url: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_006/OP_PD_006.json
+    provenance: source_strict_adapted
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Convert this OpenPlant Automation Protocols workflow into a seven-file execution package.
+      Convert this public OpenPlant Automation Protocols Protocol Designer workflow into a three-piece v0.4 execution package.
 
-      Source workflow: cold enzyme reaction setup with temperature control and off-deck incubation.
+      Source workflow: OP_PD_006, PCR Plate Preparation.
+      Public page: https://openplant.github.io/openplant_automation_protocols/Protocols/Designer/OP_PD_006/
+      Public file: https://github.com/openplant/openplant_automation_protocols/blob/main/Protocols/Designer/OP_PD_006/OP_PD_006.json
 
       Workflow:
-      1. Use an OT-2 or Flex style protocol with API v2 and a temperature module if available.
-      2. Keep enzyme and reaction mix cold during setup.
-      3. Add buffer, DNA, water, and enzyme in the correct order, with enzyme last.
-      4. If a temperature module is unavailable, require a chilled block and explicit operator timing checks.
-      5. Pause for manual transfer to incubator after setup.
-      6. Document module state, fallback cold-chain plan, and maximum allowed setup time.
+      1. Use an OT-2 style protocol with API v2.
+      2. Prepare a 384-well PCR plate from PCR strip samples and a reagent tube, matching the public deck layout intent.
+      3. Use an 8-channel p20 and a single-channel p20 where appropriate for reagent and sample transfers.
+      4. Preserve the mapping from 96-well strip sources to the 384-well PCR destination plate.
+      5. Use fresh tips for sample transfers and avoid cross-contamination between PCR samples.
+      6. Document strip-tube orientation, 384-well mapping, reagent volume checks, and the downstream PCR amplification handoff.
   - id: EPLR021
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_backend_capability_branching
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/machine-agnostic-features/writing-robot-agnostic-protocols.md
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived backend-neutral capability task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_capability_branching
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a PyLabRobot community/backend-neutral workflow that exposes backend capability differences.
+      Author a three-piece v0.4 execution package for a PyLabRobot community/backend-neutral workflow that exposes backend capability differences.
 
       Workflow:
       1. Load a source plate, destination plate, tip rack, and a compatible pipette.
       2. Transfer 20 uL from A1-A8 to B1-B8.
       3. If the backend supports a plate gripper, the runbook may mention optional plate movement; otherwise the operator must move plates manually.
       4. The protocol.py should stay runnable on an OT-2-style simulator and must not call unsupported gripper APIs.
-      5. Document the backend capability branch in runbook.md and risk_checklist.json.
+      5. Document the backend capability branch in setup_card.html and manifest.json.
   - id: EPLR022
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_backend_96_head_fallback
+    source_note: "Project-authored 96-head/fallback stress task; PyLabRobot has backend concepts but no one-to-one public example found."
     legacy_type: pylabrobot_backend_96_head_fallback
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral 96-well reagent dispense with a fallback plan.
+      Author a three-piece v0.4 execution package for a backend-neutral 96-well reagent dispense with a fallback plan.
 
       Workflow:
       1. Dispense 25 uL reagent into every well of a 96-well plate.
@@ -1008,13 +1324,17 @@ tasks:
       5. Document how the same logical action maps differently to Opentrons, Hamilton, and Tecan backends.
   - id: EPLR023
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_backend_tip_tracking_across_racks
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/00_liquid-handling/tutorial_tip_inventory_consolidation.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived tip-inventory/tracking task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_tip_tracking_across_racks
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for backend-neutral cherry-picking that requires more than one tip rack.
+      Author a three-piece v0.4 execution package for backend-neutral cherry-picking that requires more than one tip rack.
 
       Workflow:
       1. Transfer 10 uL from 120 listed source wells to matching destination wells.
@@ -1024,29 +1344,37 @@ tasks:
       5. Document tip exhaustion checks and backend-neutral tip tracking.
   - id: EPLR024
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_backend_action_order_trap
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/00_liquid-handling/hamilton-star/basic.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived action-order task using pick-up/aspirate/dispense/drop primitives; the negative trap is project-authored."
     legacy_type: pylabrobot_backend_action_order_trap
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral transfer workflow. A draft note says to dispense before aspirating because the destination plate is easier to reach first; the package must reject that impossible action order.
+      Author a three-piece v0.4 execution package for a backend-neutral transfer workflow. A draft note says to dispense before aspirating because the destination plate is easier to reach first; the package must reject that impossible action order.
 
       Workflow:
       1. Load a reservoir, destination plate, tip rack, and compatible pipette.
       2. Transfer 80 uL buffer to wells A1-A12.
       3. The correct action order is pick_up_tip, aspirate, dispense, and drop_tip.
       4. Do not encode the unsafe draft note into protocol.py.
-      5. Document the rejected action-order mistake in risk_checklist.json.
+      5. Document the rejected action-order mistake in manifest.json.
   - id: EPLR025
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_backend_labware_geometry_mapping
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/resources/itemized-resource/plate/plate-quadrants.ipynb
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived labware geometry/quadrant task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_labware_geometry_mapping
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral labware-geometry mapping task.
+      Author a three-piece v0.4 execution package for a backend-neutral labware-geometry mapping task.
 
       Workflow:
       1. Transfer 5 uL from a 384-well source subset A1, A3, A5, A7, C1, C3, C5, C7 into a 96-well destination row A.
@@ -1056,13 +1384,15 @@ tasks:
       5. Document the mapping table and backend calibration risk.
   - id: EPLR026
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_backend_liquid_class_limits
+    source_note: "Project-authored viscous-liquid/liquid-class stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_liquid_class_limits
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for viscous-liquid handling across backends.
+      Author a three-piece v0.4 execution package for viscous-liquid handling across backends.
 
       Workflow:
       1. Dispense 30 uL glycerol-containing reagent into wells A1-H3.
@@ -1072,13 +1402,15 @@ tasks:
       5. Keep protocol.py runnable while documenting that physical backends need liquid-class calibration.
   - id: EPLR027
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_backend_dynamic_worklist
+    source_note: "Project-authored dynamic-worklist stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_dynamic_worklist
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral dynamic worklist.
+      Author a three-piece v0.4 execution package for a backend-neutral dynamic worklist.
 
       Workflow:
       1. Accept a CSV/worklist with source_well, destination_well, volume_ul, reagent_id.
@@ -1088,13 +1420,15 @@ tasks:
       5. Document the worklist schema and backend-neutral action export.
   - id: EPLR028
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_backend_pause_recovery
+    source_note: "Project-authored pause-and-recovery stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_pause_recovery
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral pause-and-recovery workflow.
+      Author a three-piece v0.4 execution package for a backend-neutral pause-and-recovery workflow.
 
       Workflow:
       1. Dispense 60 uL reagent into wells A1-A6.
@@ -1104,29 +1438,35 @@ tasks:
       5. Document which recovery decision is manual and backend-independent.
   - id: EPLR029
     source: pylabrobot_community_backend
+    source_level: pylabrobot_doc_derived
     upstream_id: pylabrobot_backend_resource_renaming
+    source_doc_url: https://github.com/PyLabRobot/pylabrobot/blob/main/docs/user_guide/machine-agnostic-features/writing-robot-agnostic-protocols.md
+    provenance: public_doc_concept_adapted
+    source_note: "Doc-derived resource-object naming task; not a public wet-lab protocol entry."
     legacy_type: pylabrobot_backend_resource_renaming
     difficulty: Hard
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral resource naming task.
+      Author a three-piece v0.4 execution package for a backend-neutral resource naming task.
 
       Workflow:
       1. Use logical resources named source_plate, assay_plate, buffer_reservoir, and tips.
-      2. Map those logical names to concrete Opentrons labware in deck_plan.json and protocol.py.
+      2. Map those logical names to concrete Opentrons labware in manifest.json and protocol.py.
       3. Transfer 40 uL buffer to assay_plate wells C1-C8, then 10 uL sample from source_plate A1-A8 to the same wells.
       4. Avoid confusing logical names with physical slot numbers.
       5. Document how PyLabRobot-style resource objects would use the same logical names.
   - id: EPLR030
     source: pylabrobot_community_backend
+    source_level: project_synthetic_backend_stress
     upstream_id: pylabrobot_backend_cross_platform_controls
+    source_note: "Project-authored assay-control placement stress task; no one-to-one PyLabRobot public example found."
     legacy_type: pylabrobot_backend_cross_platform_controls
     difficulty: Expert
     holdout: true
     output_contract: execution_package
     prompt: |
-      Author a seven-file execution package for a backend-neutral assay setup with controls.
+      Author a three-piece v0.4 execution package for a backend-neutral assay setup with controls.
 
       Workflow:
       1. Add assay buffer to wells A1-H4.

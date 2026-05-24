@@ -4,7 +4,7 @@
 
 1. 一个能用的、democratize 且SOTA合成生物学自动化的工具
 2. 湿实验的检验+安全且负责，别给他们惹事
-3. 落到文章细节：main，一个图两个表格的更新；supply，新增补充材料
+3. 落到文章细节：**正文**重画 Figure 1、新增 Table 1（系统级对比）、新增 Extended Data Figure（真机 runtime + memory）；**补充材料**仅 Table S1 + Table S2A/S2B；其余进 Methods/Data files（见 [`paper_deliverables.md`](paper_deliverables.md)）
 
 [图片]
 
@@ -12,7 +12,7 @@
 
 ## 1. 定位
 
-叙事：LabscriptAI = 模型无关、**双 agent loop** 的液体处理自动化系统——**编写期**（NL → 三件套 protocol package，ReAct + 工具 + 渐进式知识披露）与 **运行时**（基于状态的 candidate action + 确定性 gatekeeper + trace）分工；二者共用 trace / manifest 口径，形成从意图到可审查包再到真机恢复与经验复用的闭环。
+叙事：LabscriptAI = 模型无关、**一个 agent loop** 的液体处理自动化系统。用户在命令行里直接对话；同一个 agent 根据任务进入 `author` 或 `run` 状态。`author` 负责 NL → 三件套 protocol package；`run` 负责读真机/仿真状态、解释错误、给恢复建议。所有动作都走同一个 gatekeeper、同一套十个工具、同一份 trace / memory 口径，形成从意图到可审查包再到真机恢复与经验复用的闭环。
 
 Here we introduce LabscriptAI, a state-grounded automation agent for synthetic biology that closes the loop from natural-language intent to validated execution by coupling protocol synthesis, simulation-based verification, physical-state monitoring, bounded runtime recovery, and reusable episodic memory.
 
@@ -26,21 +26,36 @@ Here we introduce LabscriptAI, a state-grounded automation agent for synthetic b
 
 ## 2. 论文最小产出
 
-原则：正文只重做 Figure 1，Figure2A可能会更新，并替换 1 张主表；新增证据尽量进 SI，现有的SI可以做删减去掉Prompt；
+原则：正文讲 **系统能力**（可检查、可恢复、可复用），不把 benchmark 日志塞进主表；定量细节进 SI 两张编号表 + Methods/Data files。旧 SI 完整 Prompt 附录删减。
 
-| 产出 | 要点 | 通过 |
+索引：[`paper_deliverables.md`](paper_deliverables.md)
+
+### 2.1 正文（Main）
+
+| 产出 | 要点 | 通过标准 |
 | --- | --- | --- |
-| 主图 1 | 重画为「意图→协议包→仿真→真机状态→感知→恢复→经验库」的一体化架构图 | 编写期/运行时/证据链清晰 |
-| 主表 1 | Systems × Metrics 综合对比表：前沿 LLM、编程智能体、仿真闭环、官方工具、LabscriptAI | 正面回 Barbara 关于 existing LLM automation tools 的比较要求 |
-| 补充表 S1 | Baseline manifest：模型 ID、API 日期、提示、retry、工具权限、评分口径 | 可复现 |
-| 补充表 S2 | Scaffolding × Base LLM ablation | 证明不是单一模型优势 |
-| 补充表 S3 | 同 Base LLM × 不同 scaffolding | 证明系统设计贡献 |
-| 补充表 S4 | Runtime 逐案例结果 | 支撑真机恢复 |
-| 补充表 S5 | Capability matrix：PyLabRobot、Coscientist、ChemCrow、CRISPR-GPT、自驱实验室平台等能力边界 | 避免正文不公平横比 |
-| 补充表 S6 | External community validation：Opentrons Protocol Library / OpenPlant | 证明不是只会做自定义 90 题 |
-| 补充表 S7 | Cross-platform sanity set：LabFlow IR → Opentrons / PyLabRobot / optional Autoprotocol | 证明移液任务表示不是写死在单一平台 |
-| 视频 1 | 缺吸头：失败 vs agent驱动的恢复 | 对比 |
-| 视频 2 | 自演化：回合 1 检测并恢复，回合 2 更早规避同类失败 | 可量化改进 |
+| **Figure 1** | 一个 Agent：CLI/TUI 对话入口；`author` / `run` 两个状态；gatekeeper；十个工具；skill library；memory store；统一 trace | 三条主线可读；不与 Table 1 重复罗列指标 |
+| **Table 1** | 系统级对比：frontier LLM、coding agent、文献/官方工具、LabscriptAI | 回答 Barbara「existing LLM automation tools」；列克制，见 §8.1 |
+| **Extended Data Fig. X** | 真机 runtime recovery（≥3 paired case）+ memory 两回合（≥1 case） | 支撑「不是只会写代码」；逐案例明细不进正文 |
+
+配套：**Video 1**（缺吸头等恢复对比）、**Video 2**（memory 回合 1 vs 2），挂 ExtFig 或 SI。
+
+### 2.2 补充材料（仅两张编号表）
+
+| 产出 | 要点 |
+| --- | --- |
+| **Table S1** | 固定 base model × scaffold（90 题）；证明 scaffold 贡献，非模型红利 |
+| **Table S2A** | External community generalization（66 题，分 subset） |
+| **Table S2B** | LabFlow IR portability sanity（5–10 题，多 backend compile） |
+
+### 2.3 不单独编号的材料（Methods / Data）
+
+- Baseline manifest（模型 ID、API 日期、prompt hash、预算、工具权限）→ `supplementary/baseline_manifest.csv`
+- Runtime 逐案例 → `supplementary/runtime_cases.csv`（原「S4」）
+- Capability matrix 短文（原「S5」，Discussion 用）
+- 90 题逐题多维评分、hold-out 清单
+
+证据数字：[`authoring_benchmark_results.md`](authoring_benchmark_results.md)。实现状态：[`rollout_12_status.md`](rollout_12_status.md)。
 
 ## 3. 四层证据栈
 
@@ -53,38 +68,48 @@ Here we introduce LabscriptAI, a state-grounded automation agent for synthetic b
 
 勿只报「X/90」：须含严格首轮/预算、修复收敛、专家分、真机恢复、经验复用。
 
-投稿口径不能把 runtime/memory 藏进外部副表。主线证据应是「编写 + 运行时恢复 + memory」三件套；外部社区验证和 cross-platform sanity 只是补充材料，用来反驳过拟合和单平台写死。
+投稿口径不能把 runtime/memory 藏进 external/IR 副表。主线证据应是「编写 + 运行时恢复 + memory」三件套；Table S2A/S2B 只作泛化与可移植性旁证。
+
+**分数主张拆分（投稿必守）**：
+
+- **Authoring FP/BoB**（Table 1、S1）：来自 `labscriptai-authoring`（当前 freeze：`authoring-light`），**不是** `labscriptai-full` 端到端 90 题分数。
+- **Runtime / Memory**（Table 1 摘要列、ExtFig）：来自真机/trace case study，**独立**于 90 题 composite。
+- **External / IR**（S2A/S2B）：泛化与可移植性旁证，**不**替代 runtime 主线。
 
 ---
 
-## 4. 智能体Runtime
+## 4. 智能体核心：一个 loop + 十个工具
 
 [图片]
 
-**编写期与运行时分工**：编写期产出三件套 execution package（`protocol.py`、`setup_card.html`、`manifest.json`，其中 `manifest.json` 记录工具权限与预算）；运行时只消费已落盘的 package，模型在此阶段仅输出受限 JSON candidate action，经 gatekeeper 后才可触达 simulator / 只读 robot 观测等工具。旧七件套只作为 legacy 兼容。两条 loop 的详细实现与开工顺序见 `runtime_build_plan.md`（含 §1.3 编写期 loop）。
+**新的代码口径**：不要再讲成两个独立 loop。LabscriptAI 是一个命令行对话 agent，内部只有一个 `while true + gatekeeper + tools` 主循环。`author` 和 `run` 是两个状态，不是两个产品。
 
-代码策略：核心 **运行时** loop 采用轻量 Python 自研，不把通用 coding agent 框架（如大型 TS monorepo）作为主线依赖。`earendil-works/pi` 等可作为 **外部 baseline** 对照；**编写期** ReAct 维护在 `src/labscriptai/authoring/`，避免为论文主线引入额外运行时依赖。论文贡献仍须落在状态、gatekeeper、trace、真机恢复与经验复用。
+`author` 状态产出三件套 execution package（`protocol.py`、`setup_card.html`、`manifest.json`，其中 `manifest.json` 记录工具权限与预算）；`run` 状态只读机器人/仿真状态、解析错误、提出恢复候选。模型在任何状态下都只提出受限 tool call，经 gatekeeper 后才可触达 simulator、只读 robot 观测或受控 run control。旧七件套只作为 legacy 兼容。详细实现与开工顺序见 `runtime_build_plan.md`。
 
-当前已有：protocol author skill、verify/simulate wrapper、robot LAN API、若干 protocol artifacts、`artifacts/lab-runtime-demo/` 中的 mock runtime loop 产物、旧 JS/MCP recovery loop 代码、以及 Flexagent 根目录下 `workspace-archive/opentrons-lab-exam/` 中已有 physical runtime evidence。`src/labscriptai/` 内已具备 **编写期雏形 + package_validator + 离线 runtime loop（gatekeeper / trace / simulator adapter）+ robot HTTP 只读 adapter + smoke/scenario/authoring_pilot 入口**（详见 `runtime_build_plan.md` **§2.1** 与 **§6.1**）。**仍偏 STA runtime 闭环的缺口**：真机只读观测稳定写入同一 trace、live recovery shadow benchmark、memory 第二回合、vision/liquid 与 runtime 同口径 adapter。
+代码策略：核心 agent loop 采用轻量 Python 自研，不把通用 coding agent 框架（如大型 TS monorepo）作为主线依赖。`earendil-works/pi` 等可作为 **外部 baseline** 对照。论文贡献仍须落在实验状态、gatekeeper、十个稳定工具、trace、真机恢复与经验复用。
+
+**实现状态（2026-05-21）**：MCP bridge、shadow recovery benchmark、memory MVP、PyLabRobot IR proof 已落地（`rollout_12_status.md`）。详见 `runtime_build_plan.md` §2.1。
+
+**论文未宣称**：90 题 `labscriptai-full` 全流程分数；默认真机自动 recovery（P4 controlled adapter）；Hamilton/Tecan 物理执行。真机 ExtFig 证据与 authoring freeze 分开填报。
 
 | 组件 | 要点 | 通过 |
 | --- | --- | --- |
-| authoring loop（编写期） | ReAct：文件读写 / simulate / validate / protocol-library 关键词检索；按需 `load_skill` 渐进披露；输出三件套 + trace | 首轮与预算内指标可比对 Claude Code 等基线 |
-| agentloop（运行时） | observe→state update→candidate action→deterministic gate→tool execution→trace→recover/escalate/end | 每步有事件日志与状态轨迹 |
-| 规划适配 | 运行时 LLM 只生成 JSON 候选动作；确定性 gatekeeper 校验硬件、安全、状态一致性后才执行 | 模型不可绕过门控直驱硬件 |
-| 状态 | 期望/已提交/观测/风险；运行时 JSON schema | 每次恢复可解释 |
-| 工具 | robot API、simulator、liquid sensing、YOLO/VLM 辅助观测；观测写入统一 trace schema | 真机与离线回归共用同一轨迹 schema |
-| 经验库 | 案例记忆的md/json | 第二回合先查经验再重复失败动作 |
+| 单一 agent loop | observe → load skill/memory → candidate tool call → gatekeeper → execute → trace → continue/stop | author/run 两种状态都走同一套流程 |
+| `author` 状态 | 文件读写、validate、simulate、protocol search、skill load；输出三件套 + trace | 首轮与预算内指标可比对 Claude Code 等基线 |
+| `run` 状态 | robot inspect、error parse、recovery suggest、gated run control、memory | 真机/离线 case 每步有事件日志与状态轨迹 |
+| gatekeeper | 每个 tool call 都先检查权限、状态、安全边界 | 模型不可绕过门控直驱硬件 |
+| 十个工具 | `package.read_write`、`package.validate`、`package.simulate`、`robot.inspect`、`run.control`、`error.parse`、`recovery.suggest`、`skill.search_load`、`memory.read_write`、`protocol.search` | 工具名稳定，底层实现可逐步替换 |
+| 经验库 | 案例记忆的 md/json | 第二回合先查经验，避免重复失败 |
 
 近期 loop 强化采用三步，不直接把模型放到无限权限真机控制位：
 
 | 步骤 | 交付 | 目的 | 风险边界 |
 | --- | --- | --- | --- |
 | 1 | `robot_http` read-only adapter | robot status、run history、module status、parse_error 进入 Python trace | 只读，不移动 |
-| 2 | live recovery shadow benchmark | 模型候选恢复动作与 MCP `suggest_recovery_action` 对比 | 不执行恢复 |
-| 3 | controlled recovery adapter | 未来白名单低风险 `execute_protocol_recovery` 分支进入 loop | 当前未接通；必须在 read-only trace 与 shadow benchmark 稳定后，gatekeeper + MCP contract 双重通过；高风险人工确认 |
+| 2 | live recovery shadow benchmark | 模型候选恢复动作与 MCP `suggest_recovery_action` 对比 | **已实现**（shadow）；不执行恢复 |
+| 3 | controlled recovery adapter | 未来白名单低风险 `execute_protocol_recovery` 分支进入 loop | **未接通**；须在 shadow 稳定后，gatekeeper + MCP contract 双重通过；高风险人工确认 |
 
-Runtime 详细开工方案见 `runtime_build_plan.md`；P0-P5 权限与当前实现状态见 `permission_matrix.md`。
+Agent 详细开工方案见 `runtime_build_plan.md`；P0-P5 权限与当前实现状态见 `permission_matrix.md`。
 
 ---
 
@@ -103,15 +128,19 @@ Runtime 详细开工方案见 `runtime_build_plan.md`；P0-P5 权限与当前实
 - PyLabRobot mini set 作为 cross-platform sanity set 放补充材料。
 - 第一版 LabFlow IR 只做最小液体处理表示，不声称新通用实验室语言；字段对齐 Autoprotocol-style instruction、PyLabRobot-compatible execution semantics，并借鉴 Uni-Lab-OS 的 Action / Resource / state transaction 思想。IR 只作为补充材料导出，不改 90 题 authoring 主路径；若改成“先出 IR 再编译 Opentrons”，需要作为新 scaffold 重跑主表。
 
-当前必须诚实写明：90 题 × 多系统完整 baseline matrix 尚未跑完；截至 2026-05-18，已有证据主要是小样本 authoring pilot / runtime scenario smoke。先冻结 manifest、prompt hash、retry budget 和 tool permission，再做大规模 baseline。
+Authoring 主证据：`freeze-v04-20260520`（90 题 + external 66，base model `deepseek-v4-flash`，`labscriptai-authoring-light`）。见 `authoring_benchmark_results.md`。
+
+Table 1 多系统 baseline（GPT/Claude/Gemini、Claude Code、Inagaki、OpentronsAI）**尚未齐**；填 TBD，不得用 light scaffold 分数冒充 full system 或冒充多模型结论。
 
 Benchmark 详细题型与评分字段见 `benchmark_taxonomy.md`。
 
 ---
 
-## 6. 运行时benchmark（≥20 案例，以真机为主）(待定）
+## 6. 运行时 benchmark（Extended Data Fig. X）
 
-正文优先做 3 个高质量真机 paired case；SI 扩展到 ≥12–20 个结构化案例，标明真机/离线/未做原因
+正文 **不进表**。Runtime 题目已冻结为 `benchmarks/runtime/runtime20.yaml`（20 个通用液体处理工作站错误/恢复案例）。≥3 高质量真机 paired case 进 Extended Data Fig.；20 个结构化案例结果进 `supplementary/runtime_cases.csv`（标明真机/离线/未做原因）。
+
+冻结规则：`runtime20.yaml` 的 case 定义不再修改；后续只补 run result、trace、视频、hardware unavailable 标记。若某题暂时不能在当前 Flex/OT-2 上运行，不换题，记录 `not_run_hardware_unavailable`。
 
 | 类 | 案例 | 预期行为 | 通过 |
 | --- | --- | --- | --- |
@@ -130,7 +159,9 @@ Benchmark 详细题型与评分字段见 `benchmark_taxonomy.md`。
 
 指标：detected · blocked_correctly · recovered · robot_assisted · human_intervention_count · recovery_time_sec · evidence_complete
 
-## 7. Memory reuse
+## 7. Memory reuse（Extended Data Fig. X）
+
+Memory 证据与 §6 同 Extended Data Figure（建议 Panel C）；不与 Table 1 authoring 分数合并。
 
 技术上：
 
@@ -149,39 +180,85 @@ Benchmark 详细题型与评分字段见 `benchmark_taxonomy.md`。
 
 [图片]
 
-## 8. 基线与 SOTA
+## 8. 基线与证据表
 
-本节优先服务 Barbara 预审意见中提出的核心问题：与 existing LLM automation tools 的严格比较。正文只放一张综合主表，所有细节表进入补充材料。
+服务 Barbara 关切：**与 existing LLM / coding agents / 官方工具的严格对比**。正文仅 **Table 1**（克制列）；scaffold 细节 **Table S1**；泛化 **Table S2A**；IR **Table S2B**。
 
 同任务集、同评分 schema；LabscriptAI 若多工具须在文中写明；基线勿暗中吃亏（仅干净提示须标注）。
 
-主表不要漏掉 `Inagaki-style loop` 和 `OpentronsAI`：前者代表文献中的 simulator loop，后者代表官方自然语言工具。即使二者只支持子集，也要在 `Setting` 和 `FP x/n` 里诚实标注。
+主表不要漏掉 `Inagaki-style loop` 和 `OpentronsAI`：前者代表文献 simulator loop，后者代表官方 NL 工具。子集须在 Setting 脚注标 `n`。
 
-### 8.1 正文的主表：Systems × Evidence（待定）
+### 8.1 正文 Table 1：Systems × Evidence
 
-| System | Class | Setting | Authoring | Expert | Runtime | Memory | Role | 角色 |
+列（8 列；**Sim 不进正文主表**，见 S1 或脚注）：
+
+| System | Class | Setting† | Authoring FP‡ | Authoring BoB‡ | Expert§ | Runtime¶ | Memory¶ | Cost |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| GPT-5.5 direct | Frontier LLM | Clean prompt; matched retry | FP x/90; BoB x/90; iter x | x/5 | Not designed | Not designed | Strong LLM | 强模型基线 |
-| Claude Opus 4.7 direct | Frontier LLM | Same | FP x/90; BoB x/90; iter x | x/5 | Not designed | Not designed | Strong LLM | 强模型基线 |
-| Gemini 3.1 Pro direct | Frontier LLM | Same | FP x/90; BoB x/90; iter x | x/5 | Not designed | Not designed | Strong LLM | 强模型基线 |
-| Claude Code | Coding agent | Local edit + simulator; matched budget | FP x/90; BoB x/90; iter x | x/5 | Code debug only | Not designed | Coding agent | 编程智能体基线 |
-| Codex | Coding agent | Same | FP x/90; BoB x/90; iter x | x/5 | Code debug only | Not designed | Coding agent | 编程智能体基线 |
-| Conscientist |  | Open-source agent | Same | FP x/90; BoB x/90; iter x | x/5 | Code debug only | Not designed | Open baseline | 文献基线 |
-| Inagaki-style loop | LLM + simulator | Reproduced simulator loop | FP x/90; BoB x/90; iter x | x/5 | Simulation only | Not designed | Literature baseline | 文献基线 |
-| OpentronsAI | Official NL tool | Supported subset | FP x/n; BoB x/n; iter x | x/5 | Not evaluated | Not designed | Official tool | 官方工具 |
-| LabscriptAI | State-grounded agent | Authoring ReAct + three-piece package + simulation + runtime state + gatekeeper + trace | FP x/90; BoB x/90; iter x | x/5 | x/y recovered; x interventions; x s | x/y improved | This work | 本文 |
+| GPT-5.5 direct | Frontier LLM | Clean prompt; matched budget | TBD | TBD | TBD | — | — | TBD |
+| Claude Opus 4.7 direct | Frontier LLM | Same | TBD | TBD | TBD | — | — | TBD |
+| Gemini 3.1 Pro direct | Frontier LLM | Same | TBD | TBD | TBD | — | — | TBD |
+| Claude Code | Coding agent | Local edit + simulator; matched budget | TBD | TBD | TBD | debug only† | — | TBD |
+| Codex | Coding agent | Same | TBD | TBD | TBD | debug only† | — | TBD |
+| Inagaki-style loop | Literature | Reproduced simulator loop | TBD | TBD | TBD | — | — | TBD |
+| OpentronsAI | Official NL tool | Supported subset | TBD/n | TBD/n | TBD | — | — | TBD |
+| **LabscriptAI** | This work | Authoring: ReAct, v0.4 three-piece, `authoring-light`, freeze 20260520. Runtime/memory: Ext. Data Fig. X | TBD (56§) | TBD (56§) | TBD | y_eval recovered | z_eval improved | TBD |
 
-### 8.2 补充材料表（待定）
+**Table 1 脚注（投稿必写）**：
 
-- Table S1: Baseline manifest，包括模型 ID、API 日期、提示模板、retry budget、工具权限、评分口径。
-- Table S2: LabscriptAI scaffold × base LLM，证明不是单一 base model 效应，所有模型上我们这框架在自动化的能力都有提高
-- Table S3: Same base LLM × direct / simulator loop / coding agent / `labscriptai-authoring`（仅编写期）/ `labscriptai-full`（编写+运行+memory），证明系统设计贡献。当前 DeepSeek Flash 三 scaffold 预实验结果见 `docs/research/authoring_benchmark_results.md`。
-- Table S4: Runtime benchmark 逐案例结果。
-- Table S5: Capability matrix，放 PyLabRobot、Coscientist、ChemCrow、CRISPR-GPT、自驱实验室平台等能力边界。
-- Table S6: External community validation，放 Opentrons Protocol Library / OpenPlant 抽样任务、来源、转换规则、package/simulation/validator 结果。
-- Table S7: Cross-platform sanity set，放 5-10 个标准移液任务的 LabFlow IR、Opentrons compile、PyLabRobot-style compile、optional Autoprotocol export 与 unsupported reason。
+- † **Setting**：任务集 n、统一预算、工具权限；OpentronsAI 若 n<90 须标明。Coding agent runtime 列仅为代码调试，非真机 recovery。
+- ‡ **FP/BoB** = composite pass（sim ∧ validator ∧ semantic ∧ param_sweep），见 `benchmark_taxonomy.md`。**LabscriptAI authoring 数字来自 `labscriptai-authoring-light`，非 `labscriptai-full` 90 题端到端。**
+- § **Expert**：盲评 mean/5；未完成标 TBD。若用 reviewer agent 须脚注区分。
+- ¶ **Runtime/Memory**：真机或授权 trace case；与 authoring 90 题**独立**评估。Sim pass 见 Table S1。
 
-原则：PyLabRobot、Coscientist、ChemCrow、CRISPR-GPT 不强行放入正文定量主表，避免不公平比较；它们放入补充能力矩阵和 Discussion。
+§ 括号内 56 为 freeze composite BoB 占位，Table 1 终稿须换强模型/多 baseline 后重填。
+
+### 8.2 补充材料表
+
+#### Table S1 — Scaffold ablation（90 tasks, fixed base model）
+
+| Scaffold | Composite BoB | Composite FP† | Validator | Semantic | Param sweep | Tokens/task | Trace |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Direct | 23/90 | TBD | 37/90 | 56/90 | 85/90 | 4,779 | 0/90 |
+| Direct + fix-loop | 45/90 | TBD | 72/90 | 60/90 | 87/90 | 8,982 | 0/90 |
+| LabscriptAI authoring (light) | 56/90 | TBD | 84/90 | 63/90 | 87/90 | 84,260 | 90/90 |
+
+† FP composite 须从 freeze run 按 first attempt 聚合（`analyze_authoring_run`）。Sim pass（38/80/85）仅作 S1 脚注。数据：`runs/authoring-pilot/freeze-v04-20260520/authoring90/`。
+
+可选 **S1b**：`skill_mode` full/light/off（OpenPlant 18），有 rerun 再加。
+
+#### Table S2A — External generalization（66 tasks）
+
+**独立表**（不与 S2B 合并宽表）：
+
+| Scaffold | N | Composite | Package | Manifest | Setup card† | FP composite | Tokens/task |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Direct | 66 | 57/66 | 58/66 | 58/66 | TBD | TBD | 5,729 |
+| Direct + fix-loop | 66 | 61/66 | 61/66 | 61/66 | TBD | TBD | 5,990 |
+| LabscriptAI authoring (light) | 66 | 60/66 | 61/66 | 61/66 | TBD | TBD | 74,577 |
+
+Subset 脚注：Opentrons Library 18 · OpenPlant source-strict 18 · PyLabRobot 30。OpenPlant 须按 `benchmarks/external_community/OPENPLANT_PROVENANCE.md` rerun 后再填终稿。诚实注：freeze external 上 fix-loop 61/66 vs LabscriptAI 60/66；**主结论以 90 题 S1 为准**。`openplant18-v04-api` 高 provider error 不得当稳定排名。
+
+#### Table S2B — LabFlow IR portability sanity
+
+| Task ID | Task | IR valid | Opentrons compile | PyLabRobot compile | Autoprotocol | Notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| X001 | 96-well plate replication | TBD | TBD | TBD | TBD | 基础 transfer |
+| X002 | Serial dilution | TBD | TBD | TBD | TBD | mix / dilution |
+| … | … | … | … | … | … | 5–10 题 |
+
+证据：`tests/test_pylabrobot_smoke`。**软件/backend only**，非 Hamilton/Tecan 真机（见 `rollout_12_status.md` Claim Boundary）。
+
+### 8.3 原补充表去向
+
+| 原编号 | 去向 |
+| --- | --- |
+| 原 S1 baseline manifest | `supplementary/baseline_manifest.csv` + Methods |
+| 原 S2 scaffold×LLM | 等多 base model 跑通后再加；当前仅 S1 单模型 |
+| 原 S4 runtime 逐案例 | `supplementary/runtime_cases.csv` + ExtFig |
+| 原 S5 capability matrix | Discussion 短文，不编号 |
+| 原 S6 + S7 | 拆为 **S2A** + **S2B** |
+
+PyLabRobot、Coscientist、ChemCrow、CRISPR-GPT 不放进 Table 1 定量横比；放入 Discussion capability 短文。
 
 ---
 
@@ -207,20 +284,20 @@ reviewer智能体：标准化证据、筛明显错误、给个大体打分；
 
 | ID | 优先级 | 交付 | 完成 |
 | --- | --- | --- | --- |
-| WP0 | P0 | Schema 与 runtime MVP：execution package、runtime state、trace、gatekeeper、agent loop | 先冻结数据口径和证据闭环 |
-| WP0b | P1 | Authoring loop MVP：ReAct + 渐进式 skill + simulate/validate 反馈（可先于完整 90 题全量；优先最小 retry 和工具轮闭环） | 与 `authoring_pilot`、Table S3 的 `labscriptai-authoring` 对齐 |
+| WP0 | P0 | 统一 Agent core：`AgentState`、`ToolCall/ToolResult`、gatekeeper、trace、一个 agent loop | 取代旧“双 loop”口径 |
+| WP0b | P1 | 十个工具 wrapper：package、robot、run、error、recovery、skill、memory、protocol search | 先包现有代码，后续再清理实现 |
 | WP1 | P0 | 90 题 benchmark taxonomy 与 score schema | 直接按 90 题设计，至少 30 hold-out |
 | WP2 | P1 | Baseline manifest 与 benchmark runner | 模型 ID、API 日期、prompt、retry、工具权限、评分口径可复现；表格导出不是 STA loop 核心 |
 | WP3 | P0 | 核心基线 smoke run | GPT/Claude/Gemini、Claude Code/Codex/OpenHands、Inagaki-style、OpentronsAI 小样本跑通 |
 | WP4 | P1 | Authoring benchmark：90 题，含 hold-out | 仿真通过、专家评分、attempt/token/time |
 | WP5 | P1 | 专家评分 schema 与盲评汇总 | ≥2 人独立，理想为 ≥3 人 |
 | WP6 | P1 | Runtime 真机证据 | ≥3 个高质量 paired case，理想 ≥20 case |
-| WP7 | P2 | Scaffolding × LLM ablation | 进入补充材料 |
+| WP7 | P2 | Scaffolding × LLM ablation | 等多 base model 后扩展 S1b；当前 S1 单模型 |
 | WP8 | P2 | 自演化两回合 | 1 个高质量案例，理想扩到 3 类 |
-| WP9 | P3 | Figure 1、主表、补充表整理 | 写作阶段再处理，不阻塞 runtime loop |
-| WP10 | P1 | Loop 强化三小闭环：read-only robot adapter、shadow recovery benchmark、controlled recovery adapter | 先只读，再 shadow，最后白名单恢复；P4 当前必须标未接通 |
-| WP11 | P2 | External community validation set：Opentrons Protocol Library / OpenPlant | 不混入 90 题主分数，作为泛化副表 |
-| WP12 | P2 | LabFlow IR + PyLabRobot cross-platform sanity set | 5-10 题；放补充材料；记录 unsupported reason |
+| WP9 | P3 | Figure 1、Table 1、S1、S2A/S2B、ExtFig 整理 | 写作阶段；见 `paper_deliverables.md` |
+| WP10 | P1 | `run` 状态强化：read-only robot adapter、shadow recovery benchmark、controlled recovery adapter | 步骤 1–2 Done；P4 未接通 |
+| WP11 | P2 | External community validation set | 交付 Table S2A |
+| WP12 | P2 | LabFlow IR + PyLabRobot sanity | 交付 Table S2B |
 | WP13 | P1 | Permission matrix 与实现状态表 | P0-P5 对齐 runtime action，区分已实现/计划/禁止 |
 
 ---
@@ -229,11 +306,11 @@ reviewer智能体：标准化证据、筛明显错误、给个大体打分；
 
 | 领域 | 最低可投稿标准 | 理想标准 |
 | --- | --- | --- |
-| 正文图表 | 只改 Figure 1；正文只放 1 张综合主表 | 不额外改动其他主图 |
-| 基线 | ≥3 frontier LLM + ≥2 coding agent + Inagaki-style + OpentronsAI | 加 OpenHands、scaffolding × LLM matrix |
-| 编写 | 90 题，含 ≥30 hold-out | 90 题全量跑完多模型、多 scaffold，并完成盲评 |
-| 专家 | ≥2 人盲评 | ≥3 人，报告一致性指标 |
-| 运行时 | ≥3 个高质量真机 paired case | ≥20 个 runtime case，真机占比最大化 |
-| 自演化 | 1 个两回合案例 | 3 类故障两回合 |
-| 补充材料 | Baseline manifest、ablation、逐题结果、逐案例 runtime | 写作阶段整理；不作为核心代码里程碑 |
-| 论文 | 修改 Figure 1；唯一正文主表为 Systems × Metrics | Cover letter 中明确回应 Barbara 的 comparison 关切 |
+| 正文 | Fig1 + Table1（克制列）+ ExtFig runtime/memory | 不新增第二正文主表 |
+| Table 1 | ≥3 frontier + ≥2 coding + Inagaki + OpentronsAI；LabscriptAI 脚注拆清 authoring vs runtime | 多模型 + `labscriptai-full` 若有 |
+| SI 编号表 | **仅 S1 + S2A + S2B** | S1 含 FP composite |
+| Methods/Data | manifest、runtime_cases.csv、逐题分 | 专家盲评 ≥2 人 |
+| 编写 | 90 题 freeze + ≥30 hold-out | 多模型 Table 1 全填 |
+| 运行时 | ≥3 真机 paired case（ExtFig） | ≥20 case CSV |
+| 自演化 | 1 个 memory 两回合（ExtFig） | 3 类故障 |
+| 主张 | 不把 56/90 写成 full-system；不把 PyLabRobot smoke 写成真机跨平台 | Cover letter 回应 Barbara |
