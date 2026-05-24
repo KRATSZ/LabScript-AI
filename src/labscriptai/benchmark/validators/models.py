@@ -14,16 +14,6 @@ THREE_PIECE_PACKAGE_FILES = (
     "manifest.json",
 )
 
-LEGACY_PACKAGE_FILES = (
-    "protocol.py",
-    "deck_plan.json",
-    "reagent_plan.json",
-    "tip_plan.json",
-    "runbook.md",
-    "risk_checklist.json",
-    "manifest.json",
-)
-
 REQUIRED_PACKAGE_FILES = THREE_PIECE_PACKAGE_FILES
 
 CRITICAL_FAILURES = (
@@ -36,17 +26,6 @@ CRITICAL_FAILURES = (
     "module_misuse",
     "schema_invalid",
     "other",
-)
-
-MANIFEST_REQUIRED_FIELDS = (
-    "task_id",
-    "system_id",
-    "model_id",
-    "scaffold_id",
-    "prompt_hash",
-    "retry_budget",
-    "tool_permissions",
-    "timestamp",
 )
 
 THREE_PIECE_MANIFEST_REQUIRED_FIELDS = (

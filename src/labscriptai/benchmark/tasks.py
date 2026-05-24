@@ -152,6 +152,9 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
             prompt_lines = []
             continue
         if in_prompt:
+            if line == "":
+                prompt_lines.append("")
+                continue
             if line.startswith("      "):
                 prompt_lines.append(line[6:])
                 continue

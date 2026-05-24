@@ -41,6 +41,7 @@ class AuthoringToolRegistry:
         workspace_root: Path | None = None,
         simulation_timeout_sec: int = 180,
         skill_mode: str = "full",
+        tool_profile: str = "kb",
     ) -> None:
         self.package_dir = package_dir
         self.trace_writer = trace_writer
@@ -52,17 +53,24 @@ class AuthoringToolRegistry:
         if skill_mode not in {"full", "light", "off"}:
             raise ValueError("skill_mode must be one of: full, light, off")
         self.skill_mode = skill_mode
+        if tool_profile not in {"edit", "simulate", "kb", "kb_strong"}:
+            raise ValueError("tool_profile must be one of: edit, simulate, kb, kb_strong")
+        self.tool_profile = tool_profile
         self._tools: dict[str, ToolFn] = {
             "read_file": self._read_file,
             "write_file": self._write_file,
             "str_replace": self._str_replace,
             "json_set": self._json_set,
             "append_md": self._append_md,
-            "run_simulate": self._run_simulate,
-            "validate_package": self._validate_package,
-            "search_protocol_library": self._search_protocol_library,
         }
-        if skill_mode != "off":
+        if tool_profile in {"simulate", "kb", "kb_strong"}:
+            self._tools.update(
+                {
+                    "run_simulate": self._run_simulate,
+                    "validate_package": self._validate_package,
+                }
+            )
+        if tool_profile in {"kb", "kb_strong"} and skill_mode != "off":
             self._tools["load_skill"] = self._load_skill
 
     def list_tool_specs(self) -> list[dict[str, Any]]:

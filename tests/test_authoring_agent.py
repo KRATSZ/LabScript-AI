@@ -9,7 +9,7 @@ from labscriptai.authoring.agent import AuthoringAgent
 from labscriptai.authoring.task_state import AuthoringTaskState
 from labscriptai.authoring.tools.registry import AuthoringToolRegistry
 from labscriptai.benchmark.tasks import AuthoringTask
-from test_package_validator import write_valid_three_piece_package
+from tests.test_package_validator import write_valid_package
 
 
 class ScriptedAuthoringClient:
@@ -35,7 +35,7 @@ class AuthoringAgentTests(unittest.TestCase):
             root = Path(tmp)
             seed = root / "seed"
             seed.mkdir()
-            write_valid_three_piece_package(seed)
+            write_valid_package(seed)
             responses = [
                 {
                     "tool_calls": [
@@ -168,6 +168,41 @@ class AuthoringAgentTests(unittest.TestCase):
         self.assertFalse(blocked.ok)
         self.assertIn("skill disabled in light mode", blocked.content["error"])
         self.assertTrue(allowed.ok)
+
+    def test_authoring_tool_profiles_expose_scaffold_ablation_tools(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            edit_registry = AuthoringToolRegistry(
+                package_dir=root / "edit",
+                state=AuthoringTaskState(run_id="authoring-edit", task_id="T001"),
+                skill_mode="off",
+                tool_profile="edit",
+            )
+            simulate_registry = AuthoringToolRegistry(
+                package_dir=root / "simulate",
+                state=AuthoringTaskState(run_id="authoring-simulate", task_id="T001"),
+                skill_mode="off",
+                tool_profile="simulate",
+            )
+            kb_registry = AuthoringToolRegistry(
+                package_dir=root / "kb",
+                state=AuthoringTaskState(run_id="authoring-kb", task_id="T001"),
+                skill_mode="light",
+                tool_profile="kb",
+            )
+
+            edit_tools = {tool["name"] for tool in edit_registry.list_tool_specs()}
+            simulate_tools = {tool["name"] for tool in simulate_registry.list_tool_specs()}
+            kb_tools = {tool["name"] for tool in kb_registry.list_tool_specs()}
+
+        self.assertIn("write_file", edit_tools)
+        self.assertNotIn("run_simulate", edit_tools)
+        self.assertNotIn("load_skill", edit_tools)
+        self.assertIn("run_simulate", simulate_tools)
+        self.assertNotIn("load_skill", simulate_tools)
+        self.assertIn("run_simulate", kb_tools)
+        self.assertIn("load_skill", kb_tools)
+        self.assertNotIn("search_protocol_library", kb_tools)
 
 
 if __name__ == "__main__":

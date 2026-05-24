@@ -16,7 +16,7 @@ from pathlib import Path
 from collections.abc import Iterable
 from typing import Any, Mapping
 
-from .package_validator import LEGACY_PACKAGE_FILES, REQUIRED_PACKAGE_FILES
+from .package_validator import REQUIRED_PACKAGE_FILES
 from .tasks import AuthoringTask, load_authoring_tasks
 from .validators.core import as_number, first_present, iter_plan_items
 
@@ -73,7 +73,17 @@ class ParamSweepResult:
 
 def _read_package_text(package_dir: Path) -> str:
     parts: list[str] = []
-    for file_name in dict.fromkeys((*REQUIRED_PACKAGE_FILES, *LEGACY_PACKAGE_FILES)):
+    for file_name in REQUIRED_PACKAGE_FILES:
+        path = package_dir / file_name
+        if path.exists():
+            parts.append(path.read_text(encoding="utf-8", errors="replace"))
+    for file_name in (
+        "runbook.md",
+        "deck_plan.json",
+        "reagent_plan.json",
+        "tip_plan.json",
+        "risk_checklist.json",
+    ):
         path = package_dir / file_name
         if path.exists():
             parts.append(path.read_text(encoding="utf-8", errors="replace"))
@@ -110,9 +120,9 @@ def _manifest_object(package_dir: Path) -> Mapping[str, Any] | None:
 
 
 def _tip_plan_object(package_dir: Path) -> Mapping[str, Any] | None:
-    loaded = _json_object(package_dir / "tip_plan.json")
-    if isinstance(loaded, Mapping):
-        return loaded
+    legacy = _json_object(package_dir / "tip_plan.json")
+    if isinstance(legacy, Mapping):
+        return legacy
     manifest = _manifest_object(package_dir)
     if manifest is None:
         return None
@@ -121,9 +131,9 @@ def _tip_plan_object(package_dir: Path) -> Mapping[str, Any] | None:
 
 
 def _reagent_plan_object(package_dir: Path) -> Any:
-    loaded = _json_object(package_dir / "reagent_plan.json")
-    if loaded is not None:
-        return loaded
+    legacy = _json_object(package_dir / "reagent_plan.json")
+    if legacy is not None:
+        return legacy
     manifest = _manifest_object(package_dir)
     if manifest is None:
         return None
@@ -370,14 +380,7 @@ def _expected_dynamic_terms(task: AuthoringTask) -> tuple[str, ...]:
 
 def _dynamic_plan_text(package_dir: Path) -> str:
     parts: list[str] = []
-    for file_name in (
-        "tip_plan.json",
-        "reagent_plan.json",
-        "runbook.md",
-        "setup_card.html",
-        "manifest.json",
-        "deck_plan.json",
-    ):
+    for file_name in ("setup_card.html", "manifest.json", "protocol.py"):
         path = package_dir / file_name
         if path.exists():
             parts.append(path.read_text(encoding="utf-8", errors="replace"))

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +16,7 @@ from .state import RuntimeState
 
 StatusLoader = Callable[[], tuple[RuntimeState, Mapping[str, Any] | None]]
 ChatProvider = Callable[..., str]
+UnifiedChatHandler = Callable[[str, str], "ChatResponse"]
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,9 @@ class ChatResponse:
     should_exit: bool = False
 
 
+AuthoringRunner = Callable[[str, str], ChatResponse]
+
+
 class RuntimeChatController:
     """Stateful conversation brain shared by the Textual UI and tests."""
 
@@ -42,8 +47,18 @@ class RuntimeChatController:
         patch_log_path: Path,
         candidate_provider: CandidateProvider,
         chat_provider: ChatProvider | None = None,
+        authoring_runner: AuthoringRunner | None = None,
+        authoring_tasks_path: Path = Path("benchmarks/authoring/tasks.yaml"),
+        authoring_output_dir: Path = Path("runs/tui-authoring"),
+        authoring_opentrons_python: str | None = None,
+        authoring_max_steps: int = 8,
+        authoring_skill_mode: str = "light",
+        authoring_tool_profile: str = "kb",
+        authoring_simulation_timeout_sec: int = 180,
+        unified_agent_chat: bool = False,
         simulation_pass: bool = False,
         status_loader: StatusLoader | None = None,
+        unified_chat_handler: UnifiedChatHandler | None = None,
     ) -> None:
         self.state = state
         self.package_dir = package_dir
@@ -51,8 +66,18 @@ class RuntimeChatController:
         self.patch_log_path = patch_log_path
         self.candidate_provider = candidate_provider
         self.chat_provider = chat_provider
+        self.authoring_runner = authoring_runner
+        self.authoring_tasks_path = authoring_tasks_path
+        self.authoring_output_dir = authoring_output_dir
+        self.authoring_opentrons_python = authoring_opentrons_python
+        self.authoring_max_steps = authoring_max_steps
+        self.authoring_skill_mode = authoring_skill_mode
+        self.authoring_tool_profile = authoring_tool_profile
+        self.authoring_simulation_timeout_sec = authoring_simulation_timeout_sec
+        self.unified_agent_chat = unified_agent_chat
         self.simulation_pass = simulation_pass
         self.status_loader = status_loader
+        self.unified_chat_handler = unified_chat_handler
         self.pending_action: CandidateAction | None = None
         self.pending_decision: GatekeeperDecision | None = None
 
@@ -60,13 +85,14 @@ class RuntimeChatController:
         return ChatResponse(
             (
                 ChatMessage(
-                    "assistant",
-                    "labscriptAI",
-                    (
-                        "Ask about robot status, runtime errors, or how to continue from a failed step.",
-                        "If a recovery can affect hardware, I will explain the plan and wait for your approval.",
+                        "assistant",
+                        "labscriptAI",
+                        (
+                            "Hi, I'm LabscriptAI. Tell me what you want to do in plain language.",
+                            "I can chat, check robot status, help draft protocols, or look at run problems.",
+                            "If anything could affect hardware, I will ask before doing it.",
+                        ),
                     ),
-                ),
             )
         )
 
@@ -85,6 +111,17 @@ class RuntimeChatController:
                 context={"intent": "help", "shortcuts": ["/status", "/ledger", "/recover", "/approve", "/reject", "/logs", "/exit"]},
                 fallback=self.help_message(compact=False, language=language),
             )
+        if self._looks_like_greeting(normalized):
+            return ChatResponse((self.greeting_message(language=language),))
+        if self._looks_like_capability_question(normalized):
+            return ChatResponse((self.capability_message(language=language),))
+        if self._looks_like_meta_question(normalized):
+            return ChatResponse((self.meta_message(language=language),))
+        if normalized.startswith("/author"):
+            request = normalized.removeprefix("/author").strip()
+            if self.unified_chat_handler is not None:
+                return self._handle_with_unified_agent(request or "generate a protocol package", language=language)
+            return self.author_package(request, language=language)
         if normalized == "/status" or self._looks_like_status_request(normalized):
             return self.status_response(normalized, language=language)
         if normalized == "/ledger" or self._looks_like_ledger_request(normalized):
@@ -118,9 +155,22 @@ class RuntimeChatController:
                     ),
                 )
             )
+        if self.unified_chat_handler is not None and self._looks_like_package_request(normalized):
+            return self._handle_with_unified_agent(normalized, language=language)
+        if self.unified_agent_chat:
+            return self.author_package(normalized, language=language)
         if self._looks_like_recovery_request(normalized):
             return self.recover(normalized, language=language)
         return self.free_chat(normalized, language=language)
+
+    def _handle_with_unified_agent(self, text: str, *, language: str) -> ChatResponse:
+        if self.unified_chat_handler is None:
+            return self.free_chat(text, language=language)
+        try:
+            return self.unified_chat_handler(text, language=language)
+        except Exception as exc:  # pragma: no cover - defensive UI boundary
+            title = "模型调用失败" if language == "zh" else "Model call failed"
+            return ChatResponse((ChatMessage("error", title, (str(exc),)),))
 
     def free_chat(self, text: str, *, language: str) -> ChatResponse:
         return self.model_chat(
@@ -158,6 +208,8 @@ class RuntimeChatController:
         snapshot: Mapping[str, Any] | None = None
         if self.status_loader is not None:
             self.state, snapshot = self.status_loader()
+        elif self.state.robot.get("id") == "DRY-RUN":
+            return ChatResponse((self.dry_run_status_message(language=language),))
         return self.model_chat(
             text,
             language=language,
@@ -167,6 +219,27 @@ class RuntimeChatController:
                 "status_summary": self._status_summary(snapshot=snapshot),
             },
             fallback=self.status_refreshed_message(language=language, refresh=False),
+        )
+
+    def dry_run_status_message(self, *, language: str) -> ChatMessage:
+        if language == "zh":
+            return ChatMessage(
+                "assistant",
+                "当前状态",
+                (
+                    "现在是 dry-run，本机没有连接真实机器人。",
+                    "这个会话还没有执行协议，也没有失败命令。",
+                    "你可以让我写协议草稿、检查已有 package，或接入 robot host 后再查真机状态。",
+                ),
+            )
+        return ChatMessage(
+            "assistant",
+            "Current Status",
+            (
+                "This is a dry-run session with no real robot connected.",
+                "No protocol has been executed and there are no failed commands in this session.",
+                "You can ask me to draft a protocol, inspect the package, or connect a robot host for live status.",
+            ),
         )
 
     def ledger_response(self, text: str, *, language: str) -> ChatResponse:
@@ -187,16 +260,18 @@ class RuntimeChatController:
                 "assistant",
                 "你好，我是 labscriptAI",
                 (
-                    "我可以帮你看 run 状态、解释报错、从断点生成恢复方案。",
-                    "你直接说“现在怎么样”或“从失败的地方继续”就行。",
+                    "你可以直接用普通话跟我说需求。",
+                    "我可以聊天、看机器人状态、帮你写协议草稿，也可以分析运行问题。",
+                    "涉及真机动作时，我会先问你确认。",
                 ),
             )
         return ChatMessage(
             "assistant",
             "Hi, I'm labscriptAI",
             (
-                "I can check run status, explain errors, and plan recovery from a breakpoint.",
-                'Try "what is the current status?" or "continue from the failed step".',
+                "Tell me what you want to do in plain language.",
+                "I can chat, check robot status, draft protocols, or look at run problems.",
+                "If anything could affect hardware, I will ask first.",
             ),
         )
 
@@ -206,16 +281,43 @@ class RuntimeChatController:
                 "assistant",
                 "我在",
                 (
-                    "你可以像聊天一样问我机器人状态、报错原因、或者怎么从失败处继续。",
-                    "如果要我规划恢复，直接说“帮我恢复”或“从失败的地方继续”。",
+                    "你可以像聊天一样直接说需求。",
+                    "要看机器人、写协议、分析报错都可以。",
+                    "真机动作默认不会直接执行。",
                 ),
             )
         return ChatMessage(
             "assistant",
             "Ready",
             (
-                "You can ask about robot status, error causes, or how to continue from a failed step.",
-                'To plan recovery, say "help me recover" or "continue from the failed step".',
+                "You can ask in plain language.",
+                "I can check robot status, draft protocols, or explain run problems.",
+                "Hardware-affecting actions are gated.",
+            ),
+        )
+
+    def meta_message(self, *, language: str) -> ChatMessage:
+        if language == "zh":
+            return ChatMessage(
+                "assistant",
+                "说明一下",
+                (
+                    "恢复阶段就是：实验运行出问题后，先停下来查原因，再决定能不能安全继续。",
+                    "但当前这个 dry-run 聊天会话并没有真的跑过协议，也没有真的进入恢复流程。",
+                    "之前界面里把空会话说成 recovering，是内部默认状态露出来了；这个不应该影响正常对话。",
+                    "我的行为规则可以概括为：先听懂你要做什么；聊天就直接答；查机器人就读状态；写协议就用 package 工具；涉及真机动作先让你确认。",
+                    "完整隐藏提示词我不会逐字展示，但可以解释这些规则。",
+                ),
+            )
+        return ChatMessage(
+            "assistant",
+            "Short Explanation",
+            (
+                "Recovery means the run hit a problem, pauses, and needs a safe decision before continuing.",
+                "This dry-run chat session has not actually executed a protocol or entered a real recovery flow.",
+                "If an empty session previously said recovering, that was an internal default leaking into the UI.",
+                "My behavior rules are simple: understand the request, answer normal chat directly, inspect status when asked, use package tools for protocol work, and ask before hardware-affecting actions.",
+                "I cannot show the hidden prompt verbatim, but I can explain the rules.",
             ),
         )
 
@@ -319,6 +421,7 @@ class RuntimeChatController:
                 "/status：读取机器人和 run 状态",
                 "/ledger：查看断点账本",
                 "/recover：让 AI 提一个恢复方案",
+                "写协议：直接描述实验需求，不需要切模式",
                 "/approve：确认当前方案",
                 "/reject：拒绝当前方案",
                 "/logs：查看 trace 和 patch log",
@@ -332,12 +435,118 @@ class RuntimeChatController:
             "/status: read robot and run status",
             "/ledger: show the checkpoint ledger",
             "/recover: ask AI to propose a recovery plan",
+            "Protocol work: describe the experiment directly; no mode switch is needed",
             "/approve: approve the current plan",
             "/reject: reject the current plan",
             "/logs: show trace and patch log paths",
             "/exit: exit",
         )
         return ChatMessage("assistant", "Help", lines)
+
+    def author_package(self, request: str, *, language: str = "en") -> ChatResponse:
+        task_id = request.split()[0] if request.split() else ""
+        if not task_id:
+            line = "用法：/author T057" if language == "zh" else "Usage: /author T057"
+            return ChatResponse((ChatMessage("warning", "Authoring", (line,)),))
+        if self.authoring_runner is not None:
+            return self.authoring_runner(_extract_task_id(request) or task_id, language)
+        try:
+            return self._run_unified_authoring(request, language=language)
+        except Exception as exc:  # pragma: no cover - UI boundary around model and filesystem calls
+            title = "生成失败" if language == "zh" else "Authoring failed"
+            return ChatResponse((ChatMessage("error", title, (str(exc),)),))
+
+    def _run_unified_authoring(self, request: str, *, language: str) -> ChatResponse:
+        from datetime import datetime
+
+        from labscriptai.agent.facade import UnifiedAuthoringFacade
+        from labscriptai.authoring.agent import OpenAICompatibleAuthoringClient
+        from labscriptai.benchmark.package_validator import validate_package
+        from labscriptai.benchmark.tasks import AuthoringTask, load_authoring_tasks
+        from labscriptai.runtime.model_adapter import OpenAICompatibleConfig
+
+        tasks = {task.task_id: task for task in load_authoring_tasks(self.authoring_tasks_path)}
+        task_id = _extract_task_id(request)
+        task = tasks.get(task_id) if task_id else None
+        if task_id and task is None:
+            known = ", ".join(sorted(tasks)[:8])
+            line = (
+                f"找不到任务 {task_id}。前几个可用任务：{known}"
+                if language == "zh"
+                else f"Task {task_id} was not found. First available tasks: {known}"
+            )
+            return ChatResponse((ChatMessage("warning", "Authoring", (line,)),))
+        if task is None:
+            task_id = "TUI"
+            task = AuthoringTask(
+                task_id=task_id,
+                source="tui",
+                difficulty="Adhoc",
+                holdout=False,
+                output_contract="three_piece_v0.4",
+                prompt=request,
+            )
+
+        stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        work_dir = self.authoring_output_dir / f"{task_id}-{stamp}"
+        config = OpenAICompatibleConfig.from_env()
+        client = OpenAICompatibleAuthoringClient(config)
+        facade = UnifiedAuthoringFacade(
+            client=client,
+            max_steps=self.authoring_max_steps,
+            skill_mode=self.authoring_skill_mode,
+            tool_profile=self.authoring_tool_profile,
+        )
+        files = facade.run_to_files(
+            task=task,
+            work_dir=work_dir,
+            opentrons_python=self.authoring_opentrons_python,
+            workspace_root=Path.cwd(),
+            simulation_timeout_sec=self.authoring_simulation_timeout_sec,
+        )
+        package_dir = work_dir / "package"
+        stats_path = package_dir / "authoring_stats.json"
+        stats: Mapping[str, Any] = {}
+        if stats_path.exists():
+            stats = json.loads(stats_path.read_text(encoding="utf-8"))
+        validation = validate_package(
+            package_dir,
+            simulation_pass=bool(stats.get("simulator_calls")),
+            task_manifest_path=self.authoring_tasks_path,
+            task_id=task_id,
+        )
+        file_names = ", ".join(sorted(name for name in files if name != "trace.jsonl"))
+        issue_lines = tuple(f"{issue.code}: {issue.message}" for issue in validation.issues[:3])
+        if language == "zh":
+            lines = [
+                f"任务：{task_id}",
+                f"输出目录：{package_dir}",
+                f"生成文件：{file_names}",
+                f"validator ok：{validation.ok}",
+                f"tool calls：{stats.get('tool_calls', 'unknown')}",
+                f"simulator calls：{stats.get('simulator_calls', 'unknown')}",
+                f"tokens：{stats.get('total_tokens', 'unknown')}",
+                f"trace：{work_dir / 'trace.jsonl'}",
+            ]
+            if issue_lines:
+                lines.append("validator 问题：" + " | ".join(issue_lines))
+            title = "Unified authoring 完成" if validation.ok else "Unified authoring 生成但未过 validator"
+        else:
+            lines = [
+                f"Task: {task_id}",
+                f"Output: {package_dir}",
+                f"Files: {file_names}",
+                f"Validator ok: {validation.ok}",
+                f"Tool calls: {stats.get('tool_calls', 'unknown')}",
+                f"Simulator calls: {stats.get('simulator_calls', 'unknown')}",
+                f"Tokens: {stats.get('total_tokens', 'unknown')}",
+                f"Trace: {work_dir / 'trace.jsonl'}",
+            ]
+            if issue_lines:
+                lines.append("Validator issues: " + " | ".join(issue_lines))
+            title = "Unified Authoring Complete" if validation.ok else "Unified Authoring Generated With Validator Issues"
+        role = "assistant" if validation.ok else "warning"
+        return ChatResponse((ChatMessage(role, title, tuple(lines)),))
 
     def recover(self, operator_request: str, *, language: str = "en") -> ChatResponse:
         observed = {**dict(self.state.observed), "operator_request": operator_request}
@@ -672,7 +881,27 @@ class RuntimeChatController:
     @staticmethod
     def _looks_like_status_request(text: str) -> bool:
         lowered = text.lower()
-        return any(token in lowered for token in ("status", "状态", "怎么了", "怎么样", "停了", "现在"))
+        return any(token in lowered for token in ("status", "状态", "怎么了", "怎么样", "停了", "机器人", "robot"))
+
+    @staticmethod
+    def _looks_like_greeting(text: str) -> bool:
+        lowered = text.lower().strip()
+        return lowered in {"hi", "hello", "hey", "你好", "您好", "嗨", "哈喽"}
+
+    @staticmethod
+    def _looks_like_capability_question(text: str) -> bool:
+        lowered = text.lower().strip()
+        return lowered in {"?", "？", "怎么说", "你能做什么", "你可以做什么", "what can you do", "help"}
+
+    @staticmethod
+    def _looks_like_meta_question(text: str) -> bool:
+        lowered = text.lower()
+        return (
+            "系统提示词" in lowered
+            or "system prompt" in lowered
+            or "恢复阶段" in lowered
+            or "recovering" in lowered
+        )
 
     @staticmethod
     def _looks_like_ledger_request(text: str) -> bool:
@@ -700,6 +929,26 @@ class RuntimeChatController:
                 "补丁",
                 "换一个方案",
                 "重新规划",
+            )
+        )
+
+    @staticmethod
+    def _looks_like_package_request(text: str) -> bool:
+        lowered = text.lower()
+        return any(
+            token in lowered
+            for token in (
+                "protocol",
+                "package",
+                "generate",
+                "author",
+                "pcr",
+                "协议草稿",
+                "生成协议",
+                "写协议",
+                "写一个协议",
+                "生成一个",
+                "实验草稿",
             )
         )
 
@@ -735,7 +984,14 @@ def _compact_json(payload: Any) -> str:
 
 
 def _detect_language(text: str) -> str:
+    if text.strip() in {"？", "。", "！"}:
+        return "zh"
     return "zh" if any("\u4e00" <= char <= "\u9fff" for char in text) else "en"
+
+
+def _extract_task_id(text: str) -> str | None:
+    match = re.search(r"\bT\d{3}\b", text, flags=re.IGNORECASE)
+    return match.group(0).upper() if match else None
 
 
 def _friendly_action_type(action_type: str, *, language: str = "en") -> str:

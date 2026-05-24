@@ -21,6 +21,7 @@ from .package_validator import CRITICAL_FAILURES, REQUIRED_PACKAGE_FILES, valida
 from .score_record import score_record_from_validation
 from .tasks import AuthoringTask, DIFFICULTY_STRATA, load_authoring_tasks, select_stratified_tasks
 from labscriptai.authoring.agent import AuthoringAgent, OpenAICompatibleAuthoringClient
+from labscriptai.agent.facade import UnifiedAuthoringFacade
 from labscriptai.runtime.model_adapter import OpenAICompatibleConfig
 
 
@@ -41,10 +42,22 @@ tips_required and tips_available quantities.
 Do not include Markdown fences or explanations outside the JSON object.
 """
 
+BARE_AUTHORING_SYSTEM_PROMPT = """You are an Opentrons protocol package author.
+Return exactly one JSON object with a top-level "files" object containing
+protocol.py, setup_card.html, and manifest.json as string values.
+Do not include Markdown fences or explanations outside the JSON object.
+"""
+
 PROTOCOL_REPAIR_SYSTEM_PROMPT = """You are repairing only protocol.py for an Opentrons package.
 Return exactly one JSON object: {"protocol.py": "...full Python file..."}.
 Do not modify package metadata. Do not include Markdown fences or explanation.
 Use the simulator stdout/stderr to fix the smallest executable issue.
+"""
+
+PROTOCOL_PATCH_REPAIR_SYSTEM_PROMPT = """You are repairing only protocol.py for an Opentrons package.
+Return exactly one JSON object: {"patches": [{"old": "...exact existing text...", "new": "...replacement text...", "replace_all": false}]}.
+Do not return a full file. Do not modify package metadata. Each old string must match protocol.py exactly.
+Use the simulator stdout/stderr to make the smallest executable patch.
 """
 
 
@@ -114,6 +127,28 @@ class UsageError(ValueError):
         self.usage = usage or _usage_stats(None)
 
 
+class RepairPatchError(ValueError):
+    """Patch-only repair could not be applied safely."""
+
+
+class ProtocolRepairResult(str):
+    """Repair result with provider usage and patch accounting."""
+
+    def __new__(
+        cls,
+        value: str,
+        usage: dict[str, Any] | None = None,
+        *,
+        patch_count: int = 0,
+        patch_rejected_count: int = 0,
+    ) -> "ProtocolRepairResult":
+        obj = str.__new__(cls, value)
+        obj.usage = usage or {}
+        obj.patch_count = patch_count
+        obj.patch_rejected_count = patch_rejected_count
+        return obj
+
+
 def _usage_stats(usage: Any) -> dict[str, int]:
     if not isinstance(usage, dict):
         return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
@@ -127,32 +162,49 @@ def _usage_stats(usage: Any) -> dict[str, int]:
     }
 
 
-def call_package_author(config: OpenAICompatibleConfig, task: AuthoringTask) -> dict[str, str]:
+def call_package_author(
+    config: OpenAICompatibleConfig,
+    task: AuthoringTask,
+    *,
+    prompt_mode: str = "rules",
+) -> dict[str, str]:
+    if prompt_mode not in {"bare", "rules"}:
+        raise ValueError("prompt_mode must be one of: bare, rules")
     prompt = {
         "task_id": task.task_id,
         "difficulty": task.difficulty,
         "prompt": task.prompt,
         "required_package_files": list(REQUIRED_PACKAGE_FILES),
-        "package_format_instruction": (
-            "Use the current three-piece v0.4 package even if the task text "
-            "mentions the legacy seven-file package."
-        ),
-        "manifest_requirements": {
-            "schema_version": "0.4",
-            "task_id": task.task_id,
-            "system_id": "labscriptai",
-            "model_id": config.model,
-            "scaffold_id": "authoring-pilot-v0.4",
-            "prompt_hash": _prompt_hash(task.prompt),
-            "budget": {"attempts": 8, "wall_min": 30, "tokens": 24000},
-            "tool_permissions": ["write_package_files", "validate_package", "simulate_protocol"],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        },
     }
+    if prompt_mode == "rules":
+        prompt.update(
+            {
+                "package_format_instruction": (
+                    "Use the current three-piece v0.4 package even if the task text "
+                    "mentions any older package format."
+                ),
+                "manifest_requirements": {
+                    "schema_version": "0.4",
+                    "task_id": task.task_id,
+                    "system_id": "labscriptai",
+                    "model_id": config.model,
+                    "scaffold_id": "authoring-pilot-v0.4",
+                    "prompt_hash": _prompt_hash(task.prompt),
+                    "budget": {"attempts": 8, "wall_min": 30, "tokens": 24000},
+                    "tool_permissions": ["write_package_files", "validate_package", "simulate_protocol"],
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            }
+        )
     payload = {
         "model": config.model,
         "messages": [
-            {"role": "system", "content": AUTHORING_SYSTEM_PROMPT},
+            {
+                "role": "system",
+                "content": AUTHORING_SYSTEM_PROMPT
+                if prompt_mode == "rules"
+                else BARE_AUTHORING_SYSTEM_PROMPT,
+            },
             {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
         ],
         "temperature": 0,
@@ -254,7 +306,121 @@ def call_protocol_repair(
     repaired = decoded.get("protocol.py")
     if not isinstance(repaired, str) or not repaired.strip():
         raise UsageError("repair response missing protocol.py", usage)
-    return UsageString(repaired, usage)
+    return ProtocolRepairResult(repaired, usage, patch_count=0, patch_rejected_count=0)
+
+
+def call_protocol_patch_repair(
+    config: OpenAICompatibleConfig,
+    task: AuthoringTask,
+    *,
+    protocol_py: str,
+    simulation_result: dict[str, Any],
+) -> str:
+    prompt = {
+        "task_id": task.task_id,
+        "difficulty": task.difficulty,
+        "prompt": task.prompt,
+        "current_protocol_py": protocol_py,
+        "simulator_summary": {
+            "returncode": simulation_result.get("returncode"),
+            "stdout": str(simulation_result.get("stdout", ""))[-4000:],
+            "stderr": str(simulation_result.get("stderr", ""))[-4000:],
+            "error": simulation_result.get("error"),
+        },
+        "instruction": "Return only exact old/new patches as JSON. Do not return a full protocol.py.",
+    }
+    payload = {
+        "model": config.model,
+        "messages": [
+            {"role": "system", "content": PROTOCOL_PATCH_REPAIR_SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
+        ],
+        "temperature": 0,
+        "max_tokens": config.max_tokens,
+        "response_format": {"type": "json_object"},
+    }
+    req = request.Request(
+        url=f"{config.base_url}/chat/completions",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {config.api_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    with request.urlopen(req, timeout=config.timeout_sec) as response:
+        response_payload = json.loads(response.read().decode("utf-8"))
+    choices = response_payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("model response missing choices")
+    message = choices[0].get("message") if isinstance(choices[0], dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    usage = _usage_stats(response_payload.get("usage"))
+    if not isinstance(content, str) or not content.strip():
+        raise UsageError("patch repair response content is empty", usage)
+    try:
+        decoded = json.loads(_strip_json_markdown(content))
+    except json.JSONDecodeError as exc:
+        raise UsageError(f"patch repair response is invalid JSON: {exc}", usage) from exc
+    patched, patch_count, rejected_count = _apply_repair_patches(protocol_py, decoded.get("patches"))
+    return ProtocolRepairResult(
+        patched,
+        usage,
+        patch_count=patch_count,
+        patch_rejected_count=rejected_count,
+    )
+
+
+def _apply_repair_patches(protocol_py: str, patches: Any) -> tuple[str, int, int]:
+    if not isinstance(patches, list) or not patches:
+        raise RepairPatchError("patch repair response missing non-empty patches list")
+    repaired = protocol_py
+    applied = 0
+    rejected = 0
+    for index, patch in enumerate(patches, start=1):
+        if not isinstance(patch, dict):
+            rejected += 1
+            raise RepairPatchError(f"patch {index} is not an object")
+        old = patch.get("old")
+        new = patch.get("new")
+        replace_all = bool(patch.get("replace_all", False))
+        if not isinstance(old, str) or not old:
+            rejected += 1
+            raise RepairPatchError(f"patch {index} missing old text")
+        if not isinstance(new, str):
+            rejected += 1
+            raise RepairPatchError(f"patch {index} missing new text")
+        count = repaired.count(old)
+        if count == 0:
+            rejected += 1
+            raise RepairPatchError(f"patch {index} old text not found")
+        if count > 1 and not replace_all:
+            rejected += 1
+            raise RepairPatchError(f"patch {index} old text occurs {count} times")
+        repaired = repaired.replace(old, new, -1 if replace_all else 1)
+        applied += count if replace_all else 1
+    return repaired, applied, rejected
+
+
+def _build_protocol_repairer(
+    config: OpenAICompatibleConfig,
+    repair_edit_mode: str,
+) -> Callable[[AuthoringTask, str, dict[str, Any]], str]:
+    if repair_edit_mode == "rewrite":
+        return lambda task, protocol_py, simulation_result: call_protocol_repair(
+            config,
+            task,
+            protocol_py=protocol_py,
+            simulation_result=simulation_result,
+        )
+    if repair_edit_mode == "patch_only":
+        return lambda task, protocol_py, simulation_result: call_protocol_patch_repair(
+            config,
+            task,
+            protocol_py=protocol_py,
+            simulation_result=simulation_result,
+        )
+    raise ValueError("repair_edit_mode must be one of: rewrite, patch_only")
 
 
 def write_package_files(package_dir: Path, files: dict[str, str]) -> None:
@@ -269,40 +435,33 @@ def write_package_files(package_dir: Path, files: dict[str, str]) -> None:
 
 
 def _read_authoring_stats(package_dir: Path) -> dict[str, int]:
+    empty = {
+        "tool_calls": 0,
+        "skill_loads": 0,
+        "simulator_calls": 0,
+        "protocol_hits": 0,
+        "memory_hits": 0,
+        "kb_context_tokens_estimate": 0,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+    }
     path = package_dir / "authoring_stats.json"
     if not path.exists():
-        return {
-            "tool_calls": 0,
-            "skill_loads": 0,
-            "simulator_calls": 0,
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
-        }
+        return dict(empty)
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
-        return {
-            "tool_calls": 0,
-            "skill_loads": 0,
-            "simulator_calls": 0,
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
-        }
+        return dict(empty)
     if not isinstance(loaded, dict):
-        return {
-            "tool_calls": 0,
-            "skill_loads": 0,
-            "simulator_calls": 0,
-            "input_tokens": 0,
-            "output_tokens": 0,
-            "total_tokens": 0,
-        }
+        return dict(empty)
     return {
         "tool_calls": int(loaded.get("tool_calls", 0)),
         "skill_loads": int(loaded.get("skill_loads", 0)),
         "simulator_calls": int(loaded.get("simulator_calls", 0)),
+        "protocol_hits": int(loaded.get("protocol_hits", 0)),
+        "memory_hits": int(loaded.get("memory_hits", 0)),
+        "kb_context_tokens_estimate": int(loaded.get("kb_context_tokens_estimate", 0)),
         "input_tokens": int(loaded.get("input_tokens", 0)),
         "output_tokens": int(loaded.get("output_tokens", 0)),
         "total_tokens": int(loaded.get("total_tokens", 0)),
@@ -321,7 +480,7 @@ def stamp_manifest(package_dir: Path, task: AuthoringTask, *, model_id: str) -> 
                 manifest = loaded
         except json.JSONDecodeError:
             manifest = {}
-    schema_version = manifest.get("schema_version") or "0.4"
+    schema_version = "0.4"
     manifest.update(
         {
             "schema_version": schema_version,
@@ -335,26 +494,18 @@ def stamp_manifest(package_dir: Path, task: AuthoringTask, *, model_id: str) -> 
             "timestamp": manifest.get("timestamp") or datetime.now(timezone.utc).isoformat(),
         }
     )
-    if schema_version == "0.4":
-        manifest.setdefault("deck", {"slots": [], "modules": [], "instruments": []})
-        manifest.setdefault("reagents", [])
-        manifest.setdefault("tips", {"tips_required": 0, "tips_available": 0})
-        manifest.setdefault("risk_flags", [])
-        manifest.setdefault("critical_failures", [])
-        manifest.setdefault("off_platform_handoff", {"declared": False})
-        manifest["budget"] = {
-            "attempts": 8,
-            "wall_min": 30,
-            "tokens": 24000,
-            **(manifest.get("budget") if isinstance(manifest.get("budget"), dict) else {}),
-        }
-    else:
-        manifest["retry_budget"] = {
-            "max_attempts": 8,
-            "max_wall_time_sec": 1800,
-            "max_output_tokens": 24000,
-            "max_tool_calls": 80,
-        }
+    manifest.setdefault("deck", {"slots": [], "modules": [], "instruments": []})
+    manifest.setdefault("reagents", [])
+    manifest.setdefault("tips", {"tips_required": 0, "tips_available": 0})
+    manifest.setdefault("risk_flags", [])
+    manifest.setdefault("critical_failures", [])
+    manifest.setdefault("off_platform_handoff", {"declared": False})
+    manifest["budget"] = {
+        "attempts": 8,
+        "wall_min": 30,
+        "tokens": 24000,
+        **(manifest.get("budget") if isinstance(manifest.get("budget"), dict) else {}),
+    }
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 
@@ -435,7 +586,12 @@ def _normalize_protocol_for_simulator(protocol_path: Path) -> list[str]:
         "opentrons_flex_96_wellplate_200ul": "opentrons_96_wellplate_200ul_pcr_full_skirt",
         "opentrons_flex_96_tiprack_300ul": "opentrons_flex_96_tiprack_200ul",
     }
-    flex_protocol = '"robotType": "Flex"' in protocol_text or "opentrons_flex_" in protocol_text
+    flex_protocol = (
+        '"robotType": "Flex"' in protocol_text
+        or "opentrons_flex_" in protocol_text
+        or "flex_1channel_" in protocol_text
+        or "flex_8channel_" in protocol_text
+    )
     if flex_protocol:
         replacements.update(
             {
@@ -460,6 +616,9 @@ def _normalize_protocol_for_simulator(protocol_path: Path) -> list[str]:
         if invalid_name in repaired:
             repaired = repaired.replace(invalid_name, valid_name)
             repairs.append(f"normalized {invalid_name} to {valid_name}")
+    if flex_protocol and "requirements =" not in repaired:
+        repaired = 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}\n\n' + repaired
+        repairs.append("added Flex protocol requirements")
     for quote in ('"', "'"):
         data_prefix = f"{quote}/data/"
         if data_prefix in repaired:
@@ -932,12 +1091,30 @@ def _repair_three_piece_metadata(package_dir: Path) -> list[str]:
     if not isinstance(tips, dict):
         tips = {}
     protocol_text = protocol_path.read_text(encoding="utf-8") if protocol_path.exists() else ""
-    if _numeric_tip_quantity(tips.get("tips_required")) is None:
+    tips_required = _numeric_tip_quantity(tips.get("tips_required"))
+    if tips_required is None:
         tips["tips_required"] = max(1, _estimated_pick_up_tip_calls(protocol_text))
         repairs.append("added manifest tips_required")
-    if _numeric_tip_quantity(tips.get("tips_available")) is None:
+    elif not isinstance(tips.get("tips_required"), int | float):
+        tips["tips_required"] = tips_required
+        repairs.append("normalized manifest tips_required")
+    available_candidates = [
+        value
+        for value in (
+            _numeric_tip_quantity(tips.get("tips_available")),
+            _numeric_tip_quantity(tips.get("total_tips_available")),
+            _sum_tip_rack_capacity(tips.get("tip_racks")),
+        )
+        if value is not None
+    ]
+    if not available_candidates:
         tips["tips_available"] = 96
         repairs.append("added manifest tips_available")
+    else:
+        tips_available = max(available_candidates)
+        if tips.get("tips_available") != tips_available:
+            tips["tips_available"] = tips_available
+            repairs.append("normalized manifest tips_available")
     manifest["tips"] = tips
     if not isinstance(manifest.get("risk_flags"), list):
         manifest["risk_flags"] = []
@@ -955,171 +1132,130 @@ def _repair_three_piece_metadata(package_dir: Path) -> list[str]:
     return repairs
 
 
+def _legacy_files_present(package_dir: Path) -> bool:
+    return any(
+        (package_dir / name).exists()
+        for name in ("deck_plan.json", "tip_plan.json", "risk_checklist.json")
+    )
+
+
+def _seed_manifest_from_legacy_files(package_dir: Path) -> None:
+    manifest_path = package_dir / "manifest.json"
+    if manifest_path.exists():
+        return
+    tip_plan = _read_json_object(package_dir / "tip_plan.json")
+    risk_checklist = _read_json_object(package_dir / "risk_checklist.json")
+    manifest: dict[str, Any] = {
+        "schema_version": "0.4",
+        "deck": {"slots": [], "modules": [], "instruments": []},
+        "reagents": [],
+        "tips": {},
+        "risk_flags": [],
+        "critical_failures": [],
+        "off_platform_handoff": {"declared": False},
+        "tool_permissions": ["write_package_files", "validate_package", "simulate_protocol"],
+        "budget": {"attempts": 8, "wall_min": 30, "tokens": 24000},
+    }
+    if tip_plan:
+        manifest["tips"] = tip_plan
+    if risk_checklist:
+        manifest["critical_failures"] = risk_checklist.get("critical_failures", [])
+        risks = risk_checklist.get("risks")
+        if isinstance(risks, list):
+            manifest["risk_flags"] = risks
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+
+def _write_legacy_metadata_projection(package_dir: Path) -> None:
+    manifest = _read_json_object(package_dir / "manifest.json")
+    deck = manifest.get("deck") if isinstance(manifest.get("deck"), dict) else {}
+    slots = deck.get("slots") or deck.get("labware") or []
+    instruments = deck.get("instruments") or []
+    if (package_dir / "deck_plan.json").exists():
+        normalized_instruments = [
+            {
+                "name": item.get("name") or item.get("type"),
+                "type": item.get("type") or item.get("name"),
+                "mount": item.get("mount"),
+            }
+            for item in instruments
+            if isinstance(item, dict)
+        ]
+        normalized_instruments = [
+            item for item in normalized_instruments if item["name"] and item["mount"]
+        ]
+        (package_dir / "deck_plan.json").write_text(
+            json.dumps(
+                {
+                    "labware": slots if isinstance(slots, list) else [],
+                    "instruments": normalized_instruments,
+                    "pipettes": [
+                        {"name": item["name"], "mount": item["mount"]}
+                        for item in normalized_instruments
+                    ],
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    if (package_dir / "tip_plan.json").exists():
+        (package_dir / "tip_plan.json").write_text(
+            json.dumps(manifest.get("tips") if isinstance(manifest.get("tips"), dict) else {}, indent=2),
+            encoding="utf-8",
+        )
+    if (package_dir / "risk_checklist.json").exists():
+        (package_dir / "risk_checklist.json").write_text(
+            json.dumps(
+                {
+                    "critical_failures": manifest.get("critical_failures", []),
+                    "risks": manifest.get("risk_flags", []),
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+
+
+def _legacy_repair_aliases(package_dir: Path, repairs: list[str]) -> list[str]:
+    aliases: list[str] = []
+    if (package_dir / "deck_plan.json").exists():
+        if any("added manifest instrument" in repair for repair in repairs):
+            aliases.append("added deck_plan instrument")
+        if any("added manifest deck slot" in repair for repair in repairs):
+            aliases.append("added deck_plan labware")
+    if (package_dir / "tip_plan.json").exists() and any(
+        repair
+        in {
+            "added manifest tips_required",
+            "added manifest tips_available",
+            "normalized manifest tips_required",
+            "normalized manifest tips_available",
+        }
+        for repair in repairs
+    ):
+        aliases.append("added tip_plan quantities")
+    if (package_dir / "risk_checklist.json").exists() and any(
+        "moved non-enum manifest critical_failures" in repair for repair in repairs
+    ):
+        aliases.extend(
+            [
+                "moved structured critical_failures to risks",
+                "moved unknown critical_failures to risks",
+            ]
+        )
+    return aliases
+
+
 def repair_package_metadata(package_dir: Path) -> list[str]:
     """PRE v0: deterministic repairs for package metadata and simulator compatibility."""
 
-    manifest = _read_json_object(package_dir / "manifest.json")
-    if manifest.get("schema_version") == "0.4" or (package_dir / "setup_card.html").exists():
-        return _repair_three_piece_metadata(package_dir)
-
-    repairs: list[str] = []
-    deck_path = package_dir / "deck_plan.json"
-    protocol_path = package_dir / "protocol.py"
-    repairs.extend(_normalize_protocol_for_simulator(protocol_path))
-    if protocol_path.exists():
-        protocol_text = protocol_path.read_text(encoding="utf-8")
-        if "flex_" in protocol_text and "requirements" not in protocol_text:
-            protocol_text = re.sub(
-                r'(?m)^\s*["\']apiLevel["\']\s*:\s*["\'][^"\']+["\']\s*,?\s*\n',
-                "",
-                protocol_text,
-            )
-            lines = protocol_text.splitlines()
-            insert_at = 0
-            for index, line in enumerate(lines):
-                if line.startswith("from ") or line.startswith("import "):
-                    insert_at = index + 1
-            lines.insert(insert_at, 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}')
-            protocol_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-            repairs.append("added Flex protocol requirements")
-    deck_plan = _read_json_object(deck_path)
-    labware = _protocol_labware(protocol_path)
-    if labware:
-        existing_labware = deck_plan.get("labware")
-        if not isinstance(existing_labware, list):
-            existing_labware = []
-        protocol_pairs = {(item["load_name"], item["slot"]) for item in labware}
-        protocol_slots = {item["slot"] for item in labware}
-        filtered_labware: list[dict[str, Any]] = []
-        removed_count = 0
-        for item in existing_labware:
-            if not isinstance(item, dict):
-                removed_count += 1
-                continue
-            load_name, slot = _deck_labware_key(item)
-            if _looks_like_instrument_entry(item):
-                removed_count += 1
-                continue
-            if slot in protocol_slots and (load_name, slot) not in protocol_pairs:
-                removed_count += 1
-                continue
-            filtered_labware.append(item)
-        existing_labware = filtered_labware
-        if removed_count:
-            repairs.append("removed stale deck labware entries")
-        existing_pairs = {_deck_labware_key(item) for item in existing_labware}
-        for item in labware:
-            if (item["load_name"], item["slot"]) not in existing_pairs:
-                existing_labware.append(item)
-                repairs.append(f"added labware {item['load_name']} in slot {item['slot']}")
-        deck_plan["labware"] = existing_labware
-        deck_path.write_text(json.dumps(deck_plan, indent=2), encoding="utf-8")
-
-    instruments = _protocol_instruments(protocol_path)
-    if instruments:
-        existing = deck_plan.get("instruments")
-        if not isinstance(existing, list):
-            existing = []
-        protocol_mounts = {instrument["mount"] for instrument in instruments}
-        existing = [
-            item
-            for item in existing
-            if isinstance(item, dict) and item.get("mount") not in protocol_mounts
-        ]
-        existing_pairs = {
-            (item.get("type") or item.get("name"), item.get("mount")) for item in existing
-        }
-        for instrument in instruments:
-            if (instrument["type"], instrument["mount"]) not in existing_pairs:
-                existing.append(instrument)
-                repairs.append(f"added instrument {instrument['type']} on {instrument['mount']}")
-        deck_plan["instruments"] = existing
-        pipettes = deck_plan.get("pipettes")
-        if isinstance(pipettes, list):
-            deck_plan["pipettes"] = [
-                item
-                for item in pipettes
-                if isinstance(item, dict) and item.get("mount") not in protocol_mounts
-            ] + [{"name": item["name"], "mount": item["mount"]} for item in instruments]
-        deck_path.write_text(json.dumps(deck_plan, indent=2), encoding="utf-8")
-
-    risk_path = package_dir / "risk_checklist.json"
-    try:
-        loaded_risk = json.loads(risk_path.read_text(encoding="utf-8")) if risk_path.exists() else {}
-    except json.JSONDecodeError:
-        loaded_risk = {}
-    if isinstance(loaded_risk, list):
-        loaded_risk = {"critical_failures": [], "risks": loaded_risk}
-        repairs.append("wrapped list risk_checklist in object")
-    elif isinstance(loaded_risk, dict):
-        if "critical_failures" not in loaded_risk or not isinstance(loaded_risk.get("critical_failures"), list):
-            loaded_risk["critical_failures"] = []
-            repairs.append("added risk_checklist critical_failures")
-        else:
-            structured_failures = [
-                item for item in loaded_risk["critical_failures"] if isinstance(item, dict)
-            ]
-            if structured_failures:
-                existing_risks = loaded_risk.get("risks")
-                if not isinstance(existing_risks, list):
-                    existing_risks = []
-                existing_risks.extend(structured_failures)
-                loaded_risk["risks"] = existing_risks
-                loaded_risk["critical_failures"] = [
-                    item for item in loaded_risk["critical_failures"] if not isinstance(item, dict)
-                ]
-                repairs.append("moved structured critical_failures entries to risks")
-            invalid_failures = [
-                item for item in loaded_risk["critical_failures"] if item not in CRITICAL_FAILURES
-            ]
-            if invalid_failures:
-                existing_risks = loaded_risk.get("risks")
-                if not isinstance(existing_risks, list):
-                    existing_risks = []
-                existing_risks.extend(invalid_failures)
-                loaded_risk["risks"] = existing_risks
-                loaded_risk["critical_failures"] = [
-                    item for item in loaded_risk["critical_failures"] if item in CRITICAL_FAILURES
-                ]
-                repairs.append("moved unknown critical_failures entries to risks")
-    else:
-        loaded_risk = {"critical_failures": [], "manual_checks": []}
-        repairs.append("replaced invalid risk_checklist")
-    risk_path.write_text(json.dumps(loaded_risk, indent=2), encoding="utf-8")
-
-    tip_path = package_dir / "tip_plan.json"
-    try:
-        loaded_tip = json.loads(tip_path.read_text(encoding="utf-8")) if tip_path.exists() else {}
-    except json.JSONDecodeError:
-        loaded_tip = {}
-    if not isinstance(loaded_tip, dict):
-        loaded_tip = {}
-    protocol_text = protocol_path.read_text(encoding="utf-8") if protocol_path.exists() else ""
-    default_tips_required = max(1, _estimated_pick_up_tip_calls(protocol_text))
-    tips_required = _numeric_tip_quantity(loaded_tip.get("tips_required"))
-    tips_available = _numeric_tip_quantity(loaded_tip.get("tips_available"))
-    total_tips_available = _numeric_tip_quantity(loaded_tip.get("total_tips_available"))
-    rack_tips_available = _sum_tip_rack_capacity(loaded_tip.get("tip_racks"))
-    normalized_tip_quantities = False
-    if tips_required is None:
-        tips_required = default_tips_required
-    if loaded_tip.get("tips_required") != tips_required:
-        loaded_tip["tips_required"] = tips_required
-        normalized_tip_quantities = True
-    if total_tips_available is not None and (
-        tips_available is None or total_tips_available > tips_available
-    ):
-        tips_available = total_tips_available
-    elif tips_available is None and rack_tips_available is not None:
-        tips_available = rack_tips_available
-    elif tips_available is None:
-        tips_available = 96
-    if loaded_tip.get("tips_available") != tips_available:
-        loaded_tip["tips_available"] = tips_available
-        normalized_tip_quantities = True
-    if normalized_tip_quantities:
-        repairs.append("added tip_plan quantities")
-    tip_path.write_text(json.dumps(loaded_tip, indent=2), encoding="utf-8")
+    legacy = _legacy_files_present(package_dir)
+    if legacy:
+        _seed_manifest_from_legacy_files(package_dir)
+    repairs = _repair_three_piece_metadata(package_dir)
+    if legacy:
+        _write_legacy_metadata_projection(package_dir)
+        repairs.extend(_legacy_repair_aliases(package_dir, repairs))
     return repairs
 
 
@@ -1185,7 +1321,7 @@ def _sync_tmp_plan_files_for_simulator(protocol_path: Path) -> None:
     except OSError:
         return
     package_dir = protocol_path.parent
-    for name in ("deck_plan.json", "reagent_plan.json", "tip_plan.json"):
+    for name in ("manifest.json",):
         if f"/tmp/{name}" not in protocol_text:
             continue
         source = package_dir / name
@@ -1236,6 +1372,10 @@ def _write_summary(output_dir: Path, model_id: str, records: list[dict[str, Any]
         "schema_version": "0.1",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "model_id": model_id,
+        "scaffold_label": next(
+            (str(record.get("scaffold_label")) for record in records if record.get("scaffold_label")),
+            "",
+        ),
         "task_count": len(records),
         "package_complete_count": sum(
             1 for record in records if record.get("validation", {}).get("package_complete")
@@ -1304,6 +1444,15 @@ def _write_summary(output_dir: Path, model_id: str, records: list[dict[str, Any]
         },
         "tool_calls": sum(int(record.get("tool_calls", 0)) for record in records),
         "skill_loads": sum(int(record.get("skill_loads", 0)) for record in records),
+        "protocol_hits": sum(int(record.get("protocol_hits", 0)) for record in records),
+        "memory_hits": sum(int(record.get("memory_hits", 0)) for record in records),
+        "kb_context_tokens_estimate": sum(
+            int(record.get("kb_context_tokens_estimate", 0)) for record in records
+        ),
+        "repair_patch_count": sum(int(record.get("repair_patch_count", 0)) for record in records),
+        "repair_patch_rejected_count": sum(
+            int(record.get("repair_patch_rejected_count", 0)) for record in records
+        ),
         "simulator_calls": sum(int(record.get("simulator_calls", 0)) for record in records),
         "records": records,
     }
@@ -1384,6 +1533,8 @@ def run_authoring_pilot(
     retry_attempts: int = 1,
     protocol_repairer: Callable[[AuthoringTask, str, dict[str, Any]], str] | None = None,
     simulation_repair_attempts: int = 3,
+    scaffold_label: str = "",
+    repair_edit_mode: str = "rewrite",
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, Any]] = []
@@ -1417,6 +1568,8 @@ def run_authoring_pilot(
                 repair_input_tokens = 0
                 repair_output_tokens = 0
                 repair_total_tokens = 0
+                repair_patch_count = 0
+                repair_patch_rejected_count = 0
                 if simulate:
                     simulation_result = simulate_protocol_file(
                         package_dir / "protocol.py",
@@ -1452,6 +1605,10 @@ def run_authoring_pilot(
                             repair_input_tokens += usage_stats["input_tokens"]
                             repair_output_tokens += usage_stats["output_tokens"]
                             repair_total_tokens += usage_stats["total_tokens"]
+                            repair_patch_count += int(getattr(repaired_protocol, "patch_count", 0))
+                            repair_patch_rejected_count += int(
+                                getattr(repaired_protocol, "patch_rejected_count", 0)
+                            )
                             (next_package_dir / "protocol.py").write_text(
                                 repaired_protocol,
                                 encoding="utf-8",
@@ -1499,6 +1656,7 @@ def run_authoring_pilot(
                 )
                 record = {
                     "task_id": task.task_id,
+                    "scaffold_label": scaffold_label,
                     "difficulty": task.difficulty,
                     "holdout": task.holdout,
                     "package_dir": str(package_dir),
@@ -1516,6 +1674,9 @@ def run_authoring_pilot(
                     "repair_input_tokens": repair_input_tokens,
                     "repair_output_tokens": repair_output_tokens,
                     "repair_total_tokens": repair_total_tokens,
+                    "repair_edit_mode": repair_edit_mode,
+                    "repair_patch_count": repair_patch_count,
+                    "repair_patch_rejected_count": repair_patch_rejected_count,
                     "initial_validation": initial_validation.to_dict(),
                     "first_pass_validation": first_pass_validation.to_dict()
                     if first_pass_validation is not None
@@ -1529,6 +1690,9 @@ def run_authoring_pilot(
                     "repair_errors": repair_errors,
                     "tool_calls": authoring_stats["tool_calls"],
                     "skill_loads": authoring_stats["skill_loads"],
+                    "protocol_hits": authoring_stats["protocol_hits"],
+                    "memory_hits": authoring_stats["memory_hits"],
+                    "kb_context_tokens_estimate": authoring_stats["kb_context_tokens_estimate"],
                     "simulator_calls": authoring_stats["simulator_calls"]
                     + (1 if first_simulation is not None else 0)
                     + repair_count,
@@ -1543,6 +1707,7 @@ def run_authoring_pilot(
                 usage_stats = _usage_stats(getattr(exc, "usage", None))
                 record = {
                     "task_id": task.task_id,
+                    "scaffold_label": scaffold_label,
                     "difficulty": task.difficulty,
                     "holdout": task.holdout,
                     "package_dir": str(package_dir),
@@ -1571,7 +1736,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tasks", type=Path, default=Path("benchmarks/authoring/tasks.yaml"))
     parser.add_argument("--output-dir", type=Path, default=Path("runs/authoring-pilot/latest"))
-    parser.add_argument("--provider", choices=("offline", "deepseek", "labscriptai-authoring"), default="offline")
+    parser.add_argument("--provider", choices=("offline", "deepseek", "labscriptai-authoring", "labscriptai-unified"), default="offline")
     parser.add_argument("--limit", type=int, default=6)
     parser.add_argument(
         "--task-ids",
@@ -1590,12 +1755,35 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--simulation-timeout-sec", type=int, default=180)
     parser.add_argument("--retry-attempts", type=int, default=4)
     parser.add_argument("--simulation-repair-attempts", type=int, default=3)
+    parser.add_argument(
+        "--repair-edit-mode",
+        choices=("rewrite", "patch_only"),
+        default="rewrite",
+        help="How simulation repair edits protocol.py. patch_only applies exact old/new patches.",
+    )
     parser.add_argument("--agent-max-steps", type=int, default=12)
+    parser.add_argument(
+        "--direct-prompt-mode",
+        choices=("bare", "rules"),
+        default="rules",
+        help="Prompt detail for --provider deepseek direct generation.",
+    )
     parser.add_argument(
         "--authoring-skill-mode",
         choices=("full", "light", "off"),
         default="light",
         help="Skill exposure for --provider labscriptai-authoring. Use off/light for external ablations.",
+    )
+    parser.add_argument(
+        "--tool-profile",
+        choices=("edit", "simulate", "kb", "kb_strong"),
+        default="kb",
+        help="Tool exposure for --provider labscriptai-authoring scaffold ablations.",
+    )
+    parser.add_argument(
+        "--scaffold-label",
+        default="",
+        help="Optional label copied into records and summary for ablation tables.",
     )
     args = parser.parse_args(argv)
     args.simulation_repair_attempts = min(args.simulation_repair_attempts, 3)
@@ -1604,23 +1792,13 @@ def main(argv: list[str] | None = None) -> int:
     protocol_repairer = None
     if args.provider == "deepseek":
         config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
-        author = lambda task: call_package_author(config, task)
+        author = lambda task: call_package_author(config, task, prompt_mode=args.direct_prompt_mode)
         model_id = config.model
-        protocol_repairer = lambda task, protocol_py, simulation_result: call_protocol_repair(
-            config,
-            task,
-            protocol_py=protocol_py,
-            simulation_result=simulation_result,
-        )
+        protocol_repairer = _build_protocol_repairer(config, args.repair_edit_mode)
     elif args.provider == "labscriptai-authoring":
         config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
         model_id = config.model
-        protocol_repairer = lambda task, protocol_py, simulation_result: call_protocol_repair(
-            config,
-            task,
-            protocol_py=protocol_py,
-            simulation_result=simulation_result,
-        )
+        protocol_repairer = _build_protocol_repairer(config, args.repair_edit_mode)
 
         def author(task: AuthoringTask) -> dict[str, str]:
             with tempfile.TemporaryDirectory() as tmp:
@@ -1628,8 +1806,29 @@ def main(argv: list[str] | None = None) -> int:
                     client=OpenAICompatibleAuthoringClient(config),
                     max_steps=args.agent_max_steps,
                     skill_mode=args.authoring_skill_mode,
+                    tool_profile=args.tool_profile,
                 )
                 return agent.run_to_files(
+                    task=task,
+                    work_dir=Path(tmp),
+                    opentrons_python=args.opentrons_python,
+                    workspace_root=args.workspace_root,
+                    simulation_timeout_sec=args.simulation_timeout_sec,
+                )
+    elif args.provider == "labscriptai-unified":
+        config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
+        model_id = config.model
+        protocol_repairer = _build_protocol_repairer(config, args.repair_edit_mode)
+
+        def author(task: AuthoringTask) -> dict[str, str]:
+            with tempfile.TemporaryDirectory() as tmp:
+                facade = UnifiedAuthoringFacade(
+                    client=OpenAICompatibleAuthoringClient(config),
+                    max_steps=args.agent_max_steps,
+                    skill_mode=args.authoring_skill_mode,
+                    tool_profile=args.tool_profile,
+                )
+                return facade.run_to_files(
                     task=task,
                     work_dir=Path(tmp),
                     opentrons_python=args.opentrons_python,
@@ -1655,6 +1854,8 @@ def main(argv: list[str] | None = None) -> int:
         retry_attempts=args.retry_attempts,
         protocol_repairer=protocol_repairer,
         simulation_repair_attempts=args.simulation_repair_attempts,
+        scaffold_label=args.scaffold_label,
+        repair_edit_mode=args.repair_edit_mode,
     )
     print(json.dumps(summary, indent=2))
     return 0

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -8,12 +9,13 @@ from unittest.mock import patch
 
 from labscriptai.runtime.adapters.robot_http import RobotHttpConfig, RobotHttpReadOnlyAdapter
 from labscriptai.runtime.cli import main as runtime_cli_main
-from test_package_validator import write_valid_package
+from tests.test_package_validator import write_valid_package
 
 
 class FakeRobotAdapter(RobotHttpReadOnlyAdapter):
     def __init__(self) -> None:
         super().__init__(RobotHttpConfig(host="robot.local"))
+        self.posts: list[tuple[str, dict]] = []
 
     def _get(self, path, query=None):  # noqa: ANN001
         del query
@@ -31,6 +33,10 @@ class FakeRobotAdapter(RobotHttpReadOnlyAdapter):
         }
         return payloads[path]
 
+    def _post(self, path, payload):  # noqa: ANN001
+        self.posts.append((path, dict(payload)))
+        return {"data": {"id": "action-1", "actionType": payload["data"]["actionType"]}}
+
 
 class RuntimeRobotHttpCliTests(unittest.TestCase):
     def test_robot_http_snapshot_builds_state_ledger(self) -> None:
@@ -43,6 +49,15 @@ class RuntimeRobotHttpCliTests(unittest.TestCase):
         self.assertEqual(state.phase, "recovering")
         self.assertEqual(state.completed_commands[0]["id"], "cmd-1")
         self.assertEqual(state.failed_commands[0]["id"], "cmd-2")
+
+    def test_robot_http_control_run_posts_run_action_then_refreshes(self) -> None:
+        adapter = FakeRobotAdapter()
+
+        result = adapter.control_run(run_id="run-1", action_type="pause_run")
+
+        self.assertEqual(adapter.posts, [("/runs/run-1/actions", {"data": {"actionType": "pause"}})])
+        self.assertEqual(result["action"]["id"], "action-1")
+        self.assertEqual(result["snapshot"]["run_history"]["status"], "awaiting-recovery")
 
     def test_cli_chat_dry_run_writes_trace_and_patch_log(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,6 +161,60 @@ class RuntimeRobotHttpCliTests(unittest.TestCase):
 
         self.assertEqual(exit_code, 0)
         run.assert_called_once()
+
+    def test_cli_chat_loads_dotenv_before_unified_bridge_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package_dir = root / "package"
+            package_dir.mkdir()
+            write_valid_package(package_dir)
+            env_path = root / ".env"
+            env_path.write_text(
+                "\n".join(
+                    [
+                        "DEEPSEEK_API_KEY=dotenv-key",
+                        "DEEPSEEK_BASE_URL=https://dotenv.example",
+                        "DEEPSEEK_MODEL=dotenv-model",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            bridge_configs: list[object] = []
+
+            class FakeBridge:
+                def __init__(self, *, config, **kwargs):  # noqa: ANN001
+                    del kwargs
+                    bridge_configs.append(config)
+
+                def handle_text(self, text, language):  # noqa: ANN001, ANN201
+                    del text, language
+                    raise AssertionError("TUI should not send a message in this CLI smoke")
+
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(root)
+                with patch.dict("os.environ", {}, clear=True):
+                    with patch("labscriptai.runtime.tui.RuntimeTuiApp.run", return_value=0) as run:
+                        with patch("labscriptai.runtime.unified_chat_bridge.UnifiedChatBridge", FakeBridge):
+                            exit_code = runtime_cli_main(
+                                [
+                                    "chat",
+                                    "--dry-run",
+                                    "--run-id",
+                                    "run-1",
+                                    "--package-dir",
+                                    str(package_dir),
+                                    "--provider",
+                                    "deepseek",
+                                ]
+                            )
+            finally:
+                os.chdir(old_cwd)
+
+        self.assertEqual(exit_code, 0)
+        run.assert_called_once()
+        self.assertEqual(len(bridge_configs), 1)
+        self.assertEqual(bridge_configs[0].api_key, "dotenv-key")
 
     def test_cli_chat_no_tui_requires_candidate_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

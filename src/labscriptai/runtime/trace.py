@@ -17,9 +17,11 @@ TRACE_EVENT_TYPES = frozenset(
         "state_update",
         "memory_retrieval",
         "candidate_action",
+        "candidate_tool_call",
         "gatekeeper_decision",
         "tool_call",
         "tool_result",
+        "runtime_event",
         "recovery",
         "escalation",
         "summary",
@@ -100,4 +102,3 @@ class TraceWriter:
             for line in self.path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Protocol
 from json import JSONDecodeError
-from urllib import request
+from urllib import error, request
 
 from labscriptai.benchmark.package_validator import REQUIRED_PACKAGE_FILES
 from labscriptai.benchmark.tasks import AuthoringTask
@@ -54,8 +56,29 @@ class OpenAICompatibleAuthoringClient:
                 "Content-Type": "application/json",
             },
         )
-        with self.opener(req, timeout=self.config.timeout_sec) as response:
-            response_payload = json.loads(response.read().decode("utf-8"))
+        try:
+            with self.opener(req, timeout=self.config.timeout_sec) as response:
+                raw_response = response.read()
+                _write_provider_debug(
+                    provider="authoring",
+                    stage="response",
+                    status=getattr(response, "status", None),
+                    headers=dict(response.headers.items()) if getattr(response, "headers", None) else {},
+                    body=raw_response,
+                    error_message=None,
+                )
+                response_payload = json.loads(raw_response.decode("utf-8"))
+        except error.HTTPError as exc:
+            raw_response = exc.read()
+            _write_provider_debug(
+                provider="authoring",
+                stage="http_error",
+                status=exc.code,
+                headers=dict(exc.headers.items()) if exc.headers else {},
+                body=raw_response,
+                error_message=str(exc),
+            )
+            raise
         usage = response_payload.get("usage")
         if isinstance(usage, dict):
             input_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
@@ -96,6 +119,44 @@ class OpenAICompatibleAuthoringClient:
             finish_reason = choices[0].get("finish_reason") if isinstance(choices[0], dict) else None
             raise ValueError(f"model response content is empty; finish_reason={finish_reason}")
         return _load_first_json_object(content)
+
+
+def _write_provider_debug(
+    *,
+    provider: str,
+    stage: str,
+    status: int | None,
+    headers: dict[str, Any],
+    body: bytes,
+    error_message: str | None,
+) -> None:
+    debug_dir = os.environ.get("LABSCRIPTAI_PROVIDER_DEBUG_DIR")
+    if not debug_dir:
+        return
+    path = Path(debug_dir)
+    path.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
+    safe_headers = {
+        str(key): str(value)
+        for key, value in headers.items()
+        if str(key).lower() not in {"authorization", "proxy-authorization", "set-cookie", "cookie"}
+    }
+    text = body.decode("utf-8", errors="replace")
+    payload = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "provider": provider,
+        "stage": stage,
+        "status": status,
+        "headers": safe_headers,
+        "body_length": len(body),
+        "body_prefix": text[:4000],
+        "body_suffix": text[-4000:] if len(text) > 4000 else text,
+        "error": error_message,
+    }
+    (path / f"{timestamp}-{provider}-{stage}.json").write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
 
 
 def _load_first_json_object(content: str) -> dict[str, Any]:
@@ -197,16 +258,129 @@ def _native_tool_specs(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "properties": {"simulation_pass": {"type": "boolean"}},
             },
         },
+        "robot.inspect": {
+            "description": "Read robot or run status without moving hardware.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string", "enum": ["http", "mcp"]},
+                    "host": {"type": "string"},
+                    "robot_ip": {"type": "string"},
+                    "port": {"type": "integer"},
+                    "run_id": {"type": "string"},
+                },
+            },
+        },
+        "error.parse": {
+            "description": "Parse a runtime, simulation, or robot error into a useful category.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "raw_error": {"type": "string"},
+                    "run_id": {"type": "string"},
+                },
+            },
+        },
+        "recovery.suggest": {
+            "description": "Ask the recovery backend for a safe recovery suggestion.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "robot_ip": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "error": {},
+                },
+            },
+        },
+        "run.control": {
+            "description": "Propose a gated runtime control action. Hardware-affecting actions require approval.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "action_type": {"type": "string"},
+                    "reason": {"type": "string"},
+                    "human_confirmed": {"type": "boolean"},
+                    "branch": {"type": "string"},
+                    "patch": {"type": "object"},
+                    "dry_run": {"type": "boolean"},
+                },
+                "required": ["action_type"],
+            },
+        },
+        "package.read_write": {
+            "description": "Read or edit files inside the current protocol package directory.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "op": {"type": "string", "enum": ["read", "write", "str_replace", "json_set", "append_md"]},
+                    "path": {"type": "string"},
+                    "content": {"type": "string"},
+                    "old": {"type": "string"},
+                    "new": {"type": "string"},
+                    "pointer": {"type": "string"},
+                    "value": {},
+                    "text": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                "required": ["op", "path"],
+            },
+        },
+        "package.validate": {
+            "description": "Validate the current protocol package.",
+            "parameters": {
+                "type": "object",
+                "properties": {"simulation_pass": {"type": "boolean"}},
+            },
+        },
+        "package.simulate": {
+            "description": "Simulate the current protocol package.",
+            "parameters": {"type": "object", "properties": {}},
+        },
+        "skill.search_load": {
+            "description": "List or load concise LabscriptAI skills.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "op": {"type": "string", "enum": ["list", "load"]},
+                    "name": {"type": "string"},
+                },
+                "required": ["op"],
+            },
+        },
+        "memory.read_write": {
+            "description": "Search or append runtime memory notes.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "op": {"type": "string", "enum": ["search", "append"]},
+                    "query": {"type": "string"},
+                    "limit": {"type": "integer"},
+                    "title": {"type": "string"},
+                    "body": {"type": "string"},
+                    "tags": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["op"],
+            },
+        },
+        "protocol.search": {
+            "description": "Search reference Opentrons protocols by keyword.",
+            "parameters": {
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+        },
     }
     native_tools = []
     for tool in tools:
         name = tool["name"]
+        model_name = name.replace(".", "_")
         schema = schemas.get(name, {"description": f"LabscriptAI authoring tool {name}", "parameters": {}})
         native_tools.append(
             {
                 "type": "function",
                 "function": {
-                    "name": name,
+                    "name": model_name,
                     "description": schema["description"],
                     "parameters": schema["parameters"],
                 },
@@ -249,6 +423,7 @@ class AuthoringAgent:
         skill_loader: SkillLoader | None = None,
         max_steps: int = 12,
         skill_mode: str = "light",
+        tool_profile: str = "kb",
     ) -> None:
         self.client = client
         self.skill_loader = skill_loader or SkillLoader()
@@ -256,6 +431,9 @@ class AuthoringAgent:
         if skill_mode not in {"full", "light", "off"}:
             raise ValueError("skill_mode must be one of: full, light, off")
         self.skill_mode = skill_mode
+        if tool_profile not in {"edit", "simulate", "kb", "kb_strong"}:
+            raise ValueError("tool_profile must be one of: edit, simulate, kb, kb_strong")
+        self.tool_profile = tool_profile
         self.context = ContextManager()
 
     def run(
@@ -281,12 +459,18 @@ class AuthoringAgent:
             workspace_root=workspace_root,
             simulation_timeout_sec=simulation_timeout_sec,
             skill_mode=self.skill_mode,
+            tool_profile=self.tool_profile,
         )
-        skill_catalog = self.skill_loader.get_catalog() or "(none)"
-        if self.skill_mode == "off":
+        if self.tool_profile not in {"kb", "kb_strong"}:
+            skill_catalog = "(KB disabled for this run)"
+        elif self.skill_mode == "off":
             skill_catalog = "(skills disabled for this run)"
+        elif self.tool_profile == "kb_strong":
+            skill_catalog = "task templates: dilution, serial_dilution, plate_transfer, normalization, pcr_setup"
         elif self.skill_mode == "light":
             skill_catalog = "common_errors, deck_layout"
+        else:
+            skill_catalog = self.skill_loader.get_catalog() or "(none)"
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
@@ -304,7 +488,7 @@ class AuthoringAgent:
                         "required_package_files": list(REQUIRED_PACKAGE_FILES),
                         "package_format_instruction": (
                             "Use the current three-piece v0.4 package even if the task text "
-                            "mentions the legacy seven-file package."
+                            "mentions any older package format."
                         ),
                     },
                     ensure_ascii=False,

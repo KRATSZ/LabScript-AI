@@ -14,7 +14,7 @@ from labscriptai.runtime.agent_loop import (
 )
 from labscriptai.runtime.state import RuntimeState
 from labscriptai.runtime.trace import TraceWriter
-from test_package_validator import write_valid_package
+from tests.test_package_validator import write_valid_package
 
 
 class AgentLoopTests(unittest.TestCase):
@@ -101,7 +101,7 @@ class AgentLoopTests(unittest.TestCase):
             package_dir = root / "package"
             package_dir.mkdir()
             write_valid_package(package_dir)
-            (package_dir / "runbook.md").unlink()
+            (package_dir / "setup_card.html").unlink()
             trace_path = root / "trace.jsonl"
 
             result = run_offline_loop(

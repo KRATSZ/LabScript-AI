@@ -8,7 +8,7 @@ from pathlib import Path
 from labscriptai.runtime.chat_controller import RuntimeChatController
 from labscriptai.runtime.state import RuntimeState
 from labscriptai.runtime.tui import RuntimeTuiApp
-from test_package_validator import write_valid_package
+from tests.test_package_validator import write_valid_package
 
 
 class RuntimeTuiTests(unittest.IsolatedAsyncioTestCase):

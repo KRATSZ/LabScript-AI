@@ -16,6 +16,7 @@ from .agent_loop import CandidateProvider, ScriptedCandidateProvider
 from .cases import RuntimeCase, load_cases
 from .gatekeeper import evaluate_action
 from .model_adapter import OpenAICompatibleCandidateProvider, OpenAICompatibleConfig
+from .memory import remember_shadow_record
 from .trace import TraceEvent, TraceWriter
 
 
@@ -25,6 +26,7 @@ def run_shadow_benchmark(
     output_dir: Path,
     candidate_provider_factory: Callable[[RuntimeCase], CandidateProvider],
     model_id: str,
+    memory_dir: Path | None = None,
 ) -> dict[str, Any]:
     cases = load_cases(cases_path)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -92,6 +94,8 @@ def run_shadow_benchmark(
                     "reasons": list(decision.reasons),
                 }
             )
+            if memory_dir is not None:
+                remember_shadow_record(memory_dir, records[-1])
         except Exception as exc:  # pragma: no cover - protects live model runs.
             records.append(
                 {
@@ -171,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--cases", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, default=Path("runs/recovery-shadow/latest"))
     parser.add_argument("--provider", choices=("offline", "deepseek"), default="offline")
+    parser.add_argument("--memory-dir", type=Path)
     args = parser.parse_args(argv)
 
     if args.provider == "deepseek":
@@ -186,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         output_dir=args.output_dir,
         candidate_provider_factory=factory,
         model_id=model_id,
+        memory_dir=args.memory_dir,
     )
     print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
     return 0 if summary["error_count"] == 0 else 1

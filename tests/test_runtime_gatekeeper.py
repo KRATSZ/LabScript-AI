@@ -3,6 +3,10 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 from labscriptai.runtime.actions import CandidateAction
 from labscriptai.runtime.gatekeeper import evaluate_action
@@ -60,6 +64,40 @@ class RuntimeGatekeeperTests(unittest.TestCase):
 
         self.assertTrue(decision.escalated)
         self.assertIn("human_confirmed", decision.reasons[0])
+
+    def test_auto_mode_allows_resume_without_human_confirmation(self) -> None:
+        state = RuntimeState(
+            run_id="run-1",
+            phase="recovering",
+            robot={"id": "FLX-1"},
+            expected={"autonomy_mode": "auto"},
+        )
+        action = CandidateAction(
+            action_type="resume_run",
+            reason="Resume after MCP recovery.",
+            parameters={},
+        )
+
+        decision = evaluate_action(action, state)
+
+        self.assertTrue(decision.approved)
+
+    def test_auto_mode_allows_supported_recovery_branch(self) -> None:
+        state = RuntimeState(
+            run_id="run-1",
+            phase="recovering",
+            robot={"id": "FLX-1"},
+            expected={"autonomy_mode": "auto"},
+        )
+        action = CandidateAction(
+            action_type="execute_recovery_branch",
+            reason="Retry with the MCP selected next tip.",
+            parameters={"branch": "retry_pick_up_tip_with_next_candidate"},
+        )
+
+        decision = evaluate_action(action, state)
+
+        self.assertTrue(decision.approved)
 
     def test_resume_run_with_blocker_is_blocked_before_human_confirmation(self) -> None:
         state = RuntimeState(

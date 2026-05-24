@@ -13,6 +13,7 @@ from textual.worker import Worker
 from textual.widgets import Footer, Input, Label, RichLog, Static
 
 from .chat_controller import ChatMessage, RuntimeChatController
+from .poller import PollResult, RuntimePoller
 
 
 class RuntimeTuiApp(App[int]):
@@ -117,11 +118,14 @@ class RuntimeTuiApp(App[int]):
     TITLE = "labscriptAI"
     SUB_TITLE = "runtime chat"
 
-    def __init__(self, controller: RuntimeChatController) -> None:
+    def __init__(self, controller: RuntimeChatController, *, poller: RuntimePoller | None = None) -> None:
         super().__init__()
         self.controller = controller
+        self.poller = poller
         self._spinner_index = 0
         self._thinking = False
+        self._polling = False
+        self._next_poll_at = 0.0
         self.transcript_path = self._default_transcript_path()
 
     def compose(self) -> ComposeResult:
@@ -136,13 +140,13 @@ class RuntimeTuiApp(App[int]):
                 "                              |_|[/]",
                 id="brand-title",
             )
-            yield Static("Talk to the robot runtime. Ask status, explain errors, continue from a breakpoint.", id="brand-subtitle")
+            yield Static("Talk to labscriptAI. In unified mode, describe the task and the agent uses tools directly.", id="brand-subtitle")
         with Horizontal(id="main"):
             yield RichLog(id="chat", markup=True, wrap=True, highlight=True)
             with Vertical(id="side"):
                 yield Static(
                     "Try:\nWhat is the status?\nWhy did it stop?\nContinue from the failed step.\n\n"
-                    "Shortcuts:\n/status /ledger /recover\n/approve /reject /exit",
+                    "Shortcuts:\n/status /ledger /recover\n/approve /reject\n/exit",
                     classes="hint",
                 )
                 yield Static("Copy: /copy or Ctrl+Y", classes="copy-hint")
@@ -158,6 +162,9 @@ class RuntimeTuiApp(App[int]):
         self.query_one("#composer", Input).focus()
         self._render_response(self.controller.welcome())
         self.set_interval(0.12, self._tick_spinner)
+        if self.poller is not None:
+            self._next_poll_at = time.monotonic()
+            self.set_interval(1.0, self._maybe_poll_runtime)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         text = event.value.strip()
@@ -182,6 +189,16 @@ class RuntimeTuiApp(App[int]):
 
     def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
         worker = event.worker
+        if worker.name == "runtime-poll" and worker.is_finished:
+            self._polling = False
+            if worker.state.name == "SUCCESS" and worker.result is not None:
+                self._render_poll_result(worker.result)
+            elif worker.state.name == "ERROR":
+                error = str(worker.error) if worker.error else "Unknown polling error"
+                self._append_message(ChatMessage("error", "Runtime Polling", (error,)))
+            if self.poller is not None:
+                self._next_poll_at = time.monotonic() + self.poller.interval_sec()
+            return
         if worker.name != "chat-response" or not worker.is_finished:
             return
         self._stop_thinking()
@@ -257,6 +274,41 @@ class RuntimeTuiApp(App[int]):
         bar = bars[self._spinner_index % len(bars)]
         self._set_activity(f"{self.SPINNER[self._spinner_index]} labscriptAI is thinking {bar}")
         self.refresh()
+
+    def _maybe_poll_runtime(self) -> None:
+        if self.poller is None or self._polling or self._thinking:
+            return
+        if time.monotonic() < self._next_poll_at:
+            return
+        self._polling = True
+        self._set_activity("Watching robot state...")
+        self.run_worker(
+            self.poller.poll_and_wake,
+            name="runtime-poll",
+            group="runtime-poll",
+            exclusive=True,
+            thread=True,
+            exit_on_error=False,
+        )
+
+    def _render_poll_result(self, result: PollResult) -> None:
+        if not result.events:
+            self._set_activity("Ready")
+            return
+        for event in result.events:
+            if event.should_wake_model:
+                line = f"Detected {event.kind}; woke LabscriptAI to analyze it."
+            elif event.kind == "normal_progress":
+                line = "Robot state updated normally; no action needed."
+            elif event.kind == "run_completed":
+                line = "Run completed successfully."
+            else:
+                line = event.message
+            self._append_message(ChatMessage("system", "Runtime Event", (line,)))
+        for response in result.responses:
+            self._render_response(response)
+        self._set_activity("Ready")
+        self._refresh_status_card()
 
     def _set_activity(self, text: str) -> None:
         try:

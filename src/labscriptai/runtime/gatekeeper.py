@@ -48,6 +48,7 @@ def evaluate_action(action: CandidateAction, state: RuntimeState) -> GatekeeperD
     """Approve, block, or escalate a candidate action deterministically."""
 
     reasons: list[str] = []
+    autonomy_mode = str(state.expected.get("autonomy_mode", "conservative"))
 
     if action.action_type in FORBIDDEN_ACTION_TYPES:
         return GatekeeperDecision(
@@ -77,7 +78,7 @@ def evaluate_action(action: CandidateAction, state: RuntimeState) -> GatekeeperD
             reasons.append(f"blocker risks must be resolved first: {blocker_codes}")
 
     if action.action_type == "resume_run":
-        if not action.parameters.get("human_confirmed"):
+        if not action.parameters.get("human_confirmed") and autonomy_mode != "auto":
             if reasons:
                 return GatekeeperDecision(
                     action_type=action.action_type,
@@ -120,7 +121,7 @@ def evaluate_action(action: CandidateAction, state: RuntimeState) -> GatekeeperD
             "continuation_patch",
         }:
             reasons.append("execute_recovery_branch requires a supported branch")
-        if not action.parameters.get("human_confirmed"):
+        if not action.parameters.get("human_confirmed") and autonomy_mode != "auto":
             reasons.append("execute_recovery_branch requires human_confirmed=true")
         patch = action.parameters.get("patch")
         if branch == "continuation_patch":

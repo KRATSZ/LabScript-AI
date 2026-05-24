@@ -13,7 +13,7 @@ from labscriptai.runtime.continuation import (
 from labscriptai.runtime.gatekeeper import evaluate_action
 from labscriptai.runtime.patch_log import PatchLogWriter
 from labscriptai.runtime.state import RuntimeState
-from test_package_validator import write_valid_package
+from tests.test_package_validator import write_valid_package
 
 
 def valid_patch() -> dict:

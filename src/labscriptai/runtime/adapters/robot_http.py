@@ -64,6 +64,24 @@ class RobotHttpReadOnlyAdapter:
             return []
         return [dict(run) for run in runs if isinstance(run, Mapping)]
 
+    def control_run(self, *, run_id: str, action_type: str) -> dict[str, Any]:
+        opentrons_action = _opentrons_action_type(action_type)
+        action = self._post(
+            f"/runs/{run_id}/actions",
+            {"data": {"actionType": opentrons_action}},
+        )
+        snapshot = self.snapshot(run_id=run_id)
+        result = {
+            "run_id": run_id,
+            "action_type": action_type,
+            "opentrons_action_type": opentrons_action,
+            "action": _unwrap(action),
+            "snapshot": snapshot,
+        }
+        if isinstance(action, Mapping) and action.get("error"):
+            result["error"] = action["error"]
+        return result
+
     def state_from_snapshot(self, *, run_id: str, snapshot: Mapping[str, Any]) -> RuntimeState:
         robot_health = snapshot.get("robot_health") if isinstance(snapshot.get("robot_health"), Mapping) else {}
         run_history = snapshot.get("run_history") if isinstance(snapshot.get("run_history"), Mapping) else {}
@@ -89,6 +107,30 @@ class RobotHttpReadOnlyAdapter:
             suffix = f"{suffix}?{urlencode(query)}"
         request = Request(f"{self.config.base_url}{suffix}", method="GET")
         request.add_header("Opentrons-Version", "3")
+        if self.config.token:
+            request.add_header("Authorization", f"Bearer {self.config.token}")
+        try:
+            with urlopen(request, timeout=self.config.timeout_sec) as response:
+                body = response.read().decode("utf-8")
+        except HTTPError as exc:
+            return {"error": f"HTTPError: {exc.code}", "path": path}
+        except URLError as exc:
+            return {"error": f"URLError: {exc.reason}", "path": path}
+        if not body.strip():
+            return {}
+        try:
+            return json.loads(body)
+        except json.JSONDecodeError:
+            return {"raw": body}
+
+    def _post(self, path: str, payload: Mapping[str, Any]) -> dict[str, Any]:
+        request = Request(
+            f"{self.config.base_url}{path}",
+            data=json.dumps(dict(payload)).encode("utf-8"),
+            method="POST",
+        )
+        request.add_header("Opentrons-Version", "3")
+        request.add_header("Content-Type", "application/json")
         if self.config.token:
             request.add_header("Authorization", f"Bearer {self.config.token}")
         try:
@@ -172,3 +214,15 @@ def _phase_from_run_status(status: str) -> str:
     if normalized in {"succeeded"}:
         return "completed"
     return "preflight"
+
+
+def _opentrons_action_type(action_type: str) -> str:
+    mapping = {
+        "pause_run": "pause",
+        "resume_run": "play",
+        "abort_run": "stop",
+    }
+    try:
+        return mapping[action_type]
+    except KeyError as exc:
+        raise ValueError(f"unsupported HTTP run control action: {action_type}") from exc

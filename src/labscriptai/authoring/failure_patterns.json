@@ -1,0 +1,37 @@
+[
+  {
+    "task_type": "dilution",
+    "common_failure": "Manifest reagent totals do not match protocol transfers or omit dilution buffer.",
+    "fix": "Compute stock and diluent volumes explicitly and mirror those totals in manifest.reagents.",
+    "preferred_labware": "96 well plate plus reservoir or tube rack for stock and buffer",
+    "preferred_pipette": "p20_single_gen2 for <=20 uL, p300_single_gen2 for larger diluent volumes"
+  },
+  {
+    "task_type": "serial_dilution",
+    "common_failure": "Dilution direction, mix step, or carryover tip policy is unclear.",
+    "fix": "Transfer from high to low concentration, mix after each dilution, and change tips between dilution points unless same-sample carryover is intentional.",
+    "preferred_labware": "96 well plate or strip wells plus reservoir for dilution buffer",
+    "preferred_pipette": "p20_single_gen2 for small stocks, p300_single_gen2 for 50-200 uL steps"
+  },
+  {
+    "task_type": "plate_transfer",
+    "common_failure": "Tip budget, plate map, or waste route is missing from manifest/runbook.",
+    "fix": "Declare source/destination labware, tip racks, tips_required, tips_available, and waste/off-platform handoff notes.",
+    "preferred_labware": "96 well source plate, 96 well destination plate, NEST reservoir when needed",
+    "preferred_pipette": "p300_single_gen2 for flexible maps; multichannel only for strict column operations"
+  },
+  {
+    "task_type": "normalization",
+    "common_failure": "Sample volume is not calculated from concentration, target mass, and final volume.",
+    "fix": "Use sample_uL = target_mass_ng / concentration_ng_per_uL, then water_uL = final_uL - sample_uL and guard invalid concentrations.",
+    "preferred_labware": "sample plate plus destination plate and water reservoir",
+    "preferred_pipette": "p20_single_gen2 for low sample volumes, p300_single_gen2 for water backfill"
+  },
+  {
+    "task_type": "pcr_setup",
+    "common_failure": "PCR/qPCR reagent totals omit master mix, primer, template, controls, or cold-chain notes.",
+    "fix": "Group master mix/primer/template additions, include positive/negative/NTC controls, and keep manifest reagent totals aligned with protocol loops.",
+    "preferred_labware": "96 well PCR plate, cold block or tube rack for master mix and primers",
+    "preferred_pipette": "p20_single_gen2 for PCR components; p300_single_gen2 only for bulk master mix pre-distribution"
+  }
+]

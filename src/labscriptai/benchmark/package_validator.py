@@ -21,7 +21,6 @@ from .validators.core import (
 from .validators.models import (
     REQUIRED_PACKAGE_FILES,
     CRITICAL_FAILURES,
-    LEGACY_PACKAGE_FILES,
     PackageValidationResult,
     THREE_PIECE_PACKAGE_FILES,
     THREE_PIECE_SCHEMA_VERSION,
@@ -31,7 +30,6 @@ from .validators.opentrons import validate_deck_plan
 
 __all__ = (
     "CRITICAL_FAILURES",
-    "LEGACY_PACKAGE_FILES",
     "REQUIRED_PACKAGE_FILES",
     "THREE_PIECE_PACKAGE_FILES",
     "PackageValidationResult",
@@ -45,7 +43,7 @@ def _manifest_schema_version(manifest: Any) -> str:
         value = manifest.get("schema_version")
         if isinstance(value, str):
             return value
-    return "0.3"
+    return ""
 
 
 def _manifest_deck_plan(manifest: Any) -> Any:
@@ -87,9 +85,10 @@ def _manifest_risk_checklist(manifest: Any) -> Any:
             handoffs.append(instrument)
     elif isinstance(handoff, list):
         handoffs.extend(handoff)
+    top_level_handoffs = manifest.get("off_platform_handoffs")
+    if isinstance(top_level_handoffs, list):
+        handoffs.extend(top_level_handoffs)
     critical_failures = manifest.get("critical_failures")
-    if not isinstance(critical_failures, list):
-        critical_failures = []
     return {
         "critical_failures": critical_failures,
         "risk_flags": manifest.get("risk_flags", []),
@@ -202,12 +201,7 @@ def validate_package(
 
     manifest_path = root / "manifest.json"
     manifest_obj = read_json(manifest_path, issues) if manifest_path.exists() else None
-    schema_version = _manifest_schema_version(manifest_obj)
-    required_files = (
-        THREE_PIECE_PACKAGE_FILES
-        if schema_version == THREE_PIECE_SCHEMA_VERSION
-        else LEGACY_PACKAGE_FILES
-    )
+    required_files = THREE_PIECE_PACKAGE_FILES
     if manifest_obj is not None:
         loaded_json["manifest.json"] = manifest_obj
 
@@ -230,12 +224,12 @@ def validate_package(
     if protocol_path.exists():
         validate_protocol_syntax(protocol_path, issues)
 
-    human_card_name = "setup_card.html" if schema_version == THREE_PIECE_SCHEMA_VERSION else "runbook.md"
+    human_card_name = "setup_card.html"
     runbook_path = root / human_card_name
     if runbook_path.exists() and not runbook_path.read_text(encoding="utf-8").strip():
         issues.append(
             ValidationIssue(
-                code="empty_setup_card" if schema_version == THREE_PIECE_SCHEMA_VERSION else "empty_runbook",
+                code="empty_setup_card",
                 message=f"{human_card_name} must include human setup instructions",
                 path=str(runbook_path),
                 critical_failure="schema_invalid",
@@ -254,29 +248,13 @@ def validate_package(
         expected_handoffs=expected_handoffs,
     )
 
-    deck_plan = (
-        _manifest_deck_plan(manifest_obj)
-        if schema_version == THREE_PIECE_SCHEMA_VERSION
-        else loaded_json.get("deck_plan.json")
-    )
-    reagent_plan = (
-        _manifest_reagent_plan(manifest_obj)
-        if schema_version == THREE_PIECE_SCHEMA_VERSION
-        else loaded_json.get("reagent_plan.json")
-    )
-    tip_plan = (
-        _manifest_tip_plan(manifest_obj)
-        if schema_version == THREE_PIECE_SCHEMA_VERSION
-        else loaded_json.get("tip_plan.json")
-    )
-    risk_checklist = (
-        _manifest_risk_checklist(manifest_obj)
-        if schema_version == THREE_PIECE_SCHEMA_VERSION
-        else loaded_json.get("risk_checklist.json")
-    )
+    deck_plan = _manifest_deck_plan(manifest_obj)
+    reagent_plan = _manifest_reagent_plan(manifest_obj)
+    tip_plan = _manifest_tip_plan(manifest_obj)
+    risk_checklist = _manifest_risk_checklist(manifest_obj)
 
-    deck_source_path = root / ("manifest.json" if schema_version == THREE_PIECE_SCHEMA_VERSION else "deck_plan.json")
-    risk_source_path = root / ("manifest.json" if schema_version == THREE_PIECE_SCHEMA_VERSION else "risk_checklist.json")
+    deck_source_path = root / "manifest.json"
+    risk_source_path = root / "manifest.json"
     deck_score = validate_deck_plan(
         deck_plan,
         deck_source_path,
@@ -284,11 +262,11 @@ def validate_package(
         protocol_path=protocol_path,
     )
     volume_score = validate_reagent_plan(
-        reagent_plan, root / ("manifest.json" if schema_version == THREE_PIECE_SCHEMA_VERSION else "reagent_plan.json"), issues
+        reagent_plan, root / "manifest.json", issues
     )
     tip_score = validate_tip_plan(
         tip_plan,
-        root / ("manifest.json" if schema_version == THREE_PIECE_SCHEMA_VERSION else "tip_plan.json"),
+        root / "manifest.json",
         issues,
     )
     contamination_score, risk_flag_recall = validate_risk_checklist(
@@ -321,7 +299,7 @@ def validate_package(
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate a LabscriptAI protocol package")
-    parser.add_argument("package_dir", help="Directory containing a v0.4 three-piece or legacy package")
+    parser.add_argument("package_dir", help="Directory containing a v0.4 three-piece package")
     parser.add_argument(
         "--simulation-pass",
         action="store_true",

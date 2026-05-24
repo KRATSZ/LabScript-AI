@@ -38,23 +38,27 @@ def write_minimal_package(package_dir: Path, task: AuthoringTask, *, model_id: s
         "    pass\n",
         encoding="utf-8",
     )
-    (package_dir / "deck_plan.json").write_text(
-        json.dumps(
-            {
-                "labware": [
-                    {"name": "opentrons_96_wellplate_200ul_pcr_full_skirt", "slot": "D1"},
-                    {"name": "opentrons_flex_96_tiprack_200ul", "slot": "A1"},
-                ],
-                "modules": [],
-                "instruments": [{"name": "flex_1channel_1000", "mount": "left"}],
-            },
-            indent=2,
-        ),
+    (package_dir / "setup_card.html").write_text(
+        f"# Runtime smoke package\n\nTask: {task.task_id}\n\nThis placeholder is for loop smoke tests only.\n",
         encoding="utf-8",
     )
-    (package_dir / "reagent_plan.json").write_text(
+    (package_dir / "manifest.json").write_text(
         json.dumps(
             {
+                "schema_version": "0.4",
+                "task_id": task.task_id,
+                "system_id": "labscriptai",
+                "model_id": model_id,
+                "scaffold_id": "runtime-smoke-placeholder",
+                "prompt_hash": prompt_hash,
+                "deck": {
+                    "slots": [
+                        {"name": "opentrons_96_wellplate_200ul_pcr_full_skirt", "slot": "D1"},
+                        {"name": "opentrons_flex_96_tiprack_200ul", "slot": "A1"},
+                    ],
+                    "modules": [],
+                    "instruments": [{"name": "flex_1channel_1000", "mount": "left"}],
+                },
                 "reagents": [
                     {
                         "name": "water",
@@ -63,42 +67,13 @@ def write_minimal_package(package_dir: Path, task: AuthoringTask, *, model_id: s
                         "available_volume_ul": 1200,
                         "dead_volume_ul": 100,
                     }
-                ]
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    (package_dir / "tip_plan.json").write_text(
-        json.dumps(
-            {"tips_required": 8, "tips_available": 96, "policy": "one_tip_per_sample"},
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    (package_dir / "runbook.md").write_text(
-        f"# Runtime smoke package\n\nTask: {task.task_id}\n\nThis placeholder is for loop smoke tests only.\n",
-        encoding="utf-8",
-    )
-    (package_dir / "risk_checklist.json").write_text(
-        json.dumps({"critical_failures": [], "manual_checks": ["confirm liquid levels"]}, indent=2),
-        encoding="utf-8",
-    )
-    (package_dir / "manifest.json").write_text(
-        json.dumps(
-            {
-                "task_id": task.task_id,
-                "system_id": "labscriptai",
-                "model_id": model_id,
-                "scaffold_id": "runtime-smoke-placeholder",
-                "prompt_hash": prompt_hash,
-                "retry_budget": {
-                    "max_attempts": 8,
-                    "max_wall_time_sec": 1800,
-                    "max_output_tokens": 24000,
-                    "max_tool_calls": 80,
-                },
+                ],
+                "tips": {"tips_required": 8, "tips_available": 96, "policy": "one_tip_per_sample"},
+                "risk_flags": ["confirm liquid levels"],
+                "critical_failures": [],
+                "off_platform_handoff": {"declared": False},
                 "tool_permissions": ["simulate_protocol"],
+                "budget": {"attempts": 8, "wall_min": 30, "tokens": 24000},
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             },
             indent=2,

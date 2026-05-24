@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-from .models import BUDGET_LIMITS, CRITICAL_FAILURES, MANIFEST_REQUIRED_FIELDS, ValidationIssue
+from .models import BUDGET_LIMITS, CRITICAL_FAILURES, ValidationIssue
 from .models import THREE_PIECE_MANIFEST_REQUIRED_FIELDS, THREE_PIECE_SCHEMA_VERSION
 
 
@@ -80,53 +80,7 @@ def validate_manifest(manifest: Any, path: Path, issues: list[ValidationIssue]) 
         )
         return
 
-    if manifest.get("schema_version") == THREE_PIECE_SCHEMA_VERSION:
-        validate_three_piece_manifest(manifest, path, issues)
-        return
-
-    for field_name in MANIFEST_REQUIRED_FIELDS:
-        if field_name not in manifest:
-            issues.append(
-                ValidationIssue(
-                    code="manifest_missing_field",
-                    message=f"manifest.json missing required field: {field_name}",
-                    path=str(path),
-                    critical_failure="schema_invalid",
-                )
-            )
-
-    retry_budget = manifest.get("retry_budget")
-    if not isinstance(retry_budget, Mapping):
-        issues.append(
-            ValidationIssue(
-                code="retry_budget_not_object",
-                message="manifest.retry_budget must be an object",
-                path=str(path),
-                critical_failure="schema_invalid",
-            )
-        )
-        return
-
-    for key, limit in BUDGET_LIMITS.items():
-        value = retry_budget.get(key)
-        if not isinstance(value, int):
-            issues.append(
-                ValidationIssue(
-                    code="retry_budget_missing_or_invalid",
-                    message=f"manifest.retry_budget.{key} must be an integer",
-                    path=str(path),
-                    critical_failure="schema_invalid",
-                )
-            )
-        elif value > limit:
-            issues.append(
-                ValidationIssue(
-                    code="retry_budget_exceeds_limit",
-                    message=f"manifest.retry_budget.{key}={value} exceeds {limit}",
-                    path=str(path),
-                    critical_failure="schema_invalid",
-                )
-            )
+    validate_three_piece_manifest(manifest, path, issues)
 
 
 def validate_three_piece_manifest(
@@ -274,7 +228,7 @@ def validate_tip_plan(tip_plan: Any, path: Path, issues: list[ValidationIssue]) 
         issues.append(
             ValidationIssue(
                 code="tip_plan_not_object",
-                message="tip_plan.json must be a JSON object",
+                message="manifest.tips must be a JSON object",
                 path=str(path),
                 critical_failure="schema_invalid",
             )
@@ -323,7 +277,7 @@ def validate_tip_plan(tip_plan: Any, path: Path, issues: list[ValidationIssue]) 
         issues.append(
             ValidationIssue(
                 code="tip_plan_missing_quantities",
-                message="tip_plan.json must declare tips_required/tips_available or supported aliases",
+                message="manifest.tips must declare tips_required/tips_available or supported aliases",
                 path=str(path),
                 critical_failure="schema_invalid",
             )
@@ -416,7 +370,7 @@ def validate_risk_checklist(
             issues.append(
                 ValidationIssue(
                     code="risk_checklist_missing_critical_failures",
-                    message="risk_checklist.json must declare critical_failures as a list",
+                    message="manifest.critical_failures must be a list",
                     path=str(path),
                     critical_failure="schema_invalid",
                 )
@@ -426,7 +380,7 @@ def validate_risk_checklist(
         issues.append(
             ValidationIssue(
                 code="risk_checklist_not_object",
-                message="risk_checklist.json must be a JSON object",
+                message="manifest risk fields must be a JSON object or list as documented",
                 path=str(path),
                 critical_failure="schema_invalid",
             )
@@ -472,7 +426,7 @@ def handoff_declared_score(
         issues.append(
             ValidationIssue(
                 code="off_platform_handoff_missing",
-                message=f"risk_checklist.json must declare off-platform handoff: {handoff}",
+                message=f"manifest must declare off-platform handoff: {handoff}",
                 path=str(path),
                 critical_failure="schema_invalid",
             )

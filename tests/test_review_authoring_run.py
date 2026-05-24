@@ -11,7 +11,7 @@ from labscriptai.benchmark.review_authoring_run import (
     review_run,
 )
 from labscriptai.benchmark.tasks import AuthoringTask
-from test_package_validator import write_valid_package
+from tests.test_package_validator import write_valid_package
 
 
 class ReviewAuthoringRunTests(unittest.TestCase):

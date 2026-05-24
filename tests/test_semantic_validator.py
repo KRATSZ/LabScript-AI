@@ -9,7 +9,7 @@ from labscriptai.benchmark.semantic_validator import (
     validate_semantics,
 )
 from labscriptai.benchmark.tasks import AuthoringTask, TaskReagentSpec, TaskSpec
-from test_package_validator import write_valid_package
+from tests.test_package_validator import write_valid_package
 
 
 class SemanticValidatorTests(unittest.TestCase):

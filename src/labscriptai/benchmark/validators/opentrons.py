@@ -137,7 +137,7 @@ def validate_deck_plan(
             issues.append(
                 ValidationIssue(
                     code="deck_protocol_labware_mismatch",
-                    message=f"protocol.py loads {load_name} in slot {slot}, but deck_plan.json does not declare it",
+                    message=f"protocol.py loads {load_name} in slot {slot}, but manifest.deck does not declare it",
                     path=str(path),
                     critical_failure="deck_conflict",
                 )
@@ -147,7 +147,7 @@ def validate_deck_plan(
             issues.append(
                 ValidationIssue(
                     code="deck_protocol_instrument_mismatch",
-                    message=f"protocol.py loads {instrument_name} on {mount}, but deck_plan.json does not declare it",
+                    message=f"protocol.py loads {instrument_name} on {mount}, but manifest.deck does not declare it",
                     path=str(path),
                     critical_failure="deck_conflict",
                 )
