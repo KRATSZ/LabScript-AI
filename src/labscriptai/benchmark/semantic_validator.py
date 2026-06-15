@@ -77,16 +77,6 @@ def _read_package_text(package_dir: Path) -> str:
         path = package_dir / file_name
         if path.exists():
             parts.append(path.read_text(encoding="utf-8", errors="replace"))
-    for file_name in (
-        "runbook.md",
-        "deck_plan.json",
-        "reagent_plan.json",
-        "tip_plan.json",
-        "risk_checklist.json",
-    ):
-        path = package_dir / file_name
-        if path.exists():
-            parts.append(path.read_text(encoding="utf-8", errors="replace"))
     return "\n".join(parts).lower()
 
 
@@ -120,9 +110,6 @@ def _manifest_object(package_dir: Path) -> Mapping[str, Any] | None:
 
 
 def _tip_plan_object(package_dir: Path) -> Mapping[str, Any] | None:
-    legacy = _json_object(package_dir / "tip_plan.json")
-    if isinstance(legacy, Mapping):
-        return legacy
     manifest = _manifest_object(package_dir)
     if manifest is None:
         return None
@@ -131,9 +118,6 @@ def _tip_plan_object(package_dir: Path) -> Mapping[str, Any] | None:
 
 
 def _reagent_plan_object(package_dir: Path) -> Any:
-    legacy = _json_object(package_dir / "reagent_plan.json")
-    if legacy is not None:
-        return legacy
     manifest = _manifest_object(package_dir)
     if manifest is None:
         return None
@@ -522,7 +506,7 @@ def validate_param_sweep(package_dir: Path | str, task: AuthoringTask) -> ParamS
             issues.append(
                 SemanticIssue(
                     code=f"{term}_plan_not_parameterized",
-                    message=f"Package plans do not show how {term} changes tips, reagents, deck, or runbook behavior.",
+                    message=f"setup_card.html or manifest.json do not show how {term} changes tips, reagents, or deck behavior.",
                 )
             )
 
@@ -749,7 +733,7 @@ def validate_semantics(package_dir: Path | str, task: AuthoringTask) -> Semantic
             issues.append(
                 SemanticIssue(
                     code="tip_quantity_missing",
-                    message="Task mentions tip handling but tip_plan lacks a positive quantity.",
+                    message="Task mentions tip handling but manifest tips lack a positive quantity.",
                 )
             )
 
@@ -767,7 +751,7 @@ def validate_semantics(package_dir: Path | str, task: AuthoringTask) -> Semantic
                 SemanticIssue(
                     code="tip_count_below_sample_count",
                     message=(
-                        "Task requires fresh tips per sample, but tip_plan does not cover "
+                        "Task requires fresh tips per sample, but manifest tips do not cover "
                         f"{task.spec.default_samples} samples."
                     ),
                 )

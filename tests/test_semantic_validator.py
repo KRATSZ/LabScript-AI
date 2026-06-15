@@ -9,7 +9,7 @@ from labscriptai.benchmark.semantic_validator import (
     validate_semantics,
 )
 from labscriptai.benchmark.tasks import AuthoringTask, TaskReagentSpec, TaskSpec
-from tests.test_package_validator import write_valid_package
+from tests.test_package_validator import write_manifest, write_valid_package
 
 
 class SemanticValidatorTests(unittest.TestCase):
@@ -43,8 +43,8 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "runbook.md").write_text(
-                "# Setup\nInclude a negative control. Use 10uL reactions.\n",
+            (package_dir / "setup_card.html").write_text(
+                "<h1>Setup</h1><p>Include a negative control. Use 10uL reactions.</p>\n",
                 encoding="utf-8",
             )
 
@@ -67,10 +67,7 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "tip_plan.json").write_text(
-                '{"tips_required": 8, "tips_available": 96}',
-                encoding="utf-8",
-            )
+            write_manifest(package_dir, tips={"tips_required": 8, "tips_available": 96})
 
             result = validate_semantics(package_dir, task)
 
@@ -90,18 +87,16 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "tip_plan.json").write_text(
-                """
-                {
-                  "tips_required": 1,
-                  "tips_available": 96,
-                  "tip_plan": {"total_tips_required": 24},
-                  "pipettes": {
-                    "p20_single_gen2": {"tips_used": 24, "tips_available": 96}
-                  }
-                }
-                """,
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                tips={
+                    "tips_required": 1,
+                    "tips_available": 96,
+                    "tip_plan": {"total_tips_required": 24},
+                    "pipettes": {
+                        "p20_single_gen2": {"tips_used": 24, "tips_available": 96}
+                    },
+                },
             )
 
             result = validate_semantics(package_dir, task)
@@ -122,18 +117,16 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "tip_plan.json").write_text(
-                """
-                {
-                  "tip_racks": {
-                    "slot_4": {
-                      "labware": "opentrons_96_tiprack_20ul",
-                      "tips_used": 24
+            write_manifest(
+                package_dir,
+                tips={
+                    "tip_racks": {
+                        "slot_4": {
+                            "labware": "opentrons_96_tiprack_20ul",
+                            "tips_used": 24,
+                        }
                     }
-                  }
-                }
-                """,
-                encoding="utf-8",
+                },
             )
 
             result = validate_semantics(package_dir, task)
@@ -162,8 +155,8 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "runbook.md").write_text(
-                "# Setup\nWaste container max fill capacity: 50 mL.\n",
+            (package_dir / "setup_card.html").write_text(
+                "<h1>Setup</h1><p>Waste container max fill capacity: 50 mL.</p>\n",
                 encoding="utf-8",
             )
 
@@ -185,8 +178,8 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "runbook.md").write_text(
-                "# Setup\nUsed tips go to the fixed trash bin after each transfer.\n",
+            (package_dir / "setup_card.html").write_text(
+                "<h1>Setup</h1><p>Used tips go to the fixed trash bin after each transfer.</p>\n",
                 encoding="utf-8",
             )
 
@@ -242,16 +235,12 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "reagent_plan.json").write_text(
-                """
-                {
-                  "reagents": {
+            write_manifest(
+                package_dir,
+                reagents={
                     "qpcr_master_mix": {"total_volume_required": 280},
-                    "template_dna": {"minimum_volume_needed": 130}
-                  }
-                }
-                """,
-                encoding="utf-8",
+                    "template_dna": {"minimum_volume_needed": 130},
+                },
             )
 
             result = validate_semantics(package_dir, task)
@@ -274,9 +263,9 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "reagent_plan.json").write_text(
-                '{"reagents": [{"name": "buffer", "total_volume_used_ul": 200}]}',
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                reagents=[{"name": "buffer", "total_volume_used_ul": 200}],
             )
 
             result = validate_semantics(package_dir, task)
@@ -299,9 +288,9 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "reagent_plan.json").write_text(
-                '{"reagents": [{"name": "reagent_buffer", "total_required_volume_ul": 3040}]}',
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                reagents=[{"name": "reagent_buffer", "total_required_volume_ul": 3040}],
             )
 
             result = validate_semantics(package_dir, task)
@@ -325,9 +314,9 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "reagent_plan.json").write_text(
-                '{"reagents": [{"name": "buffer", "total_volume_ul": 400}]}',
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                reagents=[{"name": "buffer", "total_volume_ul": 400}],
             )
 
             result = validate_semantics(package_dir, task)
@@ -351,9 +340,9 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "reagent_plan.json").write_text(
-                '{"reagents": [{"name": "qpcr_master_mix", "total_volume_ul": 370}]}',
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                reagents=[{"name": "qpcr_master_mix", "total_volume_ul": 370}],
             )
 
             result = validate_semantics(package_dir, task)
@@ -382,10 +371,7 @@ class SemanticValidatorTests(unittest.TestCase):
                 "<p>Plan 26 transfers: 24 wells + 2 controls.</p>",
                 encoding="utf-8",
             )
-            (package_dir / "tip_plan.json").write_text(
-                '{"tips_required": 26, "tips_available": 96}',
-                encoding="utf-8",
-            )
+            write_manifest(package_dir, tips={"tips_required": 26, "tips_available": 96})
 
             result = validate_semantics(package_dir, task)
 
@@ -408,9 +394,9 @@ class SemanticValidatorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
             write_valid_package(package_dir)
-            (package_dir / "reagent_plan.json").write_text(
-                '{"reagents": [{"name": "Diluent", "notes": "N x 30 uL"}]}',
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                reagents=[{"name": "Diluent", "notes": "N x 30 uL"}],
             )
 
             result = validate_semantics(package_dir, task)
@@ -445,7 +431,7 @@ class SemanticValidatorTests(unittest.TestCase):
             output_contract="execution_package",
             prompt=(
                 "Expose a runtime parameter sample_count that only accepts 8, 16, or 24. "
-                "Recompute reagent_plan.json totals and tip_plan.json counts from sample_count."
+                "Recompute manifest reagent totals and tip counts from sample_count."
             ),
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -461,13 +447,10 @@ def run(protocol):
 """,
                 encoding="utf-8",
             )
-            (package_dir / "tip_plan.json").write_text(
-                '{"tips_required": "computed from runtime parameter sample_count"}',
-                encoding="utf-8",
-            )
-            (package_dir / "reagent_plan.json").write_text(
-                '{"reagents": [{"name": "buffer", "total": "sample_count * 25 uL"}]}',
-                encoding="utf-8",
+            write_manifest(
+                package_dir,
+                tips={"tips_required": "computed from runtime parameter sample_count"},
+                reagents=[{"name": "buffer", "total": "sample_count * 25 uL"}],
             )
 
             result = validate_param_sweep(package_dir, task)
@@ -484,7 +467,7 @@ def run(protocol):
             output_contract="execution_package",
             prompt=(
                 "Expose a runtime parameter replicate_count in {1, 2, 3, 4}. "
-                "Update reagent_plan.json totals and tip_plan.json counts to match replicate_count automatically."
+                "Update manifest reagent totals and tip counts to match replicate_count automatically."
             ),
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -494,10 +477,7 @@ def run(protocol):
                 "def run(protocol):\n    destinations = 24\n",
                 encoding="utf-8",
             )
-            (package_dir / "tip_plan.json").write_text(
-                '{"tips_required": 24}',
-                encoding="utf-8",
-            )
+            write_manifest(package_dir, tips={"tips_required": 24})
 
             result = validate_param_sweep(package_dir, task)
 
