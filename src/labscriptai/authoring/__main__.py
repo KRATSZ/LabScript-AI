@@ -28,7 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     tasks = {task.task_id: task for task in load_authoring_tasks(args.tasks)}
     if args.task_id not in tasks:
         raise SystemExit(f"unknown task id: {args.task_id}")
-    config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
+    config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro", default_max_tokens=4096)
     agent = AuthoringAgent(
         client=OpenAICompatibleAuthoringClient(config),
         max_steps=args.max_steps,

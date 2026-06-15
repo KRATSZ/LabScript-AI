@@ -9,7 +9,6 @@ from typing import Any
 from labscriptai.agent.registry import ToolRegistry
 from labscriptai.agent.state import AgentState
 from labscriptai.agent.tools import ToolCall, ToolResult
-from labscriptai.benchmark.package_validator import REQUIRED_PACKAGE_FILES
 from labscriptai.runtime.trace import TraceEvent
 
 
@@ -131,12 +130,13 @@ class LabscriptAgentLoop:
 
 
 def _initial_messages(state: AgentState) -> list[dict[str, Any]]:
+    required_files = list(state.task_spec.required_files)
     return [
         {
             "role": "system",
             "content": (
                 "You are LabscriptAI. Use tool_calls only until ready. "
-                "Author mode must produce protocol.py, setup_card.html, manifest.json."
+                f"Author mode must produce these files: {', '.join(required_files)}."
             ),
         },
         {
@@ -146,7 +146,7 @@ def _initial_messages(state: AgentState) -> list[dict[str, Any]]:
                     "task_id": state.task_spec.task_id,
                     "difficulty": state.task_spec.difficulty,
                     "prompt": state.task_spec.prompt,
-                    "required_package_files": list(state.task_spec.required_files),
+                    "required_package_files": required_files,
                 },
                 ensure_ascii=False,
             ),
@@ -155,7 +155,7 @@ def _initial_messages(state: AgentState) -> list[dict[str, Any]]:
 
 
 def _package_incomplete_message(state: AgentState) -> dict[str, str]:
-    missing = [name for name in REQUIRED_PACKAGE_FILES if not (state.package.dir / name).exists()]
+    missing = [name for name in state.task_spec.required_files if not (state.package.dir / name).exists()]
     return {
         "role": "user",
         "content": json.dumps(
@@ -171,4 +171,4 @@ def _package_incomplete_message(state: AgentState) -> dict[str, str]:
 
 
 def _required_files_exist(state: AgentState) -> bool:
-    return all((state.package.dir / name).exists() for name in REQUIRED_PACKAGE_FILES)
+    return all((state.package.dir / name).exists() for name in state.task_spec.required_files)

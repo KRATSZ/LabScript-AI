@@ -54,6 +54,7 @@ class OpenAICompatibleConfig:
     model: str
     timeout_sec: int = 60
     max_tokens: int = 1024
+    transport_retries: int = 3
 
     @classmethod
     def from_env(
@@ -62,6 +63,7 @@ class OpenAICompatibleConfig:
         prefix: str = "DEEPSEEK",
         default_base_url: str = "https://api.deepseek.com",
         default_model: str = "deepseek-v4-pro",
+        default_max_tokens: int = 1024,
     ) -> "OpenAICompatibleConfig":
         _load_dotenv_if_present()
         api_key = os.environ.get(f"{prefix}_API_KEY")
@@ -72,7 +74,8 @@ class OpenAICompatibleConfig:
             api_key=api_key,
             model=os.environ.get(f"{prefix}_MODEL", default_model),
             timeout_sec=int(os.environ.get(f"{prefix}_TIMEOUT_SEC", "60")),
-            max_tokens=int(os.environ.get(f"{prefix}_MAX_TOKENS", "1024")),
+            max_tokens=int(os.environ.get(f"{prefix}_MAX_TOKENS", str(default_max_tokens))),
+            transport_retries=max(1, int(os.environ.get(f"{prefix}_TRANSPORT_RETRIES", "3"))),
         )
 
 

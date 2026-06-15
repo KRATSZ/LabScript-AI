@@ -171,14 +171,29 @@ TIP_AVAILABLE_KEYS = (
 
 REAGENT_VOLUME_KEYS = (
     "required_volume_ul",
+    "required_volume_uL",
     "total_required_ul",
+    "total_required_volume_ul",
+    "total_required_volume_uL",
     "total_volume_ul",
+    "total_volume_uL",
     "volume_required_ul",
     "total_volume_required",
     "total_volume_required_ul",
     "total_volume_needed_ul",
     "total_required_volume",
     "minimum_volume_needed",
+    "volume_used_ul",
+    "total_volume_used_ul",
+    "total_transfer_volume_ul",
+    "required_with_dead_ul",
+)
+
+CANONICAL_REAGENT_TOTAL_KEYS = (
+    "required_volume_ul",
+    "required_volume_uL",
+    "total_volume_ul",
+    "total_volume_uL",
 )
 
 
@@ -327,9 +342,15 @@ def _matches_reagent_name(expected_name: str, item: Mapping[str, Any]) -> bool:
     return bool(expected_tokens & actual_tokens)
 
 
-def _has_close_required_volume(
-    items: list[Mapping[str, Any]], expected_name: str, expected_volume: float
-) -> bool:
+def _matching_reagent_volume_status(
+    items: list[Mapping[str, Any]],
+    expected_name: str,
+    expected_volume: float,
+    *,
+    enforce_upper_bound: bool,
+) -> tuple[bool, bool]:
+    lower_ok = False
+    upper_ok = True
     for item in items:
         if not _matches_reagent_name(expected_name, item):
             continue
@@ -340,8 +361,22 @@ def _has_close_required_volume(
             )
         )
         if value is not None and value >= expected_volume * 0.95:
-            return True
-    return False
+            lower_ok = True
+        canonical_value = as_number(first_present(item, CANONICAL_REAGENT_TOTAL_KEYS))
+        if enforce_upper_bound and canonical_value is not None and canonical_value > expected_volume * 1.25:
+            upper_ok = False
+    return lower_ok, upper_ok
+
+
+def _reagent_total_upper_bound_is_exact(task: AuthoringTask) -> bool:
+    prompt = task.prompt.lower()
+    ambiguous_terms = (
+        "plus standards",
+        "plus standard",
+        "standard curve",
+        "calibrator",
+    )
+    return not any(term in prompt for term in ambiguous_terms)
 
 
 def _uses_dynamic_inputs(task: AuthoringTask) -> bool:
@@ -579,7 +614,58 @@ def _module_state_terms_ok(prompt: str, package_text: str) -> bool | None:
         return any(term in package_text for term in ("deactivate_lid", "open_lid", "cool", "pause"))
     if "magnet" in prompt or "magnetic" in prompt:
         return any(term in package_text for term in ("engage", "disengage"))
-    return any(term in package_text for term in ("pause", "confirm", "target temperature", "module state"))
+    return any(
+        term in package_text
+        for term in (
+            "pause",
+            "open_lid",
+            "deactivate_lid",
+            "cool",
+            "engage",
+            "disengage",
+            "target temperature",
+            "module state",
+            "lid open",
+            "magnet disengaged",
+        )
+    )
+
+
+def _control_well_count(task: AuthoringTask) -> int:
+    controls = task.spec.controls
+    if not isinstance(controls, Mapping):
+        return 0
+    count = 0
+    for value in controls.values():
+        if isinstance(value, list):
+            count += len(value)
+        elif isinstance(value, str) and value not in {"none", "null"}:
+            count += 1
+    return count
+
+
+def _controls_are_inside_sample_wells(task: AuthoringTask) -> bool:
+    if not task.spec.default_samples or not task.spec.controls:
+        return False
+    prompt = task.prompt.lower()
+    samples = task.spec.default_samples
+    return bool(
+        re.search(rf"\b(?:into|to|in)\s+{samples}\s+wells?\s+with\b", prompt)
+        or re.search(rf"\b{samples}\s+wells?\s+.*controls?\s+at\b", prompt)
+        or re.search(rf"\b{samples}\s+.*positive control at\b", prompt)
+    )
+
+
+def _declares_duplicate_control_count(package_text: str, expected: int, duplicate_total: int) -> bool:
+    count_patterns = (
+        rf"\b{duplicate_total}\s+(?:transfers?|destination wells?|used wells?|sample wells?|tips?)\b",
+        rf"\b(?:transfers?|destination wells?|used wells?|sample wells?|tips?)\s*[:=]\s*{duplicate_total}\b",
+    )
+    if any(re.search(pattern, package_text) for pattern in count_patterns):
+        return True
+    if re.search(rf"\b{expected}\s*(?:samples?|wells?)\s*\+\s*\d+\s*controls?\b", package_text):
+        return True
+    return False
 
 
 def validate_semantics(package_dir: Path | str, task: AuthoringTask) -> SemanticValidationResult:
@@ -694,11 +780,20 @@ def validate_semantics(package_dir: Path | str, task: AuthoringTask) -> Semantic
     elif reagent_items and required_reagents:
         checked = 0
         matched = 0
+        upper_ok = True
+        enforce_upper_bound = _reagent_total_upper_bound_is_exact(task)
         for name, volume in required_reagents.items():
             if volume <= 0:
                 continue
             checked += 1
-            matched += 1 if _has_close_required_volume(reagent_items, name, volume) else 0
+            lower_match, upper_match = _matching_reagent_volume_status(
+                reagent_items,
+                name,
+                volume,
+                enforce_upper_bound=enforce_upper_bound,
+            )
+            matched += 1 if lower_match else 0
+            upper_ok = upper_ok and upper_match
         if checked:
             checks["reagent_totals_match_task_spec"] = matched == checked
             if not checks["reagent_totals_match_task_spec"]:
@@ -708,6 +803,37 @@ def validate_semantics(package_dir: Path | str, task: AuthoringTask) -> Semantic
                         message=f"Only {matched}/{checked} reagent totals match task sample count and per-sample volumes.",
                     )
                 )
+            checks["reagent_totals_not_obviously_overstated"] = upper_ok
+            if not checks["reagent_totals_not_obviously_overstated"]:
+                issues.append(
+                    SemanticIssue(
+                        code="reagent_total_overstated",
+                        message="A canonical reagent total is more than 125% of the expected task volume.",
+                    )
+                )
+
+    if _controls_are_inside_sample_wells(task):
+        control_count = _control_well_count(task)
+        duplicate_total = (task.spec.default_samples or 0) + control_count
+        required_tips, _ = _tip_plan_required_available(root)
+        duplicate_tip_count = (
+            required_tips is not None
+            and control_count > 0
+            and int(required_tips) == duplicate_total
+        )
+        duplicate_text_count = control_count > 0 and _declares_duplicate_control_count(
+            package_text,
+            task.spec.default_samples or 0,
+            duplicate_total,
+        )
+        checks["controls_not_double_counted"] = not (duplicate_tip_count or duplicate_text_count)
+        if not checks["controls_not_double_counted"]:
+            issues.append(
+                SemanticIssue(
+                    code="controls_double_counted",
+                    message="Controls appear to be counted in addition to sample wells even though they are inside the requested well count.",
+                )
+            )
 
     if any(term in prompt for term in ("waste", "discard", "wash")):
         expected_waste = _waste_expected_volume_ul(task)

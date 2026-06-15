@@ -9,11 +9,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import time
 from json import JSONDecodeError
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
-from urllib import request
+from urllib import error, request
 
 from labscriptai.runtime.model_adapter import OpenAICompatibleConfig, _strip_json_markdown
 
@@ -27,6 +29,8 @@ REVIEW_DIMENSIONS = (
     "safety_control_score",
     "code_quality_score",
 )
+
+DEFAULT_LLM_ONLY_BASE_URL = "https://api.vectorengine.ai/v1"
 
 REVIEW_SYSTEM_PROMPT = """You are an independent reviewer of Opentrons protocol-authoring benchmark outputs.
 Score the final package against the task prompt, not against the authoring trace.
@@ -83,7 +87,7 @@ class OpenAICompatibleReviewer:
         self.opener = opener or request.urlopen
 
     def review(self, task: AuthoringTask, package_dir: Path, record: dict[str, Any]) -> dict[str, Any]:
-        payload = {
+        payload: dict[str, Any] = {
             "model": self.config.model,
             "messages": [
                 {"role": "system", "content": REVIEW_SYSTEM_PROMPT},
@@ -91,9 +95,10 @@ class OpenAICompatibleReviewer:
             ],
             "temperature": 0,
             "max_tokens": self.config.max_tokens,
-            "thinking": {"type": "disabled"},
             "response_format": {"type": "json_object"},
         }
+        if "api.deepseek.com" in self.config.base_url:
+            payload["thinking"] = {"type": "disabled"}
         req = request.Request(
             url=f"{self.config.base_url}/chat/completions",
             data=json.dumps(payload).encode("utf-8"),
@@ -103,8 +108,20 @@ class OpenAICompatibleReviewer:
                 "Content-Type": "application/json",
             },
         )
-        with self.opener(req, timeout=self.config.timeout_sec) as response:
-            response_payload = json.loads(response.read().decode("utf-8"))
+        last_error: Exception | None = None
+        for attempt in range(self.config.transport_retries):
+            try:
+                with self.opener(req, timeout=self.config.timeout_sec) as response:
+                    response_payload = json.loads(response.read().decode("utf-8"))
+                last_error = None
+                break
+            except error.HTTPError as exc:
+                last_error = exc
+                if exc.code not in {408, 429, 500, 502, 503, 504} or attempt + 1 >= self.config.transport_retries:
+                    raise
+                time.sleep(min(2**attempt, 8))
+        if last_error is not None:
+            raise last_error
         choices = response_payload.get("choices")
         if not isinstance(choices, list) or not choices:
             raise ValueError("reviewer response missing choices")
@@ -150,8 +167,9 @@ def build_review_prompt(task: AuthoringTask, package_dir: Path, record: dict[str
         for name in ("manifest.json", *REQUIRED_PACKAGE_FILES)
         if name != "trace.jsonl"
     }
-    simulator_summary = record.get("simulator_summary", {})
-    validation = record.get("validation", {})
+    simulator_summary = record.get("simulator_summary") or {}
+    validation = record.get("validation") or {}
+    simulation = record.get("simulation") or {}
     return json.dumps(
         {
             "task": {
@@ -160,7 +178,7 @@ def build_review_prompt(task: AuthoringTask, package_dir: Path, record: dict[str
                 "prompt": task.prompt,
             },
             "benchmark_observations": {
-                "simulation_ok": record.get("simulation", {}).get("ok"),
+                "simulation_ok": simulation.get("ok"),
                 "validator_ok": validation.get("ok"),
                 "critical_failures": validation.get("critical_failures", []),
                 "simulator_error_tail": simulator_summary.get("stderr_tail"),
@@ -194,6 +212,45 @@ def normalize_review(raw: dict[str, Any], *, task_id: str, package_dir: str | No
     )
 
 
+def _filter_records(
+    records: list[dict[str, Any]],
+    *,
+    limit: int | None = None,
+    task_ids: tuple[str, ...] | None = None,
+) -> list[dict[str, Any]]:
+    filtered = [record for record in records if isinstance(record, dict)]
+    if task_ids:
+        order = {task_id: index for index, task_id in enumerate(task_ids)}
+        selected = [
+            record
+            for record in filtered
+            if str(record.get("task_id", "")) in order
+        ]
+        selected.sort(key=lambda record: order[str(record.get("task_id", ""))])
+        return selected
+    if limit is not None:
+        return filtered[:limit]
+    return filtered
+
+
+def _fail_fast_http_codes() -> set[int]:
+    raw = os.environ.get("REVIEW_FAIL_FAST_HTTP_CODES", "401,403")
+    codes: set[int] = set()
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        try:
+            codes.add(int(item))
+        except ValueError:
+            continue
+    return codes
+
+
+def _should_fail_fast_review_error(exc: Exception) -> bool:
+    return isinstance(exc, error.HTTPError) and exc.code in _fail_fast_http_codes()
+
+
 def review_run(
     summary_path: Path | str,
     tasks_path: Path | str,
@@ -201,6 +258,10 @@ def review_run(
     *,
     reviewer: Callable[[AuthoringTask, Path, dict[str, Any]], dict[str, Any]],
     limit: int | None = None,
+    task_ids: tuple[str, ...] | None = None,
+    reviewer_model: str | None = None,
+    reviewer_base_url: str | None = None,
+    reviewer_api_prefix: str | None = None,
 ) -> dict[str, Any]:
     summary_path = Path(summary_path)
     output_dir = Path(output_dir)
@@ -209,14 +270,23 @@ def review_run(
     records = summary.get("records", [])
     if not isinstance(records, list):
         raise ValueError("summary records must be a list")
-    if limit is not None:
-        records = records[:limit]
+    records = _filter_records(records, limit=limit, task_ids=task_ids)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     results: list[dict[str, Any]] = []
     for record in records:
         task_id = str(record.get("task_id", ""))
         package_dir_value = record.get("package_dir")
+        result_path = output_dir / f"{task_id or 'unknown'}-review.json"
+        if result_path.exists():
+            try:
+                existing_result = json.loads(result_path.read_text(encoding="utf-8"))
+            except (OSError, JSONDecodeError):
+                existing_result = None
+            if isinstance(existing_result, dict) and existing_result.get("ok") is True:
+                results.append(existing_result)
+                continue
+
         if task_id not in task_map or not isinstance(package_dir_value, str):
             result = ReviewResult(
                 task_id=task_id,
@@ -233,6 +303,8 @@ def review_run(
                 raw = reviewer(task_map[task_id], package_dir, record)
                 result = normalize_review(raw, task_id=task_id, package_dir=str(package_dir))
             except Exception as exc:  # noqa: BLE001 - reviewer failures are per-task evidence.
+                if _should_fail_fast_review_error(exc):
+                    raise
                 result = ReviewResult(
                     task_id=task_id,
                     package_dir=str(package_dir),
@@ -244,12 +316,19 @@ def review_run(
                 )
         result_dict = result.to_dict()
         results.append(result_dict)
-        (output_dir / f"{task_id or 'unknown'}-review.json").write_text(
+        result_path.write_text(
             json.dumps(result_dict, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
 
-    summary_result = summarize_reviews(summary_path, results)
+    summary_result = summarize_reviews(
+        summary_path,
+        results,
+        reviewer_model=reviewer_model,
+        reviewer_base_url=reviewer_base_url,
+        reviewer_api_prefix=reviewer_api_prefix,
+        panel_task_ids=list(task_ids) if task_ids else None,
+    )
     (output_dir / "review-summary.json").write_text(
         json.dumps(summary_result, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -261,19 +340,36 @@ def review_run(
     return summary_result
 
 
-def summarize_reviews(source_summary: Path | str, results: list[dict[str, Any]]) -> dict[str, Any]:
+def summarize_reviews(
+    source_summary: Path | str,
+    results: list[dict[str, Any]],
+    *,
+    reviewer_model: str | None = None,
+    reviewer_base_url: str | None = None,
+    reviewer_api_prefix: str | None = None,
+    panel_task_ids: list[str] | None = None,
+) -> dict[str, Any]:
     ok_results = [result for result in results if result.get("ok")]
     means: dict[str, float | None] = {}
     for key in (*REVIEW_DIMENSIONS, "expert_score_mean"):
         values = [float(result[key]) for result in ok_results if isinstance(result.get(key), (int, float))]
         means[key] = (sum(values) / len(values)) if values else None
-    return {
+    payload: dict[str, Any] = {
         "source_summary": str(source_summary),
+        "reviewer": {
+            "model": reviewer_model,
+            "base_url": reviewer_base_url,
+            "api_prefix": reviewer_api_prefix,
+        },
         "review_count": len(results),
         "review_ok_count": len(ok_results),
         "mean_scores": means,
         "per_task": results,
     }
+    if panel_task_ids is not None:
+        payload["panel_task_ids"] = panel_task_ids
+        payload["panel_task_count"] = len(panel_task_ids)
+    return payload
 
 
 def _fmt_score(value: float | None) -> str:
@@ -315,16 +411,72 @@ def _reviews_to_markdown(result: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _load_panel_task_ids(panel_path: Path | None) -> tuple[str, ...] | None:
+    if panel_path is None:
+        return None
+    payload = json.loads(panel_path.read_text(encoding="utf-8"))
+    raw = payload.get("task_ids", [])
+    if not isinstance(raw, list):
+        raise ValueError("panel file task_ids must be a list")
+    return tuple(str(task_id) for task_id in raw)
+
+
+def _authoring_review_config(
+    *,
+    api_prefix: str,
+    reviewer_model: str,
+) -> OpenAICompatibleConfig:
+    default_base_url = (
+        DEFAULT_LLM_ONLY_BASE_URL if api_prefix == "LLM_ONLY" else "https://api.deepseek.com"
+    )
+    return OpenAICompatibleConfig.from_env(
+        prefix=api_prefix,
+        default_base_url=default_base_url,
+        default_model=reviewer_model,
+        default_max_tokens=1024,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("summary", type=Path)
     parser.add_argument("--tasks", type=Path, default=Path("benchmarks/authoring/tasks.yaml"))
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--reviewer-model", default="deepseek-v4-pro")
+    parser.add_argument(
+        "--api-prefix",
+        choices=("DEEPSEEK", "LLM_ONLY"),
+        default="DEEPSEEK",
+        help="Environment variable prefix for API credentials (DEEPSEEK_* or LLM_ONLY_*).",
+    )
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--task-ids",
+        default="",
+        help="Comma-separated task ids to review (overrides --limit).",
+    )
+    parser.add_argument(
+        "--panel",
+        type=Path,
+        default=None,
+        help="JSON panel manifest with task_ids (e.g. benchmarks/authoring/review_panel_30.json).",
+    )
     args = parser.parse_args(argv)
 
-    config = OpenAICompatibleConfig.from_env(default_model=args.reviewer_model)
+    task_ids: tuple[str, ...] | None = None
+    if args.panel is not None:
+        task_ids = _load_panel_task_ids(args.panel)
+    elif args.task_ids.strip():
+        task_ids = tuple(
+            task_id.strip()
+            for task_id in args.task_ids.split(",")
+            if task_id.strip()
+        )
+
+    config = _authoring_review_config(
+        api_prefix=args.api_prefix,
+        reviewer_model=args.reviewer_model,
+    )
     if args.reviewer_model:
         config = OpenAICompatibleConfig(
             base_url=config.base_url,
@@ -332,6 +484,7 @@ def main(argv: list[str] | None = None) -> int:
             model=args.reviewer_model,
             timeout_sec=config.timeout_sec,
             max_tokens=config.max_tokens,
+            transport_retries=config.transport_retries,
         )
     client = OpenAICompatibleReviewer(config)
     result = review_run(
@@ -339,7 +492,11 @@ def main(argv: list[str] | None = None) -> int:
         args.tasks,
         args.output_dir,
         reviewer=client.review,
-        limit=args.limit,
+        limit=args.limit if task_ids is None else None,
+        task_ids=task_ids,
+        reviewer_model=config.model,
+        reviewer_base_url=config.base_url,
+        reviewer_api_prefix=args.api_prefix,
     )
     print(
         json.dumps(

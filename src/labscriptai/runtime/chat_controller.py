@@ -489,7 +489,7 @@ class RuntimeChatController:
 
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         work_dir = self.authoring_output_dir / f"{task_id}-{stamp}"
-        config = OpenAICompatibleConfig.from_env()
+        config = OpenAICompatibleConfig.from_env(default_max_tokens=4096)
         client = OpenAICompatibleAuthoringClient(config)
         facade = UnifiedAuthoringFacade(
             client=client,

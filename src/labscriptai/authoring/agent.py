@@ -7,18 +7,20 @@ import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from http.client import IncompleteRead
 from pathlib import Path
 from typing import Any, Protocol
 from json import JSONDecodeError
 from urllib import error, request
 
+from labscriptai.benchmark.derive_package import derive_package_from_protocol
 from labscriptai.benchmark.package_validator import REQUIRED_PACKAGE_FILES
 from labscriptai.benchmark.tasks import AuthoringTask
 from labscriptai.runtime.model_adapter import OpenAICompatibleConfig, _strip_json_markdown
 from labscriptai.runtime.trace import TraceEvent, TraceWriter
 
 from .context import ContextManager
-from .prompts import AUTHORING_AGENT_SYSTEM_PROMPT
+from .prompts import AUTHORING_AGENT_SYSTEM_PROMPT, PY_ONLY_AUTHORING_AGENT_SYSTEM_PROMPT
 from .skills import SkillLoader
 from .task_state import AuthoringTaskState
 from .tools import AuthoringToolRegistry
@@ -56,29 +58,52 @@ class OpenAICompatibleAuthoringClient:
                 "Content-Type": "application/json",
             },
         )
-        try:
-            with self.opener(req, timeout=self.config.timeout_sec) as response:
-                raw_response = response.read()
+        last_error: Exception | None = None
+        for attempt in range(1, self.config.transport_retries + 1):
+            raw_response = b""
+            try:
+                with self.opener(req, timeout=self.config.timeout_sec) as response:
+                    raw_response = response.read()
+                    _write_provider_debug(
+                        provider="authoring",
+                        stage="response",
+                        status=getattr(response, "status", None),
+                        headers=dict(response.headers.items()) if getattr(response, "headers", None) else {},
+                        body=raw_response,
+                        error_message=None,
+                    )
+                    response_payload = json.loads(raw_response.decode("utf-8"))
+                break
+            except error.HTTPError as exc:
+                raw_response = exc.read()
                 _write_provider_debug(
                     provider="authoring",
-                    stage="response",
-                    status=getattr(response, "status", None),
-                    headers=dict(response.headers.items()) if getattr(response, "headers", None) else {},
+                    stage="http_error",
+                    status=exc.code,
+                    headers=dict(exc.headers.items()) if exc.headers else {},
                     body=raw_response,
-                    error_message=None,
+                    error_message=f"{exc}; attempt={attempt}",
                 )
-                response_payload = json.loads(raw_response.decode("utf-8"))
-        except error.HTTPError as exc:
-            raw_response = exc.read()
-            _write_provider_debug(
-                provider="authoring",
-                stage="http_error",
-                status=exc.code,
-                headers=dict(exc.headers.items()) if exc.headers else {},
-                body=raw_response,
-                error_message=str(exc),
-            )
-            raise
+                if attempt >= self.config.transport_retries or exc.code not in {429, 500, 502, 503, 504}:
+                    raise
+                last_error = exc
+            except (JSONDecodeError, TimeoutError, error.URLError, IncompleteRead, OSError) as exc:
+                body = raw_response if "raw_response" in locals() and isinstance(raw_response, bytes) else b""
+                _write_provider_debug(
+                    provider="authoring",
+                    stage="transport_retry",
+                    status=None,
+                    headers={},
+                    body=body,
+                    error_message=f"{type(exc).__name__}: {exc}; attempt={attempt}",
+                )
+                if attempt >= self.config.transport_retries:
+                    raise
+                last_error = exc
+        else:
+            if last_error is not None:
+                raise last_error
+            raise RuntimeError("model request failed without response")
         usage = response_payload.get("usage")
         if isinstance(usage, dict):
             input_tokens = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
@@ -118,7 +143,10 @@ class OpenAICompatibleAuthoringClient:
         if not isinstance(content, str) or not content.strip():
             finish_reason = choices[0].get("finish_reason") if isinstance(choices[0], dict) else None
             raise ValueError(f"model response content is empty; finish_reason={finish_reason}")
-        return _load_first_json_object(content)
+        try:
+            return _load_first_json_object(content)
+        except JSONDecodeError:
+            return {"final": {"package_ready": True, "notes": content.strip()}}
 
 
 def _write_provider_debug(
@@ -424,6 +452,7 @@ class AuthoringAgent:
         max_steps: int = 12,
         skill_mode: str = "light",
         tool_profile: str = "kb",
+        protocol_only: bool = False,
     ) -> None:
         self.client = client
         self.skill_loader = skill_loader or SkillLoader()
@@ -434,6 +463,7 @@ class AuthoringAgent:
         if tool_profile not in {"edit", "simulate", "kb", "kb_strong"}:
             raise ValueError("tool_profile must be one of: edit, simulate, kb, kb_strong")
         self.tool_profile = tool_profile
+        self.protocol_only = protocol_only
         self.context = ContextManager()
 
     def run(
@@ -471,12 +501,15 @@ class AuthoringAgent:
             skill_catalog = "common_errors, deck_layout"
         else:
             skill_catalog = self.skill_loader.get_catalog() or "(none)"
+        required_files = ("protocol.py",) if self.protocol_only else REQUIRED_PACKAGE_FILES
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",
-                "content": AUTHORING_AGENT_SYSTEM_PROMPT.format(
-                    skill_catalog=skill_catalog
-                ),
+                "content": (
+                    PY_ONLY_AUTHORING_AGENT_SYSTEM_PROMPT
+                    if self.protocol_only
+                    else AUTHORING_AGENT_SYSTEM_PROMPT
+                ).format(skill_catalog=skill_catalog),
             },
             {
                 "role": "user",
@@ -485,9 +518,12 @@ class AuthoringAgent:
                         "task_id": task.task_id,
                         "difficulty": task.difficulty,
                         "prompt": task.prompt,
-                        "required_package_files": list(REQUIRED_PACKAGE_FILES),
+                        "required_package_files": list(required_files),
                         "package_format_instruction": (
-                            "Use the current three-piece v0.4 package even if the task text "
+                            "Write only protocol.py. Do not write manifest.json or setup_card.html; "
+                            "the benchmark harness will derive those sidecars from protocol.py."
+                            if self.protocol_only
+                            else "Use the current three-piece v0.4 package even if the task text "
                             "mentions any older package format."
                         ),
                     },
@@ -508,7 +544,7 @@ class AuthoringAgent:
             else:
                 messages.append({"role": "assistant", "content": json.dumps(response, ensure_ascii=False)})
             if isinstance(response.get("final"), dict):
-                missing = [name for name in REQUIRED_PACKAGE_FILES if not (package_dir / name).exists()]
+                missing = [name for name in required_files if not (package_dir / name).exists()]
                 if missing:
                     messages.append(
                         {
@@ -593,7 +629,15 @@ class AuthoringAgent:
             trace_path=work_dir / "trace.jsonl",
             **kwargs,
         )
-        _write_missing_metadata_files(result.package_dir, task)
+        if self.protocol_only:
+            derive_package_from_protocol(
+                result.package_dir,
+                task,
+                model_id=str(getattr(getattr(self.client, "config", None), "model", "unknown")),
+                scaffold_id="authoring-agent-py-derived-v0.4",
+            )
+        else:
+            _write_missing_metadata_files(result.package_dir, task)
         missing = [name for name in REQUIRED_PACKAGE_FILES if not (result.package_dir / name).exists()]
         if missing:
             raise ValueError(f"authoring agent did not produce required files: {missing}")

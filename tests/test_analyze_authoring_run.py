@@ -19,7 +19,7 @@ class AnalyzeAuthoringRunTests(unittest.TestCase):
                 "    source: test\n"
                 "    difficulty: Medium\n"
                 "    holdout: false\n"
-                "    output_contract: execution_package\n"
+                "    output_contract: protocol.py only\n"
                 "    prompt: |\n"
                 "      Transfer 50 uL from A1 to B1.\n",
                 encoding="utf-8",

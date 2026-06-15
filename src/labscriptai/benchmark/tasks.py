@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -17,10 +18,19 @@ class TaskReagentSpec:
 class TaskSpec:
     default_samples: int | None = None
     reagents: tuple[TaskReagentSpec, ...] = ()
+    controls: dict[str, Any] | None = None
     expected_risk_flags: tuple[str, ...] = ()
 
 
 DIFFICULTY_STRATA: tuple[str, ...] = ("Easy", "Medium", "Hard", "Expert")
+
+# Frozen 30-task panel for multi-reviewer cross-check (proportional to full 90-task mix).
+REVIEW_PANEL_COUNTS: dict[str, int] = {
+    "Easy": 5,
+    "Medium": 13,
+    "Hard": 10,
+    "Expert": 2,
+}
 
 
 @dataclass(frozen=True)
@@ -31,6 +41,7 @@ class AuthoringTask:
     holdout: bool
     output_contract: str
     prompt: str
+    legacy_type: str | None = None
     spec: TaskSpec = TaskSpec()
     off_platform_handoff: tuple[str, ...] = ()
 
@@ -54,6 +65,7 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
     in_expected_risk_flags = False
     in_off_platform_handoff = False
     in_reagents = False
+    in_controls = False
     current_reagent: dict[str, object] | None = None
     in_tasks = False
 
@@ -78,7 +90,7 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
         current_reagent = None
 
     def flush() -> None:
-        nonlocal current, prompt_lines, in_prompt, in_expected_risk_flags, in_off_platform_handoff, in_reagents
+        nonlocal current, prompt_lines, in_prompt, in_expected_risk_flags, in_off_platform_handoff, in_reagents, in_controls
         if current is None:
             return
         flush_reagent()
@@ -105,6 +117,9 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
         reagents = current.get("reagents", ())
         if not isinstance(reagents, tuple):
             raise ValueError(f"task {task_id} has invalid reagents value")
+        controls = current.get("controls")
+        if controls is not None and not isinstance(controls, dict):
+            raise ValueError(f"task {task_id} has invalid controls value")
         off_platform_handoff = current.get("off_platform_handoff", ())
         if not isinstance(off_platform_handoff, tuple):
             raise ValueError(f"task {task_id} has invalid off_platform_handoff value")
@@ -116,9 +131,13 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
                 holdout=holdout,
                 output_contract=output_contract,
                 prompt="\n".join(prompt_lines).strip(),
+                legacy_type=current.get("legacy_type")
+                if isinstance(current.get("legacy_type"), str)
+                else None,
                 spec=TaskSpec(
                     default_samples=default_samples,
                     reagents=reagents,
+                    controls=controls,
                     expected_risk_flags=expected_risk_flags,
                 ),
                 off_platform_handoff=off_platform_handoff,
@@ -130,6 +149,7 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
         in_expected_risk_flags = False
         in_off_platform_handoff = False
         in_reagents = False
+        in_controls = False
 
     for line in lines:
         if line == "tasks:":
@@ -149,6 +169,7 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
             in_expected_risk_flags = False
             in_off_platform_handoff = False
             in_reagents = False
+            in_controls = False
             prompt_lines = []
             continue
         if in_prompt:
@@ -170,6 +191,8 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
             current["holdout"] = value == "true"
         elif line.startswith("    output_contract: "):
             current["output_contract"] = line.split(":", 1)[1].strip()
+        elif line.startswith("    legacy_type: "):
+            current["legacy_type"] = _strip_yaml_scalar(line.split(":", 1)[1].strip())
         elif line.startswith("    off_platform_handoff: ["):
             current["off_platform_handoff"] = _parse_inline_list(line.split(":", 1)[1].strip())
             in_off_platform_handoff = False
@@ -181,6 +204,17 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
         elif line.startswith("      reagents:"):
             flush_reagent()
             in_reagents = True
+            in_controls = False
+        elif line.startswith("      controls:"):
+            flush_reagent()
+            in_reagents = False
+            in_controls = True
+            current["controls"] = {}
+        elif in_controls and line.startswith("        ") and ": " in line:
+            key, raw_value = line.strip().split(":", 1)
+            controls = current.setdefault("controls", {})
+            if isinstance(controls, dict):
+                controls[key] = _parse_control_value(raw_value.strip())
         elif in_reagents and line.startswith("        - name: "):
             flush_reagent()
             current_reagent = {"name": _strip_yaml_scalar(line.split(":", 1)[1].strip())}
@@ -194,6 +228,7 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
         elif line.startswith("      expected_risk_flags:"):
             flush_reagent()
             in_reagents = False
+            in_controls = False
             current["expected_risk_flags"] = ()
             in_expected_risk_flags = True
         elif in_expected_risk_flags and line.startswith("        - "):
@@ -205,6 +240,7 @@ def load_authoring_tasks(path: Path | str) -> tuple[AuthoringTask, ...]:
         elif line.startswith("    ") and not line.startswith("      "):
             flush_reagent()
             in_reagents = False
+            in_controls = False
             in_expected_risk_flags = False
             in_off_platform_handoff = False
 
@@ -231,6 +267,15 @@ def _parse_inline_list(value: str) -> tuple[str, ...]:
     if not inner:
         return ()
     return tuple(_strip_yaml_scalar(item.strip()) for item in inner.split(","))
+
+
+def _parse_control_value(value: str) -> object:
+    stripped = _strip_yaml_scalar(value)
+    if stripped in {"none", "null"}:
+        return None
+    if value.startswith("[") and value.endswith("]"):
+        return list(_parse_inline_list(value))
+    return stripped
 
 
 def select_stratified_tasks(
@@ -261,4 +306,36 @@ def select_stratified_tasks(
         else:
             candidates.sort(key=lambda task: task.task_id)
         selected.extend(candidates[:per_level])
+    return tuple(selected)
+
+
+def select_review_panel_task_ids(
+    tasks: tuple[AuthoringTask, ...],
+    *,
+    counts: dict[str, int] | None = None,
+) -> tuple[str, ...]:
+    """Pick a stable stratified panel (~30 tasks) for secondary LLM reviewers."""
+
+    panel_counts = counts or REVIEW_PANEL_COUNTS
+    selected: list[str] = []
+    for difficulty in DIFFICULTY_STRATA:
+        target = panel_counts.get(difficulty, 0)
+        if target < 1:
+            continue
+        pool = sorted(
+            (task for task in tasks if task.difficulty == difficulty),
+            key=lambda task: task.task_id,
+        )
+        if not pool:
+            continue
+        if len(pool) <= target:
+            chosen = pool
+        elif target == 1:
+            chosen = [pool[0]]
+        else:
+            chosen = [
+                pool[int(round(index * (len(pool) - 1) / (target - 1)))]
+                for index in range(target)
+            ]
+        selected.extend(task.task_id for task in chosen)
     return tuple(selected)

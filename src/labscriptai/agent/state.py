@@ -154,6 +154,7 @@ class AgentState:
         package_dir: Path,
         trace_path: Path,
         permissions: frozenset[str],
+        required_files: tuple[str, ...] = REQUIRED_PACKAGE_FILES,
     ) -> "AgentState":
         package_dir.mkdir(parents=True, exist_ok=True)
         run_id = f"author-{task.task_id}-{uuid.uuid4()}"
@@ -165,7 +166,7 @@ class AgentState:
                 task_id=task.task_id,
                 difficulty=task.difficulty,
                 prompt=task.prompt,
-                required_files=REQUIRED_PACKAGE_FILES,
+                required_files=required_files,
                 budget={"attempts": 8, "wall_min": 30, "tokens": 24000},
             ),
             package=PackageRef.from_dir(package_dir),

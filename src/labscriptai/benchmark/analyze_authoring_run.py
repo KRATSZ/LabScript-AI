@@ -25,6 +25,9 @@ def _trace_status(record: dict[str, Any]) -> str:
 
 
 def _failure_mode(record: dict[str, Any]) -> str:
+    explicit = record.get("failure_mode")
+    if isinstance(explicit, str) and explicit:
+        return explicit
     if record.get("error"):
         return "provider_error"
     if _provider_error_count(record) > 0:

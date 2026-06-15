@@ -6,6 +6,7 @@ import argparse
 import ast
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -15,14 +16,42 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from urllib import request
+from urllib import error, request
 
 from .package_validator import CRITICAL_FAILURES, REQUIRED_PACKAGE_FILES, validate_package
+from .derive_package import derive_package_from_protocol
 from .score_record import score_record_from_validation
 from .tasks import AuthoringTask, DIFFICULTY_STRATA, load_authoring_tasks, select_stratified_tasks
 from labscriptai.authoring.agent import AuthoringAgent, OpenAICompatibleAuthoringClient
+from labscriptai.authoring.diff_edit import DiffEditError, apply_search_replace_diff
 from labscriptai.agent.facade import UnifiedAuthoringFacade
 from labscriptai.runtime.model_adapter import OpenAICompatibleConfig
+
+DEFAULT_LLM_ONLY_BASE_URL = "https://api.vectorengine.ai/v1"
+
+
+def _authoring_openai_config(
+    *,
+    default_model: str = "deepseek-v4-pro",
+    api_prefix: str = "auto",
+) -> OpenAICompatibleConfig:
+    """Prefer LLM_ONLY_* when set (frontier direct runs); else DEEPSEEK_*."""
+    if api_prefix != "auto":
+        return OpenAICompatibleConfig.from_env(
+            prefix=api_prefix,
+            default_base_url=DEFAULT_LLM_ONLY_BASE_URL if api_prefix == "LLM_ONLY" else "https://api.deepseek.com",
+            default_model=default_model,
+            default_max_tokens=4096,
+        )
+    try:
+        return OpenAICompatibleConfig.from_env(
+            prefix="LLM_ONLY",
+            default_base_url=DEFAULT_LLM_ONLY_BASE_URL,
+            default_model=default_model,
+            default_max_tokens=4096,
+        )
+    except RuntimeError:
+        return OpenAICompatibleConfig.from_env(default_model=default_model, default_max_tokens=4096)
 
 
 AUTHORING_SYSTEM_PROMPT = """You are LabscriptAI's protocol package author.
@@ -48,6 +77,17 @@ protocol.py, setup_card.html, and manifest.json as string values.
 Do not include Markdown fences or explanations outside the JSON object.
 """
 
+PY_ONLY_AUTHORING_SYSTEM_PROMPT = """You are an Opentrons protocol author.
+Write only protocol.py for the requested experiment.
+Return the complete Python file content only. Do not return JSON, Markdown
+fences, setup cards, manifests, or explanations.
+The benchmark harness will derive manifest.json and setup_card.html from
+protocol.py after generation, so spend your effort on a runnable Opentrons
+script that matches the experiment intent.
+Default to OT-2-compatible protocols unless the task explicitly asks for Flex.
+For generic transfers, use OT-2 numeric slots, p300_single_gen2, and OT-2 tip racks.
+"""
+
 PROTOCOL_REPAIR_SYSTEM_PROMPT = """You are repairing only protocol.py for an Opentrons package.
 Return exactly one JSON object: {"protocol.py": "...full Python file..."}.
 Do not modify package metadata. Do not include Markdown fences or explanation.
@@ -55,9 +95,16 @@ Use the simulator stdout/stderr to fix the smallest executable issue.
 """
 
 PROTOCOL_PATCH_REPAIR_SYSTEM_PROMPT = """You are repairing only protocol.py for an Opentrons package.
-Return exactly one JSON object: {"patches": [{"old": "...exact existing text...", "new": "...replacement text...", "replace_all": false}]}.
-Do not return a full file. Do not modify package metadata. Each old string must match protocol.py exactly.
-Use the simulator stdout/stderr to make the smallest executable patch.
+Return only SEARCH/REPLACE blocks in this exact format:
+------- SEARCH
+existing protocol.py snippet
+=======
+replacement protocol.py snippet
+++++++ REPLACE
+Do not return JSON. Do not return a full file. Do not modify package metadata.
+Use the simulator stdout/stderr to make the smallest executable local patch.
+The final marker must be exactly +++++++ REPLACE. Do not use >>>>>>> REPLACE.
+Preserve valid Python indentation in every replacement snippet.
 """
 
 
@@ -130,6 +177,19 @@ class UsageError(ValueError):
 class RepairPatchError(ValueError):
     """Patch-only repair could not be applied safely."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        rejected_count: int = 1,
+        usage: dict[str, int] | None = None,
+        raw_patch: str = "",
+    ) -> None:
+        super().__init__(message)
+        self.rejected_count = rejected_count
+        self.usage = usage or _usage_stats(None)
+        self.raw_patch = raw_patch
+
 
 class ProtocolRepairResult(str):
     """Repair result with provider usage and patch accounting."""
@@ -141,11 +201,13 @@ class ProtocolRepairResult(str):
         *,
         patch_count: int = 0,
         patch_rejected_count: int = 0,
+        patch_backend: str = "none",
     ) -> "ProtocolRepairResult":
         obj = str.__new__(cls, value)
         obj.usage = usage or {}
         obj.patch_count = patch_count
         obj.patch_rejected_count = patch_rejected_count
+        obj.patch_backend = patch_backend
         return obj
 
 
@@ -160,6 +222,41 @@ def _usage_stats(usage: Any) -> dict[str, int]:
         "output_tokens": output_tokens,
         "total_tokens": total_tokens,
     }
+
+
+_RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+
+
+class ProviderRequestError(RuntimeError):
+    """OpenAI-compatible provider rejected a request with a useful response body."""
+
+
+def _post_chat_completion(config: OpenAICompatibleConfig, payload: dict[str, Any]) -> dict[str, Any]:
+    body = json.dumps(payload).encode("utf-8")
+    attempts = max(1, int(config.transport_retries))
+    for attempt in range(attempts):
+        req = request.Request(
+            url=f"{config.base_url}/chat/completions",
+            data=body,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {config.api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with request.urlopen(req, timeout=config.timeout_sec) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except error.HTTPError as exc:
+            response_body = exc.read().decode("utf-8", errors="replace")
+            nonretryable = "invalid_request_error" in response_body or "Invalid parameter" in response_body
+            if nonretryable or exc.code not in _RETRYABLE_HTTP_STATUS or attempt == attempts - 1:
+                raise ProviderRequestError(f"HTTP {exc.code}: {response_body[:500]}") from exc
+        except (TimeoutError, error.URLError):
+            if attempt == attempts - 1:
+                raise
+        time.sleep(min(30, 5 * (2**attempt)))
+    raise RuntimeError("chat completion retry loop exhausted")
 
 
 def call_package_author(
@@ -209,19 +306,8 @@ def call_package_author(
         ],
         "temperature": 0,
         "max_tokens": config.max_tokens,
-        "response_format": {"type": "json_object"},
     }
-    req = request.Request(
-        url=f"{config.base_url}/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {config.api_key}",
-            "Content-Type": "application/json",
-        },
-    )
-    with request.urlopen(req, timeout=config.timeout_sec) as response:
-        response_payload = json.loads(response.read().decode("utf-8"))
+    response_payload = _post_chat_completion(config, payload)
     choices = response_payload.get("choices")
     if not isinstance(choices, list) or not choices:
         raise ValueError("model response missing choices")
@@ -248,6 +334,68 @@ def call_package_author(
         indent=2,
     )
     return result
+
+
+def call_protocol_author(
+    config: OpenAICompatibleConfig,
+    task: AuthoringTask,
+) -> dict[str, str]:
+    prompt = {
+        "task_id": task.task_id,
+        "difficulty": task.difficulty,
+        "prompt": task.prompt,
+        "output_contract": "protocol.py only",
+        "sidecar_policy": (
+            "Do not write manifest.json or setup_card.html. The benchmark harness "
+            "will derive those files from protocol.py for every compared system."
+        ),
+    }
+    payload = {
+        "model": config.model,
+        "messages": [
+            {"role": "system", "content": PY_ONLY_AUTHORING_SYSTEM_PROMPT},
+            {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
+        ],
+        "temperature": 0,
+        "max_tokens": config.max_tokens,
+    }
+    response_payload = _post_chat_completion(config, payload)
+    choices = response_payload.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("model response missing choices")
+    message = choices[0].get("message") if isinstance(choices[0], dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    usage = _usage_stats(response_payload.get("usage"))
+    if not isinstance(content, str) or not content.strip():
+        raise UsageError("model response content is empty", usage)
+    protocol_py = _extract_protocol_py(content)
+    return {
+        "protocol.py": protocol_py,
+        "authoring_stats.json": json.dumps(
+            {
+                "tool_calls": 0,
+                "skill_loads": 0,
+                "simulator_calls": 0,
+                **usage,
+            },
+            indent=2,
+        ),
+    }
+
+
+def _extract_protocol_py(content: str) -> str:
+    stripped = _strip_json_markdown(content).strip()
+    try:
+        decoded = json.loads(stripped)
+    except json.JSONDecodeError:
+        decoded = None
+    if isinstance(decoded, dict):
+        if isinstance(decoded.get("protocol.py"), str):
+            return decoded["protocol.py"]
+        files = decoded.get("files")
+        if isinstance(files, dict) and isinstance(files.get("protocol.py"), str):
+            return files["protocol.py"]
+    return stripped + ("\n" if not stripped.endswith("\n") else "")
 
 
 def call_protocol_repair(
@@ -278,19 +426,8 @@ def call_protocol_repair(
         ],
         "temperature": 0,
         "max_tokens": config.max_tokens,
-        "response_format": {"type": "json_object"},
     }
-    req = request.Request(
-        url=f"{config.base_url}/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {config.api_key}",
-            "Content-Type": "application/json",
-        },
-    )
-    with request.urlopen(req, timeout=config.timeout_sec) as response:
-        response_payload = json.loads(response.read().decode("utf-8"))
+    response_payload = _post_chat_completion(config, payload)
     choices = response_payload.get("choices")
     if not isinstance(choices, list) or not choices:
         raise ValueError("model response missing choices")
@@ -306,7 +443,13 @@ def call_protocol_repair(
     repaired = decoded.get("protocol.py")
     if not isinstance(repaired, str) or not repaired.strip():
         raise UsageError("repair response missing protocol.py", usage)
-    return ProtocolRepairResult(repaired, usage, patch_count=0, patch_rejected_count=0)
+    return ProtocolRepairResult(
+        repaired,
+        usage,
+        patch_count=0,
+        patch_rejected_count=0,
+        patch_backend="rewrite",
+    )
 
 
 def call_protocol_patch_repair(
@@ -327,7 +470,10 @@ def call_protocol_patch_repair(
             "stderr": str(simulation_result.get("stderr", ""))[-4000:],
             "error": simulation_result.get("error"),
         },
-        "instruction": "Return only exact old/new patches as JSON. Do not return a full protocol.py.",
+        "instruction": (
+            "Return only SEARCH/REPLACE blocks. Do not return JSON or a full protocol.py. "
+            "Use one or more blocks with ------- SEARCH, =======, and +++++++ REPLACE markers."
+        ),
     }
     payload = {
         "model": config.model,
@@ -337,19 +483,8 @@ def call_protocol_patch_repair(
         ],
         "temperature": 0,
         "max_tokens": config.max_tokens,
-        "response_format": {"type": "json_object"},
     }
-    req = request.Request(
-        url=f"{config.base_url}/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {config.api_key}",
-            "Content-Type": "application/json",
-        },
-    )
-    with request.urlopen(req, timeout=config.timeout_sec) as response:
-        response_payload = json.loads(response.read().decode("utf-8"))
+    response_payload = _post_chat_completion(config, payload)
     choices = response_payload.get("choices")
     if not isinstance(choices, list) or not choices:
         raise ValueError("model response missing choices")
@@ -358,48 +493,39 @@ def call_protocol_patch_repair(
     usage = _usage_stats(response_payload.get("usage"))
     if not isinstance(content, str) or not content.strip():
         raise UsageError("patch repair response content is empty", usage)
+    diff_content = _extract_diff_edit_content(content)
     try:
-        decoded = json.loads(_strip_json_markdown(content))
-    except json.JSONDecodeError as exc:
-        raise UsageError(f"patch repair response is invalid JSON: {exc}", usage) from exc
-    patched, patch_count, rejected_count = _apply_repair_patches(protocol_py, decoded.get("patches"))
+        result = apply_search_replace_diff(protocol_py, diff_content)
+    except DiffEditError as exc:
+        raise RepairPatchError(
+            f"diff_edit patch rejected: {exc}",
+            rejected_count=int(getattr(exc, "rejected_count", 1)),
+            usage=usage,
+            raw_patch=diff_content,
+        ) from exc
     return ProtocolRepairResult(
-        patched,
+        result.content,
         usage,
-        patch_count=patch_count,
-        patch_rejected_count=rejected_count,
+        patch_count=result.applied_count,
+        patch_rejected_count=result.rejected_count,
+        patch_backend="diff_edit",
     )
 
 
-def _apply_repair_patches(protocol_py: str, patches: Any) -> tuple[str, int, int]:
-    if not isinstance(patches, list) or not patches:
-        raise RepairPatchError("patch repair response missing non-empty patches list")
-    repaired = protocol_py
-    applied = 0
-    rejected = 0
-    for index, patch in enumerate(patches, start=1):
-        if not isinstance(patch, dict):
-            rejected += 1
-            raise RepairPatchError(f"patch {index} is not an object")
-        old = patch.get("old")
-        new = patch.get("new")
-        replace_all = bool(patch.get("replace_all", False))
-        if not isinstance(old, str) or not old:
-            rejected += 1
-            raise RepairPatchError(f"patch {index} missing old text")
-        if not isinstance(new, str):
-            rejected += 1
-            raise RepairPatchError(f"patch {index} missing new text")
-        count = repaired.count(old)
-        if count == 0:
-            rejected += 1
-            raise RepairPatchError(f"patch {index} old text not found")
-        if count > 1 and not replace_all:
-            rejected += 1
-            raise RepairPatchError(f"patch {index} old text occurs {count} times")
-        repaired = repaired.replace(old, new, -1 if replace_all else 1)
-        applied += count if replace_all else 1
-    return repaired, applied, rejected
+def _extract_diff_edit_content(content: str) -> str:
+    stripped = _strip_json_markdown(content)
+    if "SEARCH" in stripped and "REPLACE" in stripped:
+        return stripped
+    try:
+        decoded = json.loads(stripped)
+    except json.JSONDecodeError:
+        return stripped
+    if isinstance(decoded, dict):
+        for key in ("diff", "patch", "patches", "content"):
+            value = decoded.get(key)
+            if isinstance(value, str):
+                return _strip_json_markdown(value)
+    return stripped
 
 
 def _build_protocol_repairer(
@@ -1294,13 +1420,15 @@ def simulate_protocol_file(
             timeout=timeout_sec,
         )
     except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout.decode("utf-8", errors="replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr = exc.stderr.decode("utf-8", errors="replace") if isinstance(exc.stderr, bytes) else (exc.stderr or "")
         return {
             "ok": False,
             "returncode": None,
             "duration_sec": time.monotonic() - started,
             "error": f"simulation timed out after {timeout_sec}s",
-            "stdout": exc.stdout or "",
-            "stderr": exc.stderr or "",
+            "stdout": stdout,
+            "stderr": stderr,
             "command": cmd,
         }
     return {
@@ -1453,6 +1581,7 @@ def _write_summary(output_dir: Path, model_id: str, records: list[dict[str, Any]
         "repair_patch_rejected_count": sum(
             int(record.get("repair_patch_rejected_count", 0)) for record in records
         ),
+        "repair_patch_backend": _summary_patch_backend(records),
         "simulator_calls": sum(int(record.get("simulator_calls", 0)) for record in records),
         "records": records,
     }
@@ -1463,6 +1592,19 @@ def _write_summary(output_dir: Path, model_id: str, records: list[dict[str, Any]
 def _write_record(task_dir: Path, record: dict[str, Any]) -> None:
     task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "record.json").write_text(json.dumps(record, indent=2), encoding="utf-8")
+
+
+def _summary_patch_backend(records: list[dict[str, Any]]) -> str:
+    backends = {
+        str(record.get("repair_patch_backend", "none"))
+        for record in records
+        if record.get("repair_patch_backend")
+    }
+    if not backends:
+        return "none"
+    if len(backends) == 1:
+        return next(iter(backends))
+    return "mixed:" + ",".join(sorted(backends))
 
 
 def _simulator_summary(simulation_result: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -1535,6 +1677,8 @@ def run_authoring_pilot(
     simulation_repair_attempts: int = 3,
     scaffold_label: str = "",
     repair_edit_mode: str = "rewrite",
+    derive_from_protocol: bool = False,
+    derive_scaffold_id: str = "protocol-py-derived-v0.4",
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     records: list[dict[str, Any]] = []
@@ -1556,9 +1700,25 @@ def run_authoring_pilot(
                 files = package_author(task)
                 write_package_files(package_dir, files)
                 authoring_stats = _read_authoring_stats(package_dir)
-                stamp_manifest(package_dir, task, model_id=model_id)
+                derive_result: dict[str, Any] | None = None
+                if derive_from_protocol:
+                    derive_result = derive_package_from_protocol(
+                        package_dir,
+                        task,
+                        model_id=model_id,
+                        scaffold_id=derive_scaffold_id,
+                    )
+                else:
+                    stamp_manifest(package_dir, task, model_id=model_id)
                 initial_validation = validate_package(package_dir, simulation_pass=False)
                 repairs = repair_package_metadata(package_dir)
+                if derive_from_protocol:
+                    derive_result = derive_package_from_protocol(
+                        package_dir,
+                        task,
+                        model_id=model_id,
+                        scaffold_id=derive_scaffold_id,
+                    )
                 simulation_result: dict[str, Any] | None = None
                 first_simulation: dict[str, Any] | None = None
                 first_pass_validation = validate_package(package_dir, simulation_pass=False)
@@ -1615,7 +1775,21 @@ def run_authoring_pilot(
                             )
                             package_dir = next_package_dir
                             attempt = next_attempt
+                            if derive_from_protocol:
+                                derive_result = derive_package_from_protocol(
+                                    package_dir,
+                                    task,
+                                    model_id=model_id,
+                                    scaffold_id=derive_scaffold_id,
+                                )
                             repairs = repair_package_metadata(package_dir)
+                            if derive_from_protocol:
+                                derive_result = derive_package_from_protocol(
+                                    package_dir,
+                                    task,
+                                    model_id=model_id,
+                                    scaffold_id=derive_scaffold_id,
+                                )
                             simulation_result = simulate_protocol_file(
                                 package_dir / "protocol.py",
                                 opentrons_python=opentrons_python,
@@ -1624,6 +1798,13 @@ def run_authoring_pilot(
                             )
                             repair_success = bool(simulation_result.get("ok"))
                         except Exception as exc:
+                            usage_stats = _usage_stats(getattr(exc, "usage", None))
+                            repair_input_tokens += usage_stats["input_tokens"]
+                            repair_output_tokens += usage_stats["output_tokens"]
+                            repair_total_tokens += usage_stats["total_tokens"]
+                            repair_patch_rejected_count += int(
+                                getattr(exc, "rejected_count", 0)
+                            )
                             repair_errors.append(f"{type(exc).__name__}: {exc}")
                             package_dir = next_package_dir
                             attempt = next_attempt
@@ -1675,6 +1856,9 @@ def run_authoring_pilot(
                     "repair_output_tokens": repair_output_tokens,
                     "repair_total_tokens": repair_total_tokens,
                     "repair_edit_mode": repair_edit_mode,
+                    "repair_patch_backend": "diff_edit"
+                    if repair_edit_mode == "patch_only"
+                    else "rewrite",
                     "repair_patch_count": repair_patch_count,
                     "repair_patch_rejected_count": repair_patch_rejected_count,
                     "initial_validation": initial_validation.to_dict(),
@@ -1682,6 +1866,7 @@ def run_authoring_pilot(
                     if first_pass_validation is not None
                     else None,
                     "repairs": repairs,
+                    "derive": derive_result,
                     "first_simulation": first_simulation,
                     "simulation": simulation_result,
                     "simulator_summary": _simulator_summary(simulation_result),
@@ -1759,7 +1944,7 @@ def main(argv: list[str] | None = None) -> int:
         "--repair-edit-mode",
         choices=("rewrite", "patch_only"),
         default="rewrite",
-        help="How simulation repair edits protocol.py. patch_only applies exact old/new patches.",
+        help="How simulation repair edits protocol.py. patch_only applies DiffEdit SEARCH/REPLACE blocks.",
     )
     parser.add_argument("--agent-max-steps", type=int, default=12)
     parser.add_argument(
@@ -1767,6 +1952,28 @@ def main(argv: list[str] | None = None) -> int:
         choices=("bare", "rules"),
         default="rules",
         help="Prompt detail for --provider deepseek direct generation.",
+    )
+    parser.add_argument(
+        "--direct-output-mode",
+        choices=("package", "protocol"),
+        default="protocol",
+        help="For --provider deepseek, benchmark runs use py-only generation and derive sidecars from protocol.py.",
+    )
+    parser.add_argument(
+        "--derive-from-protocol",
+        action="store_true",
+        help="Derive manifest.json and setup_card.html from protocol.py before validation.",
+    )
+    parser.add_argument(
+        "--derive-scaffold-id",
+        default="",
+        help="Optional scaffold_id to stamp into derived manifest.json.",
+    )
+    parser.add_argument(
+        "--api-prefix",
+        choices=("auto", "DEEPSEEK", "LLM_ONLY"),
+        default="auto",
+        help="Which OpenAI-compatible environment prefix to use. auto prefers LLM_ONLY then DEEPSEEK.",
     )
     parser.add_argument(
         "--authoring-skill-mode",
@@ -1781,22 +1988,32 @@ def main(argv: list[str] | None = None) -> int:
         help="Tool exposure for --provider labscriptai-authoring scaffold ablations.",
     )
     parser.add_argument(
+        "--kb-context-mode",
+        choices=("full", "compact", "compact_v2", "none"),
+        default="full",
+        help="KB context size for --tool-profile kb_strong. compact_v2 injects only route, obligations, and one failure pattern.",
+    )
+    parser.add_argument(
         "--scaffold-label",
         default="",
         help="Optional label copied into records and summary for ablation tables.",
     )
     args = parser.parse_args(argv)
     args.simulation_repair_attempts = min(args.simulation_repair_attempts, 3)
+    if args.provider in {"deepseek", "labscriptai-authoring", "labscriptai-unified"}:
+        args.derive_from_protocol = True
+    if args.provider == "deepseek":
+        args.direct_output_mode = "protocol"
     task_ids = tuple(task_id.strip() for task_id in args.task_ids.split(",") if task_id.strip())
 
     protocol_repairer = None
     if args.provider == "deepseek":
-        config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
-        author = lambda task: call_package_author(config, task, prompt_mode=args.direct_prompt_mode)
+        config = _authoring_openai_config(default_model="deepseek-v4-pro", api_prefix=args.api_prefix)
+        author = lambda task: call_protocol_author(config, task)
         model_id = config.model
         protocol_repairer = _build_protocol_repairer(config, args.repair_edit_mode)
     elif args.provider == "labscriptai-authoring":
-        config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
+        config = _authoring_openai_config(default_model="deepseek-v4-pro", api_prefix=args.api_prefix)
         model_id = config.model
         protocol_repairer = _build_protocol_repairer(config, args.repair_edit_mode)
 
@@ -1807,6 +2024,7 @@ def main(argv: list[str] | None = None) -> int:
                     max_steps=args.agent_max_steps,
                     skill_mode=args.authoring_skill_mode,
                     tool_profile=args.tool_profile,
+                    protocol_only=args.derive_from_protocol,
                 )
                 return agent.run_to_files(
                     task=task,
@@ -1816,7 +2034,7 @@ def main(argv: list[str] | None = None) -> int:
                     simulation_timeout_sec=args.simulation_timeout_sec,
                 )
     elif args.provider == "labscriptai-unified":
-        config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-pro")
+        config = _authoring_openai_config(default_model="deepseek-v4-pro", api_prefix=args.api_prefix)
         model_id = config.model
         protocol_repairer = _build_protocol_repairer(config, args.repair_edit_mode)
 
@@ -1827,6 +2045,8 @@ def main(argv: list[str] | None = None) -> int:
                     max_steps=args.agent_max_steps,
                     skill_mode=args.authoring_skill_mode,
                     tool_profile=args.tool_profile,
+                    kb_context_mode=args.kb_context_mode,
+                    protocol_only=args.derive_from_protocol,
                 )
                 return facade.run_to_files(
                     task=task,
@@ -1856,6 +2076,15 @@ def main(argv: list[str] | None = None) -> int:
         simulation_repair_attempts=args.simulation_repair_attempts,
         scaffold_label=args.scaffold_label,
         repair_edit_mode=args.repair_edit_mode,
+        derive_from_protocol=args.derive_from_protocol,
+        derive_scaffold_id=args.derive_scaffold_id
+        or (
+            "llm-only-py-derived-v0.4"
+            if args.provider == "deepseek" and args.direct_output_mode == "protocol"
+            else "agent-py-derived-v0.4"
+            if args.derive_from_protocol
+            else "protocol-py-derived-v0.4"
+        ),
     )
     print(json.dumps(summary, indent=2))
     return 0

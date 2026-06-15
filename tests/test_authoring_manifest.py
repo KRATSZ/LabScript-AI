@@ -42,9 +42,10 @@ class AuthoringManifestTests(unittest.TestCase):
         self.assertIn('schema_version: "0.3"', text)
         self.assertIn("adapter_default: opentrons", text)
         self.assertIn("repo: labauto/Inagaki_2023_GPT4OT2", text)
+        self.assertIn("required_package_files:\n  - protocol.py", text)
         self.assertEqual(len(re.findall(r"^    upstream_id: inagaki_2023$", text, flags=re.MULTILINE)), 55)
         self.assertEqual(len(re.findall(r"^    spec:$", text, flags=re.MULTILINE)), 35)
-        self.assertEqual(len(re.findall(r"^    output_contract: execution_package$", text, flags=re.MULTILINE)), 90)
+        self.assertEqual(len(re.findall(r"^    output_contract: protocol.py only$", text, flags=re.MULTILINE)), 90)
         self.assertNotIn("seven_file_protocol_package", text)
 
     def test_task_loader_exposes_specs_and_handoffs(self) -> None:

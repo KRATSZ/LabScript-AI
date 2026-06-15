@@ -14,7 +14,7 @@ class TaskLoaderTests(unittest.TestCase):
     source: test
     difficulty: Easy
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       First line.
 

@@ -204,6 +204,51 @@ class AuthoringAgentTests(unittest.TestCase):
         self.assertIn("load_skill", kb_tools)
         self.assertNotIn("search_protocol_library", kb_tools)
 
+    def test_protocol_only_run_to_files_derives_sidecars(self) -> None:
+        task = AuthoringTask(
+            task_id="T998",
+            source="test",
+            difficulty="Easy",
+            holdout=False,
+            output_contract="protocol.py only",
+            prompt="Create a simple protocol.",
+        )
+        responses = [
+            {
+                "tool_calls": [
+                    {
+                        "name": "write_file",
+                        "arguments": {
+                            "path": "protocol.py",
+                            "content": (
+                                'metadata = {"apiLevel": "2.15"}\n'
+                                "def run(protocol):\n"
+                                "    plate = protocol.load_labware('corning_96_wellplate_360ul_flat', '1')\n"
+                                "    tips = protocol.load_labware('opentrons_96_tiprack_300ul', '2')\n"
+                                "    pipette = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[tips])\n"
+                                "    pipette.pick_up_tip()\n"
+                                "    pipette.drop_tip()\n"
+                            ),
+                        },
+                    }
+                ]
+            },
+            {"final": {"package_ready": True}},
+        ]
+
+        with tempfile.TemporaryDirectory() as tmp:
+            files = AuthoringAgent(
+                client=ScriptedAuthoringClient(responses),
+                max_steps=4,
+                protocol_only=True,
+            ).run_to_files(task=task, work_dir=Path(tmp) / "protocol-only")
+
+        self.assertIn("protocol.py", files)
+        self.assertIn("manifest.json", files)
+        self.assertIn("setup_card.html", files)
+        manifest = json.loads(files["manifest.json"])
+        self.assertEqual(manifest["derive"]["source"], "protocol.py")
+
 
 if __name__ == "__main__":
     unittest.main()

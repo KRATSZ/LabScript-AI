@@ -258,6 +258,140 @@ class SemanticValidatorTests(unittest.TestCase):
 
         self.assertTrue(result.checks["reagent_totals_match_task_spec"])
 
+    def test_accepts_new_reagent_total_aliases(self) -> None:
+        task = AuthoringTask(
+            task_id="T913",
+            source="test",
+            difficulty="Medium",
+            holdout=False,
+            output_contract="execution_package",
+            prompt="Dispense buffer.",
+            spec=TaskSpec(
+                default_samples=10,
+                reagents=(TaskReagentSpec(name="buffer", volume_per_sample_uL=20),),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            write_valid_package(package_dir)
+            (package_dir / "reagent_plan.json").write_text(
+                '{"reagents": [{"name": "buffer", "total_volume_used_ul": 200}]}',
+                encoding="utf-8",
+            )
+
+            result = validate_semantics(package_dir, task)
+
+        self.assertTrue(result.checks["reagent_totals_match_task_spec"])
+
+    def test_accepts_dead_volume_total_required_volume_alias(self) -> None:
+        task = AuthoringTask(
+            task_id="T059",
+            source="test",
+            difficulty="Medium",
+            holdout=False,
+            output_contract="execution_package",
+            prompt="Reservoir task with dead volume guard.",
+            spec=TaskSpec(
+                default_samples=96,
+                reagents=(TaskReagentSpec(name="reagent_buffer", volume_per_sample_uL=30),),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            write_valid_package(package_dir)
+            (package_dir / "reagent_plan.json").write_text(
+                '{"reagents": [{"name": "reagent_buffer", "total_required_volume_ul": 3040}]}',
+                encoding="utf-8",
+            )
+
+            result = validate_semantics(package_dir, task)
+
+        self.assertTrue(result.checks["reagent_totals_match_task_spec"])
+        self.assertNotIn("reagent_total_mismatch", [issue.code for issue in result.issues])
+
+    def test_flags_obviously_overstated_canonical_reagent_total(self) -> None:
+        task = AuthoringTask(
+            task_id="T914",
+            source="test",
+            difficulty="Medium",
+            holdout=False,
+            output_contract="execution_package",
+            prompt="Dispense buffer.",
+            spec=TaskSpec(
+                default_samples=10,
+                reagents=(TaskReagentSpec(name="buffer", volume_per_sample_uL=20),),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            write_valid_package(package_dir)
+            (package_dir / "reagent_plan.json").write_text(
+                '{"reagents": [{"name": "buffer", "total_volume_ul": 400}]}',
+                encoding="utf-8",
+            )
+
+            result = validate_semantics(package_dir, task)
+
+        self.assertFalse(result.ok)
+        self.assertIn("reagent_total_overstated", [issue.code for issue in result.issues])
+
+    def test_skips_upper_bound_for_qpcr_standard_curve_extra_wells(self) -> None:
+        task = AuthoringTask(
+            task_id="T071",
+            source="test",
+            difficulty="Hard",
+            holdout=False,
+            output_contract="execution_package",
+            prompt="qPCR setup with 24 samples in triplicate plus standards.",
+            spec=TaskSpec(
+                default_samples=24,
+                reagents=(TaskReagentSpec(name="qpcr_master_mix", volume_per_sample_uL=10),),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            write_valid_package(package_dir)
+            (package_dir / "reagent_plan.json").write_text(
+                '{"reagents": [{"name": "qpcr_master_mix", "total_volume_ul": 370}]}',
+                encoding="utf-8",
+            )
+
+            result = validate_semantics(package_dir, task)
+
+        self.assertTrue(result.checks["reagent_totals_match_task_spec"])
+        self.assertNotIn("reagent_total_overstated", [issue.code for issue in result.issues])
+
+    def test_flags_controls_double_counted_inside_sample_wells(self) -> None:
+        task = AuthoringTask(
+            task_id="T083",
+            source="test",
+            difficulty="Hard",
+            holdout=False,
+            output_contract="execution_package",
+            prompt="Transfer 20 uL module_assay_reagent into 24 wells with positive control at A1 and negative control at H12.",
+            spec=TaskSpec(
+                default_samples=24,
+                controls={"positive": ["A1"], "negative": ["H12"]},
+                reagents=(TaskReagentSpec(name="module_assay_reagent", volume_per_sample_uL=20),),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            write_valid_package(package_dir)
+            (package_dir / "setup_card.html").write_text(
+                "<p>Plan 26 transfers: 24 wells + 2 controls.</p>",
+                encoding="utf-8",
+            )
+            (package_dir / "tip_plan.json").write_text(
+                '{"tips_required": 26, "tips_available": 96}',
+                encoding="utf-8",
+            )
+
+            result = validate_semantics(package_dir, task)
+
+        self.assertFalse(result.ok)
+        self.assertIn("controls_double_counted", [issue.code for issue in result.issues])
+
     def test_dynamic_task_defers_static_reagent_total_check(self) -> None:
         task = AuthoringTask(
             task_id="T909",

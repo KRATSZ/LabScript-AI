@@ -14,6 +14,7 @@ from labscriptai.benchmark.authoring_pilot import (
     run_authoring_pilot,
     stamp_manifest,
 )
+from labscriptai.benchmark.derive_package import derive_package_from_protocol
 from labscriptai.benchmark.tasks import AuthoringTask
 
 
@@ -54,6 +55,66 @@ class AuthoringPilotTests(unittest.TestCase):
         self.assertEqual(summary["package_complete_count"], 3)
         self.assertEqual(summary["deterministic_pass_count"], 3)
         self.assertEqual(summary["validator_ok_count"], 0)
+
+    def test_derive_package_from_protocol_creates_sidecars(self) -> None:
+        task = AuthoringTask(
+            task_id="T999",
+            source="test",
+            difficulty="Easy",
+            holdout=False,
+            output_contract="execution_package",
+            prompt="Move liquid between plates.",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            (package_dir / "protocol.py").write_text(
+                (
+                    'metadata = {"apiLevel": "2.15"}\n'
+                    "def run(protocol):\n"
+                    "    plate = protocol.load_labware('corning_96_wellplate_360ul_flat', '1')\n"
+                    "    tips = protocol.load_labware('opentrons_96_tiprack_300ul', '2')\n"
+                    "    pipette = protocol.load_instrument('p300_single_gen2', 'left', tip_racks=[tips])\n"
+                    "    pipette.pick_up_tip()\n"
+                    "    pipette.drop_tip()\n"
+                ),
+                encoding="utf-8",
+            )
+
+            result = derive_package_from_protocol(package_dir, task, model_id="model-x")
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+            setup_exists = (package_dir / "setup_card.html").exists()
+
+        self.assertTrue(result["derived"])
+        self.assertTrue(setup_exists)
+        self.assertEqual(manifest["derive"]["source"], "protocol.py")
+        self.assertEqual(manifest["tips"]["tips_required"], 1)
+        self.assertIn(
+            {"instrument_name": "p300_single_gen2", "name": "p300_single_gen2", "mount": "left"},
+            manifest["deck"]["instruments"],
+        )
+
+    def test_py_only_authoring_pilot_derives_package_sidecars(self) -> None:
+        def py_only_author(task):
+            del task
+            return {"protocol.py": 'metadata = {"apiLevel": "2.15"}\ndef run(protocol):\n    pass\n'}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            output_dir = Path(tmp) / "authoring"
+            summary = run_authoring_pilot(
+                tasks_path=ROOT / "benchmarks" / "authoring" / "tasks.yaml",
+                output_dir=output_dir,
+                package_author=py_only_author,
+                model_id="model-x",
+                limit=1,
+                derive_from_protocol=True,
+                derive_scaffold_id="test-derived",
+            )
+            package_dir = Path(summary["records"][0]["package_dir"])
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(summary["package_complete_count"], 1)
+        self.assertEqual(manifest["scaffold_id"], "test-derived")
+        self.assertEqual(summary["records"][0]["derive"]["scaffold_id"], "test-derived")
 
     def test_stamp_manifest_fills_harness_owned_fields(self) -> None:
         task = AuthoringTask(

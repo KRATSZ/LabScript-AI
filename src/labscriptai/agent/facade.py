@@ -13,10 +13,12 @@ from labscriptai.authoring.agent import _write_missing_metadata_files
 from labscriptai.authoring.kb_context import KBContext, build_kb_context
 from labscriptai.authoring.prompts import AUTHORING_AGENT_SYSTEM_PROMPT
 from labscriptai.authoring.skills import SkillLoader
+from labscriptai.benchmark.derive_package import derive_package_from_protocol
 from labscriptai.benchmark.package_validator import REQUIRED_PACKAGE_FILES
 from labscriptai.benchmark.tasks import AuthoringTask
 from labscriptai.benchmark.validators.models import CRITICAL_FAILURES
 from labscriptai.benchmark.validators.opentrons import extract_protocol_refs
+from labscriptai.runtime.trace import TraceEvent
 
 
 class UnifiedAuthoringFacade:
@@ -28,12 +30,18 @@ class UnifiedAuthoringFacade:
         max_steps: int = 12,
         skill_mode: str = "light",
         tool_profile: str = "kb",
+        kb_context_mode: str = "full",
+        protocol_only: bool = False,
     ) -> None:
+        if kb_context_mode not in {"full", "compact", "compact_v2", "none"}:
+            raise ValueError("kb_context_mode must be one of: full, compact, compact_v2, none")
         self.client = client
         self.skill_loader = skill_loader or SkillLoader()
         self.max_steps = max_steps
         self.skill_mode = skill_mode
         self.tool_profile = tool_profile
+        self.kb_context_mode = kb_context_mode
+        self.protocol_only = protocol_only
         self._last_kb_context: KBContext | None = None
 
     def run(
@@ -46,12 +54,15 @@ class UnifiedAuthoringFacade:
         workspace_root: Path | None = None,
         simulation_timeout_sec: int = 180,
     ) -> LoopResult:
-        permissions = _author_permissions(self.skill_mode, self.tool_profile)
+        permissions = set(_author_permissions(self.skill_mode, self.tool_profile))
+        if self.tool_profile == "kb_strong" and self.kb_context_mode == "compact_v2":
+            permissions.discard("protocol.search")
         state = AgentState.for_author(
             task=task,
             package_dir=package_dir,
             trace_path=trace_path,
-            permissions=permissions,
+            permissions=frozenset(permissions),
+            required_files=("protocol.py",) if self.protocol_only else REQUIRED_PACKAGE_FILES,
         )
         registry = build_default_registry(
             skill_mode=self.skill_mode,
@@ -60,16 +71,31 @@ class UnifiedAuthoringFacade:
             workspace_root=workspace_root,
             simulation_timeout_sec=simulation_timeout_sec,
         )
+        initial_messages = self._initial_messages(task)
+        if self._last_kb_context is not None:
+            state.trace.append(
+                TraceEvent(
+                    run_id=state.run_id,
+                    event_type="memory_retrieval",
+                    actor="system",
+                    payload={
+                        "source": "kb_strong_context",
+                        **self._last_kb_context.to_prompt_payload(),
+                    },
+                    state_hash=state.stable_hash(),
+                )
+            )
         loop = LabscriptAgentLoop(
             client=self.client,
             registry=registry,
             max_steps=self.max_steps,
-            initial_messages=self._initial_messages(task),
+            initial_messages=initial_messages,
         )
         result = loop.run(state)
         final_state = self._align_manifest_to_protocol(result.final_state)
         completed = result.completed and all(
-            (final_state.package.dir / name).exists() for name in REQUIRED_PACKAGE_FILES
+            (final_state.package.dir / name).exists()
+            for name in (("protocol.py",) if self.protocol_only else REQUIRED_PACKAGE_FILES)
         )
         aligned = LoopResult(final_state=final_state, completed=completed)
         self._write_stats(aligned.final_state)
@@ -82,7 +108,15 @@ class UnifiedAuthoringFacade:
             trace_path=work_dir / "trace.jsonl",
             **kwargs,
         )
-        _write_missing_metadata_files(result.final_state.package.dir, task)
+        if self.protocol_only:
+            derive_package_from_protocol(
+                result.final_state.package.dir,
+                task,
+                model_id=str(getattr(getattr(self.client, "config", None), "model", "unknown")),
+                scaffold_id="unified-py-derived-v0.4",
+            )
+        else:
+            _write_missing_metadata_files(result.final_state.package.dir, task)
         missing = [
             name for name in REQUIRED_PACKAGE_FILES if not (result.final_state.package.dir / name).exists()
         ]
@@ -122,8 +156,8 @@ class UnifiedAuthoringFacade:
 
     def _initial_messages(self, task: AuthoringTask) -> list[dict[str, Any]]:
         kb_context: KBContext | None = None
-        if self.tool_profile == "kb_strong":
-            kb_context = build_kb_context(task)
+        if self.tool_profile == "kb_strong" and self.kb_context_mode != "none":
+            kb_context = build_kb_context(task, context_mode=self.kb_context_mode)
             self._last_kb_context = kb_context
         else:
             self._last_kb_context = None
@@ -138,15 +172,12 @@ class UnifiedAuthoringFacade:
             skill_catalog = "common_errors, deck_layout"
         else:
             skill_catalog = self.skill_loader.get_catalog() or "(none)"
+        required_files = ["protocol.py"] if self.protocol_only else list(REQUIRED_PACKAGE_FILES)
         user_payload: dict[str, Any] = {
             "task_id": task.task_id,
             "difficulty": task.difficulty,
             "prompt": task.prompt,
-            "required_package_files": list(REQUIRED_PACKAGE_FILES),
-            "package_format_instruction": (
-                "Use the current three-piece v0.4 package even if the task text "
-                "mentions any older package format."
-            ),
+            "required_package_files": required_files,
             "manifest_v04_rules": {
                 "deck": (
                     "manifest.deck must be an object with labware and instruments arrays. "
@@ -162,13 +193,24 @@ class UnifiedAuthoringFacade:
                     + ", ".join(CRITICAL_FAILURES)
                 ),
             },
+            "semantic_output_contract": _semantic_output_contract(protocol_only=self.protocol_only),
         }
+        if self.protocol_only:
+            user_payload["package_format_instruction"] = (
+                "Write only protocol.py. Do not write manifest.json or setup_card.html; "
+                "the benchmark harness will derive those sidecars from protocol.py."
+            )
+        else:
+            user_payload["package_format_instruction"] = (
+                "Use the current three-piece v0.4 package even if the task text "
+                "mentions any older package format."
+            )
         if kb_context is not None:
             user_payload["kb_strong_context"] = kb_context.to_prompt_payload()
         return [
             {
                 "role": "system",
-                "content": AUTHORING_AGENT_SYSTEM_PROMPT.format(skill_catalog=skill_catalog),
+                "content": _system_prompt(skill_catalog=skill_catalog, protocol_only=self.protocol_only),
             },
             {
                 "role": "user",
@@ -217,6 +259,52 @@ def _author_permissions(skill_mode: str, tool_profile: str) -> frozenset[str]:
         if skill_mode != "off":
             permissions.add("skill.search_load")
     return frozenset(permissions)
+
+
+def _system_prompt(*, skill_catalog: str, protocol_only: bool) -> str:
+    if not protocol_only:
+        return AUTHORING_AGENT_SYSTEM_PROMPT.format(skill_catalog=skill_catalog)
+    return (
+        "You are LabscriptAI's Opentrons protocol authoring agent.\n\n"
+        "Goal: produce only protocol.py for the requested experiment. Do not write "
+        "manifest.json or setup_card.html; benchmark tools will derive those files "
+        "from protocol.py after the loop.\n\n"
+        "Use tools deliberately. Prefer concise domain rules and simulation when "
+        "available. Never claim a simulation passed unless the simulator reports ok=true.\n\n"
+        "Default to OT-2-compatible protocols unless the task explicitly asks for Flex. "
+        "For generic transfers, use OT-2 numeric slots, p300_single_gen2, and OT-2 tip racks. "
+        "Only use Flex pipettes/tipracks/deck slots when the task requires Flex.\n\n"
+        "When using tools, return JSON:\n"
+        '{"tool_calls":[{"name":"tool_name","arguments":{...}}]}\n\n'
+        "When protocol.py is written, return JSON:\n"
+        '{"final":{"package_ready":true,"notes":"short summary"}}\n\n'
+        f"Available skills:\n{skill_catalog}\n"
+    )
+
+
+def _semantic_output_contract(*, protocol_only: bool = False) -> dict[str, Any]:
+    return {
+        "required_files": ["protocol.py"] if protocol_only else ["protocol.py", "setup_card.html", "manifest.json"],
+        "manifest_schema_version": "0.4",
+        "manifest_reagents": (
+            "manifest.reagents must be a list; every item must include name. "
+            "Use total_volume_ul or required_volume_ul for reagent totals."
+        ),
+        "manifest_tips": "tips_required and tips_available must be numeric.",
+        "module_state_terms": [
+            "pause",
+            "open_lid",
+            "deactivate_lid",
+            "cool",
+            "engage",
+            "disengage",
+        ],
+        "controls_rule": (
+            "If controls are already inside the requested sample wells, do not add them "
+            "again to the sample count or transfer count."
+        ),
+        "field_precedence": "This contract wins over informal field names in the task prompt.",
+    }
 
 
 def _aligned_deck(

@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
+from urllib.error import HTTPError
 from unittest.mock import patch
 
 from labscriptai.agent.tools import ToolCall
-from labscriptai.authoring.agent import _native_tool_specs
+from labscriptai.authoring.agent import OpenAICompatibleAuthoringClient, _native_tool_specs
 from labscriptai.runtime.chat_controller import ChatMessage, ChatResponse, RuntimeChatController
 from labscriptai.runtime.model_adapter import OpenAICompatibleConfig
 from labscriptai.runtime.state import RuntimeState
@@ -66,6 +68,67 @@ def _config() -> OpenAICompatibleConfig:
 
 
 class UnifiedChatBridgeTests(unittest.TestCase):
+    def test_authoring_client_retries_transport_failures(self) -> None:
+        responses = iter(
+            [
+                HTTPError(
+                    url="https://example.invalid/chat/completions",
+                    code=502,
+                    msg="Bad Gateway",
+                    hdrs={},
+                    fp=BytesIO(b'{"error":"bad gateway"}'),
+                ),
+                b'{"choices": [{"message": {"content": ',
+                json.dumps(
+                    {
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": json.dumps({"files": {"protocol.py": "ok"}}, ensure_ascii=False)
+                                }
+                            }
+                        ],
+                        "usage": {"prompt_tokens": 2, "completion_tokens": 3, "total_tokens": 5},
+                    }
+                ).encode("utf-8"),
+            ]
+        )
+
+        class Response:
+            def __init__(self, body: bytes) -> None:
+                self._body = body
+                self.status = 200
+                self.headers = {}
+
+            def __enter__(self):  # noqa: ANN204
+                return self
+
+            def __exit__(self, *args):  # noqa: ANN002, ANN204
+                return None
+
+            def read(self) -> bytes:
+                return self._body
+
+        def opener(req, timeout):  # noqa: ANN001, ANN202
+            del req, timeout
+            item = next(responses)
+            if isinstance(item, Exception):
+                raise item
+            return Response(item)
+
+        config = OpenAICompatibleConfig(
+            base_url="https://example.invalid",
+            api_key="key",
+            model="model",
+            transport_retries=3,
+        )
+        client = OpenAICompatibleAuthoringClient(config, opener=opener)
+
+        response = client.complete([{"role": "user", "content": "hi"}], [])
+
+        self.assertEqual(response["files"]["protocol.py"], "ok")
+        self.assertEqual(client.total_tokens, 5)
+
     def test_run_tool_specs_use_provider_safe_names(self) -> None:
         native_tools = _native_tool_specs([{"name": "robot.inspect"}, {"name": "package.read_write"}])
         names = [tool["function"]["name"] for tool in native_tools]
@@ -90,6 +153,29 @@ class UnifiedChatBridgeTests(unittest.TestCase):
         response = client.complete([{"role": "user", "content": "hi"}], [])
 
         self.assertEqual(response, {"final": {"message": "plain hello", "completed": False}})
+
+    def test_authoring_client_accepts_plain_text_after_tool_use(self) -> None:
+        class Response:
+            status = 200
+            headers = {}
+
+            def __enter__(self):  # noqa: ANN204
+                return self
+
+            def __exit__(self, *args):  # noqa: ANN002, ANN204
+                return None
+
+            def read(self) -> bytes:
+                return json.dumps({"choices": [{"message": {"content": "Now let me simulate."}}]}).encode()
+
+        client = OpenAICompatibleAuthoringClient(_config(), opener=lambda req, timeout: Response())
+
+        response = client.complete([{"role": "user", "content": "hi"}], [])
+
+        self.assertEqual(
+            response,
+            {"final": {"package_ready": True, "notes": "Now let me simulate."}},
+        )
 
     def test_plain_chat_returns_final_without_authoring(self) -> None:
         global RESPONSES

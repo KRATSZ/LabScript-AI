@@ -3,7 +3,9 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
+from urllib.error import HTTPError
 
 from labscriptai.benchmark.review_authoring_run import (
     build_review_prompt,
@@ -21,7 +23,7 @@ class ReviewAuthoringRunTests(unittest.TestCase):
             source="test",
             difficulty="Hard",
             holdout=False,
-            output_contract="execution_package",
+            output_contract="protocol.py only",
             prompt="Transfer 50 uL from A1 to B1.",
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -35,6 +37,27 @@ class ReviewAuthoringRunTests(unittest.TestCase):
         self.assertIn("protocol.py", prompt)
         self.assertNotIn("trace.jsonl", prompt)
         self.assertNotIn("secret", prompt)
+
+    def test_build_review_prompt_handles_null_simulation(self) -> None:
+        task = AuthoringTask(
+            task_id="T900",
+            source="test",
+            difficulty="Hard",
+            holdout=False,
+            output_contract="protocol.py only",
+            prompt="Transfer 50 uL from A1 to B1.",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp)
+            write_valid_package(package_dir)
+            prompt = build_review_prompt(
+                task,
+                package_dir,
+                {"validation": None, "simulation": None, "simulator_summary": None},
+            )
+        payload = json.loads(prompt)
+        self.assertIsNone(payload["benchmark_observations"]["simulation_ok"])
+        self.assertIsNone(payload["benchmark_observations"]["validator_ok"])
 
     def test_normalize_review_clamps_scores(self) -> None:
         result = normalize_review(
@@ -68,7 +91,7 @@ class ReviewAuthoringRunTests(unittest.TestCase):
                 "    source: test\n"
                 "    difficulty: Easy\n"
                 "    holdout: true\n"
-                "    output_contract: execution_package\n"
+                "    output_contract: protocol.py only\n"
                 "    prompt: |\n"
                 "      Transfer 50 uL.\n",
                 encoding="utf-8",
@@ -95,6 +118,37 @@ class ReviewAuthoringRunTests(unittest.TestCase):
         self.assertEqual(result["review_count"], 1)
         self.assertEqual(result["review_ok_count"], 1)
         self.assertAlmostEqual(result["mean_scores"]["expert_score_mean"], 4.0)
+
+    def test_review_run_raises_auth_http_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            package_dir = root / "package"
+            package_dir.mkdir()
+            write_valid_package(package_dir)
+            tasks_path = root / "tasks.yaml"
+            tasks_path.write_text(
+                "tasks:\n"
+                "  - id: T056\n"
+                "    source: test\n"
+                "    difficulty: Easy\n"
+                "    holdout: true\n"
+                "    output_contract: protocol.py only\n"
+                "    prompt: |\n"
+                "      Transfer 50 uL.\n",
+                encoding="utf-8",
+            )
+            summary_path = root / "summary.json"
+            summary_path.write_text(
+                json.dumps({"records": [{"task_id": "T056", "package_dir": str(package_dir)}]}),
+                encoding="utf-8",
+            )
+
+            def reviewer(*_args: object) -> dict[str, object]:
+                raise HTTPError("https://example.test", 401, "Unauthorized", hdrs=None, fp=BytesIO(b""))
+
+            with self.assertRaises(HTTPError) as raised:
+                review_run(summary_path, tasks_path, root / "reviews", reviewer=reviewer)
+            raised.exception.close()
 
 
 if __name__ == "__main__":
