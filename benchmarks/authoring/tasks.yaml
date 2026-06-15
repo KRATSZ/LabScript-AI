@@ -1,6 +1,6 @@
 # LabscriptAI authoring benchmark task manifest (schema 0.3; single canonical file).
-# Structure: legacy T001-T055 plus current hard35 T056-T090.
-# T056-T090 prompts use vendor-neutral bench language; the execution package still names the main script protocol.py (see required_package_files).
+# Structure: legacy lineage T001-T055 (T001-T027 raw upstream core; T028-T055 project-expanded legacy) plus current hard35 T056-T090.
+# Model output is now protocol.py only; benchmark sidecars are derived by the harness.
 schema_version: "0.3"
 adapter_default: opentrons
 upstream:
@@ -8,7 +8,8 @@ upstream:
     repo: labauto/Inagaki_2023_GPT4OT2
     commit: 0ef14a3a83254a7bd0eb908e28810ee8583f7fdc
     license: MIT
-    used_in: T001-T055
+    used_in: T001-T027
+    note: T028-T055 are project-expanded legacy tasks that preserve the same upstream lineage but are not a 1:1 count of the original upstream question set
 budget:
   max_attempts: 8
   max_wall_time_sec: 1800
@@ -16,12 +17,6 @@ budget:
   max_tool_calls: 80
 required_package_files:
   - protocol.py
-  - deck_plan.json
-  - reagent_plan.json
-  - tip_plan.json
-  - runbook.md
-  - risk_checklist.json
-  - manifest.json
 tasks:
   - id: T001
     source: legacy_55
@@ -30,7 +25,7 @@ tasks:
     legacy_type: liquid_class
     difficulty: Easy
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Basic liquid handling with different liquid types:
@@ -49,7 +44,7 @@ tasks:
     legacy_type: basic_transfer
     difficulty: Easy
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Basic liquid transfer between wells:
@@ -65,7 +60,7 @@ tasks:
     legacy_type: empty_well_handling
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Empty well handling:
@@ -83,7 +78,7 @@ tasks:
     legacy_type: cell_culture_basic
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.
@@ -108,7 +103,7 @@ tasks:
     legacy_type: labware_validation
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Load the following labware:
@@ -123,7 +118,7 @@ tasks:
     legacy_type: multi_well_prep
     difficulty: Easy
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Multi-well sample preparation:
@@ -140,7 +135,7 @@ tasks:
     legacy_type: plate_washing
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Plate washing protocol:
@@ -157,7 +152,7 @@ tasks:
     legacy_type: basic_dilution
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Sample dilution basics:
@@ -173,7 +168,7 @@ tasks:
     legacy_type: simple_mixing
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Simple mixing protocol:
@@ -189,7 +184,7 @@ tasks:
     legacy_type: simple_dilution
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Simple serial dilution calculation:
@@ -208,7 +203,7 @@ tasks:
     legacy_type: single_channel_basics
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Single channel pipette basics:
@@ -224,7 +219,7 @@ tasks:
     legacy_type: pipette_limits
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Use a P1000 pipette to transfer large volumes:
@@ -239,7 +234,7 @@ tasks:
     legacy_type: consistency_check
     difficulty: Easy
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Volume consistency check:
@@ -258,7 +253,7 @@ tasks:
     legacy_type: batch_processing
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Batch processing with quality control:
@@ -277,7 +272,7 @@ tasks:
     legacy_type: medium_exchange_general
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Cell culture medium exchange protocol (parameterized):
@@ -293,7 +288,7 @@ tasks:
     legacy_type: contamination_control
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Contamination prevention protocol:
@@ -313,7 +308,7 @@ tasks:
     legacy_type: cross_contamination
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Cross-contamination prevention:
@@ -331,7 +326,7 @@ tasks:
     legacy_type: data_logging
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Data logging and reporting:
@@ -350,7 +345,7 @@ tasks:
     legacy_type: dynamic_adaptation
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Dynamic liquid level detection:
@@ -368,7 +363,7 @@ tasks:
     legacy_type: immunostaining_general
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Immunostaining protocol (parameterized for different targets):
@@ -388,7 +383,7 @@ tasks:
     legacy_type: level_adaptation
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Liquid level adaptation:
@@ -406,7 +401,7 @@ tasks:
     legacy_type: slot_management
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Load multiple labware items and ensure proper slot management:
@@ -423,7 +418,7 @@ tasks:
     legacy_type: multi_pipette
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Multi-pipette coordination:
@@ -441,7 +436,7 @@ tasks:
     legacy_type: pcr_setup
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       PCR Setup Protocol:
@@ -460,7 +455,7 @@ tasks:
     legacy_type: tip_management
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Perform a 96-well transfer protocol:
@@ -475,7 +470,7 @@ tasks:
     legacy_type: plate_mapping
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Plate mapping and tracking:
@@ -494,7 +489,7 @@ tasks:
     legacy_type: parameterization
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Protocol parameterization:
@@ -513,7 +508,7 @@ tasks:
     legacy_type: reagent_preparation
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Reagent preparation on-deck:
@@ -532,7 +527,7 @@ tasks:
     legacy_type: temperature_control
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Temperature-sensitive reagent handling:
@@ -550,7 +545,7 @@ tasks:
     legacy_type: timing_control
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Time-sensitive reaction sequencing:
@@ -568,7 +563,7 @@ tasks:
     legacy_type: tip_optimization
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Tip usage optimization strategy:
@@ -586,7 +581,7 @@ tasks:
     legacy_type: variable_volume
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Variable volume calculations:
@@ -605,7 +600,7 @@ tasks:
     legacy_type: format_conversion
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Well format conversion:
@@ -621,7 +616,7 @@ tasks:
     legacy_type: bubble_handling
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Air bubble handling:
@@ -639,7 +634,7 @@ tasks:
     legacy_type: liquid_sensing
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Automated liquid level detection:
@@ -655,7 +650,7 @@ tasks:
     legacy_type: serial_dilution
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Create a 10-fold serial dilution series across a 96-well plate:
@@ -673,7 +668,7 @@ tasks:
     legacy_type: dna_extraction
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       DNA extraction from 24 bacterial samples using magnetic beads:
@@ -693,7 +688,7 @@ tasks:
     legacy_type: error_handling
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Error handling and recovery test:
@@ -711,7 +706,7 @@ tasks:
     legacy_type: drug_screening_assay
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     off_platform_handoff: [plate_reader]
     prompt: |
       Can you write a Python script that does the following experiment?
@@ -732,7 +727,7 @@ tasks:
     legacy_type: reservoir_management
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Large volume reservoir management:
@@ -749,7 +744,7 @@ tasks:
     legacy_type: mitochondrial_ros_assay
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     off_platform_handoff: [plate_reader]
     prompt: |
       Can you write a Python script that does the following experiment?
@@ -769,7 +764,7 @@ tasks:
     legacy_type: module_coordination
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Multi-module coordination challenge:
@@ -787,7 +782,7 @@ tasks:
     legacy_type: pause_resume
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Pause and resume functionality:
@@ -806,7 +801,7 @@ tasks:
     legacy_type: resource_optimization
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Resource optimization:
@@ -824,7 +819,7 @@ tasks:
     legacy_type: simple_drug_addition
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Simple drug addition workflow:
@@ -841,7 +836,7 @@ tasks:
     legacy_type: small_volume
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Small volume precision challenge:
@@ -859,7 +854,7 @@ tasks:
     legacy_type: calibration_validation
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     off_platform_handoff: [balance]
     prompt: |
       Can you write a Python script that does the following experiment?
@@ -878,7 +873,7 @@ tasks:
     legacy_type: spheroid_formation
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Cell spheroid formation with osteoinduction (parameterized):
@@ -897,7 +892,7 @@ tasks:
     legacy_type: elisa_assay
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       ELISA Assay Protocol:
@@ -924,7 +919,7 @@ tasks:
     legacy_type: emergency_recovery
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Emergency recovery procedures:
@@ -942,7 +937,7 @@ tasks:
     legacy_type: environmental_control
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     off_platform_handoff: [environment_monitor]
     prompt: |
       Can you write a Python script that does the following experiment?
@@ -960,7 +955,7 @@ tasks:
     legacy_type: high_throughput_screening
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     off_platform_handoff: [plate_reader]
     prompt: |
       Can you write a Python script that does the following experiment?
@@ -982,7 +977,7 @@ tasks:
     legacy_type: dye_calibration
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     off_platform_handoff: [plate_reader]
     prompt: |
       Can you write a Python script that does the following experiment?
@@ -1005,7 +1000,7 @@ tasks:
     legacy_type: scheduling
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       Multi-protocol scheduling:
@@ -1023,7 +1018,7 @@ tasks:
     legacy_type: rna_extraction
     difficulty: Expert
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     prompt: |
       Can you write a Python script that does the following experiment?
       RNA extraction from HEK293T cells using TRIzol:
@@ -1044,7 +1039,7 @@ tasks:
     replaced_in: nbt_2026q2_v2
     difficulty: Easy
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 96
       reagents:
@@ -1076,7 +1071,7 @@ tasks:
     legacy_type: runtime_parameter_sample_count
     difficulty: Easy
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1104,7 +1099,7 @@ tasks:
     legacy_type: tip_budget_near_limit
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 90
       reagents:
@@ -1133,7 +1128,7 @@ tasks:
     legacy_type: reservoir_dead_volume
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 96
       reagents:
@@ -1161,7 +1156,7 @@ tasks:
     legacy_type: multi_source_allocation
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 48
       reagents:
@@ -1189,7 +1184,7 @@ tasks:
     legacy_type: deck_slot_pressure
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1217,7 +1212,7 @@ tasks:
     legacy_type: waste_capacity_plan
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 96
       reagents:
@@ -1245,7 +1240,7 @@ tasks:
     legacy_type: high_to_low_contamination
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1276,7 +1271,7 @@ tasks:
     legacy_type: controls_plate_layout
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1308,7 +1303,7 @@ tasks:
     replaced_in: nbt_2026q2_v2
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1340,7 +1335,7 @@ tasks:
     legacy_type: pre_post_pcr_boundary
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1371,7 +1366,7 @@ tasks:
     legacy_type: carryover_sensitive_serial_dilution
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 12
       reagents:
@@ -1402,7 +1397,7 @@ tasks:
     legacy_type: enzyme_addition_order
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1433,7 +1428,7 @@ tasks:
     legacy_type: sample_normalization_qc
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1464,7 +1459,7 @@ tasks:
     legacy_type: pcr_setup_96well
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 96
       reagents:
@@ -1498,7 +1493,7 @@ tasks:
     legacy_type: qpcr_plate_setup
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1529,7 +1524,7 @@ tasks:
     legacy_type: elisa_add_wash
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 96
       reagents:
@@ -1560,7 +1555,7 @@ tasks:
     legacy_type: gibson_assembly_setup
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 16
       reagents:
@@ -1592,7 +1587,7 @@ tasks:
     replaced_in: nbt_2026q2_v2
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 16
       reagents:
@@ -1624,7 +1619,7 @@ tasks:
     legacy_type: colony_pcr_setup
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1656,7 +1651,7 @@ tasks:
     replaced_in: nbt_2026q2_v2
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1688,7 +1683,7 @@ tasks:
     legacy_type: ngs_cleanup_substep
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1719,7 +1714,7 @@ tasks:
     legacy_type: plasmid_normalization
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1750,7 +1745,7 @@ tasks:
     legacy_type: csv_sample_sheet
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1781,7 +1776,7 @@ tasks:
     legacy_type: plate_format_selection
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 192
       reagents:
@@ -1809,7 +1804,7 @@ tasks:
     legacy_type: pipette_mount_availability
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1837,7 +1832,7 @@ tasks:
     legacy_type: alternate_source_on_low_volume
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 48
       reagents:
@@ -1868,7 +1863,7 @@ tasks:
     legacy_type: module_state_pause
     difficulty: Hard
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1896,7 +1891,7 @@ tasks:
     legacy_type: variable_replicates
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1927,7 +1922,7 @@ tasks:
     legacy_type: conditional_controls
     difficulty: Hard
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1959,7 +1954,7 @@ tasks:
     replaced_in: nbt_2026q2_v2
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -1990,7 +1985,7 @@ tasks:
     legacy_type: risk_checklist_unobservable
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -2019,7 +2014,7 @@ tasks:
     replaced_in: nbt_2026q2_v2
     difficulty: Medium
     holdout: true
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 8
       reagents:
@@ -2052,7 +2047,7 @@ tasks:
     legacy_type: runbook_operator_setup
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 24
       reagents:
@@ -2080,7 +2075,7 @@ tasks:
     legacy_type: inconsistency_repair
     difficulty: Medium
     holdout: false
-    output_contract: execution_package
+    output_contract: protocol.py only
     spec:
       default_samples: 8
       reagents:

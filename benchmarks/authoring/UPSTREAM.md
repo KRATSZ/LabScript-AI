@@ -6,11 +6,11 @@
 - Repository: `labauto/Inagaki_2023_GPT4OT2`
 - Commit: `0ef14a3a83254a7bd0eb908e28810ee8583f7fdc`
 - License: MIT
-- Used in: `T001-T055`
+- Used in: `T001-T027` (raw upstream core); `T028-T055` are project-expanded legacy tasks in the same Inagaki lineage
 - Source path: `question_and_answer`
 - Local derived manifest: `benchmarks/authoring/tasks.yaml` (`schema_version: "0.2"`)
 
-The authoring benchmark manifest is a single frozen file. Tasks `T001-T055` are derived from the upstream question set and retain stable task IDs for continuity analysis; `T056-T090` are project-authored extensions with a structured `spec:` block (sample count, reagents, controls, expected risk flags) for machine validation and the same numbered-step prompt style as the legacy tasks. Document attribution fields and any surface-form rewrites needed after contamination analysis in manifest notes or revision logs when you change wording.
+The authoring benchmark manifest is a single frozen file. Tasks `T001-T027` are the raw upstream core set; `T028-T055` are project-expanded legacy tasks that preserve the same upstream lineage but are not a 1:1 copy of the original upstream count; `T056-T090` are project-authored extensions with a structured `spec:` block (sample count, reagents, controls, expected risk flags) for machine validation and the same numbered-step prompt style as the legacy tasks. Document attribution fields and any surface-form rewrites needed after contamination analysis in manifest notes or revision logs when you change wording.
 
 Upstream is MIT-licensed; no separate author permission artifact is required for redistribution under those terms. If you later add non-MIT derived material, document it here.
 
