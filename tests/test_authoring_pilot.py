@@ -21,6 +21,42 @@ from labscriptai.benchmark.tasks import AuthoringTask
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _base_manifest(**overrides: object) -> dict[str, object]:
+    manifest: dict[str, object] = {
+        "schema_version": "0.4",
+        "deck": {"slots": [], "modules": [], "instruments": []},
+        "reagents": [],
+        "tips": {},
+        "risk_flags": [],
+        "critical_failures": [],
+        "off_platform_handoff": {"declared": False},
+        "tool_permissions": ["write_package_files", "validate_package", "simulate_protocol"],
+        "budget": {"attempts": 8, "wall_min": 30, "tokens": 24000},
+    }
+    for key, value in overrides.items():
+        if key == "deck" and isinstance(value, dict):
+            deck = manifest["deck"]
+            assert isinstance(deck, dict)
+            manifest["deck"] = {**deck, **value}
+        else:
+            manifest[key] = value
+    return manifest
+
+
+def _write_three_piece_package(
+    package_dir: Path,
+    protocol_text: str,
+    *,
+    manifest: dict[str, object] | None = None,
+) -> None:
+    (package_dir / "protocol.py").write_text(protocol_text, encoding="utf-8")
+    (package_dir / "setup_card.html").write_text("<h1>Setup</h1>\n", encoding="utf-8")
+    (package_dir / "manifest.json").write_text(
+        json.dumps(manifest if manifest is not None else _base_manifest(), indent=2),
+        encoding="utf-8",
+    )
+
+
 class AuthoringPilotTests(unittest.TestCase):
     def test_selected_tasks_can_reach_30_task_holdout(self) -> None:
         manifest = json.loads((ROOT / "benchmarks" / "authoring" / "holdout_manifest.json").read_text())
@@ -336,63 +372,56 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_adds_instruments_and_risk_object(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "def run(protocol):\n"
                 "    protocol.load_instrument('p300_single_gen2', 'left')\n",
-                encoding="utf-8",
-            )
-            (package_dir / "deck_plan.json").write_text('{"labware": []}', encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text(
-                '[{"risk": "cross contamination"}]',
-                encoding="utf-8",
             )
 
             repairs = repair_package_metadata(package_dir)
-
-            deck_plan = (package_dir / "deck_plan.json").read_text(encoding="utf-8")
-            risk_checklist = (package_dir / "risk_checklist.json").read_text(encoding="utf-8")
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertTrue(any("instrument" in repair for repair in repairs))
-        self.assertIn('"p300_single_gen2"', deck_plan)
-        self.assertIn('"critical_failures"', risk_checklist)
+        self.assertIn(
+            {"name": "p300_single_gen2", "type": "p300_single_gen2", "mount": "left"},
+            manifest["deck"]["instruments"],
+        )
+        self.assertIsInstance(manifest["critical_failures"], list)
+        self.assertIsInstance(manifest["risk_flags"], list)
 
     def test_repair_package_metadata_adds_protocol_labware(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "def run(protocol):\n"
                 "    protocol.load_labware('corning_96_wellplate_360ul_flat', 'B1')\n"
                 "    protocol.load_labware(load_name='opentrons_flex_96_tiprack_200ul', location='D1')\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text('{"labware": []}', encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
-            deck_plan = json.loads((package_dir / "deck_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
-        self.assertTrue(any("labware" in repair for repair in repairs))
+        self.assertTrue(any("labware" in repair or "deck slot" in repair for repair in repairs))
         self.assertIn(
             {"name": "corning_96_wellplate_360ul_flat", "load_name": "corning_96_wellplate_360ul_flat", "slot": "B1"},
-            deck_plan["labware"],
+            manifest["deck"]["slots"],
         )
         self.assertIn(
             {"name": "opentrons_flex_96_tiprack_200ul", "load_name": "opentrons_flex_96_tiprack_200ul", "slot": "D1"},
-            deck_plan["labware"],
+            manifest["deck"]["slots"],
         )
 
     def test_repair_package_metadata_adds_flex_requirements(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "from opentrons import protocol_api\n\n"
                 "metadata = {\"apiLevel\": \"2.15\"}\n\n"
                 "def run(protocol: protocol_api.ProtocolContext):\n"
                 "    protocol.load_instrument('flex_1channel_1000', 'left')\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -403,36 +432,22 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_normalizes_flex_alias_and_stale_deck_entries(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "def run(protocol):\n"
                 "    protocol.load_instrument('flex_1channel_200ul', mount='left')\n"
                 "    protocol.load_labware('opentrons_flex_96_tiprack_200ul', 'A1')\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text(
-                json.dumps(
-                    {
-                        "pipettes": [{"name": "p300_single_gen3", "mount": "left"}],
-                        "labware": [
-                            {"name": "opentrons_flex_96_tiprack_300ul", "slot": "A1"},
-                            {"name": "p300_single_gen3", "load_name": "p300_single_gen3", "slot": "left"},
-                        ],
-                        "instruments": [{"name": "p300_single_gen3", "type": "p300_single_gen3", "mount": "left"}],
-                    }
-                ),
-                encoding="utf-8",
-            )
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
-            deck_plan = json.loads((package_dir / "deck_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertTrue(any("normalized flex_1channel_200ul" in repair for repair in repairs))
         self.assertIn("flex_1channel_1000", protocol_py)
         self.assertNotIn("flex_1channel_200ul", protocol_py)
         self.assertEqual(
-            deck_plan["labware"],
+            manifest["deck"]["slots"],
             [
                 {
                     "name": "opentrons_flex_96_tiprack_200ul",
@@ -441,33 +456,36 @@ class AuthoringPilotTests(unittest.TestCase):
                 }
             ],
         )
-        self.assertEqual(deck_plan["instruments"], [{"name": "flex_1channel_1000", "type": "flex_1channel_1000", "mount": "left"}])
-        self.assertEqual(deck_plan["pipettes"], [{"name": "flex_1channel_1000", "mount": "left"}])
+        self.assertEqual(
+            manifest["deck"]["instruments"],
+            [{"name": "flex_1channel_1000", "type": "flex_1channel_1000", "mount": "left"}],
+        )
 
     def test_repair_package_metadata_normalizes_gen3_flex_hallucinations(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}\n\n'
                 "def run(protocol):\n"
                 "    protocol.load_instrument('p300_single_gen3', mount='left')\n"
                 "    protocol.load_labware('opentrons_flex_96_tiprack_300ul', location='A1')\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
-            deck_plan = json.loads((package_dir / "deck_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertTrue(any("p300_single_gen3" in repair for repair in repairs))
         self.assertTrue(any("opentrons_flex_96_tiprack_300ul" in repair for repair in repairs))
         self.assertIn("flex_1channel_1000", protocol_py)
         self.assertIn("opentrons_flex_96_tiprack_200ul", protocol_py)
-        self.assertEqual(deck_plan["instruments"], [{"name": "flex_1channel_1000", "type": "flex_1channel_1000", "mount": "left"}])
         self.assertEqual(
-            deck_plan["labware"],
+            manifest["deck"]["instruments"],
+            [{"name": "flex_1channel_1000", "type": "flex_1channel_1000", "mount": "left"}],
+        )
+        self.assertEqual(
+            manifest["deck"]["slots"],
             [
                 {
                     "name": "opentrons_flex_96_tiprack_200ul",
@@ -480,46 +498,42 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_normalizes_gen2_pipette_in_flex_protocol(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}\n\n'
                 "def run(protocol):\n"
                 "    protocol.load_instrument('p300_single_gen2', mount='left')\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text(
-                json.dumps({"instruments": [{"name": "p300_single_gen2", "type": "p300_single_gen2", "mount": "left"}]}),
-                encoding="utf-8",
-            )
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
-            deck_plan = json.loads((package_dir / "deck_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertTrue(any("p300_single_gen2" in repair for repair in repairs))
         self.assertIn("flex_1channel_1000", protocol_py)
-        self.assertEqual(deck_plan["instruments"], [{"name": "flex_1channel_1000", "type": "flex_1channel_1000", "mount": "left"}])
+        self.assertEqual(
+            manifest["deck"]["instruments"],
+            [{"name": "flex_1channel_1000", "type": "flex_1channel_1000", "mount": "left"}],
+        )
 
     def test_repair_package_metadata_normalizes_flex_wellplate_hallucination(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}\n\n'
                 "def run(protocol):\n"
                 "    protocol.load_labware('opentrons_flex_96_wellplate_200ul', location='D1')\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
-            deck_plan = json.loads((package_dir / "deck_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
         self.assertTrue(any("opentrons_flex_96_wellplate_200ul" in repair for repair in repairs))
         self.assertIn("opentrons_96_wellplate_200ul_pcr_full_skirt", protocol_py)
         self.assertEqual(
-            deck_plan["labware"],
+            manifest["deck"]["slots"],
             [
                 {
                     "name": "opentrons_96_wellplate_200ul_pcr_full_skirt",
@@ -532,7 +546,8 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_binds_unassigned_tiprack_and_flex_trash(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}\n\n'
                 "def run(protocol):\n"
                 "    pipette = protocol.load_instrument('flex_1channel_1000', mount='left')\n"
@@ -542,10 +557,7 @@ class AuthoringPilotTests(unittest.TestCase):
                 "    pipette.aspirate(20, plate['A1'])\n"
                 "    pipette.dispense(20, plate['A2'])\n"
                 "    pipette.drop_tip()\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -558,16 +570,14 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_normalizes_pipette_loaded_as_labware(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 'requirements = {"robotType": "Flex", "apiLevel": "2.24"}\n\n'
                 "def run(protocol):\n"
                 "    pipette = protocol.load_labware(\n"
                 "        \"flex_1channel_1000\", mount=\"left\"\n"
                 "    )\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -579,7 +589,8 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_does_not_bind_before_loaded_instrument(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 'requirements = {"robotType": "OT-2", "apiLevel": "2.15"}\n\n'
                 "def run(protocol):\n"
                 "    tip_rack = protocol.load_labware('opentrons_96_tiprack_300ul', location='3')\n"
@@ -589,10 +600,7 @@ class AuthoringPilotTests(unittest.TestCase):
                 "    p300.aspirate(20, plate['A1'])\n"
                 "    p300.dispense(20, plate['A2'])\n"
                 "    p300.drop_tip()\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -603,15 +611,13 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_moves_data_paths_to_tmp_for_simulator(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "SAMPLE_SHEET_PATH = '/data/sample_sheet.csv'\n"
                 'MANIFEST_OUT_PATH = "/data/manifest_output.json"\n\n'
                 "def run(protocol):\n"
                 "    protocol.comment(SAMPLE_SHEET_PATH)\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -624,7 +630,8 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_flattens_columns_by_name_iteration(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "def run(protocol):\n"
                 "    source_plate = protocol.load_labware('corning_96_wellplate_360ul_flat', 1)\n"
                 "    all_sample_wells = [\n"
@@ -634,10 +641,7 @@ class AuthoringPilotTests(unittest.TestCase):
                 "        + source_plate.columns_by_name()[\"3\"]\n"
                 "        for well in col\n"
                 "    ]\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -650,7 +654,8 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_normalizes_p300_minimum_volume_constant(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "metadata = {'apiLevel': '2.18'}\n\n"
                 "def add_parameters(parameters):\n"
                 "    parameters.add_str(variable_name='pipette_type', default='p300_single_gen2')\n\n"
@@ -658,10 +663,7 @@ class AuthoringPilotTests(unittest.TestCase):
                 "REQUIRED_MAX_VOL = 200.0\n\n"
                 "def run(protocol):\n"
                 "    pass\n",
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_py = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -672,35 +674,29 @@ class AuthoringPilotTests(unittest.TestCase):
     def test_repair_package_metadata_adds_tip_quantities(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "def run(protocol):\n"
                 "    pipette.pick_up_tip()\n",
-                encoding="utf-8",
+                manifest=_base_manifest(tips={"tip_racks": []}),
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
-            (package_dir / "tip_plan.json").write_text('{"tip_racks": []}', encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
-            tip_plan = json.loads((package_dir / "tip_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
-        self.assertTrue(any("tip_plan quantities" in repair for repair in repairs))
-        self.assertEqual(tip_plan["tips_required"], 1)
-        self.assertEqual(tip_plan["tips_available"], 96)
+        self.assertTrue(any("manifest tips" in repair for repair in repairs))
+        self.assertEqual(manifest["tips"]["tips_required"], 1)
+        self.assertEqual(manifest["tips"]["tips_available"], 96)
 
     def test_repair_package_metadata_normalizes_tip_quantity_aliases(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 "def run(protocol):\n"
                 "    pipette.pick_up_tip()\n",
-                encoding="utf-8",
-            )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
-            (package_dir / "tip_plan.json").write_text(
-                json.dumps(
-                    {
+                manifest=_base_manifest(
+                    tips={
                         "tip_racks": [
                             {"slot": "4", "labware": "opentrons_96_tiprack_300ul", "capacity": 96},
                             {"slot": "6", "labware": "opentrons_96_tiprack_300ul", "capacity": 96},
@@ -715,20 +711,20 @@ class AuthoringPilotTests(unittest.TestCase):
                         "tips_available": 96,
                     }
                 ),
-                encoding="utf-8",
             )
 
             repairs = repair_package_metadata(package_dir)
-            tip_plan = json.loads((package_dir / "tip_plan.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
-        self.assertTrue(any("tip_plan quantities" in repair for repair in repairs))
-        self.assertEqual(tip_plan["tips_required"], 97)
-        self.assertEqual(tip_plan["tips_available"], 288)
+        self.assertTrue(any("manifest tips" in repair for repair in repairs))
+        self.assertEqual(manifest["tips"]["tips_required"], 97)
+        self.assertEqual(manifest["tips"]["tips_available"], 288)
 
     def test_repair_package_metadata_removes_duplicate_fixed_trash(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 """
 from opentrons import protocol_api
 
@@ -744,11 +740,7 @@ def run(protocol: protocol_api.ProtocolContext):
     pipette.dispense(10, plate["A2"])
     pipette.drop_tip()
 """,
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
-            (package_dir / "tip_plan.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_text = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -759,7 +751,8 @@ def run(protocol: protocol_api.ProtocolContext):
     def test_repair_package_metadata_splits_current_volume_dispense(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 """
 from opentrons import protocol_api
 
@@ -776,11 +769,7 @@ def run(protocol: protocol_api.ProtocolContext):
     p300.dispense(p300.current_volume, trash["A1"])
     p300.drop_tip()
 """,
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
-            (package_dir / "tip_plan.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_text = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -825,7 +814,8 @@ def run(protocol):
     def test_repair_package_metadata_opens_thermocycler_lid_before_pipetting(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 """
 from opentrons import protocol_api
 
@@ -842,11 +832,7 @@ def run(protocol: protocol_api.ProtocolContext):
     p20.dispense(10, tc_plate["A1"])
     p20.drop_tip()
 """,
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
-            (package_dir / "tip_plan.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_text = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -857,7 +843,8 @@ def run(protocol: protocol_api.ProtocolContext):
     def test_repair_package_metadata_makes_reagent_lookup_alias_tolerant(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text(
+            _write_three_piece_package(
+                package_dir,
                 """
 from opentrons import protocol_api
 
@@ -869,11 +856,7 @@ def run(ctx: protocol_api.ProtocolContext):
         slot = rcfg["slot"]
         well = rcfg["well"]
 """,
-                encoding="utf-8",
             )
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text("{}", encoding="utf-8")
-            (package_dir / "tip_plan.json").write_text("{}", encoding="utf-8")
 
             repairs = repair_package_metadata(package_dir)
             protocol_text = (package_dir / "protocol.py").read_text(encoding="utf-8")
@@ -885,45 +868,42 @@ def run(ctx: protocol_api.ProtocolContext):
     def test_repair_package_metadata_moves_structured_critical_failures_to_risks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text("def run(protocol):\n    pass\n", encoding="utf-8")
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text(
-                '{"critical_failures": [{"condition": "bad csv"}]}',
-                encoding="utf-8",
+            _write_three_piece_package(
+                package_dir,
+                "def run(protocol):\n    pass\n",
+                manifest=_base_manifest(critical_failures=[{"condition": "bad csv"}]),
             )
 
             repairs = repair_package_metadata(package_dir)
-            risk_checklist = (package_dir / "risk_checklist.json").read_text(encoding="utf-8")
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
-        self.assertTrue(any("structured critical_failures" in repair for repair in repairs))
-        self.assertIn('"risks"', risk_checklist)
+        self.assertTrue(any("non-enum manifest critical_failures" in repair for repair in repairs))
+        self.assertEqual(manifest["critical_failures"], [])
+        self.assertEqual(manifest["risk_flags"], [{"condition": "bad csv"}])
 
     def test_repair_package_metadata_moves_unknown_critical_failures_to_risks(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             package_dir = Path(tmp)
-            (package_dir / "protocol.py").write_text("def run(protocol):\n    pass\n", encoding="utf-8")
-            (package_dir / "deck_plan.json").write_text("{}", encoding="utf-8")
-            (package_dir / "risk_checklist.json").write_text(
-                json.dumps(
-                    {
-                        "critical_failures": [
-                            "collision",
-                            "Confirm source concentration before starting",
-                            42,
-                        ],
-                        "risks": ["existing risk"],
-                    }
+            _write_three_piece_package(
+                package_dir,
+                "def run(protocol):\n    pass\n",
+                manifest=_base_manifest(
+                    critical_failures=[
+                        "collision",
+                        "Confirm source concentration before starting",
+                        42,
+                    ],
+                    risk_flags=["existing risk"],
                 ),
-                encoding="utf-8",
             )
 
             repairs = repair_package_metadata(package_dir)
-            risk_checklist = json.loads((package_dir / "risk_checklist.json").read_text(encoding="utf-8"))
+            manifest = json.loads((package_dir / "manifest.json").read_text(encoding="utf-8"))
 
-        self.assertTrue(any("unknown critical_failures" in repair for repair in repairs))
-        self.assertEqual(risk_checklist["critical_failures"], ["collision"])
+        self.assertTrue(any("non-enum manifest critical_failures" in repair for repair in repairs))
+        self.assertEqual(manifest["critical_failures"], ["collision"])
         self.assertEqual(
-            risk_checklist["risks"],
+            manifest["risk_flags"],
             ["existing risk", "Confirm source concentration before starting", 42],
         )
 
