@@ -15,6 +15,8 @@ user intent / SOP
   →  run_protocol (robot_ip, file_path, session_id) only after confirmation
 ```
 
+**Phased skill routing** (intent-review, protocol-author, simulation-repair handoffs): [`skills/opentrons-experiment-run/SKILL.md`](../../skills/opentrons-experiment-run/SKILL.md). Do not copy those tables into this file.
+
 ## Protocol validation only (no live robot)
 
 ```
@@ -30,6 +32,7 @@ If the user only wants validation or labware inspection, stop after the check an
 - If code exists and is runnable, simulate is the default next action.
 - Ask at most one clarification round before drafting.
 - Only block on missing information that would change safety, deck truth, robot compatibility, or module choice.
+- Operator status labels (`ready` / `needs_confirmation` / `blocked`) and refusal phrasing: [`guides/agent-behavior.md`](../guides/agent-behavior.md) — not duplicated here.
 
 ## Error recovery (live robot)
 

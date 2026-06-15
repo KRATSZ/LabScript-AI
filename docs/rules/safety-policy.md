@@ -22,20 +22,19 @@ This file is the **single source of truth** for safety rules and hard bans in th
 
 ## Vision and camera
 
-Vision / `vision_check` is **observation-only**. It does not mutate session state or override `reconcile_state`. Compare vision output with robot APIs and reconciled deck state before treating it as truth. Use only when the operator asks for a visual check (see skill routing in `AGENTS.md`).
+Vision / `vision_check` is **observation-only**. It does not mutate session state or override `reconcile_state`. Compare vision output with robot APIs and reconciled deck state before treating it as truth. Use only when the operator asks for a visual check ([workflows.md](workflows.md) → *Optional deck vision*).
 
 ## Runtime defaults
 
-- Open-ended experiment or robot questions → start from `opentrons-experiment-run`.
+- Open-ended experiment or robot questions → start from `opentrons-experiment-run` ([`skills/opentrons-experiment-run/SKILL.md`](../../skills/opentrons-experiment-run/SKILL.md); policy remains in this folder).
 - Live readiness / staged bring-up questions → prefer `live_readiness_check`, then `create_run`, then the smallest safe live run.
 - After MCP or host restart → prefer `safe_next_action` (or `restart_review`) before chaining `reconcile_state` and live status tools.
 
 ## Interaction defaults
 
-- Default operator experience: one input → at most one blocking clarification round → one confirmation before live execution.
-- If a runnable protocol exists, simulation is the default next step.
-- Only block on missing information that changes safety, deck truth, robot type, labware compatibility, or required modules.
-- Safety refusals must include a compliant alternative path.
+- Workflow order and when to simulate: [workflows.md](workflows.md) (*User-facing defaults*).
+- Operator phrasing and status labels: [agent-behavior.md](../guides/agent-behavior.md).
+- **Safety refusals must include a compliant alternative path** (non-negotiable).
 
 ## See also
 

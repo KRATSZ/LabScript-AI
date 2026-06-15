@@ -2,14 +2,14 @@
 
 投稿图表与证据的单页索引。详细叙事与口径见 [`paper_execution_plan.md`](paper_execution_plan.md)。
 
-Updated: 2026-05-21
+Updated: 2026-06-08
 
 ## Main text
 
 | ID | Deliverable | Answers | Status |
 | --- | --- | --- | --- |
 | Fig1 | Dual-loop architecture (authoring + runtime + memory) | What is LabscriptAI? | Draft |
-| Table1 | Systems × Evidence (8 columns, no Sim) | Barbara: vs existing LLM / coding agents | Partial (LabscriptAI freeze; others TBD) |
+| Table1 | Systems × Evidence (8 columns, no Sim) | Barbara: vs existing LLM / coding agents | Draft (`runs/table1_v2_combined_summary.md`; flash anchor `ablation5/flash/kb_v2_patch`) |
 | ExtFig | Runtime recovery + memory reuse panels | Real robot + episodic reuse | Pending ≥3 paired cases |
 
 Videos: tip recovery contrast (Video 1); memory round 1 vs 2 (Video 2).

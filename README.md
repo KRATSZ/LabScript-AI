@@ -73,6 +73,7 @@ Core code is moving toward one STA agent loop:
 
 - **Folder map:** [`docs/REPO_LAYOUT.md`](docs/REPO_LAYOUT.md)
 - **Doc map (start here):** [`docs/README.md`](docs/README.md)
+- **Workspace management:** [`docs/WORKSPACE_MANAGEMENT.md`](docs/WORKSPACE_MANAGEMENT.md)
 - **Workflow (canonical):** [`docs/rules/workflows.md`](docs/rules/workflows.md)
 - **Safety policy (canonical):** [`docs/rules/safety-policy.md`](docs/rules/safety-policy.md)
 - **Errors & recovery (canonical):** [`docs/rules/error-response.md`](docs/rules/error-response.md)

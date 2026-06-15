@@ -402,40 +402,40 @@
     <header class="hero">
       <div class="panel hero-main">
         <div class="eyebrow">LabscriptAI / Opentrons-Lab-Agent</div>
-        <h1>现在不是缺结果，是缺能稳稳写进主文的那几块证据</h1>
+        <h1>现在卡的不是没结果，而是把已有结果收成一份不夸大的投稿合同</h1>
         <p class="subtitle">
           这页现在按论文证据重新收口成三条主线：<strong>编写</strong>、<strong>运行时恢复</strong>、<strong>经验复用</strong>。
-          90 题 freeze 和 external 66 已经够写补充材料；主文真正还卡住的是
-          <strong>Table 1 多系统基线</strong>、<strong>Extended Data 的 3+ 高质量配对案例</strong>，
-          以及 <strong>trace / reviewer / IR 证据能不能整理成可直接引用的材料包</strong>。
+          现在已经有一版 <strong>2026-06-05 的 Table 1 多系统 py-only 汇总</strong>、有 <strong>90 题 / external 66</strong> 当前值，
+          也有 <strong>6 个 read-only case + 6/6 shadow + 1 个 multihop controlled live case</strong>。
+          今天新收紧的是：主表已经不只是 DeepSeek 一行，当前可见最好 unified 行到 <strong>60/90</strong>，但稿子里到底用哪一行、哪些脚注必须带着写、哪些 reviewer 空列还没补平，仍然是最后卡口。
         </p>
         <div class="pill-row">
-          <span class="pill ok">更新 2026-05-24</span>
-          <span class="pill info">S1 / S2A freeze 数字已稳</span>
+          <span class="pill ok">更新 2026-06-07</span>
+          <span class="pill info">主表锚点已重排</span>
           <span class="pill warn">runtime 仍是 shadow-first</span>
           <span class="pill bad">P4 仍按 gap 处理</span>
         </div>
 
         <div class="metrics">
           <div class="metric">
-            <div class="value">56/90</div>
-            <span class="label">Table S1 主结果</span>
-            <p><code>authoring-light</code> composite BoB；可写补充，不能冒充 full system。</p>
+            <div class="value">60/90</div>
+            <span class="label">Table 1 主锚点</span>
+            <p>当前最好 unified py-only 是 Opus 4.8 的 60/90；DeepSeek pure 是 58/90。主表不是没结果，而是还没定最终投稿锚点和脚注合同。</p>
           </div>
           <div class="metric">
-            <div class="value">60/66</div>
+            <div class="value">56/66</div>
             <span class="label">Table S2A 当前值</span>
-            <p>External 66 不占优于 fix-loop；旁证可用，不宜硬吹主结论。</p>
+            <p>External 66 unified py-only 当前 BoB；FP 现是 47/66，能做泛化旁证，不是正文胜负手。</p>
           </div>
           <div class="metric">
-            <div class="value">6/6</div>
-            <span class="label">Read-only + Shadow</span>
-            <p>6 个 runtime case、6/6 shadow 通过；说明会观察会守门，不等于真机自动救回。</p>
+            <div class="value">6/6 + 1</div>
+            <span class="label">Runtime 当前层数</span>
+            <p>6 个 runtime case、6/6 shadow、1 个 multihop controlled live success；说明链路在成形，不等于已证明自动救回。</p>
           </div>
           <div class="metric">
-            <div class="value">0/3+</div>
+            <div class="value">1/3+</div>
             <span class="label">ExtFig 配对案例</span>
-            <p>论文级 paired cases 还没凑够；单个 live 个案不能替代整组证据。</p>
+            <p>已有 1 个能讲清前后对照的 live case；离论文级 3+ 组 paired cases 还差两截。</p>
           </div>
         </div>
       </div>
@@ -445,25 +445,25 @@
           <div class="eyebrow">阻塞项</div>
           <div style="display:grid; gap:10px; margin-top:8px;">
             <div class="blocker">
-              <strong>1. Table 1 未齐</strong>
-              <p>GPT / Claude / Gemini、Claude Code / Codex、Inagaki-style、OpentronsAI 缺统一预算可发稿数字。</p>
+              <strong>1. Table 1 还没收口</strong>
+              <p>多系统 py-only 汇总已经出来，但主表还没定用 DeepSeek pure 58/90 还是 Opus unified 60/90 做正文锚点；同时还缺 OpentronsAI / OpenClaw 行、很多行缺 Expert 或 panel。</p>
             </div>
             <div class="blocker">
               <strong>2. ExtFig 缺真机对照</strong>
-              <p>目前只有 read-only / shadow 和单个受控 live 个案；还缺 ≥3 高质量 paired cases + 1 个 memory 两回合案例。</p>
+              <p>目前是 read-only / shadow + 1 个 multihop live 个案；还缺 ≥3 高质量 paired cases + 1 个 memory 两回合案例。</p>
             </div>
             <div class="blocker">
               <strong>3. 证据包还没收口</strong>
-              <p>reviewer / expert、trace 导出、baseline manifest、runtime_cases.csv 还没变成可贴稿材料。</p>
+              <p>reviewer / expert 汇总、trace 导出、baseline manifest、runtime_cases.csv 还没整理成可直接贴稿的材料包；现在缺的是把已有证据收成一包，不是继续堆新材料。</p>
             </div>
           </div>
         </div>
         <div>
           <div class="eyebrow">Next 24h</div>
           <ol class="focus-list" style="margin-top:8px;">
-            <li><code>WP3</code>：把 Table 1 缺的系统先各跑 3-5 题 smoke，锁预算、manifest、输出格式。</li>
-            <li><code>WP10 + Trace</code>：把缺吸头、热循环模块异常、人工确认三类 runtime case 做成 paired-case 草稿。</li>
-            <li><code>WP5 + IR</code>：把 reviewer / expert 分拆开，并冻结 5-10 个 IR compile/export 样例。</li>
+            <li><code>WP3</code>：先决定正文 Table 1 用哪条 unified 行做锚点，再处理 OpentronsAI / OpenClaw 是补 smoke 还是明确写缺行原因。</li>
+            <li><code>WP5</code>：把 30 题 panel 与 90 题 expert 分开导出，先补平现在主表里最刺眼的空列。</li>
+            <li><code>WP10 + Trace + IR</code>：把 multihop 个案整理成第一组 paired case，再补 thermocycler / manual-review 和 5-10 个 IR 样例。</li>
           </ol>
         </div>
       </aside>
@@ -492,9 +492,9 @@
             <div class="lane">
               <h3>单个 controlled live case</h3>
               <ul class="plain-list">
-                <li><code>runs/unified_agent_loop_live/20260522_182745/</code> 给了 1 个 missing-tip 受控 live 个案。</li>
-                <li>这条链路已经看到 <code>robot.inspect -&gt; recovery.suggest -&gt; run.control -&gt; memory</code> 的闭环。</li>
-                <li>它说明 unified loop 不只是离线图纸，但它仍然只是一个 branch case，不是论文级 case set。</li>
+                <li><code>runs/unified_agent_loop_live/20260522_232713_c1_multihop/summary.json</code> 给了 1 个 multihop missing-tip 受控 live 个案。</li>
+                <li>这条链路已经看到 <code>robot.inspect -&gt; recovery.suggest -&gt; run.control -&gt; memory</code> 的闭环，并记录了 <code>memory_hits=2</code>。</li>
+                <li>它说明 unified loop 不只是离线图纸，但它仍然只是 1 组 branch case，不是论文级 case set。</li>
               </ul>
             </div>
             <div class="lane">
@@ -518,7 +518,7 @@
               <ul class="plain-list">
                 <li><code>runs/runtime-cases/2026-05-21-readonly-check/</code></li>
                 <li><code>runs/recovery-shadow/2026-05-21-readonly-check/</code></li>
-                <li><code>runs/unified_agent_loop_live/20260522_182745/</code></li>
+                <li><code>runs/unified_agent_loop_live/20260522_232713_c1_multihop/</code></li>
                 <li><code>labscript_agent_loop_trace_*.jsonl</code> / <code>trace_summary_*.json</code></li>
               </ul>
             </div>
@@ -539,7 +539,7 @@
               <ul class="plain-list">
                 <li>unified agent loop 能读取真实机器人 run 状态。</li>
                 <li>missing-tip 单个 live case 下，能调用建议、过 gatekeeper、再进入受控 recovery branch。</li>
-                <li>read-only case、shadow trace、memory 写入已形成一条比较完整的运行时证据链。</li>
+                <li>read-only case、shadow trace、memory 写入已形成一条比较完整的运行时证据链，且 multihop 个案已出现 <code>memory_hits=2</code>。</li>
               </ul>
             </div>
             <div class="lane">
@@ -581,7 +581,7 @@
                 <li><code>LabscriptAgentLoop</code> 已把 author 和 run 收到同一个 turn-based loop。</li>
                 <li>TUI 已能把普通对话交给 unified loop；skill、memory、protocol search、validate、simulate 已接入。</li>
                 <li><code>robot.inspect</code> 和 <code>run.control</code> 已接到 robot adapter；本地 fake adapter 测试通过。</li>
-                <li>已有 1 个 controlled missing-tip live case、6 个 read-only case、6/6 shadow trace；足够支撑 Figure 1 的运行时框图，不够单独撑起 ExtFig 结论。</li>
+                <li>已有 1 个 multihop controlled live case、6 个 read-only case、6/6 shadow trace；足够支撑 Figure 1 的运行时框图，不够单独撑起 ExtFig 结论。</li>
               </ul>
             </div>
             <div class="lane">
@@ -589,14 +589,14 @@
               <ul class="plain-list">
                 <li>还需要非 missing-tip 的 paired runtime cases，尤其是 thermocycler / manual-review 分支。</li>
                 <li><code>run.control</code> 的 pause/resume/abort 小题仍未冻结，P4 不能提前写成完成。</li>
-                <li>视觉检测环境需补 <code>ultralytics</code> 后再给视觉证据。</li>
+                <li>视觉只能当观察旁证，不能替代 <code>reconcile_state</code>；即使补齐环境，也不能把它写成 deck 真值来源。</li>
               </ul>
             </div>
             <div class="lane">
               <h3>下一步</h3>
               <ul class="plain-list">
                 <li><strong>Trace export</strong>：从 unified trace 导出 author/run 流程摘要。</li>
-                <li><strong>Live case set</strong>：补一个无错误监控 case 和一个非 missing-tip 只读/escalate case。</li>
+                <li><strong>Live case set</strong>：把 missing-tip 整理成第一组 paired case，再补一个非 missing-tip 只读/escalate case。</li>
                 <li><strong>Memory hook</strong>：做第二回合复用，证明新 case 能影响后续建议。</li>
               </ul>
             </div>
@@ -623,24 +623,24 @@
             <div class="lane">
               <h3>当前代码 / 数据</h3>
               <ul class="plain-list">
-                <li>LabscriptAI 占位：authoring-light freeze 20260520。</li>
-                <li>硬 35 的 Codex clean baseline 有结果，非 Table 1 全量口径。</li>
-                <li>OpentronsAI、Inagaki-style、frontier LLM 多数 TBD。</li>
+                <li><code>runs/table1_v2_combined_summary.md</code> 已把 DeepSeek、GPT-5.5、Gemini、Claude、Codex、Claude Code、Inagaki-style、External 66 放进同一张 py-only 汇总表。</li>
+                <li>当前 unified 两个最关键锚点是 DeepSeek pure <code>58/90</code> 和 Opus 4.8 unified <code>60/90</code>；对照行里 Inagaki-style 是 <code>51/90</code>，Claude Opus 4.8 direct 是 <code>54/90</code>，Codex native 是 <code>45/90</code>。</li>
+                <li>30 题 panel 现在只补平了 unified DeepSeek、unified Opus、Claude direct；多数行仍缺 Expert / panel。OpenClaw 还是整行缺失，OpentronsAI 现在也还没并进这份总表。</li>
               </ul>
             </div>
             <div class="lane">
               <h3>还缺的证据</h3>
               <ul class="plain-list">
-                <li>统一预算、评分 schema、输出 manifest。</li>
-                <li>至少一个 reviewer / expert 分数汇总面板。</li>
-                <li>直接模型和 coding agent 小样本 smoke，先跑通再扩量。</li>
+                <li>统一预算、评分 schema、baseline manifest、脚注边界。</li>
+                <li>至少一版完整 reviewer / expert 汇总面板，不能只让少数几行有 panel mean。</li>
+                <li>OpentronsAI、OpenClaw 要么补齐，要么明确写成缺行与原因；Inagaki-style 也要把 GPT-4o fallback 讲清楚，别冒充纯 GPT-4 复现。</li>
               </ul>
             </div>
             <div class="lane">
               <h3>下一步</h3>
               <ul class="plain-list">
-                <li><strong>WP3 baseline runner</strong>：每行 3–5 题 smoke，校准输出。</li>
-                <li><strong>WP5 reviewer pipeline</strong>：盲评 schema + 汇总脚本。</li>
+                <li><strong>WP3 baseline runner</strong>：先定正文 unified 锚点，再判断缺行是补 smoke 还是直接标 missing，同时统一输出合同和脚注。</li>
+                <li><strong>WP5 reviewer pipeline</strong>：盲评 schema + 汇总脚本，先把 Expert 列和 panel 缺口补平。</li>
                 <li><strong>Manifest export</strong>：模型、预算、权限、日期写入 baseline manifest。</li>
               </ul>
             </div>
@@ -659,9 +659,9 @@
             <span class="pill info">robot_http</span>
             <span class="pill ok">shadow 6/6</span>
             <span class="pill">memory MVP</span>
-            <span class="pill warn">1 live case</span>
+            <span class="pill warn">1 multihop live case</span>
           </div>
-          <p>6 个 read-only runtime case、6/6 shadow 通过、外加 1 个 controlled live missing-tip 个案。能证明 runtime 主线在成形，不能直接写成“自动救回机器人”。</p>
+          <p>6 个 read-only runtime case、6/6 shadow 通过、外加 1 个 multihop controlled live missing-tip 个案。能证明 runtime 主线在成形，不能直接写成“自动救回机器人”。</p>
         </div>
         <div class="note-card">
           <strong>现在还不能写什么</strong>
@@ -708,8 +708,8 @@
             </tr>
             <tr>
               <td><strong>Memory reuse</strong></td>
-              <td>接口与笔记存储已有，0 个论文级两回合案例</td>
-              <td>memory MVP，非 memory gain</td>
+              <td>接口与笔记存储已有；live multihop 个案记录 <code>memory_hits=2</code>，但仍无论文级两回合对照</td>
+              <td>memory 已接入 loop，当前仍是 memory MVP，非 memory gain 结论</td>
               <td>1 个同类失败两回合案例（第 1 次 vs 第 2 次）</td>
             </tr>
             <tr>
@@ -728,15 +728,15 @@
       <div class="grid-three" style="margin-bottom:20px;">
         <div class="note-card">
           <strong>Table S1：90 题 scaffold ablation</strong>
-          <p style="margin-top:8px;"><strong>Composite BoB：</strong> direct <code>23/90</code> · fix-loop <code>45/90</code> · light <code>56/90</code></p>
-          <p style="margin-top:6px;"><strong>Sim pass（非主结论）：</strong> <code>38/90</code> · <code>80/90</code> · <code>85/90</code></p>
-          <p style="margin-top:6px;">下一步：补 FP composite、reviewer/expert 汇总。</p>
+          <p style="margin-top:8px;"><strong>当前五行（flash）：</strong> <code>31/90</code> · <code>58/90</code> · <code>62/90</code> · <code>57/90</code> · <code>56/90</code></p>
+          <p style="margin-top:6px;"><strong>当前五行（pro）：</strong> <code>34/90</code> · <code>59/90</code> · <code>58/90</code> · <code>55/90</code> · <code>52/90</code></p>
+          <p style="margin-top:6px;">下一步：把五行结论压成一张可投稿 S1，并把 panel reviewer 完整度单独标出来。</p>
         </div>
         <div class="note-card">
           <strong>Table S2A：External 66</strong>
-          <p style="margin-top:8px;"><strong>Composite：</strong> direct <code>57/66</code> · fix-loop <code>61/66</code> · light <code>60/66</code></p>
-          <p style="margin-top:6px;">泛化旁证；fix-loop 略高于 light，不宜硬吹主结论。</p>
-          <p style="margin-top:6px;">下一步：来源标注、OpenPlant provenance、setup card / FP。</p>
+          <p style="margin-top:8px;"><strong>当前 py-only：</strong> DeepSeek LLM-only <code>31/66</code> BoB · unified <code>56/66</code> BoB</p>
+          <p style="margin-top:6px;"><strong>当前辅助值：</strong> unified <code>47/66</code> FP · <code>60/66</code> sim / val · provider events <code>3</code> · Expert <code>4.31/5</code></p>
+          <p style="margin-top:6px;">下一步：把 provenance、subset 脚注、setup card / FP 一起补平，避免只报一个大总数。</p>
         </div>
         <div class="note-card">
           <strong>Table S2B：LabFlow IR portability</strong>
@@ -759,14 +759,14 @@
           <tbody>
             <tr>
               <td><strong>S1</strong></td>
-              <td>56/90 BoB；85/90 sim pass</td>
-              <td>scaffold 对 composite 有增益，非单纯修语法</td>
+              <td>ablation5 当前最佳 <code>62/90</code>（flash kb_v2_patch）；pro 对照最佳 <code>59/90</code></td>
+              <td>scaffold / KB / repair 组合确实影响 composite，而不只是修语法</td>
               <td>≠ runtime / memory 证据</td>
             </tr>
             <tr>
               <td><strong>S2A</strong></td>
-              <td>60/66 composite；56/66 first-pass sim</td>
-              <td>能泛化到外部任务</td>
+              <td>unified <code>56/66</code> BoB；<code>47/66</code> FP；<code>4.31/5</code> Expert</td>
+              <td>能泛化到外部任务，且当前 unified 明显高于 llm-only</td>
               <td>≠「外部集全面领先」</td>
             </tr>
             <tr>
@@ -981,29 +981,29 @@
             <tr>
               <td><strong>WP3 baseline runner</strong></td>
               <td>Table 1</td>
-              <td>90/66 freeze runner 已有；Codex 只到 hard35，Table 1 全行还没跑齐</td>
-              <td>3–5 题 smoke；统一预算、manifest、评分汇总</td>
-              <td><code>src/labscriptai/benchmark/authoring_pilot.py</code></td>
+              <td>多系统 py-only combined summary 已落盘；主缺口变成正文 unified 锚点未定、OpentronsAI / OpenClaw 缺行、baseline manifest 和脚注合同</td>
+              <td>先定 DeepSeek pure 58/90 vs Opus unified 60/90 的正文锚点，再做 3–5 题 smoke 或明确写 missing 原因；统一预算、manifest、评分汇总和主表脚注</td>
+              <td><code>scripts/build_table1_v2.py</code>、<code>src/labscriptai/benchmark/authoring_pilot.py</code></td>
             </tr>
             <tr>
               <td><strong>WP5 reviewer pipeline</strong></td>
               <td>Table 1 Expert、S1</td>
-              <td>reviewer 脚本已有；盲评汇总面板未成稿</td>
-              <td>专家分与 reviewer agent 分分开导出</td>
-              <td><code>src/labscriptai/benchmark/review_authoring_run.py</code></td>
+              <td>30 题 3-LLM panel 已在部分行落地，但主表仍大量缺 Expert / panel</td>
+              <td>90 题 expert 与 30 题 panel 分开导出；补齐缺失 reviewer</td>
+              <td><code>src/labscriptai/benchmark/review_authoring_run.py</code>、<code>scripts/run_table1_panel_review.sh</code></td>
             </tr>
             <tr>
               <td><strong>Trace export</strong></td>
               <td>Fig 1、ExtFig、视频</td>
-              <td>author / run trace 已在落盘，缺可贴图摘要器</td>
-              <td>author / run 两类 trace 摘要器</td>
+              <td>author / run trace 已在落盘；现在缺的是能直接贴图和 paired-case 的摘要器</td>
+              <td>author / run 两类 trace 摘要器 + paired-case 重点步骤抽取</td>
               <td><code>src/labscriptai/runtime/trace.py</code></td>
             </tr>
             <tr>
               <td><strong>WP10 recovery adapter</strong></td>
               <td>ExtFig、Fig 1 run</td>
-              <td>read-only + shadow 已成；single live case 已有，但论文仍按 gap</td>
-              <td>真机 IP：inspect → pause/resume/abort 小题 + paired cases</td>
+              <td>read-only + shadow 已成；single multihop live case 已有，但论文仍按 gap</td>
+              <td>真机 IP：inspect → pause/resume/abort 小题 + 3 组 paired cases</td>
               <td><code>src/labscriptai/runtime/adapters/robot_http.py</code></td>
             </tr>
             <tr>
@@ -1011,7 +1011,7 @@
               <td>Fig 1、Table 1、ExtFig</td>
               <td>10 题：old/unified 10/10 sim；direct 6/10</td>
               <td>固定 loop，真机小题后再扩 benchmark</td>
-              <td><code>agent/</code>、<code>runs/p1_10task_compare/</code></td>
+              <td><code>src/labscriptai/agent/loop.py</code>、<code>runs/p1_10task_compare/</code></td>
             </tr>
             <tr>
               <td><strong>IR compile/export adapter</strong></td>
@@ -1039,9 +1039,10 @@
           <h3>可以写</h3>
           <ul class="plain-list">
             <li>LabscriptAI 已有 authoring freeze，scaffold 对 composite pass 有帮助。</li>
+            <li>Table 1 多系统 py-only 汇总已经存在，当前 unified 最好行到 60/90，但目前还不是终稿合同。</li>
             <li>Runtime：只读 case、shadow recovery、memory MVP；robot adapter 已接 unified TUI。</li>
             <li>PyLabRobot 属软件/backend 级可移植性 sanity check。</li>
-            <li>provider / API 错误须单独标注，不能吞掉。</li>
+            <li>provider / API 错误须单独标注，不能吞掉；Inagaki-style 的 GPT-4o fallback 也要写清楚。</li>
           </ul>
         </div>
         <div class="boundary bad">
@@ -1049,16 +1050,17 @@
           <ul class="plain-list">
             <li>不能说 full autonomous live recovery；只能说入口已接、真机待验证。</li>
             <li>不能把 simulation pass 当 composite task pass。</li>
-            <li>不能把 external 66 当主结论胜负。</li>
+            <li>不能把 external 66 当主结论胜负，也不能把 panel 缺失行装成已补平。</li>
             <li>不能把 PyLabRobot smoke 写成 Hamilton/Tecan 真机证据。</li>
-            <li>不能把 API 不稳定时的 scaffold 排名当稳定结论。</li>
+            <li>不能把 API 不稳定或 fallback 替代下的行，当成没有脚注的稳定结论。</li>
           </ul>
         </div>
       </div>
       <p class="footer-note">
         读档：<code>README.md</code>、<code>paper_execution_plan.md</code>、<code>runtime_build_plan.md</code>、
         <code>authoring_benchmark_results.md</code>、<code>rollout_12_status.md</code>、
-        <code>runtime_mvp_acceptance.md</code>、<code>runs/authoring-pilot/freeze-v04-20260520/**/summary.json</code>、
+        <code>runtime_mvp_acceptance.md</code>、<code>runs/table1_v2_90_summary.md</code>、
+        <code>runs/table1_v2_combined_summary.md</code>、<code>runs/authoring90/ablation5_20260529/report/report.json</code>、
         <code>runs/runtime-cases/2026-05-21-readonly-check/summary.json</code>、
         <code>runs/recovery-shadow/2026-05-21-readonly-check/summary.json</code>。
       </p>
@@ -1070,6 +1072,38 @@
         这页现在是唯一主状态页。后续默认复用现有结构做增量更新，并在本节底部继续追加日期记录。
         只有明确需要保留快照时，才新建带日期的 HTML；不再新增第二个同角色的 <code>status.html</code>。
       </p>
+      <div class="note-card" style="margin-top:14px;">
+        <strong>2026-06-07</strong>
+        <ul class="plain-list" style="margin-top:8px;">
+          <li><strong>今天先把主表锚点从“只有 DeepSeek 一条能讲”改成“已有两条 unified 候选，但还没定正文用哪条”：</strong>重读 <code>runs/table1_v2_combined_summary.md</code> 后，这页不再只盯着 DeepSeek pure <code>58/90</code>，而是把 Opus 4.8 unified <code>60/90</code> 也明确摆出来，提醒现在卡的是投稿合同，不是缺分数。</li>
+          <li><strong>Hero、Table 1、WP3 这三块今天一起改口：</strong>主问题不再只是 “OpentronsAI / OpenClaw 缺行”，还包括正文 Table 1 到底选 DeepSeek pure 还是 Opus unified 做锚点，以及这些行要带哪些 reviewer、fallback、provider 说明。</li>
+          <li><strong>S2A 今天补上了 provider 事件提醒：</strong>external 66 继续保留 unified <code>56/66</code> BoB、<code>47/66</code> FP、<code>60/66</code> sim/val、Expert <code>4.31/5</code>，同时把 <code>provider events = 3</code> 写出来，避免把它包装成无条件稳定排名。</li>
+          <li><strong>runtime 主线今天故意没放大：</strong>页面继续只认 <code>6</code> 个 read-only case、<code>6/6</code> shadow、<code>1</code> 个 multihop controlled live success、<code>memory_hits=2</code>；<code>P4 controlled recovery</code> 继续按 gap 写，没有因为主表更完整就顺手吹成“自动恢复已证明”。</li>
+          <li><strong>和总体论文进度的关系：</strong>今天的推进是把“主文该押哪条行、哪些脚注必须一起冻结”这件事说清楚。这样下一步就能更像投稿收口：主表定锚点，reviewer 补空列，runtime 补 paired cases，而不是继续散着补新 benchmark。</li>
+        </ul>
+      </div>
+      <div class="note-card" style="margin-top:14px;">
+        <strong>2026-06-06</strong>
+        <ul class="plain-list" style="margin-top:8px;">
+          <li><strong>今天把主页面从“还有很多东西没齐”改成“已有结果够多，但还没收成合同”：</strong>重读了 <code>README.md</code>、研究计划文档、当前 <code>status.html</code>、<code>runs/table1_v2_combined_summary.md</code>、<code>runs/table1_v2_90_summary.md</code>、ablation5 报告、runtime summaries 和自动化记忆后，页面现在更明确地区分“已经有的结果”和“还没收口的缺口”。</li>
+          <li><strong>Hero blockers 今天被收紧成三个真问题：</strong>不是再泛泛说“主表缺东西”，而是直接点名 <code>OpentronsAI</code> / <code>OpenClaw</code> 缺行、很多行还缺 Expert 或 30 题 panel、以及 ExtFig 还差 <code>3+</code> 组 paired cases 和 1 个 memory 两回合案例。</li>
+          <li><strong>Table 1 区块今天也按最新汇总老实写边界：</strong>继续保留主锚点 DeepSeek unified <code>58/90</code>，同时明确说明 Inagaki-style 已经在总表里、OpenClaw 仍整行缺失、OpentronsAI 还没并进总表，而且 Inagaki-style 的 <code>GPT-4o fallback</code> 不能伪装成纯 GPT-4 复现。</li>
+          <li><strong>Next 24h 不再默认鼓励继续加材料：</strong><code>WP3</code> 改成先判断缺行是补 smoke 还是直接标 missing，<code>WP5</code> 改成先补平主表最刺眼的 reviewer 空列，<code>WP10</code> 继续围绕第一组 paired case 和 thermocycler / manual-review 分支收口。</li>
+          <li><strong>runtime 和 IR 的严谨边界今天保持不动：</strong>页面继续只认 <code>6</code> 个 read-only case、<code>6/6</code> shadow、<code>1</code> 个 multihop live case、<code>memory_hits=2</code>；<code>P4 controlled recovery</code> 继续标 gap，PyLabRobot 继续只写 software/backend sanity，不顺手扩大成真机结论。</li>
+          <li><strong>和总体论文进度的关系：</strong>今天没有去跑新的昂贵 benchmark，也没有碰 live robot。真正推进的是把“接下来 24 小时最该补什么”从模糊状态改成可执行清单，这样主页面终于开始像投稿收口板，而不是继续堆过程记录。</li>
+        </ul>
+      </div>
+      <div class="note-card" style="margin-top:14px;">
+        <strong>2026-06-05</strong>
+        <ul class="plain-list" style="margin-top:8px;">
+          <li><strong>今天先把 Table 1 状态从“骨架已成形”继续收紧成“主表已汇总，但合同还没冻住”：</strong>按 <code>runs/table1_v2_combined_summary.md</code> 的 2026-06-05 汇总，页面现在明确写出 Inagaki-style 已经并进同一张 py-only 表，当前主锚点仍是 DeepSeek unified <code>58/90</code>，旁边能对上 Claude Opus 4.8 direct <code>54/90</code>、Codex native <code>45/90</code>、GPT-5.5 direct <code>36/90</code>。</li>
+          <li><strong>阻塞项今天也改成更具体的“缺口合同”：</strong>不再笼统写“主表缺行”，而是直接点明现在主要卡在 OpentronsAI / OpenClaw 缺行、很多行还缺 Expert 或 30 题 panel、以及 Inagaki-style 的 GPT-4o fallback 需要老实写脚注。</li>
+          <li><strong>external 66 数字按当前汇总纠偏：</strong>把 S2A 的 unified FP 从旧页里的 <code>54/66</code> 改回当前汇总可确认的 <code>47/66</code>，保留 BoB <code>56/66</code> 和 Expert <code>4.31/5</code>。这一步很关键，因为 external 66 只能当泛化旁证，不能靠旧数字把它写成主文胜负手。</li>
+          <li><strong>代码开发板重新绑到今天真实的收口任务：</strong><code>WP3</code> 改成围绕 <code>build_table1_v2.py</code> 和 baseline manifest 收口主表脚注；<code>WP5</code> 改成把 90 题 expert 和 30 题 panel 分开导出；<code>WP10</code> 继续坚持“single live case 还不够，得补到 3 组 paired cases”。</li>
+          <li><strong>runtime 口径今天继续保守：</strong>虽然主表和 reviewer 证据前进了，但 runtime 仍然只写 <code>6</code> 个 read-only case、<code>6/6</code> shadow、<code>1</code> 个 multihop live case、<code>memory_hits=2</code>。页面继续把 <code>P4 controlled recovery</code> 标成 gap，没有因为主表更新就顺手吹大。</li>
+          <li><strong>和总体论文进度的关系：</strong>今天最大的推进不是新跑昂贵 benchmark，而是把“主表已汇总到哪一步、哪些数字能写、哪些脚注必须带着写”讲清楚。这样接下来 24 小时的重点就更集中：主表补缺行和 reviewer，runtime 补 paired cases，而不是再泛泛去加材料。</li>
+        </ul>
+      </div>
       <div class="note-card" style="margin-top:14px;">
         <strong>2026-05-22</strong>
         <ul class="plain-list" style="margin-top:8px;">
@@ -1092,6 +1126,17 @@
           <li><strong>P4 controlled recovery 被重新标成 gap：</strong>虽然代码路径和单个 live branch 已经出现，但页面不再把它写成“已完成”；只有等真机 <code>inspect -&gt; pause/resume/abort</code> 小题和 paired cases 冻结后，才有资格往正文里放。</li>
           <li><strong>SI 和代码开发板也同步绑回论文产物：</strong>把 S1、S2A、S2B 的当前数字固定到 freeze 证据上；同时把 <code>WP3 baseline runner</code>、<code>WP5 reviewer pipeline</code>、<code>trace export</code>、<code>WP10 recovery adapter</code>、<code>IR compile/export adapter</code> 明确写成各自服务哪张图、哪张表。</li>
           <li><strong>和总体论文进度的关系：</strong>今天不是新增一轮大 benchmark，而是把“哪些已经能写、哪些还不能写”彻底讲清楚。这样做的价值很实际：能减少 runtime/P4 过度表述的风险，也把接下来 24 小时最该补的证据，压缩成了可执行的几个动作。</li>
+        </ul>
+      </div>
+      <div class="note-card" style="margin-top:14px;">
+        <strong>2026-06-04</strong>
+        <ul class="plain-list" style="margin-top:8px;">
+          <li><strong>今天先把主表状态从“未齐”改成“骨架已成形但未收口”：</strong>根据 <code>runs/table1_v2_combined_summary.md</code>，页面现在明确写出多系统 py-only 骨架已经存在，而不是再把 Table 1 说成还没开始。当前能站住的主锚点是 DeepSeek unified <code>58/90</code>，对照 DeepSeek LLM-only <code>39/90</code>、Claude Opus 4.8 direct <code>54/90</code>、Codex native <code>45/90</code>。</li>
+          <li><strong>Hero / blockers / Next 24h 全部重写成“收口任务”：</strong>今天不再把问题写成泛泛的“缺结果”，而是直接点明卡在 Expert 列没补平、Inagaki-style / OpentronsAI / OpenClaw 缺行、以及 paired-case 还没凑够这几件事。</li>
+          <li><strong>runtime 段落换成最新 live 个案：</strong>把单个 live 证据更新到 <code>runs/unified_agent_loop_live/20260522_232713_c1_multihop/summary.json</code>，明确写出它是 multihop missing-tip controlled live case，并记录了 <code>memory_hits=2</code>；但页面仍坚持把它标成“1/3+ paired cases”，不把它夸成成组真机恢复。</li>
+          <li><strong>SI 数字换成当前仓库里更靠前的一批：</strong>S1 改用 <code>runs/authoring90/ablation5_20260529/report/report.json</code> 的五行 current numbers；S2A 改用最新 external 66 py-only 汇总，把 unified <code>56/66</code> BoB、<code>54/66</code> FP、<code>4.31/5</code> Expert 写清楚。</li>
+          <li><strong>代码开发板继续绑论文产物：</strong><code>WP3 baseline runner</code>、<code>WP5 reviewer pipeline</code>、<code>Trace export</code>、<code>WP10 recovery adapter</code>、<code>IR compile/export adapter</code> 仍然按“服务哪张图、哪张表”来写，没有把任务漂成纯工程 TODO。</li>
+          <li><strong>和总体论文进度的关系：</strong>今天最大的推进不是新增一次昂贵 benchmark，而是把“现在哪些已经可以写进稿子、哪些只是骨架、哪些还只是 gap”讲清楚。这样主文线已经从“缺数据”转成“缺最后的收口合同”，后面 24 小时就能更集中地补缺行、补 Expert、补 paired cases，而不是再散着补材料。</li>
         </ul>
       </div>
     </section>

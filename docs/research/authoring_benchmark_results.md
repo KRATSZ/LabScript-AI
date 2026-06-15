@@ -6,7 +6,7 @@ This page records authoring benchmark runs for paper tables. Paper table mapping
 
 | Manuscript table | Source | Notes |
 | --- | --- | --- |
-| **Table 1** (authoring) | TBD multi-system runs | LabscriptAI placeholder: composite BoB **56/90** (`authoring-light`, freeze 20260520) — **not** full-system |
+| **Table 1** (authoring) | `runs/table1_v2_combined_summary.md` | Multi-system py-only matrix; LabscriptAI anchor = `runs/authoring90/ablation5_20260529/flash/kb_v2_patch` (flash unified, KB v2 patch repair, BoB **62/90**, Sim **89/90**) |
 | **Table S1** | `freeze-v04-20260520/authoring90/` | direct 23/90 · fix-loop 45/90 · LabscriptAI 56/90 composite |
 | **Table S2A** | `freeze-v04-20260520/external66/` | fix-loop 61/66 vs LabscriptAI 60/66 — side evidence only |
 | **Table S2B** | `tests/test_pylabrobot_smoke` | software/backend IR proof |

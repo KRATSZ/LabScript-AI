@@ -67,8 +67,12 @@ def resolve_workspace_paths(
 def build_bootstrap_code(module_name: str, use_source_layout: bool) -> str:
     if not use_source_layout:
         return f"""
+import asyncio
 import runpy
 import sys
+
+if not hasattr(asyncio, "get_child_watcher"):
+    asyncio.get_child_watcher = lambda: None
 
 forwarded_argv = sys.argv[1:]
 sys.argv = ["{module_name}"] + forwarded_argv
@@ -76,9 +80,13 @@ runpy.run_module("{module_name}", run_name="__main__")
 """.strip()
 
     return f"""
+import asyncio
 import runpy
 import sys
 import types
+
+if not hasattr(asyncio, "get_child_watcher"):
+    asyncio.get_child_watcher = lambda: None
 
 api_src = sys.argv[1]
 shared_data_python = sys.argv[2]

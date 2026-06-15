@@ -10,6 +10,8 @@ mcp_tools:
 
 # Simulation Repair
 
+**Policy:** [`docs/rules/error-response.md`](../../docs/rules/error-response.md) (taxonomy, `protocol_edit_required`). **Sim gate:** [`docs/rules/workflows.md`](../../docs/rules/workflows.md). Live failure → `opentrons-experiment-run`.
+
 ## Repair loop (no fixed round cap)
 
 Repeat until simulation passes or you stop early:

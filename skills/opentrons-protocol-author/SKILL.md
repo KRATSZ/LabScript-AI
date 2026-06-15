@@ -8,6 +8,8 @@ mcp_tools: []
 
 # Protocol Author
 
+**Policy / UX:** [`docs/rules/workflows.md`](../../docs/rules/workflows.md), [`docs/guides/agent-behavior.md`](../../docs/guides/agent-behavior.md). Authoring detail stays in this skill and `references/`.
+
 1. Identify target robot: `OT-2` or `Flex`. **Default Flex.**
 2. For spatial patterns, arbitrary well subsets, or unclear plate mapping:
    run `opentrons-experiment-intent-review` first. Lock `target_wells` / tip policy.
@@ -21,14 +23,9 @@ mcp_tools: []
 
 **Finalize / report:** When outputting `design-notes.json`, calculating dead volume or tip budgets, or running the full pre-output checklist, read **`references/authoring-appendix.md`**.
 
-## Interaction Defaults
+## Interaction defaults
 
-- Do not wait for perfect inputs when a safe, runnable draft is already possible.
-- Ask only for choices that change robot compatibility, deck truth, module usage,
-  or safety-critical contamination assumptions.
-- If only a preference is missing, choose a documented default and note it in
-  `design-notes.json` (schema in appendix when you write it).
-- Once a runnable draft exists, the default next step is simulation.
+Follow [`docs/rules/workflows.md`](../../docs/rules/workflows.md) (*User-facing defaults*) and [`docs/guides/agent-behavior.md`](../../docs/guides/agent-behavior.md) (*Proactive clarification*). Note chosen defaults in `design-notes.json` when you write it.
 
 ## Rules
 

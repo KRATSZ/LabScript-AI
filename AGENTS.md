@@ -1,46 +1,35 @@
 # Opentrons-Lab-Agent
 
-## Canonical documents (read these for full rules)
+Short agent entry. **Runtime policy = `docs/rules/` only** — link, do not copy. Layering: [docs/README.md](docs/README.md). Repo folders: [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md). Dirty workspace / active benchmark hygiene: [docs/WORKSPACE_MANAGEMENT.md](docs/WORKSPACE_MANAGEMENT.md). **`skills/*/SKILL.md`** = scenario routing and handoffs (link to rules, not restate).
+
+## Read first (live work)
 
 | Document | Role |
 |----------|------|
-| [docs/rules/workflows.md](docs/rules/workflows.md) | **Workflow** — sequences, tool order, protocol library usage |
-| [docs/rules/safety-policy.md](docs/rules/safety-policy.md) | **Safety policy** — hard bans, deck truth, vision, interaction defaults |
-| [docs/rules/error-response.md](docs/rules/error-response.md) | **Errors & recovery** — categories, branches, Phase 2/4 invariants |
-| [docs/architecture/architecture.md](docs/architecture/architecture.md) | **Architecture** — layers and pointers to diagrams |
-
-**Documentation layout (LLM routing):** [docs/README.md](docs/README.md) — which folder to open for rules vs runbooks vs research. **Code / benchmark / docs folders:** [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md).
-
-This is the primary agent instruction entrypoint for this repository. Keep it short and link to canonical docs instead of duplicating policy text.
+| [docs/rules/safety-policy.md](docs/rules/safety-policy.md) | Hard bans, deck truth, vision |
+| [docs/rules/workflows.md](docs/rules/workflows.md) | Tool order, end-to-end sequences |
+| [docs/rules/error-response.md](docs/rules/error-response.md) | Error taxonomy, recovery branches |
+| [docs/architecture/architecture.md](docs/architecture/architecture.md) | Layers (diagrams on demand) |
 
 ## Skills
 
 | Skill | When to use |
 |-------|-------------|
-| `opentrons-experiment-run` | Default entry. New experiments, "what's the robot doing?", resume, recovery |
+| `opentrons-experiment-run` | Default: new runs, status, resume, recovery |
 | `opentrons-experiment-intent-review` | Plate mapping, tip strategy, deck alignment — before authoring |
-| `opentrons-protocol-author` | Write or revise Python protocol code |
-| `opentrons-protocol-library` | Search 833 reference protocols, find code examples |
-| `opentrons-protocol-verify` | Local doctor/analyze/simulate without MCP |
-| `opentrons-robot-lan` | Formal robot HTTP route: MCP fallback, MCP debugging, or explicit operator choice |
-| `opentrons-simulation-repair` | Iterative simulate → parse → edit → simulate fix loop |
-
-**On-demand skills (do not use by default):**
-
-- **`opentrons-protocol-library`** — Only when the user asks to search the 833-protocol catalog, find existing examples, or browse reference code. Do **not** open it for routine new-protocol authoring when a blank or workflow template suffices.
-- **`opentrons-robot-lan`** — Use when MCP is unavailable, when debugging MCP itself, or when the user explicitly opts into the robot HTTP route (see [docs/rules/safety-policy.md](docs/rules/safety-policy.md)).
-- **Vision / camera / `vision_check`** — Only when the user asks for a visual deck check, camera preview, or image-based confirmation. Vision is observation-only; never treat it as committed deck truth — reconcile with `reconcile_state` and robot APIs. Canonical tool order: [docs/rules/workflows.md](docs/rules/workflows.md) → section **Optional deck vision (observation-only)**.
+| `opentrons-protocol-author` | Write or revise Python protocols |
+| `opentrons-protocol-verify` | Local doctor / analyze / simulate (no MCP) |
+| `opentrons-simulation-repair` | Simulate → parse → edit loop |
+| `opentrons-protocol-library` | **On demand** — user asks to search the 833-protocol catalog |
+| `opentrons-robot-lan` | **On demand** — MCP unavailable, MCP debug, or explicit HTTP route ([safety-policy](docs/rules/safety-policy.md)) |
 
 MCP server: `opentrons-lab-mcp` at `mcp-servers/opentrons-mcp/`.
 
-## Quick reminder (details in linked docs)
+## On demand (not rules)
 
-Simulation is blocking before unattended live play. MCP `run_protocol` is the default live path; robot HTTP is a formal fallback/debug path, but never run both against the same robot in parallel. Recovery follows `parse_error` → `suggest_recovery_action` → `execute_protocol_recovery`; logs are audit-only; hard-stop categories escalate to a human.
-
-For protocol authoring, prefer MCP `validate_labware_name` before trusting a new load name, `inspect_labware_definition` when you need geometry or dead-volume guidance, and `estimate_tip_budget` before finalizing a draft with many transfers. These are the fast checks that prevent the common labware and tip-capacity mistakes.
-
-## Detailed reference (read on demand)
-
-- Architecture diagrams: [docs/architecture/diagrams/README.md](docs/architecture/diagrams/README.md)
-- Experiment-type SOP: [docs/guides/experiment-sop.md](docs/guides/experiment-sop.md)
-- Agent behavior guidelines: [docs/guides/agent-behavior.md](docs/guides/agent-behavior.md)
+| Document | Role |
+|----------|------|
+| [docs/guides/agent-behavior.md](docs/guides/agent-behavior.md) | Status labels, clarification tone, refusal phrasing |
+| [docs/guides/experiment-sop.md](docs/guides/experiment-sop.md) | Experiment-type heuristics |
+| [docs/runbooks/](docs/runbooks/) | Live readiness, restart, probe, vision checklist |
+| [docs/architecture/diagrams/README.md](docs/architecture/diagrams/README.md) | SVG diagrams |
