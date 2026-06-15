@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import contextlib
 import io
+import sys
+import tempfile
 from pathlib import Path
 import runpy
 import types
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "skills" / "opentrons-protocol-verify" / "scripts" / "verify_protocol.py"
@@ -16,6 +19,7 @@ MODULE = types.SimpleNamespace(**{k: v for k, v in _mod_dict.items() if not k.st
 
 build_bootstrap_code = MODULE.build_bootstrap_code
 resolve_workspace_paths = MODULE.resolve_workspace_paths
+resolve_simulation_cwd = MODULE.resolve_simulation_cwd
 
 
 class VerifyProtocolTests(unittest.TestCase):
@@ -66,6 +70,81 @@ class VerifyProtocolTests(unittest.TestCase):
             self.assertIn('"ok": false', output.getvalue())
         finally:
             globals_dict["probe_module"] = original_probe_module
+
+    def test_resolve_simulation_cwd_uses_protocol_parent_for_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp) / "pkg"
+            package_dir.mkdir()
+            protocol = package_dir / "protocol.py"
+            protocol.write_text("# stub\n", encoding="utf-8")
+            self.assertEqual(resolve_simulation_cwd(protocol), package_dir.resolve())
+
+    def test_resolve_simulation_cwd_uses_bundle_dir_for_directories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            bundle_dir = Path(tmp) / "bundle"
+            bundle_dir.mkdir()
+            self.assertEqual(resolve_simulation_cwd(bundle_dir), bundle_dir.resolve())
+
+    def test_run_module_passes_cwd_to_subprocess(self) -> None:
+        paths = resolve_workspace_paths()
+        subprocess_module = MODULE.run_module.__globals__["subprocess"]
+        with mock.patch.object(subprocess_module, "run") as run_mock:
+            run_mock.return_value = types.SimpleNamespace(returncode=0)
+            package_dir = ROOT / "tmp_sim_cwd_pkg"
+            exit_code = MODULE.run_module(
+                sys.executable,
+                paths,
+                "opentrons.simulate",
+                ["protocol.py"],
+                cwd=package_dir,
+            )
+        self.assertEqual(exit_code, 0)
+        run_mock.assert_called_once()
+        self.assertEqual(run_mock.call_args.kwargs["cwd"], str(package_dir))
+
+    def test_simulate_side_effect_file_written_to_package_dir(self) -> None:
+        probe = MODULE.probe_module(
+            sys.executable,
+            resolve_workspace_paths(),
+            "opentrons.simulate",
+        )
+        if not probe.get("ok"):
+            self.skipTest("opentrons.simulate not available")
+
+        side_effect_name = "sim_cwd_side_effect.txt"
+        repo_marker = ROOT / side_effect_name
+        if repo_marker.exists():
+            repo_marker.unlink()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            package_dir = Path(tmp) / "pkg"
+            package_dir.mkdir()
+            protocol = package_dir / "protocol.py"
+            protocol.write_text(
+                'metadata = {"apiLevel": "2.15"}\n\n'
+                f'def run(protocol):\n'
+                f'    open("{side_effect_name}", "w", encoding="utf-8").write("ok")\n',
+                encoding="utf-8",
+            )
+            args = types.SimpleNamespace(
+                workspace_root=None,
+                api_root=None,
+                shared_data_root=None,
+                python=None,
+                protocol=str(protocol),
+                extra_args=[],
+            )
+            try:
+                exit_code = MODULE.handle_simulate(args)
+                self.assertEqual(exit_code, 0, "simulate should succeed for minimal protocol")
+                self.assertTrue((package_dir / side_effect_name).is_file())
+                self.assertFalse(repo_marker.exists())
+            finally:
+                if repo_marker.exists():
+                    repo_marker.unlink()
+                package_marker = package_dir / side_effect_name
+                if package_marker.exists():
+                    package_marker.unlink()
 
 
 if __name__ == "__main__":

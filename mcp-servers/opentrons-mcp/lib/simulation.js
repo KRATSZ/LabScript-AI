@@ -23,10 +23,19 @@ function truncateLog(text = "", maxChars = DEFAULT_MAX_LOG_CHARS) {
   return `${text.slice(0, headChars)}\n\n...[truncated ${text.length - maxChars} chars]...\n\n${text.slice(-tailChars)}`;
 }
 
-function runCommand(command, args) {
+function resolveSimulationCwd(protocolPath) {
+  const resolved = path.resolve(protocolPath);
+  try {
+    return fs.statSync(resolved).isDirectory() ? resolved : path.dirname(resolved);
+  } catch {
+    return path.dirname(resolved);
+  }
+}
+
+function runCommand(command, args, cwd = process.cwd()) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      cwd: process.cwd(),
+      cwd,
       env: process.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -45,7 +54,7 @@ function runCommand(command, args) {
   });
 }
 
-async function runHelper(args, preferredPython) {
+async function runHelper(args, preferredPython, cwd = process.cwd()) {
   const candidates = [];
   const detectedLocalPython = fs.existsSync(repoLocalPythonPath)
     ? repoLocalPythonPath
@@ -66,7 +75,7 @@ async function runHelper(args, preferredPython) {
   let lastError = null;
   for (const candidate of candidates) {
     try {
-      return await runCommand(candidate, args);
+      return await runCommand(candidate, args, cwd);
     } catch (error) {
       if (error.code === "ENOENT") {
         lastError = error;
@@ -341,7 +350,8 @@ export async function runSimulationTool(args = {}) {
     helperArgs.push("--", ...args.extra_args);
   }
 
-  const result = await runHelper(helperArgs, args.python_executable);
+  const simulationCwd = resolveSimulationCwd(args.protocol_path);
+  const result = await runHelper(helperArgs, args.python_executable, simulationCwd);
   const payload = safeJsonParse(result.stdout.trim());
   payload.stdout = truncateLog(payload.stdout || "", args.max_log_chars || DEFAULT_MAX_LOG_CHARS);
   payload.stderr = truncateLog(payload.stderr || "", args.max_log_chars || DEFAULT_MAX_LOG_CHARS);

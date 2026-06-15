@@ -1413,7 +1413,7 @@ def simulate_protocol_file(
     try:
         completed = subprocess.run(
             cmd,
-            cwd=repo_root,
+            cwd=protocol_path.parent,
             capture_output=True,
             text=True,
             check=False,

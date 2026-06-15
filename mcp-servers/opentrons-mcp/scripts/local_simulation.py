@@ -188,11 +188,19 @@ def choose_python(explicit_python: str | None) -> str:
     return explicit_python or sys.executable
 
 
+def resolve_simulation_cwd(protocol: Path) -> Path:
+    """Directory simulate should run in: protocol parent, or bundle dir."""
+    resolved = protocol.resolve()
+    return resolved if resolved.is_dir() else resolved.parent
+
+
 def run_module(
     python_executable: str,
     paths: WorkspacePaths,
     module_name: str,
     forwarded_argv: Sequence[str],
+    *,
+    cwd: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     use_source_layout = paths.source_layout_ready
     bootstrap_code = build_bootstrap_code(module_name, use_source_layout)
@@ -200,7 +208,13 @@ def run_module(
     if use_source_layout:
         args.extend([str(paths.api_src), str(paths.shared_data_python)])
     args.extend(forwarded_argv)
-    return subprocess.run(args, capture_output=True, text=True, check=False)
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        check=False,
+        cwd=str(cwd) if cwd else None,
+    )
 
 
 def build_result(
@@ -268,7 +282,8 @@ def handle_simulate(args: argparse.Namespace) -> int:
     )
     python_executable = choose_python(args.python)
     probe = probe_module(python_executable, paths, "opentrons.simulate")
-    protocol_path = str(Path(args.protocol).resolve())
+    protocol_path = Path(args.protocol).resolve()
+    simulation_cwd = resolve_simulation_cwd(protocol_path)
 
     if not probe.get("ok"):
         print(
@@ -278,7 +293,7 @@ def handle_simulate(args: argparse.Namespace) -> int:
                     python_executable=python_executable,
                     module_name="opentrons.simulate",
                     paths=paths,
-                    protocol=protocol_path,
+                    protocol=str(protocol_path),
                     exit_code=None,
                     stdout="",
                     stderr="",
@@ -293,7 +308,8 @@ def handle_simulate(args: argparse.Namespace) -> int:
         python_executable,
         paths,
         "opentrons.simulate",
-        [protocol_path, *args.extra_args],
+        [str(protocol_path), *args.extra_args],
+        cwd=simulation_cwd,
     )
     print(
         json.dumps(
@@ -302,7 +318,7 @@ def handle_simulate(args: argparse.Namespace) -> int:
                 python_executable=python_executable,
                 module_name="opentrons.simulate",
                 paths=paths,
-                protocol=protocol_path,
+                protocol=str(protocol_path),
                 exit_code=completed.returncode,
                 stdout=completed.stdout,
                 stderr=completed.stderr,

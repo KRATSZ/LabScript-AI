@@ -204,11 +204,19 @@ def probe_module(
         }
 
 
+def resolve_simulation_cwd(protocol: Path) -> Path:
+    """Directory simulate/analyze should run in: protocol parent, or bundle dir."""
+    resolved = protocol.resolve()
+    return resolved if resolved.is_dir() else resolved.parent
+
+
 def run_module(
     python_executable: str,
     paths: WorkspacePaths,
     module_name: str,
     forwarded_argv: Sequence[str],
+    *,
+    cwd: Path | None = None,
 ) -> int:
     use_source_layout = paths.source_layout_ready
     bootstrap_code = build_bootstrap_code(module_name, use_source_layout)
@@ -216,7 +224,7 @@ def run_module(
     if use_source_layout:
         args.extend([str(paths.api_src), str(paths.shared_data_python)])
     args.extend(forwarded_argv)
-    completed = subprocess.run(args, check=False)
+    completed = subprocess.run(args, check=False, cwd=str(cwd) if cwd else None)
     return completed.returncode
 
 
@@ -268,8 +276,15 @@ def _handle_execution(args: argparse.Namespace, module_name: str, argv_prefix: l
     if not probe.get("ok"):
         print(json.dumps(probe, indent=2, ensure_ascii=False), file=sys.stderr)
         return 2
-    forwarded_argv = argv_prefix + [args.protocol, *args.extra_args]
-    return run_module(python_executable, paths, module_name, forwarded_argv)
+    protocol_path = Path(args.protocol).resolve()
+    forwarded_argv = argv_prefix + [str(protocol_path), *args.extra_args]
+    return run_module(
+        python_executable,
+        paths,
+        module_name,
+        forwarded_argv,
+        cwd=resolve_simulation_cwd(protocol_path),
+    )
 
 
 def handle_analyze(args: argparse.Namespace) -> int:

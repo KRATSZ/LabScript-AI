@@ -206,7 +206,7 @@ class AuthoringToolRegistry:
         try:
             completed = subprocess.run(
                 cmd,
-                cwd=repo_root,
+                cwd=self.package_dir,
                 capture_output=True,
                 text=True,
                 check=False,
