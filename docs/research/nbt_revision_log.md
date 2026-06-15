@@ -51,3 +51,7 @@ This log records benchmark changes made for the 2026 Q2 NBT revision. Keep entri
 - **Paper deliverable restructure**: Main text = Figure 1 + Table 1 (8 columns, no Sim) + Extended Data Fig (runtime + memory). SI numbered tables reduced to **S1** (scaffold ablation, 90 tasks) + **S2A** (external 66) + **S2B** (LabFlow IR). Old S1–S7 manifest/runtime/capability tables moved to Methods/Data files. See `docs/research/paper_execution_plan.md` §2、§8 and `docs/research/paper_deliverables.md`.
 - **Implementation doc sync**: `runtime_build_plan.md` §2.1 aligned with `rollout_12_status.md` (MCP bridge, shadow benchmark, memory MVP, PyLabRobot proof Done). Claim boundary: do not present `56/90` authoring-light as `labscriptai-full` or as runtime/memory evidence.
 - **Permission matrix**: P2/P3 shadow updated to 2026-05-21; table IDs now reference Table 1 / S1 / S2B / ExtFig instead of deprecated S2–S7 numbering.
+
+## 2026-06-15
+
+- **Authoring90 prompt migration (seven-file → v0.4 three-piece)**: Reworded `benchmarks/authoring/tasks.yaml` prompts for `T056`–`T090` (and off-platform handoff lines in `T039`, `T041`, `T047`, `T051`–`T053`) to reference `protocol.py`, `setup_card.html`, and `manifest.json` with `manifest.deck` / `manifest.reagents` / `manifest.tips` / `manifest.risk_flags` field semantics instead of legacy standalone plan files. `output_contract: protocol.py only` and scoring semantics unchanged — harness still py-only + derive. Synced `docs/research/benchmark_taxonomy.md` §3–4 and `rollout_12_status.md` step 2 status note.

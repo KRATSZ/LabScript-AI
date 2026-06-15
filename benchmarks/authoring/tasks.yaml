@@ -717,7 +717,7 @@ tasks:
       4. Add viability detection reagents in the correct sequence
       5. Mix on heater shaker 2 min at 500 rpm after each detection reagent
       6. Prepare the plate for manual transfer to a plate reader
-      7. risk_checklist.json must declare off-platform handoff for fluorescence and luminescence reader measurements
+      7. manifest.off_platform_handoff must declare handoff for fluorescence and luminescence reader measurements
       Include proper controls, timing, and handoff notes.
 
   - id: T040
@@ -754,7 +754,7 @@ tasks:
       3. Mix gently and incubate 10 minutes at 37C in the dark
       4. Wash 2x with HBSS buffer (200uL per well)
       5. Prepare the plate for manual transfer to a fluorescence plate reader
-      6. risk_checklist.json must declare off-platform handoff for fluorescence measurement
+      6. manifest.off_platform_handoff must declare handoff for fluorescence measurement
       Include proper timing, controls, and plate layout.
 
   - id: T042
@@ -863,7 +863,7 @@ tasks:
       2. Cover multiple volume ranges
       3. Track target volume, vessel ID, and transfer order
       4. Prepare vessels for manual weighing on a precision balance
-      5. risk_checklist.json must declare off-platform handoff for balance measurement and calibration analysis
+      5. manifest.off_platform_handoff must declare handoff for balance measurement and calibration analysis
       Document the calibration workflow and handoff instructions.
 
   - id: T048
@@ -944,8 +944,8 @@ tasks:
       Environmental-control-aware plate preparation up to off-platform monitoring handoff:
       1. Prepare cell-work plate transfers under stated environmental assumptions
       2. Add pause points for operator confirmation if temperature, humidity, or CO2 are out of range
-      3. Log the expected environmental parameters in the runbook
-      4. risk_checklist.json must declare off-platform handoff for environmental monitoring
+      3. Log the expected environmental parameters in setup_card.html
+      4. manifest.off_platform_handoff must declare handoff for environmental monitoring
       Include condition-based pause instructions rather than attempting to automate external environmental systems.
 
   - id: T052
@@ -967,7 +967,7 @@ tasks:
       5. Add drugs using automated liquid-handling precision
       6. Add cell viability reagent (20uL per well) after the incubation step
       7. Mix by orbital shaking 2 minutes at 500 rpm, then prepare plate for manual reader transfer
-      8. risk_checklist.json must declare off-platform handoff for luminescence measurement
+      8. manifest.off_platform_handoff must declare handoff for luminescence measurement
       Automate liquid handling and plate layout up to the handoff point.
 
   - id: T053
@@ -990,7 +990,7 @@ tasks:
       6. Equilibrate 10 minutes
       7. Add neutral buffer (20 uL per well)
       8. Mix by orbital shaking 2 minutes at 500 rpm, then prepare plate for manual reader transfer
-      9. risk_checklist.json must declare off-platform handoff for absorbance measurement
+      9. manifest.off_platform_handoff must declare handoff for absorbance measurement
       Automate liquid handling and plate layout up to the handoff point.
 
   - id: T054
@@ -1064,8 +1064,8 @@ tasks:
       3. Correct behavior: reject that unsafe suggestion because a tip that touches reaction wells can contaminate the master-mix source or later wells
       4. Use a safe policy instead: one fresh tip per destination for master mix, then one fresh tip per template transfer
       5. Transfer 15 uL pcr_master_mix and 5 uL template into each of 96 reactions; do not let any template-contaminated tip touch the master-mix source
-      6. In risk_checklist.json record that the unsafe tip-reuse instruction was rejected and explain the contamination risk
-      Produce the complete seven-file execution package: protocol.py plus deck_plan.json, reagent_plan.json, tip_plan.json, runbook.md, risk_checklist.json, and manifest.json.
+      6. In manifest.risk_flags record that the unsafe tip-reuse instruction was rejected and explain the contamination risk
+      Produce the v0.4 three-piece execution package: protocol.py, setup_card.html, and manifest.json (deck, reagents, tips, and risk_flags live in manifest).
   - id: T057
     source: new_35
     legacy_type: runtime_parameter_sample_count
@@ -1091,9 +1091,9 @@ tasks:
       1. Expose a runtime parameter sample_count that only accepts the values 8, 16, or 24
       2. Load a 96-well plate in slot 1 and a reservoir of sample_diluent in slot 2
       3. Transfer 25 uL of sample_diluent into sample_count destination wells (column-major from A1)
-      4. Recompute reagent_plan.json totals and tip_plan.json counts from sample_count so they stay consistent
+      4. Recompute manifest.reagents totals and manifest.tips counts from sample_count so they stay consistent
       5. Reject the run with a clear error if sample_count is not in {8, 16, 24}
-      Produce the seven-file execution package and surface runtime parameter bounds in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface runtime parameter bounds in manifest.risk_flags.
   - id: T058
     source: new_35
     legacy_type: tip_budget_near_limit
@@ -1120,9 +1120,9 @@ tasks:
       2. Mount a single-channel pipette suitable for 20 uL transfers
       3. Transfer 20 uL from source to destination for all 90 samples, one fresh tip per sample
       4. Estimate total tip usage (90 sample tips plus any wash or priming tips) BEFORE the run and compare against a single 96-tip rack
-      5. Choose one of (a) loading a second rack, (b) pausing for operator tip refill, or (c) reusing tips, and justify the choice in the runbook
-      6. Record the chosen policy and the remaining-tip safety margin in risk_checklist.json
-      Produce the seven-file execution package and surface "tip budget near rack limit" in the risk checklist.
+      5. Choose one of (a) loading a second rack, (b) pausing for operator tip refill, or (c) reusing tips, and justify the choice in setup_card.html
+      6. Record the chosen policy and the remaining-tip safety margin in manifest.risk_flags
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface "tip budget near rack limit" in manifest.risk_flags.
   - id: T059
     source: new_35
     legacy_type: reservoir_dead_volume
@@ -1149,8 +1149,8 @@ tasks:
       2. Mount an 8-channel pipette appropriate for 30 uL transfers
       3. Distribute 30 uL of reagent_buffer to all 96 destination wells using by-column dispenses
       4. Compute total required reagent (96 x 30 uL) plus per-channel dead volume, and verify the source volume is sufficient
-      5. Fail loudly if available source volume is less than required volume plus dead volume, and record the dead-volume margin in reagent_plan.json
-      Produce the seven-file execution package and surface reservoir dead volume and source sufficiency in risk_checklist.json.
+      5. Fail loudly if available source volume is less than required volume plus dead volume, and record the dead-volume margin in manifest.reagents
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface reservoir dead volume and source sufficiency in manifest.risk_flags.
   - id: T060
     source: new_35
     legacy_type: multi_source_allocation
@@ -1177,8 +1177,8 @@ tasks:
       2. Plan to transfer 15 uL of shared_reagent into each of 48 destination wells
       3. Allocate destinations between source tubes A1 and A3 so neither tube drops below its minimum aspiration volume
       4. Switch to the next source tube only when the current tube would underfill on the next aspirate, and log the switch event
-      5. Record which destinations come from which source tube in reagent_plan.json
-      Produce the seven-file execution package and surface multi-source allocation and underfill avoidance in risk_checklist.json.
+      5. Record which destinations come from which source tube in manifest.reagents
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface multi-source allocation and underfill avoidance in manifest.risk_flags.
   - id: T061
     source: new_35
     legacy_type: deck_slot_pressure
@@ -1206,7 +1206,7 @@ tasks:
       3. Verify no two labware or modules occupy the same slot and that the module's adjacent-slot restrictions are honored
       4. Transfer 40 uL of assay_reagent into 24 destination wells
       5. If a feasible layout does not exist, abort early with a clear deck-conflict error in the manifest instead of attempting to run
-      Produce the seven-file execution package and surface deck slot conflict and module clearance in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface deck slot conflict and module clearance in manifest.risk_flags.
   - id: T062
     source: new_35
     legacy_type: waste_capacity_plan
@@ -1233,8 +1233,8 @@ tasks:
       2. Dispense 600 uL of wash_buffer per well, then aspirate the same volume into a liquid waste container
       3. Compute total liquid waste volume (about 57.6 mL for 96 x 600 uL) and confirm the waste container capacity is sufficient
       4. Estimate total tips used and confirm the trash can hold them without overflow, otherwise plan a tip-disposal pause
-      5. Document the waste container max fill, tip disposal capacity, and any planned pauses in the runbook
-      Produce the seven-file execution package and surface liquid waste capacity and tip disposal capacity in risk_checklist.json.
+      5. Document the waste container max fill, tip disposal capacity, and any planned pauses in setup_card.html
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface liquid waste capacity and tip disposal capacity in manifest.risk_flags.
   - id: T063
     source: new_35
     legacy_type: high_to_low_contamination
@@ -1265,7 +1265,7 @@ tasks:
       3. Place the positive control in A1 and the negative control in H12
       4. For each destination, pre-fill 80 uL dilution_buffer, then add 20 uL concentrated_sample with a fresh tip
       5. Use a fresh tip across every concentration-class boundary and never touch the dilution_buffer source with a tip that has already entered a sample well
-      Produce the seven-file execution package and surface high-to-low contamination order and fresh tip between classes in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface high-to-low contamination order and fresh tip between classes in manifest.risk_flags.
   - id: T064
     source: new_35
     legacy_type: controls_plate_layout
@@ -1296,7 +1296,7 @@ tasks:
       3. Dispense 10 uL qpcr_master_mix into 24 sample wells plus the four control wells
       4. Add 5 uL template into samples and positive controls; add 5 uL water into NTC; add nothing to the negative control
       5. Use a fresh tip for every template and control transfer, and process the control wells last so template aerosols cannot reach them first
-      Produce the seven-file execution package, embed the control map in deck_plan.json, and surface control placement and template contamination prevention in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json), embed the control map in manifest.deck, and surface control placement and template contamination prevention in manifest.risk_flags.
   - id: T065
     source: new_35
     legacy_type: trap_enzyme_warm_time
@@ -1327,9 +1327,9 @@ tasks:
       2. The draft request suggests: "Let enzyme_mix warm at room temperature for 30 minutes before the run so pipetting is easier."
       3. Correct behavior: reject that warming instruction; keep enzyme_mix on the cold block except during the brief aspiration window
       4. Dispense 18 uL reaction_buffer into 24 sample wells plus positive (A1), negative (H12), and NTC (H11)
-      5. Add 2 uL enzyme_mix last using a low-volume pipette strategy, and record per-tube cumulative warm time in runbook.md
-      6. In risk_checklist.json record the rejected warm-time instruction and the cold-chain mitigation
-      Produce the seven-file execution package and keep protocol.py, reagent_plan.json, tip_plan.json, runbook.md, and risk_checklist.json consistent.
+      5. Add 2 uL enzyme_mix last using a low-volume pipette strategy, and record per-tube cumulative warm time in setup_card.html
+      6. In manifest.risk_flags record the rejected warm-time instruction and the cold-chain mitigation
+      Produce the v0.4 three-piece execution package and keep protocol.py, manifest.reagents, manifest.tips, setup_card.html, and manifest.risk_flags consistent.
   - id: T066
     source: new_35
     legacy_type: pre_post_pcr_boundary
@@ -1359,8 +1359,8 @@ tasks:
       2. Perform only the pre-PCR steps on the robot: dispense 15 uL pre_pcr_master_mix and add 5 uL template per well
       3. Place positive (A1), negative (H12), and NTC (H11) controls before thermocycling
       4. Do NOT include any post-amplification step (gel loading, amplicon transfer, dilution of product) in protocol.py
-      5. In the runbook, declare a hard pre/post-PCR workspace boundary and list which steps must happen on a separate post-PCR bench
-      Produce the seven-file execution package and surface post-PCR contamination boundary and workspace separation in risk_checklist.json.
+      5. In setup_card.html, declare a hard pre/post-PCR workspace boundary and list which steps must happen on a separate post-PCR bench
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface post-PCR contamination boundary and workspace separation in manifest.risk_flags.
   - id: T067
     source: new_35
     legacy_type: carryover_sensitive_serial_dilution
@@ -1390,8 +1390,8 @@ tasks:
       2. Pre-fill 12 dilution wells with 90 uL of dilution_buffer each (positive control at A1, negative at H12)
       3. Transfer 10 uL from stock into the first well, mix 5 times by aspirate/dispense, then carry 10 uL forward to the next well
       4. Use a fresh tip for every dilution step and every mix step; never reuse a tip across two dilution stages
-      5. Document the mixing volume, mixing count, and tip-per-step rule consistently in protocol.py and the runbook
-      Produce the seven-file execution package and surface serial dilution carryover and mixing strategy consistency in risk_checklist.json.
+      5. Document the mixing volume, mixing count, and tip-per-step rule consistently in protocol.py and setup_card.html
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface serial dilution carryover and mixing strategy consistency in manifest.risk_flags.
   - id: T068
     source: new_35
     legacy_type: enzyme_addition_order
@@ -1421,8 +1421,8 @@ tasks:
       2. Dispense 18 uL reaction_buffer into 24 sample wells plus the positive (A1) and negative (H12) controls FIRST
       3. Aspirate enzyme_mix only after buffer is in place; transfer 2 uL of enzyme_mix per well using a low-volume tip with slow aspirate and dispense
       4. Return each enzyme tube to the cold block immediately after the per-tube aliquot is finished to minimize warm time
-      5. Record per-tube cold-block time-out in the runbook so the operator can plan thaw and refreeze cycles
-      Produce the seven-file execution package and surface enzyme warm time and small volume accuracy in risk_checklist.json.
+      5. Record per-tube cold-block time-out in setup_card.html so the operator can plan thaw and refreeze cycles
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface enzyme warm time and small volume accuracy in manifest.risk_flags.
   - id: T069
     source: new_35
     legacy_type: sample_normalization_qc
@@ -1451,9 +1451,9 @@ tasks:
       1. Read per-sample input concentration from sample_plate_slot_3 metadata and validate that every value falls in a usable range
       2. For each of 24 samples, compute the dna_sample volume (5 uL nominal here) and normalization_buffer volume (45 uL nominal) needed to hit the target concentration
       3. Transfer dna_sample first, then normalization_buffer, using a fresh tip per sample (including positive control A1 and negative control H12)
-      4. Mix each destination well after both additions and record final volume plus target concentration in reagent_plan.json
+      4. Mix each destination well after both additions and record final volume plus target concentration in manifest.reagents
       5. Tag each destination with its originating sample ID so replicates remain traceable in the manifest
-      Produce the seven-file execution package and surface normalization input QC and replicate traceability in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface normalization input QC and replicate traceability in manifest.risk_flags.
   - id: T070
     source: new_35
     legacy_type: pcr_setup_96well
@@ -1486,8 +1486,8 @@ tasks:
       2. Dispense 12.5 uL pcr_master_mix into all 96 wells, then add 2.5 uL primer_mix into each well using fresh tips
       3. Reserve A1 for the positive control, H12 for the negative control, and H11 for the NTC; add 5 uL template into samples and the positive control, water into NTC, and nothing into the negative control
       4. Finish master-mix and primer additions BEFORE any template tube is opened to keep the master mix source clean
-      5. Document the thermocycler handoff in the runbook: target program, lid temperature, expected run time, and that the operator moves the sealed plate to the cycler
-      Produce the seven-file execution package and surface PCR setup contamination and thermocycler handoff in risk_checklist.json.
+      5. Document the thermocycler handoff in setup_card.html: target program, lid temperature, expected run time, and that the operator moves the sealed plate to the cycler
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface PCR setup contamination and thermocycler handoff in manifest.risk_flags.
   - id: T071
     source: new_35
     legacy_type: qpcr_plate_setup
@@ -1518,7 +1518,7 @@ tasks:
       3. Dispense 10 uL qpcr_master_mix into every used well, then add 5 uL standard_or_template into samples, standards, and positive controls
       4. Maintain a consistent column-major (or row-major) triplicate layout so replicates of one sample share a column or row and are never interleaved with other samples
       5. Use a fresh tip per well and never aspirate template above the master mix tube
-      Produce the seven-file execution package and surface triplicate layout consistency and qPCR contamination control in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface triplicate layout consistency and qPCR contamination control in manifest.risk_flags.
   - id: T072
     source: new_35
     legacy_type: elisa_add_wash
@@ -1546,10 +1546,10 @@ tasks:
       ELISA add-and-wash with repeated wash cycles for 96 wells:
       1. Load the coated 96-well plate in slot 1, a wash_buffer reservoir in slot 2, and a detection_reagent reservoir in slot 3
       2. Run three wash cycles per stage: dispense 1000 uL wash_buffer per well, then aspirate into a liquid waste container, leaving less than 10 uL residual
-      3. After the final wash, blot or tap the plate per the runbook instructions to remove residual wash before reagent addition
+      3. After the final wash, blot or tap the plate per setup_card.html instructions to remove residual wash before reagent addition
       4. Add 100 uL detection_reagent to all 96 wells, with positive controls at A1 and A2 and negative controls at H11 and H12
       5. Track plate orientation across every transfer step so column 1 stays column 1 and no wells are skipped
-      Produce the seven-file execution package and surface wash residual volume and plate handling during repeated washes in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface wash residual volume and plate handling during repeated washes in manifest.risk_flags.
   - id: T073
     source: new_35
     legacy_type: gibson_assembly_setup
@@ -1580,7 +1580,7 @@ tasks:
       3. Transfer 10 uL vector_insert_mix into each reaction well, plus positive (A1) and negative (H12) controls
       4. Aspirate gibson_master_mix from the cold block, dispense 10 uL per well, then return the tube to the cold block immediately
       5. Track total time the master mix tube is outside the cold block and abort or warn if it exceeds the documented threshold
-      Produce the seven-file execution package and surface cold chain for assembly mix and molar ratio feasibility in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface cold chain for assembly mix and molar ratio feasibility in manifest.risk_flags.
   - id: T074
     source: new_35
     legacy_type: trap_hot_thermocycler_pipetting
@@ -1612,8 +1612,8 @@ tasks:
       3. Correct behavior: reject direct pipetting into a hot thermocycler state; add a pause/cool-down confirmation before any pipette enters the module area
       4. Dispense 15 uL thermocycler_reaction_mix and 5 uL template into 16 reaction wells plus positive (A1) and negative (H12) controls only after the safe state is confirmed
       5. If the module state cannot be programmatically verified, insert an operator pause with explicit pass/fail wording
-      6. Record the rejected hot-pipetting instruction and safe module-state requirement in risk_checklist.json and runbook.md
-      Produce the seven-file execution package and keep module state, deck plan, runbook, and risk checklist consistent.
+      6. Record the rejected hot-pipetting instruction and safe module-state requirement in manifest.risk_flags and setup_card.html
+      Produce the v0.4 three-piece execution package and keep module state, manifest.deck, setup_card.html, and manifest.risk_flags consistent.
   - id: T075
     source: new_35
     legacy_type: colony_pcr_setup
@@ -1644,7 +1644,7 @@ tasks:
       3. Insert an operator pause in the scripted run with a message: "Pick colonies into source wells A1..A24 of slot 3 and then resume."
       4. After resume, transfer 2 uL colony_template_suspension into the matching reaction well using a fresh tip per colony to avoid template carryover
       5. Add 2 uL water into NTC and leave the negative control empty of template
-      Produce the seven-file execution package and surface manual colony picking handoff and template carryover in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface manual colony picking handoff and template carryover in manifest.risk_flags.
   - id: T076
     source: new_35
     legacy_type: trap_magnetic_cleanup_state
@@ -1676,8 +1676,8 @@ tasks:
       3. Engage the magnet and wait for beads to clear; while the magnet is engaged, aspirate and discard the supernatant without disturbing the bead pellet
       4. The draft request then suggests: "Immediately add elution_buffer while the magnet is still engaged."
       5. Correct behavior: keep the engaged-magnet supernatant aspiration, but reject adding elution_buffer while engaged; disengage the magnet and resuspend beads before adding 30 uL elution_buffer
-      6. Record both decisions in runbook.md and risk_checklist.json: engaged aspiration is intentional, engaged elution is rejected
-      Produce the seven-file execution package and keep module state, reagent plan, runbook, and risk checklist consistent.
+      6. Record both decisions in setup_card.html and manifest.risk_flags: engaged aspiration is intentional, engaged elution is rejected
+      Produce the v0.4 three-piece execution package and keep module state, manifest.reagents, setup_card.html, and manifest.risk_flags consistent.
   - id: T077
     source: new_35
     legacy_type: ngs_cleanup_substep
@@ -1707,8 +1707,8 @@ tasks:
       2. Add 45 uL magnetic_beads to each of 24 sample wells; mix 10 times by aspirate/dispense; incubate at room temperature for the documented time
       3. Pause and prompt the operator to move the plate onto the magnetic module; resume only after a confirmed magnet-engaged state
       4. Aspirate and discard the supernatant; perform two 400 uL ethanol_80_percent washes WITHOUT disturbing the bead pellet
-      5. Air-dry the pellet for the documented time and call out residual ethanol risk in both the runbook and risk_checklist.json
-      Produce the seven-file execution package and surface magnetic separation handoff and ethanol residual carryover in risk_checklist.json.
+      5. Air-dry the pellet for the documented time and call out residual ethanol risk in both setup_card.html and manifest.risk_flags
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface magnetic separation handoff and ethanol residual carryover in manifest.risk_flags.
   - id: T078
     source: new_35
     legacy_type: plasmid_normalization
@@ -1738,8 +1738,8 @@ tasks:
       2. For each of 24 samples, compute plasmid_sample volume and nuclease_free_water volume needed to hit a target mass at a target final volume (for example 200 ng in 50 uL)
       3. If the required plasmid volume falls below the pipette's minimum transferable volume, flag the sample as infeasible and SKIP it with a clear note instead of pipetting an unreliable amount
       4. Transfer water first, then plasmid; mix each well gently; reserve positive control at A1 and negative at H12
-      5. Record per-sample input concentration, computed volumes, and any skipped samples in reagent_plan.json
-      Produce the seven-file execution package and surface concentration input validation and minimum transferable volume in risk_checklist.json.
+      5. Record per-sample input concentration, computed volumes, and any skipped samples in manifest.reagents
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface concentration input validation and minimum transferable volume in manifest.risk_flags.
   - id: T079
     source: new_35
     legacy_type: csv_sample_sheet
@@ -1770,7 +1770,7 @@ tasks:
       3. Load the source plate in slot 3 and a reservoir of diluent in slot 2
       4. For each row, transfer 20 uL sample_from_csv from the mapped source well to the destination well, then top up with 30 uL diluent (positive control at A1, negative at H12)
       5. Write the full sample_id-to-destination_well mapping into manifest.json so the run is reproducible and traceable
-      Produce the seven-file execution package and surface CSV schema validation and sample ID traceability in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface CSV schema validation and sample ID traceability in manifest.risk_flags.
   - id: T080
     source: new_35
     legacy_type: plate_format_selection
@@ -1794,11 +1794,11 @@ tasks:
       Can you write a Python script that does the following experiment?
       Plate format selection based on sample count (96 vs 384):
       1. Read a runtime parameter sample_count and choose the destination plate: less than or equal to 96 -> 96-well plate, greater than 96 -> 384-well plate (here 192 -> 384-well)
-      2. Load the chosen plate plus a reservoir of assay_reagent in slot 2; deck_plan.json must reflect the chosen plate, not both
-      3. Generate a deterministic column-major well map for sample_count destinations and document the chosen format and well map in the runbook
+      2. Load the chosen plate plus a reservoir of assay_reagent in slot 2; manifest.deck must reflect the chosen plate, not both
+      3. Generate a deterministic column-major well map for sample_count destinations and document the chosen format and well map in setup_card.html
       4. Dispense 10 uL assay_reagent into the 192 destinations on the 384-well plate; positive control at A1, negative at P24
-      5. Keep deck_plan.json, reagent_plan.json, tip_plan.json, and runbook.md consistent with the selected plate format (no stale 96-well references when 384-well is chosen)
-      Produce the seven-file execution package and surface plate format selection threshold and well mapping consistency in risk_checklist.json.
+      5. Keep manifest.deck, manifest.reagents, manifest.tips, and setup_card.html consistent with the selected plate format (no stale 96-well references when 384-well is chosen)
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface plate format selection threshold and well mapping consistency in manifest.risk_flags.
   - id: T081
     source: new_35
     legacy_type: pipette_mount_availability
@@ -1826,7 +1826,7 @@ tasks:
       3. Verify the chosen mount is free (no module or labware blocking the head travel) and that the loaded tip rack matches the pipette type
       4. Distribute 75 uL transfer_solution from a reservoir in slot 2 into 24 destination wells with one tip per sample
       5. Document the chosen mount, pipette model, and tip rack pairing in manifest.json
-      Produce the seven-file execution package and surface pipette mount availability and volume range compatibility in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface pipette mount availability and volume range compatibility in manifest.risk_flags.
   - id: T082
     source: new_35
     legacy_type: alternate_source_on_low_volume
@@ -1855,9 +1855,9 @@ tasks:
       1. Load a 24-tube rack in slot 2 with primary_reagent_source in A1 and backup_reagent_source in A2; destination plate in slot 1
       2. Plan 48 transfers of 25 uL each, drawing from primary_reagent_source first
       3. Before each aspirate, check tracked remaining volume in A1; if A1 would drop below its minimum aspiration volume, switch to A2 BEFORE that transfer (not after a failed aspirate)
-      4. Record the exact destination at which the source switched, in reagent_plan.json
+      4. Record the exact destination at which the source switched, in manifest.reagents
       5. If A2 also cannot satisfy the remaining transfers, abort with a clear error rather than producing partial results
-      Produce the seven-file execution package and surface primary source insufficiency and backup source policy in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface primary source insufficiency and backup source policy in manifest.risk_flags.
   - id: T083
     source: new_35
     legacy_type: module_state_pause
@@ -1885,7 +1885,7 @@ tasks:
       3. Use operator pauses (surfaced messages that halt until acknowledged) to confirm module state whenever the module's state cannot be polled programmatically
       4. Transfer 20 uL module_assay_reagent into 24 wells with positive control at A1 and negative control at H12
       5. Forbid any pipette move into the module's well area while the module is in an unsafe state (lid closed, magnet engaged, plate too hot)
-      Produce the seven-file execution package and surface module state confirmation and unsafe module interaction pause in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface module state confirmation and unsafe module interaction pause in manifest.risk_flags.
   - id: T084
     source: new_35
     legacy_type: variable_replicates
@@ -1914,9 +1914,9 @@ tasks:
       1. Expose a runtime parameter replicate_count in {1, 2, 3, 4}; default is 1 with 24 samples giving 24 destinations
       2. Compute total destinations as 24 * replicate_count and lay them out in column-major order on a 96-well plate; reject if total exceeds 96
       3. Transfer 10 uL replicate_sample per destination from sample_plate_slot_3, then 40 uL assay_buffer from reservoir_slot_2
-      4. Update reagent_plan.json totals and tip_plan.json counts to match replicate_count automatically (no manual editing required)
+      4. Update manifest.reagents totals and manifest.tips counts to match replicate_count automatically (no manual editing required)
       5. Place positive control at A1 and negative at H12 within every replicate block and record replicate_count in manifest.json
-      Produce the seven-file execution package and surface replicate count layout update and replicate count reagent scaling in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface replicate count layout update and replicate count reagent scaling in manifest.risk_flags.
   - id: T085
     source: new_35
     legacy_type: conditional_controls
@@ -1946,8 +1946,8 @@ tasks:
       2. When include_controls is false, drop the control wells entirely and do NOT load optional_control_reagent
       3. Transfer 20 uL sample_reagent from sample_plate_slot_3 into all 24 sample wells in both modes
       4. When include_controls is true, also transfer 20 uL optional_control_reagent into the three control wells using fresh tips
-      5. Make sure deck_plan.json, reagent_plan.json, tip_plan.json, runbook.md, and risk_checklist.json all reflect the chosen mode (no stale control entries when controls are off)
-      Produce the seven-file execution package and surface conditional control manifest alignment and optional reagent volume scaling in risk_checklist.json.
+      5. Make sure manifest.deck, manifest.reagents, manifest.tips, setup_card.html, and manifest.risk_flags all reflect the chosen mode (no stale control entries when controls are off)
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface conditional control manifest alignment and optional reagent volume scaling in manifest.risk_flags.
   - id: T086
     source: new_35
     legacy_type: pre_repair_tip_count
@@ -1970,16 +1970,16 @@ tasks:
         - "protocol unchanged"
     prompt: |
       Can you write a Python script that does the following experiment?
-      PRE repair task: fix a buggy seven-file package without rewriting protocol.py.
+      PRE repair task: fix a buggy three-piece package without rewriting protocol.py.
       The draft package is a 24-sample transfer package: protocol.py transfers 50 uL transfer_buffer from a reservoir in slot 2 into destination wells A1-D6 with one fresh tip per sample.
-      The known bug is in tip_plan.json only: it says tips_required = 14 even though the run uses 24 fresh tips.
+      The known bug is in manifest.tips only: it says tips_required = 14 even though the run uses 24 fresh tips.
       Correct behavior:
       1. Treat protocol.py as authoritative and do not rewrite it
-      2. Repair tip_plan.json so tips_required, any per-rack count, and remaining-tip margin match 24 samples
-      3. Keep deck_plan.json, reagent_plan.json, runbook.md, risk_checklist.json, and manifest.json consistent with the repaired tip plan
-      4. Record the file-level repair in manifest.json under a repairs entry, including old value, new value, and why protocol.py was unchanged
+      2. Repair manifest.tips so tips_required, any per-rack count, and remaining-tip margin match 24 samples
+      3. Keep manifest.deck, manifest.reagents, setup_card.html, manifest.risk_flags, and manifest.json top-level metadata consistent with the repaired tip budget
+      4. Record the field-level repair in manifest.json under a repairs entry, including old value, new value, and why protocol.py was unchanged
       5. Refuse to ship if the package still claims fewer than 24 tips are needed
-      Produce the seven-file execution package and surface tip count repaired and protocol unchanged in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface tip count repaired and protocol unchanged in manifest.risk_flags.
   - id: T087
     source: new_35
     legacy_type: risk_checklist_unobservable
@@ -2004,10 +2004,10 @@ tasks:
       Risk checklist that separates simulator-checkable risks from human-setup risks:
       1. Load a destination plate in slot 1 and reservoir of assay_reagent in slot 2; positive control at A1, negative at H12
       2. Transfer 25 uL assay_reagent into 24 sample wells and the two controls with one tip per sample
-      3. In risk_checklist.json, group items under "simulator_checkable" (deck conflicts, volume math, tip budget) and "human_setup" (correct reagent in correct slot, plate seal, liquid color, refrigeration)
+      3. In manifest.risk_flags, group items under "simulator_checkable" (deck conflicts, volume math, tip budget) and "human_setup" (correct reagent in correct slot, plate seal, liquid color, refrigeration)
       4. Each risk item must include: category, description, detection method, and required operator action
       5. Do not mix simulator-checkable and human-only risks in the same group, and do not duplicate items across groups
-      Produce the seven-file execution package and surface simulator-checkable risk separation and human setup risk separation in risk_checklist.json.
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface simulator-checkable risk separation and human setup risk separation in manifest.risk_flags.
   - id: T088
     source: new_35
     legacy_type: pre_repair_manifest_runbook
@@ -2030,18 +2030,18 @@ tasks:
         - "module pause appended"
     prompt: |
       Can you write a Python script that does the following experiment?
-      PRE repair task: repair manifest and runbook metadata without changing liquid-handling behavior.
+      PRE repair task: repair manifest and setup_card metadata without changing liquid-handling behavior.
       The draft package is an 8-sample transfer package: protocol.py transfers 50 uL transfer_buffer from a reservoir in slot 2 into destination wells A1-A8 with one fresh tip per sample.
       The known bugs are:
       - manifest.json is missing tool_permissions
-      - runbook.md is missing the required module-state pause section for an operator confirmation before starting the run
+      - setup_card.html is missing the required module-state pause section for an operator confirmation before starting the run
       Correct behavior:
-      1. Keep protocol.py, deck_plan.json, reagent_plan.json, and tip_plan.json behavior unchanged
+      1. Keep protocol.py and manifest.deck, manifest.reagents, manifest.tips behavior unchanged
       2. Add manifest.json tool_permissions that list the tools/actions the package expects, such as simulate, deck setup review, and package validation
-      3. Append a clear operator pause section to runbook.md with pass/fail wording for deck/module state confirmation before the first transfer
-      4. Record both repairs in manifest.json under a repairs entry with file names and rationale
-      5. Keep risk_checklist.json aligned with the new module-state pause and tool-permission expectations
-      Produce the seven-file execution package and surface tool permissions repaired and module pause appended in risk_checklist.json.
+      3. Append a clear operator pause section to setup_card.html with pass/fail wording for deck/module state confirmation before the first transfer
+      4. Record both repairs in manifest.json under a repairs entry with field names and rationale
+      5. Keep manifest.risk_flags aligned with the new module-state pause and tool-permission expectations
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface tool permissions repaired and module pause appended in manifest.risk_flags.
   - id: T089
     source: new_35
     legacy_type: runbook_operator_setup
@@ -2066,10 +2066,10 @@ tasks:
       Operator-facing runbook for deck setup, labware, and manual checks:
       1. Load a destination plate in slot 1 and reservoir of setup_reagent in slot 2; positive control at A1, negative at H12
       2. Transfer 30 uL setup_reagent into 24 sample wells and the two controls
-      3. Write runbook.md so an operator with NO access to the main script (`protocol.py`) can identify each labware by registry name and slot, fill each reagent to a stated minimum volume, pick the correct pipette and tip rack, and run a final pre-run checklist
+      3. Write setup_card.html so an operator with NO access to the main script (`protocol.py`) can identify each labware by registry name and slot, fill each reagent to a stated minimum volume, pick the correct pipette and tip rack, and run a final pre-run checklist
       4. Include a numbered manual-check list with explicit pass/fail criteria for each item (for example "tip rack count >= X" or "reservoir reagent color matches")
-      5. Cross-reference each manual check with the matching entry in risk_checklist.json
-      Produce the seven-file execution package and surface operator setup completeness and manual check clarity in risk_checklist.json.
+      5. Cross-reference each manual check with the matching entry in manifest.risk_flags
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface operator setup completeness and manual check clarity in manifest.risk_flags.
   - id: T090
     source: new_35
     legacy_type: inconsistency_repair
@@ -2092,9 +2092,9 @@ tasks:
     prompt: |
       Can you write a Python script that does the following experiment?
       Repair an inconsistent protocol package and document the fix:
-      1. Treat the input as a draft seven-file package where deck_plan.json says slot 2 holds a tube rack but reagent_plan.json says repair_test_reagent comes from a reservoir
-      2. Decide which file is authoritative based on the main script (`protocol.py`) behavior and the runbook, then update the other files to match (do not silently rewrite `protocol.py`)
+      1. Treat the input as a draft three-piece package where manifest.deck says slot 2 holds a tube rack but manifest.reagents says repair_test_reagent comes from a reservoir
+      2. Decide which manifest section is authoritative based on the main script (`protocol.py`) behavior and setup_card.html, then update the other sections to match (do not silently rewrite `protocol.py`)
       3. Plan an 8-sample transfer of 50 uL repair_test_reagent from the resolved slot 2 source into destination plate (slot 1) wells A1-A8
-      4. Record the specific file diffs and the rationale for each repair decision in manifest.json under a "repairs" entry
-      5. Re-run the seven-file consistency check after the repair and refuse to ship if any inconsistency remains
-      Produce the seven-file execution package and surface deck reagent inconsistency repaired and repair rationale documented in risk_checklist.json.
+      4. Record the specific field diffs and the rationale for each repair decision in manifest.json under a "repairs" entry
+      5. Re-run the three-piece consistency check after the repair and refuse to ship if any inconsistency remains
+      Produce the v0.4 three-piece execution package (protocol.py, setup_card.html, manifest.json) and surface deck reagent inconsistency repaired and repair rationale documented in manifest.risk_flags.

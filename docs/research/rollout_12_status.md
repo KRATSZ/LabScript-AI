@@ -1,11 +1,11 @@
 # 12-Step Rollout Status
 
-Updated: 2026-05-21
+Updated: 2026-06-15
 
 | # | Work item | Purpose | Expected output | Current status |
 |---:|---|---|---|---|
 | 1 | Freeze v0.4 three-piece package | Make every benchmark use the same package contract | `protocol.py`, `setup_card.html`, `manifest.json` only | Done |
-| 2 | Remove v0.3 / seven-file default logic | Stop old intermediate results from affecting new scores | Validator, semantic validator, runtime smoke no longer default to old plan files | Done |
+| 2 | Remove v0.3 / seven-file default logic | Stop old intermediate results from affecting new scores | Validator, semantic validator, runtime smoke no longer default to old plan files | In progress — benchmark prompts/docs migrated to v0.4 three-piece wording (2026-06-15); seven-file code-path removal in `authoring_pilot`, `semantic_validator`, and derive/validate helpers handled by parallel agents |
 | 3 | Clean external OpenPlant18 task wording | Keep updated public-source tasks aligned with v0.4 | `benchmarks/external_community/tasks.yaml` uses v0.4 required files | Done |
 | 4 | Keep source provenance explicit | Avoid overclaiming task origin | `benchmarks/external_community/OPENPLANT_PROVENANCE.md` remains the source map | Done |
 | 5 | Runtime MCP bridge | Let Python runtime call existing MCP robot/recovery tools | `mcp-inspect`, `mcp-recover`, `OpentronsMcpRuntimeAdapter` | Done |

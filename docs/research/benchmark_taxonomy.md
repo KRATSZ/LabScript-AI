@@ -80,26 +80,31 @@ v0.2 复核修正：
 
 ## 3. 每题交付格式
 
-每个系统都必须输出 protocol package，而不是只交 `protocol.py`：
+每个系统都必须输出 v0.4 三件套 execution package，而不是只交 `protocol.py`：
 
 ```text
 protocol.py
-deck_plan.json
-reagent_plan.json
-tip_plan.json
-runbook.md
-risk_checklist.json
+setup_card.html
 manifest.json
 ```
+
+`manifest.json` 承载 deck、reagent、tip、risk、provenance 等结构化字段（不再要求独立的 `deck_plan.json`、`reagent_plan.json`、`tip_plan.json`、`runbook.md`、`risk_checklist.json`）。常用字段语义：
+
+- `manifest.deck`：与 protocol 中 labware/module/instrument/slot 一致。
+- `manifest.reagents`：总量、dead volume、source/destination 对得上。
+- `manifest.tips`：不隐藏吸头耗尽，不滥用重复吸头。
+- `manifest.risk_flags` / `critical_failures` / `off_platform_handoff`：标出仿真无法证明的风险与离台 handoff。
+- `setup_card.html`：能让人类独立 setup（labware、reagent、manual checks）。
+- `manifest.json` 顶层：记录模型、版本、prompt hash、retry budget、工具权限、时间戳。
 
 最低要求：
 
 - `protocol.py` 可以被 simulator/analyze 执行。
-- `deck_plan.json` 与 protocol 中 labware/module/instrument 一致。
-- `reagent_plan.json` 总量、dead volume、source/destination 对得上。
-- `tip_plan.json` 不隐藏吸头耗尽，不滥用重复吸头。
-- `runbook.md` 能让人类 setup。
-- `risk_checklist.json` 标出仿真无法证明的风险。
+- `manifest.deck` 与 protocol 中 labware/module/instrument 一致。
+- `manifest.reagents` 总量、dead volume、source/destination 对得上。
+- `manifest.tips` 不隐藏吸头耗尽，不滥用重复吸头。
+- `setup_card.html` 能让人类 setup。
+- `manifest.risk_flags` 标出仿真无法证明的风险；离台步骤写入 `off_platform_handoff`。
 - `manifest.json` 记录模型、版本、prompt hash、retry budget、工具权限、时间戳。
 
 ## 4. 最低自动检查
@@ -110,9 +115,9 @@ manifest.json
 
 - 三件套 package 存在且 `protocol.py`、`setup_card.html`、`manifest.json` 可解析。
 - `protocol.py` 的 simulator/analyze 通过，得到 `simulation_pass = true`。
-- `deck_plan.json` 与 protocol 中的 labware、module、instrument、slot/mount 一致。
-- `reagent_plan.json` 的 source volume、destination volume、dead volume、单位和余量可行。
-- `tip_plan.json` 的 tip 数量、换枪头策略和复用声明可行。
+- `manifest.deck` 与 protocol 中的 labware、module、instrument、slot/mount 一致。
+- `manifest.reagents` 的 source volume、destination volume、dead volume、单位和余量可行。
+- `manifest.tips` 的 tip 数量、换枪头策略和复用声明可行。
 - `manifest.json` 记录 system/model/scaffold/prompt hash/retry budget/tool permissions/timestamp。
 - 不出现任何确定性 critical failure。
 
