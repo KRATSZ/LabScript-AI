@@ -55,9 +55,15 @@ Agent entry: [`../AGENTS.md`](../AGENTS.md). Doc map: [`README.md`](README.md).
 |------|------|
 | `runs/` | Benchmark and runtime run artifacts (`summary.json`, traces, packages) |
 | `artifacts/` | Ad-hoc protocols, camera captures, local inputs |
+| `outputs/` | Generated presentation/document/export artifacts |
+| `backups/`, `protocol_data/` | Local recovery or protocol scratch state |
+| root `checkpoint*.json`, `recovery_checkpoint.json`, `error_log_*.csv`, `summary_report_*.csv`, `batch_processing_log*.txt`, `plate_map_summary*.csv`, `sample_transfers*.log` | Local run logs/checkpoints |
+| `artifacts/local-run-logs/` | Archived root runtime logs moved out of repo root |
 | `vision/runs/`, `vision/data/` | Vision training/detection outputs |
 
 Before deleting old `runs/`, copy numbers cited in `docs/research/*.md` into [`research/evidence/README.md`](research/evidence/README.md) or keep the cited freeze directories.
+
+Dirty workspace and active benchmark rules: [`WORKSPACE_MANAGEMENT.md`](WORKSPACE_MANAGEMENT.md).
 
 ## Root config
 
