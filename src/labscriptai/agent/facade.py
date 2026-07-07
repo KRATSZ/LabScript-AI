@@ -11,7 +11,7 @@ from labscriptai.agent.registry import build_default_registry
 from labscriptai.agent.state import AgentState
 from labscriptai.authoring.agent import _write_missing_metadata_files
 from labscriptai.authoring.kb_context import KBContext, build_kb_context
-from labscriptai.authoring.prompts import AUTHORING_AGENT_SYSTEM_PROMPT
+from labscriptai.authoring.prompts import AUTHORING_AGENT_SYSTEM_PROMPT, AUTHORING_ROLE_PIPELINE_PROMPT
 from labscriptai.authoring.skills import SkillLoader
 from labscriptai.benchmark.derive_package import derive_package_from_protocol
 from labscriptai.benchmark.package_validator import REQUIRED_PACKAGE_FILES
@@ -262,22 +262,27 @@ def _author_permissions(skill_mode: str, tool_profile: str) -> frozenset[str]:
 
 
 def _system_prompt(*, skill_catalog: str, protocol_only: bool) -> str:
+    role_pipeline = AUTHORING_ROLE_PIPELINE_PROMPT
     if not protocol_only:
-        return AUTHORING_AGENT_SYSTEM_PROMPT.format(skill_catalog=skill_catalog)
+        return AUTHORING_AGENT_SYSTEM_PROMPT.format(
+            skill_catalog=skill_catalog,
+            role_pipeline=role_pipeline,
+        )
     return (
         "You are LabscriptAI's Opentrons protocol authoring agent.\n\n"
         "Goal: produce only protocol.py for the requested experiment. Do not write "
         "manifest.json or setup_card.html; benchmark tools will derive those files "
         "from protocol.py after the loop.\n\n"
+        f"{role_pipeline}\n"
         "Use tools deliberately. Prefer concise domain rules and simulation when "
         "available. Never claim a simulation passed unless the simulator reports ok=true.\n\n"
         "Default to OT-2-compatible protocols unless the task explicitly asks for Flex. "
         "For generic transfers, use OT-2 numeric slots, p300_single_gen2, and OT-2 tip racks. "
         "Only use Flex pipettes/tipracks/deck slots when the task requires Flex.\n\n"
         "When using tools, return JSON:\n"
-        '{"tool_calls":[{"name":"tool_name","arguments":{...}}]}\n\n'
+        '{"role":"Planner|Coder|Reviewer","tool_calls":[{"name":"tool_name","arguments":{...}}]}\n\n'
         "When protocol.py is written, return JSON:\n"
-        '{"final":{"package_ready":true,"notes":"short summary"}}\n\n'
+        '{"role":"Reviewer","final":{"package_ready":true,"notes":"short summary"}}\n\n'
         f"Available skills:\n{skill_catalog}\n"
     )
 

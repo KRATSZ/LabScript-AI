@@ -12,6 +12,12 @@ from labscriptai.agent.tools import ToolCall, ToolName, ToolResult
 from labscriptai.runtime.trace import TraceEvent
 
 
+def _model_trace_actor(state: AgentState) -> str:
+    if state.mode == "author":
+        return state.current_role
+    return "model"
+
+
 class ToolHandler(Protocol):
     name: ToolName
 
@@ -63,7 +69,7 @@ class ToolRegistry:
             TraceEvent(
                 run_id=state.run_id,
                 event_type="candidate_tool_call",
-                actor="model",
+                actor=_model_trace_actor(state),
                 payload=call.to_dict(),
                 state_hash=state.stable_hash(),
             )

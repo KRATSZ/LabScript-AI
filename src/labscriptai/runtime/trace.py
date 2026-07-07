@@ -28,7 +28,9 @@ TRACE_EVENT_TYPES = frozenset(
     }
 )
 
-TRACE_ACTORS = frozenset({"system", "model", "gatekeeper", "tool", "human"})
+TRACE_ACTORS = frozenset(
+    {"system", "model", "gatekeeper", "tool", "human", "Planner", "Coder", "Reviewer"}
+)
 
 
 def utc_now_iso() -> str:

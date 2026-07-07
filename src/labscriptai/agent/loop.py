@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from labscriptai.agent.registry import ToolRegistry
-from labscriptai.agent.state import AgentState
+from labscriptai.agent.state import VALID_AUTHOR_ROLES, AgentState, AuthorRole
 from labscriptai.agent.suspend import (
     SuspendStore,
     deserialize_agent_state,
@@ -20,6 +20,80 @@ from labscriptai.agent.suspend import (
 )
 from labscriptai.agent.tools import ToolCall, ToolResult
 from labscriptai.runtime.trace import TraceEvent
+
+
+_PLANNER_TOOLS = frozenset({"skill.search_load", "protocol.search", "memory.read_write"})
+_CODER_TOOLS = frozenset({"package.read_write", "package.patch"})
+_REVIEWER_TOOLS = frozenset({"package.validate", "package.simulate"})
+
+
+def _model_trace_actor(state: AgentState) -> str:
+    if state.mode == "author":
+        return state.current_role
+    return "model"
+
+
+def _declared_role(response: Mapping[str, Any]) -> AuthorRole | None:
+    for key in ("role", "current_role"):
+        value = response.get(key)
+        if isinstance(value, str) and value in VALID_AUTHOR_ROLES:
+            return value  # type: ignore[return-value]
+    return None
+
+
+def _infer_role_from_tool_names(tool_names: set[str]) -> AuthorRole | None:
+    if tool_names & _REVIEWER_TOOLS:
+        return "Reviewer"
+    if tool_names & _CODER_TOOLS:
+        return "Coder"
+    if tool_names & _PLANNER_TOOLS:
+        return "Planner"
+    return None
+
+
+def _apply_declared_role(state: AgentState, response: Mapping[str, Any]) -> AgentState:
+    if state.mode != "author":
+        return state
+    declared = _declared_role(response)
+    if declared is not None:
+        return state.with_role(declared)
+    return state
+
+
+def _advance_role_after_tools(
+    state: AgentState,
+    *,
+    calls: list[ToolCall],
+    results: list[ToolResult],
+) -> AgentState:
+    if state.mode != "author":
+        return state
+    if any(
+        not result.ok and call.name in _REVIEWER_TOOLS
+        for call, result in zip(calls, results, strict=False)
+    ):
+        return state.with_role("Coder")
+    inferred = _infer_role_from_tool_names({call.name for call in calls})
+    if inferred is not None:
+        return state.with_role(inferred)
+    return state
+
+
+def _model_turn_payload(response: Mapping[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    declared = _declared_role(response)
+    if declared is not None:
+        payload["role"] = declared
+    if isinstance(response.get("final"), dict):
+        payload["final"] = dict(response["final"])
+    tool_calls = response.get("tool_calls")
+    if isinstance(tool_calls, list):
+        payload["tool_calls"] = [
+            {"name": call.get("name"), "arguments": call.get("arguments")}
+            for call in tool_calls
+            if isinstance(call, dict)
+        ]
+    return payload
 
 
 @dataclass(frozen=True)
@@ -112,6 +186,16 @@ class LabscriptAgentLoop:
         )
         for step_index in range(steps_remaining):
             response = self.client.complete(self.messages, self.registry.list_specs(mode=state.mode))
+            state = _apply_declared_role(state, response)
+            state.trace.append(
+                TraceEvent(
+                    run_id=state.run_id,
+                    event_type="observation",
+                    actor=_model_trace_actor(state),
+                    payload=_model_turn_payload(response),
+                    state_hash=state.stable_hash(),
+                )
+            )
             state = state.with_counters(
                 steps=1,
                 input_tokens=int(getattr(self.client, "input_tokens", 0)) - state.counters.input_tokens,
@@ -134,11 +218,15 @@ class LabscriptAgentLoop:
             calls = response.get("tool_calls") or []
             if not isinstance(calls, list) or not calls:
                 break
+            step_calls: list[ToolCall] = []
+            step_results: list[ToolResult] = []
             for raw in calls:
                 if not isinstance(raw, dict):
                     continue
                 call = ToolCall.from_model(raw)
+                step_calls.append(call)
                 result = self.registry.call_with_gating(call, state)
+                step_results.append(result)
                 self.last_tool_results.append(result)
                 state = state.apply(result.state_patch).with_counters(tool_calls=1)
                 self._append_tool_message(call, result)
@@ -149,6 +237,7 @@ class LabscriptAgentLoop:
                     state = state.with_phase("recovering")
                     remaining = steps_remaining - step_index - 1
                     return self._suspend(state, call, steps_remaining=remaining)
+            state = _advance_role_after_tools(state, calls=step_calls, results=step_results)
             state.trace.append(
                 TraceEvent(run_id=state.run_id, event_type="state_update", actor="system", payload=state.to_dict())
             )
@@ -285,13 +374,24 @@ def _apply_human_confirmation(call: ToolCall, payload: Mapping[str, Any]) -> Too
 
 def _initial_messages(state: AgentState) -> list[dict[str, Any]]:
     required_files = list(state.task_spec.required_files)
+    system_content = (
+        "You are LabscriptAI. Use tool_calls only until ready. "
+        f"Author mode must produce these files: {', '.join(required_files)}."
+    )
+    if state.mode == "author":
+        from labscriptai.authoring.prompts import AUTHORING_ROLE_PIPELINE_PROMPT
+
+        system_content = (
+            f"{AUTHORING_ROLE_PIPELINE_PROMPT}\n\n"
+            "You are LabscriptAI. Use tool_calls only until ready. "
+            f"Author mode must produce these files: {', '.join(required_files)}. "
+            'Include `"role": "Planner"`, `"role": "Coder"`, or `"role": "Reviewer"` '
+            "in every JSON response."
+        )
     return [
         {
             "role": "system",
-            "content": (
-                "You are LabscriptAI. Use tool_calls only until ready. "
-                f"Author mode must produce these files: {', '.join(required_files)}."
-            ),
+            "content": system_content,
         },
         {
             "role": "user",

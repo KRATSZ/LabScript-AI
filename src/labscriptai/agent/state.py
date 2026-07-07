@@ -15,6 +15,9 @@ from labscriptai.runtime.memory import MemoryHit
 from labscriptai.runtime.state import RuntimeRisk, VALID_PHASES
 from labscriptai.runtime.trace import TraceWriter
 
+AuthorRole: TypeAlias = Literal["Planner", "Coder", "Reviewer"]
+VALID_AUTHOR_ROLES = frozenset({"Planner", "Coder", "Reviewer"})
+
 AgentPhase: TypeAlias = Literal[
     "preflight",
     "simulating",
@@ -139,12 +142,15 @@ class AgentState:
     permissions: frozenset[str] = field(default_factory=frozenset)
     risks: tuple[RuntimeRiskAlias, ...] = ()
     counters: Counters = field(default_factory=Counters)
+    current_role: AuthorRole = "Planner"
 
     def __post_init__(self) -> None:
         if self.phase not in VALID_AGENT_PHASES:
             raise ValueError(f"invalid agent phase: {self.phase}")
         if self.mode not in {"author", "run"}:
             raise ValueError("mode must be author or run")
+        if self.current_role not in VALID_AUTHOR_ROLES:
+            raise ValueError(f"invalid author role: {self.current_role}")
 
     @classmethod
     def for_author(
@@ -177,6 +183,11 @@ class AgentState:
 
     def with_phase(self, phase: str) -> "AgentState":
         return replace(self, phase=phase)
+
+    def with_role(self, role: AuthorRole) -> "AgentState":
+        if role not in VALID_AUTHOR_ROLES:
+            raise ValueError(f"invalid author role: {role}")
+        return replace(self, current_role=role)
 
     def with_package(self, package: PackageRef | Mapping[str, Any]) -> "AgentState":
         if isinstance(package, PackageRef):
@@ -301,6 +312,7 @@ class AgentState:
             "permissions": sorted(self.permissions),
             "risks": [risk.to_dict() for risk in self.risks],
             "counters": self.counters.to_dict(),
+            "current_role": self.current_role,
             "trace_path": str(self.trace_path),
             "tool_calls": self.counters.tool_calls,
             "skill_loads": self.counters.skill_loads,

@@ -20,7 +20,11 @@ from labscriptai.runtime.model_adapter import OpenAICompatibleConfig, _strip_jso
 from labscriptai.runtime.trace import TraceEvent, TraceWriter
 
 from .context import ContextManager
-from .prompts import AUTHORING_AGENT_SYSTEM_PROMPT, PY_ONLY_AUTHORING_AGENT_SYSTEM_PROMPT
+from .prompts import (
+    AUTHORING_AGENT_SYSTEM_PROMPT,
+    AUTHORING_ROLE_PIPELINE_PROMPT,
+    PY_ONLY_AUTHORING_AGENT_SYSTEM_PROMPT,
+)
 from .skills import SkillLoader
 from .task_state import AuthoringTaskState
 from .tools import AuthoringToolRegistry
@@ -538,7 +542,7 @@ class AuthoringAgent:
                     PY_ONLY_AUTHORING_AGENT_SYSTEM_PROMPT
                     if self.protocol_only
                     else AUTHORING_AGENT_SYSTEM_PROMPT
-                ).format(skill_catalog=skill_catalog),
+                ).format(skill_catalog=skill_catalog, role_pipeline=AUTHORING_ROLE_PIPELINE_PROMPT),
             },
             {
                 "role": "user",

@@ -154,6 +154,7 @@ def deserialize_agent_state(payload: Mapping[str, Any]) -> AgentState:
         permissions=frozenset(str(item) for item in payload.get("permissions") or ()),
         risks=tuple(RuntimeRisk.from_mapping(item) for item in payload.get("risks") or ()),
         counters=Counters(**{name: int(counters_payload.get(name, 0)) for name in Counters.__dataclass_fields__}),
+        current_role=str(payload.get("current_role", "Planner")),  # type: ignore[arg-type]
     )
 
 

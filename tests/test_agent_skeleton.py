@@ -197,3 +197,39 @@ def test_trace_dump_complete(tmp_path: Path) -> None:
         "tool_result",
         "summary",
     }.issubset(event_types)
+
+
+def test_author_trace_uses_declared_role_actor(tmp_path: Path) -> None:
+    package_dir = tmp_path / "package"
+    package_dir.mkdir()
+    write_valid_package(package_dir)
+    state = AgentState.for_author(
+        task=_author_task(),
+        package_dir=package_dir,
+        trace_path=tmp_path / "trace.jsonl",
+        permissions=_author_permissions("light", "kb"),
+    )
+    client = ScriptedClient(
+        [
+            {
+                "role": "Reviewer",
+                "tool_calls": [{"name": "validate_package", "arguments": {"simulation_pass": True}}],
+            },
+            {"role": "Reviewer", "final": {"package_ready": True}},
+        ]
+    )
+    result = LabscriptAgentLoop(
+        client=client,
+        registry=build_default_registry(tool_profile="kb"),
+        max_steps=2,
+    ).run(state)
+
+    events = [json.loads(line) for line in (tmp_path / "trace.jsonl").read_text(encoding="utf-8").splitlines()]
+    model_events = [
+        event
+        for event in events
+        if event["event_type"] in {"observation", "candidate_tool_call"}
+    ]
+    assert result.final_state.current_role == "Reviewer"
+    assert model_events
+    assert all(event["actor"] == "Reviewer" for event in model_events)
