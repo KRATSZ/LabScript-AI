@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
+import types
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -52,3 +54,20 @@ def test_kb_context_uses_protocol_rag(monkeypatch: pytest.MonkeyPatch, tmp_path:
     context = kb_context.build_kb_context(task, repo_root=tmp_path, context_mode="full")
     assert context.protocol_hits
     assert context.protocol_hits[0]["title"] == "Serial Dilution"
+
+
+def test_search_returns_empty_when_search_script_missing(tmp_path: Path) -> None:
+    store = protocol_rag.ProtocolRAGStore(repo_root=tmp_path, persist_dir=tmp_path / "chroma")
+    assert store.search("serial dilution", limit=3) == []
+
+
+def test_search_returns_empty_when_library_unconfigured(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def fake_resolve(*_args: Any, **_kwargs: Any) -> Path:
+        raise SystemExit("protocol library not configured")
+
+    fake_module = types.SimpleNamespace(resolve_library_path=fake_resolve)
+    monkeypatch.setattr(protocol_rag, "_load_search_protocols_module", lambda _repo_root: fake_module)
+    store = protocol_rag.ProtocolRAGStore(repo_root=tmp_path, persist_dir=tmp_path / "chroma")
+    assert store.search("serial dilution", limit=3) == []

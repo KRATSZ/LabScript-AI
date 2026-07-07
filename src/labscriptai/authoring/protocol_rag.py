@@ -252,8 +252,14 @@ class ProtocolRAGStore:
         return self._collection
 
     def _ensure_indexed(self, collection: _Collection) -> None:
-        search_module = _load_search_protocols_module(self.repo_root)
-        library_path = search_module.resolve_library_path(None, repo_root=self.repo_root)
+        # resolve_library_path raises SystemExit when no protocol library is
+        # configured (CLI-style signal); degrade to empty results instead of
+        # crashing KB-context building.
+        try:
+            search_module = _load_search_protocols_module(self.repo_root)
+            library_path = search_module.resolve_library_path(None, repo_root=self.repo_root)
+        except (FileNotFoundError, OSError, SystemExit):
+            return
         marker_path = self.persist_dir / "index_meta.json"
         library_signature = _library_signature(library_path)
         if marker_path.exists() and collection.count() > 0:
