@@ -113,7 +113,7 @@ cd "$REPO_ROOT"
 PYTHONPATH=src uv run python scripts/build_table1_v2.py
 ```
 
-Inspect `runs/table1_v3_fair/table1_v3_summary.md` and compare **FinalPass** / first-pass simulation columns to Table 1 above. Key LabscriptAI anchor row root: `runs/table1_v3_fair/flash_seed01`.
+Inspect `runs/table1_v3_fair/table1_v3_summary.md`. The builder's **FinalPass** column (LabscriptAI 59/90) matches Table 1 FinalPass. Its **FP** column is first-pass-only simulation (stricter, LabscriptAI 54/90) and is **not** Table 1 SimPass — manuscript Table 1 **SimPass** (LabscriptAI 87/90) is the post-repair `simulation_pass_count` in `runs/table1_v3_fair/flash_seed01/analysis/attribution-summary.json`. Key LabscriptAI anchor row root: `runs/table1_v3_fair/flash_seed01`.
 
 Optional — re-aggregate raw shards if you only have per-shard `record.json` trees and need fresh `summary.json` files:
 
@@ -160,14 +160,14 @@ rows = {
     "w/o Repair": "runs/table1_v3_fair/ablation_unified_flash/no_repair",
     "Direct LLM": "runs/table1_v3_fair/ablation_unified_flash/direct_llm",
 }
-print(f"{'Configuration':26}{'SimPass':>9}{'FinalPass':>11}{'Tok/task':>10}")
+print(f"{'Configuration':26}{'SimPass':>8}  {'FinalPass':>8}  {'Tok/task':>9}")
 for label, root in rows.items():
     r = Path(root)
     s = json.loads((r / "summary.json").read_text())
     a = json.loads((r / "analysis" / "attribution-summary.json").read_text())
     tc = s.get("task_count") or a.get("task_count") or 90
     tpt = s.get("total_tokens", 0) / tc
-    print(f"{label:26}{a.get('simulation_pass_count')}/90{a.get('task_pass_count')}/90{tpt:>10.0f}")
+    print(f"{label:26}{a.get('simulation_pass_count')}/90  {a.get('task_pass_count')}/90  {tpt:>9.0f}")
 PY
 ```
 
