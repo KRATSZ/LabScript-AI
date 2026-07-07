@@ -1,0 +1,78 @@
+cff-version: 1.2.0
+title: LabscriptAI canonical implementation
+message: "If you use this software, please cite it using the metadata from this file."
+version: 1.0.0
+date-released: 2026-07-07
+commit: <CANONICAL_COMMIT_HASH>
+license: MIT
+repository-code: "https://github.com/KRATSZ/LabScript-AI/tree/v1.0-canonical"
+doi: 10.5281/zenodo.17697326
+authors:
+  - family-names: Gao
+    given-names: Yuan
+  - family-names: Fu
+    given-names: Lihao
+  - family-names: Luo
+    given-names: Yizhou
+  - family-names: Li
+    given-names: Wenzhuo
+  - family-names: Lan
+    given-names: Yunquan
+  - family-names: Wang
+    given-names: Yanjing
+  - family-names: Li
+    given-names: Yingyi
+  - family-names: Jiang
+    given-names: Han
+  - family-names: Chen
+    given-names: Yongcan
+  - family-names: Yi
+    given-names: Xiao
+  - family-names: Li
+    given-names: Boyang
+  - family-names: Alinejad-Rokny
+    given-names: Hamid
+  - family-names: Wang
+    given-names: Teng
+  - family-names: Yang
+    given-names: Min
+  - family-names: Liu
+    given-names: Chenli
+  - family-names: Si
+    given-names: Tong
+preferred-citation:
+  type: article
+  title: "LabscriptAI: Accessible and responsible synthetic biology automation"
+  authors:
+    - family-names: Gao
+      given-names: Yuan
+    - family-names: Fu
+      given-names: Lihao
+    - family-names: Luo
+      given-names: Yizhou
+    - family-names: Li
+      given-names: Wenzhuo
+    - family-names: Lan
+      given-names: Yunquan
+    - family-names: Wang
+      given-names: Yanjing
+    - family-names: Li
+      given-names: Yingyi
+    - family-names: Jiang
+      given-names: Han
+    - family-names: Chen
+      given-names: Yongcan
+    - family-names: Yi
+      given-names: Xiao
+    - family-names: Li
+      given-names: Boyang
+    - family-names: Alinejad-Rokny
+      given-names: Hamid
+    - family-names: Wang
+      given-names: Teng
+    - family-names: Yang
+      given-names: Min
+    - family-names: Liu
+      given-names: Chenli
+    - family-names: Si
+      given-names: Tong
