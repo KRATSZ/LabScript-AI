@@ -11,6 +11,13 @@ from typing import Any, Mapping
 
 from ..state import RuntimeState
 
+SNAPSHOT_ERROR_KEYS = (
+    "robot_status",
+    "module_status",
+    "parse_error",
+    "suggest_recovery_action",
+)
+
 
 @dataclass(frozen=True)
 class McpToolConfig:
@@ -100,10 +107,16 @@ process.stdout.write(JSON.stringify(result ?? {}));
             "expected_action",
             "timeout_ms",
             "poll_interval_ms",
+            "destination_slot",
+            "idempotency_key",
         ):
             if key in payload:
                 args[key] = payload[key]
-        args.update(dict(extra_arguments or {}))
+        extra = dict(extra_arguments or {})
+        for key in ("idempotency_key", "destination_slot", "session_id"):
+            if key in extra:
+                args[key] = extra[key]
+        args.update(extra)
         return self.call_tool("execute_protocol_recovery", args)
 
     def state_from_snapshot(
@@ -138,3 +151,15 @@ def _unwrap_data(value: Any) -> dict[str, Any]:
             return dict(data)
         return dict(value)
     return {}
+
+
+def snapshot_errors(snapshot: Mapping[str, Any]) -> list[dict[str, Any]]:
+    errors: list[dict[str, Any]] = []
+    for key in SNAPSHOT_ERROR_KEYS:
+        payload = snapshot.get(key)
+        if not isinstance(payload, Mapping) or not payload.get("error"):
+            continue
+        detail = dict(payload)
+        detail["source"] = key
+        errors.append(detail)
+    return errors

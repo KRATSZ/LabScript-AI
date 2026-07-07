@@ -986,6 +986,10 @@ const TOOL_DEFINITIONS = [
         timeout_ms: { type: "integer", default: 120000 },
         poll_interval_ms: { type: "integer", default: 500 },
         page_length: { type: "integer", default: 20 },
+        idempotency_key: {
+          type: "string",
+          description: "Optional idempotency key prefix for fixit commands.",
+        },
       },
       required: ["run_id"],
     },
@@ -2115,6 +2119,7 @@ async function executeProtocolRecovery(args, { expectedAction = null } = {}) {
         commandPayload: buildCommandPayload({
           commandType: "pickUpTip",
           intent: "fixit",
+          key: args.idempotency_key ? `${args.idempotency_key}:pickUpTip` : null,
           params: {
             pipetteId,
             labwareId,
@@ -2161,6 +2166,7 @@ async function executeProtocolRecovery(args, { expectedAction = null } = {}) {
           pickUpOffset: readNested(failedCommand, [["params", "pickUpOffset"]], null),
           dropOffset: readNested(failedCommand, [["params", "dropOffset"]], null),
           intent: "fixit",
+          key: args.idempotency_key ? `${args.idempotency_key}:moveLabware` : null,
         }),
         timeoutMs: args.timeout_ms ?? 120000,
         pollIntervalMs: args.poll_interval_ms ?? 500,

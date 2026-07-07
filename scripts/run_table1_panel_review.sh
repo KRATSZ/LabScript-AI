@@ -22,6 +22,9 @@ PANEL_DEEPSEEK_TRANSPORT_RETRIES="${PANEL_DEEPSEEK_TRANSPORT_RETRIES:-5}"
 PANEL_LLM_ONLY_TRANSPORT_RETRIES="${PANEL_LLM_ONLY_TRANSPORT_RETRIES:-5}"
 
 RUN_ROOTS=(
+  "runs/table1_v3_fair/flash_seed01"
+  "runs/table1_v3_fair/codex_gpt55_fair"
+  "runs/table1_v3_fair/claude_opus48_tight_fair"
   "runs/table1_v2_unified_opus_48"
   "runs/authoring90/ablation5_20260529/flash/kb_v2_patch"
   "runs/authoring90/llm_only/claude-opus-4-8"

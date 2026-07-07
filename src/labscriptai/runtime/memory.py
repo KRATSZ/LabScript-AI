@@ -94,6 +94,33 @@ def search_memory(memory_dir: Path, query: str, *, limit: int = 5) -> list[Memor
     return hits[:limit]
 
 
+def count_branch_outcomes(
+    memory_dir: Path,
+    branch: str,
+    error_leaf: str | None = None,
+) -> dict[str, int]:
+    if not memory_dir.exists():
+        return {"total": 0, "fails": 0}
+    total = 0
+    fails = 0
+    target_branch = str(branch)
+    target_leaf = str(error_leaf or "")
+    for path in sorted(memory_dir.glob("*.md")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        metadata = _frontmatter(text)
+        if metadata.get("branch") != target_branch:
+            continue
+        if target_leaf and metadata.get("error_leaf") != target_leaf:
+            continue
+        status = str(metadata.get("status") or "").strip().lower()
+        if not status:
+            continue
+        total += 1
+        if status in {"fail", "failed", "blocked", "escalated"}:
+            fails += 1
+    return {"total": total, "fails": fails}
+
+
 def _terms(text: str) -> set[str]:
     return {token.lower() for token in re.findall(r"[A-Za-z0-9_\-\u4e00-\u9fff]+", text)}
 
@@ -119,6 +146,21 @@ def _preview(text: str, query_terms: set[str]) -> str:
         if any(term in normalized for term in query_terms):
             return line.strip()[:240]
     return text.strip().replace("\n", " ")[:240]
+
+
+def _frontmatter(text: str) -> dict[str, str]:
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    metadata: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            break
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        metadata[key.strip()] = value.strip().strip("\"'")
+    return metadata
 
 
 def _utc_now() -> str:

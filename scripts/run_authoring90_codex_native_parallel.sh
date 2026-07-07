@@ -6,6 +6,11 @@ TASKS="benchmarks/authoring/tasks.yaml"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OPENTRONS_PYTHON="${OPENTRONS_PYTHON:-$REPO_ROOT/.venv-protocol/bin/python}"
 SCRATCH_BASE="${SCRATCH_BASE:-/tmp/codex-native-agent-pyonly-90}"
+CODEX_SHARD_CONCURRENCY="${CODEX_SHARD_CONCURRENCY:-9}"
+SIMULATION_REPAIR_ATTEMPTS="${SIMULATION_REPAIR_ATTEMPTS:-0}"
+REPAIR_API_PREFIX="${REPAIR_API_PREFIX:-LLM_ONLY}"
+REPAIR_MODEL="${REPAIR_MODEL:-gpt-5.5}"
+REPAIR_MAX_TOKENS="${REPAIR_MAX_TOKENS:-12000}"
 
 cd "$REPO_ROOT"
 mkdir -p "$OUT_ROOT"
@@ -41,9 +46,19 @@ for i in "${!SHARDS[@]}"; do
       --protocol-only \
       --simulate \
       --opentrons-python "$OPENTRONS_PYTHON" \
+      --simulation-repair-attempts "$SIMULATION_REPAIR_ATTEMPTS" \
+      --repair-api-prefix "$REPAIR_API_PREFIX" \
+      --repair-model "$REPAIR_MODEL" \
+      --repair-max-tokens "$REPAIR_MAX_TOKENS" \
       --force
   ) >"$OUT_ROOT/$shard.log" 2>&1 &
   PIDS+=("$!")
+  if (( ${#PIDS[@]} >= CODEX_SHARD_CONCURRENCY )); then
+    for pid in "${PIDS[@]}"; do
+      wait "$pid"
+    done
+    PIDS=()
+  fi
 done
 
 for pid in "${PIDS[@]}"; do

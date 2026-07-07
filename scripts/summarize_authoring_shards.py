@@ -29,6 +29,33 @@ def _keep_record(record: dict[str, Any], retry_attempts: int | None) -> bool:
     return is_task_record_complete(record, retry_attempts)
 
 
+def _int(record: dict[str, Any], key: str) -> int:
+    try:
+        return int(record.get(key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _float(record: dict[str, Any], key: str) -> float:
+    try:
+        return float(record.get(key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _summary_patch_backend(records: list[dict[str, Any]]) -> str:
+    backends = {
+        str(record.get("repair_patch_backend", "none"))
+        for record in records
+        if record.get("repair_patch_backend")
+    }
+    if not backends:
+        return "none"
+    if len(backends) == 1:
+        return next(iter(backends))
+    return "mixed"
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("shard_root", type=Path)
@@ -72,22 +99,81 @@ def main(argv: list[str]) -> int:
             payload = json.loads(record_path.read_text(encoding="utf-8"))
             if isinstance(payload, dict) and _keep_record(payload, args.retry_attempts):
                 records.append(payload)
+    repaired_records = [r for r in records if _int(r, "simulation_repair_attempts") > 0]
+    wall_times = [_float(r, "wall_time_sec") for r in records]
     merged = {
         "schema_version": "0.1",
         "shard_root": str(root),
         "shard_count": len(summaries),
         "task_count": len(records),
         "package_complete_count": sum(1 for r in records if r.get("validation", {}).get("package_complete")),
+        "deterministic_pass_count": sum(1 for r in records if r.get("deterministic_checks_pass")),
         "validator_ok_count": sum(1 for r in records if _validator_ok(r)),
+        "simulation_attempted_count": sum(1 for r in records if r.get("simulation") is not None),
         "simulation_pass_count": sum(1 for r in records if _nested_ok(r, "simulation")),
         "first_pass_simulation_pass_count": sum(1 for r in records if _nested_ok(r, "first_simulation")),
-        "provider_error_count": sum(int(r.get("provider_error_count", 0)) for r in records),
-        "total_tokens": sum(int(r.get("total_tokens", 0)) for r in records),
-        "input_tokens": sum(int(r.get("input_tokens", 0)) for r in records),
-        "output_tokens": sum(int(r.get("output_tokens", 0)) for r in records),
-        "simulator_calls": sum(int(r.get("simulator_calls", 0)) for r in records),
-        "tool_calls": sum(int(r.get("tool_calls", 0)) for r in records),
-        "skill_loads": sum(int(r.get("skill_loads", 0)) for r in records),
+        "first_pass_validator_pass_count": sum(1 for r in records if _nested_ok(r, "first_pass_validation")),
+        "repaired_simulation_pass_count": sum(1 for r in repaired_records if _nested_ok(r, "simulation")),
+        "repaired_validator_pass_count": sum(1 for r in repaired_records if _validator_ok(r)),
+        "simulation_repair_attempts": sum(_int(r, "simulation_repair_attempts") for r in records),
+        "repair_success_count": sum(1 for r in records if r.get("repair_success")),
+        "avg_repair_attempts_when_repaired": (
+            sum(_int(r, "simulation_repair_attempts") for r in repaired_records) / len(repaired_records)
+            if repaired_records
+            else 0.0
+        ),
+        "max_repair_attempts_observed": max(
+            [_int(r, "simulation_repair_attempts") for r in records] or [0]
+        ),
+        "provider_error_count": sum(_int(r, "provider_error_count") for r in records),
+        "provider_errors_per_task": {
+            str(r.get("task_id")): _int(r, "provider_error_count")
+            for r in records
+            if r.get("task_id")
+        },
+        "generation_attempts_per_task": {
+            str(r.get("task_id")): _int(r, "generation_attempts")
+            for r in records
+            if r.get("task_id")
+        },
+        "repair_attempts_per_task": {
+            str(r.get("task_id")): _int(r, "simulation_repair_attempts")
+            for r in records
+            if r.get("task_id")
+        },
+        "attempts_per_task": {
+            str(r.get("task_id")): _int(r, "attempts")
+            for r in records
+            if r.get("task_id")
+        },
+        "error_count": sum(1 for r in records if "error" in r),
+        "total_attempts": sum(_int(r, "attempts") for r in records),
+        "total_wall_time_sec": sum(wall_times),
+        "avg_wall_time_sec": sum(wall_times) / len(wall_times) if wall_times else 0.0,
+        "max_wall_time_sec": max(wall_times or [0.0]),
+        "total_tokens": sum(_int(r, "total_tokens") for r in records),
+        "input_tokens": sum(_int(r, "input_tokens") for r in records),
+        "output_tokens": sum(_int(r, "output_tokens") for r in records),
+        "authoring_input_tokens": sum(_int(r, "authoring_input_tokens") for r in records),
+        "authoring_output_tokens": sum(_int(r, "authoring_output_tokens") for r in records),
+        "authoring_total_tokens": sum(_int(r, "authoring_total_tokens") for r in records),
+        "repair_input_tokens": sum(_int(r, "repair_input_tokens") for r in records),
+        "repair_output_tokens": sum(_int(r, "repair_output_tokens") for r in records),
+        "repair_total_tokens": sum(_int(r, "repair_total_tokens") for r in records),
+        "tokens_per_task": {
+            str(r.get("task_id")): _int(r, "total_tokens")
+            for r in records
+            if r.get("task_id")
+        },
+        "simulator_calls": sum(_int(r, "simulator_calls") for r in records),
+        "tool_calls": sum(_int(r, "tool_calls") for r in records),
+        "skill_loads": sum(_int(r, "skill_loads") for r in records),
+        "protocol_hits": sum(_int(r, "protocol_hits") for r in records),
+        "memory_hits": sum(_int(r, "memory_hits") for r in records),
+        "kb_context_tokens_estimate": sum(_int(r, "kb_context_tokens_estimate") for r in records),
+        "repair_patch_count": sum(_int(r, "repair_patch_count") for r in records),
+        "repair_patch_rejected_count": sum(_int(r, "repair_patch_rejected_count") for r in records),
+        "repair_patch_backend": _summary_patch_backend(records),
         "records": records,
     }
     (root / "summary.json").write_text(

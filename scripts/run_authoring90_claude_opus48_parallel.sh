@@ -8,6 +8,10 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OPENTRONS_PYTHON="${OPENTRONS_PYTHON:-$REPO_ROOT/.venv-protocol/bin/python}"
 SCRATCH_BASE="${SCRATCH_BASE:-/tmp/claude-code-${VARIANT}-native-agent-pyonly-90}"
 CLAUDE_SHARD_CONCURRENCY="${CLAUDE_SHARD_CONCURRENCY:-3}"
+SIMULATION_REPAIR_ATTEMPTS="${SIMULATION_REPAIR_ATTEMPTS:-0}"
+REPAIR_API_PREFIX="${REPAIR_API_PREFIX:-LLM_ONLY}"
+REPAIR_MODEL="${REPAIR_MODEL:-claude-opus-4-8}"
+REPAIR_MAX_TOKENS="${REPAIR_MAX_TOKENS:-12000}"
 
 cd "$REPO_ROOT"
 command -v claude >/dev/null 2>&1 || {
@@ -52,6 +56,10 @@ for i in "${!SHARDS[@]}"; do
       --protocol-only \
       --simulate \
       --opentrons-python "$OPENTRONS_PYTHON" \
+      --simulation-repair-attempts "$SIMULATION_REPAIR_ATTEMPTS" \
+      --repair-api-prefix "$REPAIR_API_PREFIX" \
+      --repair-model "$REPAIR_MODEL" \
+      --repair-max-tokens "$REPAIR_MAX_TOKENS" \
       --force
   ) >"$OUT_ROOT/$shard.log" 2>&1 &
   PIDS+=("$!")

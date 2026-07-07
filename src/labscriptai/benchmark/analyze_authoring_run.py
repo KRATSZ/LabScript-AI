@@ -34,7 +34,8 @@ def _failure_mode(record: dict[str, Any]) -> str:
         return "provider_retry_then_success"
     if int(record.get("simulation_repair_attempts", 0)) > 0:
         return "simulation_repair_then_success"
-    if record.get("first_simulation", {}).get("ok"):
+    first_simulation = record.get("first_simulation") or {}
+    if isinstance(first_simulation, dict) and first_simulation.get("ok"):
         return "first_pass"
     return "not_simulated"
 

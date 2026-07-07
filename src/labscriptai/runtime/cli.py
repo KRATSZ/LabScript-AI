@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -17,12 +19,18 @@ from .chat_controller import RuntimeChatController
 from .gatekeeper import evaluate_action
 from .memory import append_memory_note, search_memory
 from .model_adapter import OpenAICompatibleCandidateProvider, OpenAICompatibleChatProvider, OpenAICompatibleConfig
+from .recovery_orchestrator import RecoveryOrchestrator, RecoveryOrchestratorConfig
+from .recovery_queue import RecoveryQueue
 from .recovery_shadow_benchmark import (
     deepseek_provider_factory,
     offline_provider_for_case,
     run_shadow_benchmark,
 )
 from .state import RuntimeState
+
+_AUTO_RECOVER_TERMINAL_STATUSES = frozenset(
+    {"succeeded", "escalated", "blocked", "awaiting_confirmation"}
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -48,6 +56,25 @@ def main(argv: list[str] | None = None) -> int:
     mcp_recover.add_argument("--mcp-index", type=Path, default=Path("mcp-servers/opentrons-mcp/index.js"))
     mcp_recover.add_argument("--timeout-sec", type=float, default=30.0)
     mcp_recover.add_argument("--execute-auto", action="store_true")
+
+    auto_recover = subparsers.add_parser(
+        "auto-recover",
+        help="run the recovery orchestrator loop against live MCP state",
+    )
+    auto_recover.add_argument("--robot-ip", required=True)
+    auto_recover.add_argument("--run-id", required=True)
+    auto_recover.add_argument("--checkpoint-path", type=Path, default=Path("recovery_checkpoint.json"))
+    auto_recover.add_argument("--auto-execute", action="store_true")
+    auto_recover.add_argument("--max-cycles", type=int, default=3)
+    auto_recover.add_argument("--max-attempts", type=int, default=3)
+    auto_recover.add_argument("--watch", action="store_true")
+    auto_recover.add_argument("--max-watch-sec", type=float, default=0.0)
+    auto_recover.add_argument("--poll-interval-sec", type=float, default=5.0)
+    auto_recover.add_argument("--max-mcp-retries", type=int, default=3)
+    auto_recover.add_argument("--memory-dir", type=Path)
+    auto_recover.add_argument("--mcp-index", type=Path, default=Path("mcp-servers/opentrons-mcp/index.js"))
+    auto_recover.add_argument("--session-id")
+    auto_recover.add_argument("--timeout-sec", type=float, default=30.0)
 
     collect = subparsers.add_parser("collect-cases", help="export read-only robot runs as runtime cases")
     collect.add_argument("--robot-host", required=True)
@@ -108,6 +135,8 @@ def main(argv: list[str] | None = None) -> int:
         return _mcp_inspect(args)
     if args.command == "mcp-recover":
         return _mcp_recover(args)
+    if args.command == "auto-recover":
+        return _auto_recover(args)
     if args.command == "collect-cases":
         return _collect_cases(args)
     if args.command == "shadow-benchmark":
@@ -146,6 +175,136 @@ def _mcp_inspect(args: argparse.Namespace) -> int:
     snapshot = adapter.recovery_snapshot(robot_ip=args.robot_ip, run_id=args.run_id)
     print(json.dumps(snapshot, indent=2, ensure_ascii=False, sort_keys=True))
     return 1 if _contains_error(snapshot) else 0
+
+
+def _auto_recover(
+    args: argparse.Namespace,
+    *,
+    sleeper: Callable[[float], None] | None = None,
+    clock: Callable[[], float] | None = None,
+) -> int:
+    sleeper = sleeper or time.sleep
+    clock = clock or time.monotonic
+    adapter = _mcp_adapter(args)
+    max_attempts = max(0, int(args.max_attempts))
+    queue = RecoveryQueue.load(
+        args.checkpoint_path,
+        max_attempts_per_failed_command=max_attempts,
+    )
+    state = RuntimeState(
+        run_id=args.run_id,
+        phase="recovering",
+        robot={"host": args.robot_ip},
+        expected={"autonomy_mode": "auto", "backend": "opentrons-mcp"},
+    )
+    orchestrator = RecoveryOrchestrator(
+        adapter=adapter,
+        robot_ip=args.robot_ip,
+        run_id=args.run_id,
+        queue=queue,
+        state=state,
+        config=RecoveryOrchestratorConfig(
+            auto_execute=args.auto_execute,
+            max_cycles=args.max_cycles,
+            poll_interval_sec=args.poll_interval_sec,
+            max_watch_sec=args.max_watch_sec,
+            memory_dir=args.memory_dir,
+            session_id=args.session_id,
+        ),
+    )
+
+    exit_code = 0
+    poll_count = 0
+    execution_count = 0
+    mcp_retries = 0
+    watch = bool(args.watch or args.max_watch_sec > 0)
+    started_at = clock()
+    while True:
+        poll_count += 1
+        summary = orchestrator.step()
+        summary["cycle"] = poll_count
+        print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
+        status = str(summary.get("status") or "")
+
+        if isinstance(summary.get("attempt"), Mapping):
+            execution_count += 1
+
+        if status == "mcp_error":
+            if mcp_retries >= max(0, int(args.max_mcp_retries)):
+                exit_code = 1
+                break
+            delay = _mcp_retry_delay(mcp_retries, args.poll_interval_sec)
+            mcp_retries += 1
+            sleeper(delay)
+            continue
+
+        mcp_retries = 0
+
+        if status in _AUTO_RECOVER_TERMINAL_STATUSES:
+            if status in {"escalated", "blocked"}:
+                exit_code = 1
+            break
+        if status == "no_action":
+            if watch and _can_poll_again(
+                poll_count=poll_count,
+                max_cycles=args.max_cycles,
+                max_watch_sec=args.max_watch_sec,
+                started_at=started_at,
+                clock=clock,
+            ):
+                sleeper(max(0.0, float(args.poll_interval_sec)))
+                continue
+            break
+        if _run_completed(summary):
+            break
+
+        if execution_count >= max_attempts:
+            exit_code = 1
+            break
+        if not _can_poll_again(
+            poll_count=poll_count,
+            max_cycles=args.max_cycles,
+            max_watch_sec=args.max_watch_sec if watch else 0,
+            started_at=started_at,
+            clock=clock,
+        ):
+            exit_code = 1
+            break
+        if watch:
+            sleeper(max(0.0, float(args.poll_interval_sec)))
+
+    return exit_code
+
+
+def _mcp_retry_delay(retry_index: int, poll_interval_sec: float) -> float:
+    base = max(0.0, float(poll_interval_sec))
+    return min(base * (2**retry_index), 60.0)
+
+
+def _can_poll_again(
+    *,
+    poll_count: int,
+    max_cycles: int,
+    max_watch_sec: float,
+    started_at: float,
+    clock: Callable[[], float],
+) -> bool:
+    if max_watch_sec > 0:
+        return (clock() - started_at) < max_watch_sec
+    return poll_count < max_cycles
+
+
+def _run_completed(summary: dict[str, Any]) -> bool:
+    if summary.get("status") == "succeeded":
+        return True
+    execution = summary.get("execution")
+    if isinstance(execution, Mapping):
+        data = execution.get("data")
+        payload = data if isinstance(data, Mapping) else execution
+        final_history = payload.get("final_run_history")
+        if isinstance(final_history, Mapping) and final_history.get("status") == "succeeded":
+            return True
+    return False
 
 
 def _mcp_recover(args: argparse.Namespace) -> int:

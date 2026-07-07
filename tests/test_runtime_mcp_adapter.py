@@ -9,7 +9,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from labscriptai.runtime.adapters.mcp import McpToolConfig, OpentronsMcpRuntimeAdapter
+from labscriptai.runtime.adapters.mcp import McpToolConfig, OpentronsMcpRuntimeAdapter, snapshot_errors
 
 
 class RuntimeMcpAdapterTests(unittest.TestCase):
@@ -55,6 +55,19 @@ class RuntimeMcpAdapterTests(unittest.TestCase):
         self.assertEqual(state.expected["backend"], "opentrons-mcp")
         self.assertEqual(state.expected["autonomy_mode"], "auto")
 
+    def test_snapshot_errors_returns_mcp_tool_errors(self) -> None:
+        errors = snapshot_errors(
+            {
+                "robot_status": {"error": "mcp_tool_failed", "tool": "robot_status"},
+                "module_status": {"data": {"ok": True}},
+                "parse_error": {"error": "mcp_tool_invalid_json", "tool": "parse_error"},
+                "unrelated": {"error": "ignored"},
+            }
+        )
+
+        self.assertEqual([error["source"] for error in errors], ["robot_status", "parse_error"])
+        self.assertEqual(errors[0]["error"], "mcp_tool_failed")
+
     def test_execute_suggested_recovery_forwards_context_arguments(self) -> None:
         adapter = OpentronsMcpRuntimeAdapter()
         captured: dict[str, object] = {}
@@ -74,6 +87,7 @@ class RuntimeMcpAdapterTests(unittest.TestCase):
                     "recovery_well": "C1",
                     "tiprack_slot": "C2",
                 },
+                extra_arguments={"idempotency_key": "abc123", "destination_slot": "D2"},
             )
 
         self.assertEqual(captured["tool_name"], "execute_protocol_recovery")
@@ -86,6 +100,8 @@ class RuntimeMcpAdapterTests(unittest.TestCase):
                 "session_id": "session-1",
                 "recovery_well": "C1",
                 "tiprack_slot": "C2",
+                "idempotency_key": "abc123",
+                "destination_slot": "D2",
             },
         )
 

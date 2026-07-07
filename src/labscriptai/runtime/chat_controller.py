@@ -59,6 +59,7 @@ class RuntimeChatController:
         simulation_pass: bool = False,
         status_loader: StatusLoader | None = None,
         unified_chat_handler: UnifiedChatHandler | None = None,
+        robot_adapter: Any | None = None,
     ) -> None:
         self.state = state
         self.package_dir = package_dir
@@ -78,6 +79,7 @@ class RuntimeChatController:
         self.simulation_pass = simulation_pass
         self.status_loader = status_loader
         self.unified_chat_handler = unified_chat_handler
+        self.robot_adapter = robot_adapter
         self.pending_action: CandidateAction | None = None
         self.pending_decision: GatekeeperDecision | None = None
 
@@ -700,6 +702,38 @@ class RuntimeChatController:
                     },
                 },
                 fallback=ChatMessage("warning", title, (line,)),
+            )
+        if (
+            action.action_type == "execute_recovery_branch"
+            and str(self.state.expected.get("autonomy_mode", "conservative")) == "auto"
+            and self.robot_adapter is not None
+            and hasattr(self.robot_adapter, "execute_suggested_recovery")
+        ):
+            suggestion = self.state.observed.get("suggest_recovery_action") or action.to_dict()
+            execution = self.robot_adapter.execute_suggested_recovery(
+                robot_ip=str(self.state.robot.get("host") or ""),
+                run_id=self.state.run_id,
+                suggestion=suggestion,
+            )
+            self.pending_action = None
+            self.pending_decision = None
+            if language == "zh":
+                title = "已执行恢复"
+                lines = (
+                    "已通过 MCP 执行恢复分支。",
+                    f"结果：{json.dumps(execution, ensure_ascii=False)}",
+                )
+            else:
+                title = "Recovery Executed"
+                lines = (
+                    "The recovery branch was executed through MCP.",
+                    f"Result: {json.dumps(execution, ensure_ascii=False)}",
+                )
+            return self.model_chat(
+                "approve",
+                language=language,
+                context={"intent": "approve_pending", "approved": True, "execution": execution},
+                fallback=ChatMessage("assistant", title, lines),
             )
         result = run_offline_loop(
             initial_state=self.state,

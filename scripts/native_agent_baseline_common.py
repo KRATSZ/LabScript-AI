@@ -22,11 +22,14 @@ from typing import Any
 
 from labscriptai.benchmark.authoring_pilot import (
     AUTHORING_SYSTEM_PROMPT,
+    DEFAULT_LLM_ONLY_BASE_URL,
     PY_ONLY_AUTHORING_SYSTEM_PROMPT,
     _prompt_hash,
     _simulator_summary,
+    _usage_stats,
     _write_record,
     _write_summary,
+    call_protocol_repair,
     repair_package_metadata,
     simulate_protocol_file,
 )
@@ -34,6 +37,7 @@ from labscriptai.benchmark.derive_package import derive_package_from_protocol
 from labscriptai.benchmark.package_validator import REQUIRED_PACKAGE_FILES, validate_package
 from labscriptai.benchmark.score_record import score_record_from_validation
 from labscriptai.benchmark.tasks import AuthoringTask, load_authoring_tasks
+from labscriptai.runtime.model_adapter import OpenAICompatibleConfig
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,6 +70,23 @@ class NativeAgentSpec:
     use_llm_only_anthropic_env: bool = False
     anthropic_model_id: str | None = None
     prompt_stdin: bool = False
+
+
+@dataclass(frozen=True)
+class SimulationRepairOutcome:
+    package_dir: Path
+    attempt: int
+    derive_info: dict[str, Any] | None
+    simulation_result: dict[str, Any] | None
+    repair_attempts: int
+    repair_success: bool
+    repair_errors: list[str]
+    repair_input_tokens: int
+    repair_output_tokens: int
+    repair_total_tokens: int
+    repair_patch_count: int
+    repair_patch_rejected_count: int
+    repair_simulator_calls: int
 
 
 def parse_regex_tokens(text: str) -> TokenUsage:
@@ -124,6 +145,15 @@ def _int_value(value: Any) -> int:
 
 def _parse_task_ids(raw: str) -> tuple[str, ...]:
     return tuple(part.strip() for part in raw.split(",") if part.strip())
+
+
+def resolve_optional_repo_path(value: str | Path | None) -> str | None:
+    if value is None:
+        return None
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = ROOT / path
+    return os.path.abspath(os.fspath(path))
 
 
 def _task_map(tasks_path: Path) -> dict[str, AuthoringTask]:
@@ -318,6 +348,162 @@ def _derive_sidecars(
     )
 
 
+def _derive_sidecars_for_model(
+    package_dir: Path,
+    task: AuthoringTask,
+    *,
+    model_id: str,
+    scaffold_id: str,
+) -> dict[str, Any] | None:
+    protocol_path = package_dir / "protocol.py"
+    if not protocol_path.exists():
+        return None
+    return derive_package_from_protocol(
+        package_dir,
+        task,
+        model_id=model_id,
+        scaffold_id=scaffold_id,
+        overwrite=True,
+    )
+
+
+def _repair_config(
+    *,
+    repair_api_prefix: str,
+    repair_model: str,
+    repair_max_tokens: int,
+) -> OpenAICompatibleConfig:
+    default_base_url = (
+        DEFAULT_LLM_ONLY_BASE_URL
+        if repair_api_prefix == "LLM_ONLY"
+        else "https://api.deepseek.com"
+    )
+    return OpenAICompatibleConfig.from_env(
+        prefix=repair_api_prefix,
+        default_base_url=default_base_url,
+        default_model=repair_model,
+        default_max_tokens=repair_max_tokens,
+    )
+
+
+def build_rewrite_protocol_repairer(
+    *,
+    repair_api_prefix: str,
+    repair_model: str,
+    repair_max_tokens: int = 12000,
+) -> Callable[[AuthoringTask, str, dict[str, Any]], str]:
+    config = _repair_config(
+        repair_api_prefix=repair_api_prefix,
+        repair_model=repair_model,
+        repair_max_tokens=repair_max_tokens,
+    )
+    return lambda task, protocol_py, simulation_result: call_protocol_repair(
+        config,
+        task,
+        protocol_py=protocol_py,
+        simulation_result=simulation_result,
+    )
+
+
+def run_simulation_repair_loop(
+    *,
+    task: AuthoringTask,
+    task_dir: Path,
+    package_dir: Path,
+    attempt: int,
+    derive_info: dict[str, Any] | None,
+    derive_from_protocol: bool,
+    derive_model_id: str,
+    derive_scaffold_id: str,
+    simulation_result: dict[str, Any] | None,
+    simulation_repair_attempts: int,
+    repairer: Callable[[AuthoringTask, str, dict[str, Any]], str] | None,
+    opentrons_python: str | None,
+    workspace_root: Path | None,
+    simulation_timeout_sec: int,
+) -> SimulationRepairOutcome:
+    repair_errors: list[str] = []
+    repair_count = 0
+    repair_success = False
+    repair_input_tokens = 0
+    repair_output_tokens = 0
+    repair_total_tokens = 0
+    repair_patch_count = 0
+    repair_patch_rejected_count = 0
+    repair_simulator_calls = 0
+
+    while (
+        repairer is not None
+        and simulation_result is not None
+        and not simulation_result.get("ok")
+        and repair_count < simulation_repair_attempts
+    ):
+        repair_count += 1
+        next_attempt = attempt + 1
+        next_package_dir = task_dir / f"attempt{next_attempt}" / "package"
+        if next_package_dir.exists():
+            shutil.rmtree(next_package_dir)
+        shutil.copytree(package_dir, next_package_dir)
+        current_protocol = (package_dir / "protocol.py").read_text(encoding="utf-8")
+        try:
+            repaired_protocol = repairer(task, current_protocol, simulation_result)
+            usage_stats = _usage_stats(getattr(repaired_protocol, "usage", None))
+            repair_input_tokens += usage_stats["input_tokens"]
+            repair_output_tokens += usage_stats["output_tokens"]
+            repair_total_tokens += usage_stats["total_tokens"]
+            repair_patch_count += int(getattr(repaired_protocol, "patch_count", 0))
+            repair_patch_rejected_count += int(
+                getattr(repaired_protocol, "patch_rejected_count", 0)
+            )
+            (next_package_dir / "protocol.py").write_text(
+                repaired_protocol,
+                encoding="utf-8",
+            )
+            package_dir = next_package_dir
+            attempt = next_attempt
+            if derive_from_protocol:
+                derive_info = _derive_sidecars_for_model(
+                    package_dir,
+                    task,
+                    model_id=derive_model_id,
+                    scaffold_id=derive_scaffold_id,
+                )
+            simulation_result = simulate_protocol_file(
+                package_dir / "protocol.py",
+                opentrons_python=opentrons_python,
+                workspace_root=workspace_root,
+                timeout_sec=simulation_timeout_sec,
+            )
+            repair_simulator_calls += 1
+            repair_success = bool(simulation_result.get("ok"))
+        except Exception as exc:
+            usage_stats = _usage_stats(getattr(exc, "usage", None))
+            repair_input_tokens += usage_stats["input_tokens"]
+            repair_output_tokens += usage_stats["output_tokens"]
+            repair_total_tokens += usage_stats["total_tokens"]
+            repair_patch_rejected_count += int(getattr(exc, "rejected_count", 0))
+            repair_errors.append(f"{type(exc).__name__}: {exc}")
+            package_dir = next_package_dir
+            attempt = next_attempt
+            continue
+
+    return SimulationRepairOutcome(
+        package_dir=package_dir,
+        attempt=attempt,
+        derive_info=derive_info,
+        simulation_result=simulation_result,
+        repair_attempts=repair_count,
+        repair_success=repair_success,
+        repair_errors=repair_errors,
+        repair_input_tokens=repair_input_tokens,
+        repair_output_tokens=repair_output_tokens,
+        repair_total_tokens=repair_total_tokens,
+        repair_patch_count=repair_patch_count,
+        repair_patch_rejected_count=repair_patch_rejected_count,
+        repair_simulator_calls=repair_simulator_calls,
+    )
+
+
 def _dotenv_values() -> dict[str, str]:
     env_path = ROOT / ".env"
     if not env_path.is_file():
@@ -411,6 +597,10 @@ def run_task(
     metadata_repair: bool,
     protocol_only: bool,
     derive_scaffold_id: str,
+    simulation_repair_attempts: int,
+    repair_api_prefix: str,
+    repair_model: str,
+    repair_max_tokens: int,
     spec: NativeAgentSpec,
 ) -> dict[str, Any]:
     task_dir = output_dir / task.task_id
@@ -498,6 +688,63 @@ def run_task(
             timeout_sec=simulation_timeout_sec,
         )
         first_simulation = simulation_result
+        if simulation_repair_attempts > 0 and not simulation_result.get("ok"):
+            repairer = build_rewrite_protocol_repairer(
+                repair_api_prefix=repair_api_prefix,
+                repair_model=repair_model,
+                repair_max_tokens=repair_max_tokens,
+            )
+            repair_outcome = run_simulation_repair_loop(
+                task=task,
+                task_dir=task_dir,
+                package_dir=package_dir,
+                attempt=1,
+                derive_info=derive_info,
+                derive_from_protocol=protocol_only,
+                derive_model_id=spec.model_id,
+                derive_scaffold_id=derive_scaffold_id,
+                simulation_result=simulation_result,
+                simulation_repair_attempts=simulation_repair_attempts,
+                repairer=repairer,
+                opentrons_python=opentrons_python,
+                workspace_root=workspace_root,
+                simulation_timeout_sec=simulation_timeout_sec,
+            )
+            package_dir = repair_outcome.package_dir
+            derive_info = repair_outcome.derive_info
+            simulation_result = repair_outcome.simulation_result
+        else:
+            repair_outcome = SimulationRepairOutcome(
+                package_dir=package_dir,
+                attempt=1,
+                derive_info=derive_info,
+                simulation_result=simulation_result,
+                repair_attempts=0,
+                repair_success=False,
+                repair_errors=[],
+                repair_input_tokens=0,
+                repair_output_tokens=0,
+                repair_total_tokens=0,
+                repair_patch_count=0,
+                repair_patch_rejected_count=0,
+                repair_simulator_calls=0,
+            )
+    else:
+        repair_outcome = SimulationRepairOutcome(
+            package_dir=package_dir,
+            attempt=1,
+            derive_info=derive_info,
+            simulation_result=simulation_result,
+            repair_attempts=0,
+            repair_success=False,
+            repair_errors=[],
+            repair_input_tokens=0,
+            repair_output_tokens=0,
+            repair_total_tokens=0,
+            repair_patch_count=0,
+            repair_patch_rejected_count=0,
+            repair_simulator_calls=0,
+        )
 
     simulation_pass = bool(simulation_result and simulation_result.get("ok"))
     validation = validate_package(
@@ -510,25 +757,45 @@ def run_task(
     score = score_record_from_validation(
         validation,
         manifest,
-        first_pass=validation.ok,
-        attempts=1,
+        first_pass=validation.ok and repair_outcome.repair_attempts == 0,
+        attempts=repair_outcome.attempt,
         wall_time_sec=wall_time_sec,
-        input_tokens=usage.input_tokens,
-        output_tokens=usage.output_tokens,
+        input_tokens=usage.input_tokens + repair_outcome.repair_input_tokens,
+        output_tokens=usage.output_tokens + repair_outcome.repair_output_tokens,
     ).to_dict()
+    total_tokens = (
+        usage.total_tokens + repair_outcome.repair_total_tokens
+        if usage.total_tokens or repair_outcome.repair_total_tokens
+        else usage.input_tokens
+        + repair_outcome.repair_input_tokens
+        + usage.output_tokens
+        + repair_outcome.repair_output_tokens
+    )
 
     record = {
         "task_id": task.task_id,
         "difficulty": task.difficulty,
         "holdout": task.holdout,
         "package_dir": str(package_dir),
-        "attempts": 1,
+        "attempts": repair_outcome.attempt,
         "generation_attempts": 1,
         "provider_error_count": 0 if completed.returncode == 0 else 1,
         "wall_time_sec": wall_time_sec,
-        "input_tokens": usage.input_tokens,
-        "output_tokens": usage.output_tokens,
-        "total_tokens": usage.total_tokens,
+        "input_tokens": usage.input_tokens + repair_outcome.repair_input_tokens,
+        "output_tokens": usage.output_tokens + repair_outcome.repair_output_tokens,
+        "total_tokens": total_tokens,
+        "authoring_input_tokens": usage.input_tokens,
+        "authoring_output_tokens": usage.output_tokens,
+        "authoring_total_tokens": usage.total_tokens,
+        "repair_input_tokens": repair_outcome.repair_input_tokens,
+        "repair_output_tokens": repair_outcome.repair_output_tokens,
+        "repair_total_tokens": repair_outcome.repair_total_tokens,
+        "repair_api_prefix": repair_api_prefix,
+        "repair_model": repair_model,
+        "repair_edit_mode": "rewrite",
+        "repair_patch_backend": "rewrite",
+        "repair_patch_count": repair_outcome.repair_patch_count,
+        "repair_patch_rejected_count": repair_outcome.repair_patch_rejected_count,
         f"{spec.log_prefix}_returncode": completed.returncode,
         f"{spec.log_prefix}_command": display_cmd,
         f"{spec.log_prefix}_work_dir": str(work_dir),
@@ -564,12 +831,13 @@ def run_task(
         "first_simulation": first_simulation,
         "simulation": simulation_result,
         "simulator_summary": _simulator_summary(simulation_result),
-        "simulation_repair_attempts": 0,
-        "repair_success": False,
-        "repair_errors": [],
+        "simulation_repair_attempts": repair_outcome.repair_attempts,
+        "repair_success": repair_outcome.repair_success,
+        "repair_errors": repair_outcome.repair_errors,
         "tool_calls": 0,
         "skill_loads": 0,
-        "simulator_calls": 1 if simulation_result is not None else 0,
+        "simulator_calls": (1 if first_simulation is not None else 0)
+        + repair_outcome.repair_simulator_calls,
         "score": score,
     }
     if completed.returncode != 0:
@@ -593,8 +861,28 @@ def main(spec: NativeAgentSpec) -> int:
     parser.add_argument("--metadata-repair", action="store_true")
     parser.add_argument("--protocol-only", action="store_true")
     parser.add_argument("--derive-scaffold-id", default=spec.default_derive_scaffold_id)
+    parser.add_argument("--simulation-repair-attempts", type=int, default=0)
+    parser.add_argument(
+        "--repair-api-prefix",
+        choices=("DEEPSEEK", "LLM_ONLY"),
+        default="LLM_ONLY",
+    )
+    parser.add_argument(
+        "--repair-model",
+        default="",
+        help="OpenAI-compatible model id used only for outer rewrite repair.",
+    )
+    parser.add_argument("--repair-max-tokens", type=int, default=12000)
     parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
+    args.simulation_repair_attempts = max(0, min(args.simulation_repair_attempts, 3))
+    repair_model = args.repair_model or spec.anthropic_model_id or spec.model_id
+    opentrons_python = resolve_optional_repo_path(args.opentrons_python)
+    workspace_root = (
+        Path(resolve_optional_repo_path(args.workspace_root))
+        if args.workspace_root is not None
+        else None
+    )
 
     preflight = _preflight(spec)
     if not preflight["available"]:
@@ -621,13 +909,17 @@ def main(spec: NativeAgentSpec) -> int:
             scratch_root=args.scratch_root,
             timeout_sec=args.timeout_sec,
             simulate=args.simulate,
-            opentrons_python=args.opentrons_python,
-            workspace_root=args.workspace_root,
+            opentrons_python=opentrons_python,
+            workspace_root=workspace_root,
             simulation_timeout_sec=args.simulation_timeout_sec,
             prompt_mode=args.prompt_mode,
             metadata_repair=args.metadata_repair,
             protocol_only=args.protocol_only,
             derive_scaffold_id=args.derive_scaffold_id,
+            simulation_repair_attempts=args.simulation_repair_attempts,
+            repair_api_prefix=args.repair_api_prefix,
+            repair_model=repair_model,
+            repair_max_tokens=args.repair_max_tokens,
             spec=spec,
         )
         records.append(record)

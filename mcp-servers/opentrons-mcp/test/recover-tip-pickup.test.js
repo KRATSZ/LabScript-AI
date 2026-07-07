@@ -138,6 +138,7 @@ test("execute_protocol_recovery retries pickUpTip with fixit and resumes the run
     onPostCommand(payload) {
       assert.equal(payload.data.commandType, "pickUpTip");
       assert.equal(payload.data.intent, "fixit");
+      assert.equal(payload.data.key, "attempt-1:pickUpTip");
       assert.equal(payload.data.params.pipetteId, "pipette-left-1");
       assert.equal(payload.data.params.labwareId, "tiprack-1");
       assert.equal(payload.data.params.wellName, "B1");
@@ -150,6 +151,7 @@ test("execute_protocol_recovery retries pickUpTip with fixit and resumes the run
       run_id: "run-1",
       session_id: "recover-tip-test",
       tiprack_slots: ["C2"],
+      idempotency_key: "attempt-1",
       timeout_ms: 10,
       poll_interval_ms: 1,
     });
@@ -193,6 +195,7 @@ test("execute_protocol_recovery can reissue moveLabware to a chosen alternative 
     onPostCommand(payload) {
       assert.equal(payload.data.commandType, "moveLabware");
       assert.equal(payload.data.intent, "fixit");
+      assert.equal(payload.data.key, "attempt-1:moveLabware");
       assert.equal(payload.data.params.labwareId, "plate-1");
       assert.equal(payload.data.params.newLocation.slotName, "D2");
     },
@@ -204,6 +207,7 @@ test("execute_protocol_recovery can reissue moveLabware to a chosen alternative 
       run_id: "run-1",
       session_id: "recover-move-test",
       destination_slot: "D2",
+      idempotency_key: "attempt-1",
       timeout_ms: 10,
       poll_interval_ms: 1,
     });
