@@ -1,9 +1,8 @@
 cff-version: 1.2.0
 title: LabscriptAI canonical implementation
 message: "If you use this software, please cite it using the metadata from this file."
-version: 1.0.0
+version: "1.0.0"
 date-released: 2026-07-07
-commit: <CANONICAL_COMMIT_HASH>
 license: MIT
 repository-code: "https://github.com/KRATSZ/LabScript-AI/tree/v1.0-canonical"
 doi: 10.5281/zenodo.17697326
