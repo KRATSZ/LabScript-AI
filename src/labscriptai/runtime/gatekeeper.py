@@ -16,6 +16,20 @@ from .actions import (
 from .continuation import validate_continuation_patch
 from .state import RuntimeState
 
+SUPPORTED_RECOVERY_BRANCHES = frozenset(
+    {
+        "retry_pick_up_tip_with_next_candidate",
+        "suggest_new_destination_slot",
+        "wait_and_poll_module_status",
+        "reconcile_state_first",
+        "continuation_patch",
+    }
+)
+
+
+def is_supported_recovery_branch(branch: str) -> bool:
+    return branch in SUPPORTED_RECOVERY_BRANCHES
+
 
 @dataclass(frozen=True)
 class GatekeeperDecision:
@@ -113,13 +127,7 @@ def evaluate_action(action: CandidateAction, state: RuntimeState) -> GatekeeperD
 
     if action.action_type == "execute_recovery_branch":
         branch = action.parameters.get("branch")
-        if branch not in {
-            "retry_pick_up_tip_with_next_candidate",
-            "suggest_new_destination_slot",
-            "wait_and_poll_module_status",
-            "reconcile_state_first",
-            "continuation_patch",
-        }:
+        if not is_supported_recovery_branch(str(branch or "")):
             reasons.append("execute_recovery_branch requires a supported branch")
         if not action.parameters.get("human_confirmed") and autonomy_mode != "auto":
             reasons.append("execute_recovery_branch requires human_confirmed=true")

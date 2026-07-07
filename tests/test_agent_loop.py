@@ -8,9 +8,9 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from labscriptai.runtime.agent_loop import (
+from labscriptai.runtime.llm_queue_planner import (
     ScriptedCandidateProvider,
-    run_offline_loop,
+    plan_action,
 )
 from labscriptai.runtime.state import RuntimeState
 from labscriptai.runtime.trace import TraceWriter
@@ -26,7 +26,7 @@ class AgentLoopTests(unittest.TestCase):
             write_valid_package(package_dir)
             trace_path = root / "trace.jsonl"
 
-            result = run_offline_loop(
+            result = plan_action(
                 initial_state=RuntimeState(run_id="run-1"),
                 package_dir=package_dir,
                 trace_path=trace_path,
@@ -60,7 +60,7 @@ class AgentLoopTests(unittest.TestCase):
             write_valid_package(package_dir)
             trace_path = root / "trace.jsonl"
 
-            result = run_offline_loop(
+            result = plan_action(
                 initial_state=RuntimeState(
                     run_id="run-1",
                     phase="running",
@@ -104,7 +104,7 @@ class AgentLoopTests(unittest.TestCase):
             (package_dir / "setup_card.html").unlink()
             trace_path = root / "trace.jsonl"
 
-            result = run_offline_loop(
+            result = plan_action(
                 initial_state=RuntimeState(run_id="run-1"),
                 package_dir=package_dir,
                 trace_path=trace_path,
@@ -133,7 +133,7 @@ class AgentLoopTests(unittest.TestCase):
             write_valid_package(package_dir)
             trace_path = root / "trace.jsonl"
 
-            result = run_offline_loop(
+            result = plan_action(
                 initial_state=RuntimeState(run_id="run-1"),
                 package_dir=package_dir,
                 trace_path=trace_path,

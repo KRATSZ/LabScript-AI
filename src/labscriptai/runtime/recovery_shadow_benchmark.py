@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .actions import CandidateAction
-from .agent_loop import CandidateProvider, ScriptedCandidateProvider
+from .llm_queue_planner import CandidateProvider, ScriptedCandidateProvider
 from .cases import RuntimeCase, load_cases
 from .gatekeeper import evaluate_action
 from .model_adapter import OpenAICompatibleCandidateProvider, OpenAICompatibleConfig

@@ -8,7 +8,8 @@ from typing import Any, Mapping
 
 from .actions import CandidateAction
 from .adapters.mcp import snapshot_errors
-from .gatekeeper import evaluate_action
+from .gatekeeper import GatekeeperDecision, evaluate_action, is_supported_recovery_branch
+from .llm_queue_planner import CandidateProvider, suggest_action
 from .memory import append_memory_note, count_branch_outcomes, search_memory
 from .recovery_queue import RecoveryQueue
 from .state import RuntimeState
@@ -73,6 +74,63 @@ def _inject_error_observation(
     return state.with_observation(observed)
 
 
+def _deterministic_action(
+    *,
+    branch: str,
+    human_confirmed: bool,
+) -> CandidateAction:
+    return CandidateAction(
+        action_type="execute_recovery_branch",
+        reason=f"Execute MCP-supported recovery branch {branch}.",
+        parameters={"branch": branch, "human_confirmed": human_confirmed},
+        proposed_by="mcp_suggest_recovery_action",
+    )
+
+
+def _deterministic_candidate_viable(
+    *,
+    recovery: Mapping[str, Any],
+    branch: str,
+    auto_execute: bool,
+) -> bool:
+    if not branch:
+        return False
+    if not is_supported_recovery_branch(branch):
+        return False
+    if auto_execute and recovery.get("auto_executable") is False:
+        return False
+    return True
+
+
+def _action_branch(action: CandidateAction) -> str:
+    if action.action_type != "execute_recovery_branch":
+        return ""
+    return str(action.parameters.get("branch") or "")
+
+
+def _execution_suggestion(
+    *,
+    mcp_suggestion: Any,
+    recovery: Mapping[str, Any],
+    action: CandidateAction,
+) -> Mapping[str, Any]:
+    if action.proposed_by == "mcp_suggest_recovery_action" and isinstance(mcp_suggestion, Mapping):
+        return mcp_suggestion
+    branch = _action_branch(action)
+    payload: dict[str, Any] = {"action": branch, "recovery_branch": branch}
+    patch = action.parameters.get("patch")
+    if isinstance(patch, Mapping):
+        payload["patch"] = dict(patch)
+    for key in ("recovery_well", "tiprack_slot", "failed_well", "destination_slot"):
+        if key in action.parameters:
+            payload[key] = action.parameters[key]
+    if recovery:
+        for key in ("recovery_well", "tiprack_slot", "failed_well", "destination_slot"):
+            if key in recovery and key not in payload:
+                payload[key] = recovery[key]
+    return {"data": payload}
+
+
 @dataclass
 class RecoveryOrchestratorConfig:
     auto_execute: bool = False
@@ -83,6 +141,7 @@ class RecoveryOrchestratorConfig:
     memory_min_samples: int = 3
     memory_fail_rate: float = 0.6
     session_id: str | None = None
+    candidate_provider: CandidateProvider | None = None
 
 
 class RecoveryOrchestrator:
@@ -95,6 +154,7 @@ class RecoveryOrchestrator:
         queue: RecoveryQueue,
         state: RuntimeState,
         config: RecoveryOrchestratorConfig,
+        candidate_provider: CandidateProvider | None = None,
     ) -> None:
         self.adapter = adapter
         self.robot_ip = robot_ip
@@ -102,6 +162,49 @@ class RecoveryOrchestrator:
         self.queue = queue
         self.state = state
         self.config = config
+        self.candidate_provider = candidate_provider or config.candidate_provider
+
+    def _resolve_action(
+        self,
+        *,
+        recovery: Mapping[str, Any],
+        branch: str,
+    ) -> tuple[CandidateAction | None, GatekeeperDecision | None, str | None]:
+        human_confirmed = self.config.auto_execute
+
+        if _deterministic_candidate_viable(
+            recovery=recovery,
+            branch=branch,
+            auto_execute=self.config.auto_execute,
+        ):
+            deterministic_action = _deterministic_action(
+                branch=branch,
+                human_confirmed=human_confirmed,
+            )
+            deterministic_decision = evaluate_action(deterministic_action, self.state)
+            if deterministic_decision.approved:
+                return deterministic_action, deterministic_decision, "deterministic"
+
+        if self.candidate_provider is None:
+            if branch and _deterministic_candidate_viable(
+                recovery=recovery,
+                branch=branch,
+                auto_execute=False,
+            ):
+                deterministic_action = _deterministic_action(
+                    branch=branch,
+                    human_confirmed=human_confirmed,
+                )
+                return deterministic_action, evaluate_action(deterministic_action, self.state), "deterministic"
+            return None, None, None
+
+        try:
+            llm_action = suggest_action(self.state, self.candidate_provider)
+        except ValueError:
+            return None, None, None
+        if llm_action is None:
+            return None, None, None
+        return llm_action, evaluate_action(llm_action, self.state), "llm_planner"
 
     def step(self) -> dict[str, Any]:
         snapshot = self.adapter.recovery_snapshot(robot_ip=self.robot_ip, run_id=self.run_id)
@@ -140,39 +243,43 @@ class RecoveryOrchestrator:
                 recovery=recovery if branch else None,
             )
 
-        if not branch:
+        action, decision, action_source = self._resolve_action(recovery=recovery, branch=branch)
+        if action is None or decision is None:
             return {
                 "status": "no_action",
                 "snapshot": snapshot,
                 "parsed_error": parsed_error,
                 "memory_hits": memory_hits,
+                "recovery": recovery if branch else None,
             }
 
-        action = CandidateAction(
-            action_type="execute_recovery_branch",
-            reason=f"Execute MCP-supported recovery branch {branch}.",
-            parameters={"branch": branch, "human_confirmed": self.config.auto_execute},
-            proposed_by="recovery_orchestrator",
-        )
-        decision = evaluate_action(action, self.state)
+        branch = _action_branch(action) or branch
+        common_payload = {
+            "decision": decision.to_dict(),
+            "parsed_error": parsed_error,
+            "recovery": recovery,
+            "memory_hits": memory_hits,
+            "action": action.to_dict(),
+            "action_source": action_source,
+        }
 
         if not decision.approved:
             return {
                 "status": "escalated" if decision.escalated else "blocked",
-                "decision": decision.to_dict(),
-                "parsed_error": parsed_error,
-                "recovery": recovery,
-                "memory_hits": memory_hits,
+                **common_payload,
             }
 
-        if self.config.auto_execute and recovery.get("auto_executable") is False:
+        if action.action_type != "execute_recovery_branch":
+            return {
+                "status": "awaiting_confirmation",
+                **common_payload,
+            }
+
+        if self.config.auto_execute and recovery.get("auto_executable") is False and action_source == "deterministic":
             return {
                 "status": "escalated",
                 "reasons": ("recovery branch is not auto_executable",),
-                "decision": decision.to_dict(),
-                "parsed_error": parsed_error,
-                "recovery": recovery,
-                "memory_hits": memory_hits,
+                **common_payload,
             }
 
         can_attempt, reasons = self.queue.can_attempt(
@@ -184,9 +291,7 @@ class RecoveryOrchestrator:
             return {
                 "status": "escalated",
                 "reasons": list(reasons),
-                "parsed_error": parsed_error,
-                "recovery": recovery,
-                "memory_hits": memory_hits,
+                **common_payload,
             }
 
         memory_outcomes: dict[str, int] | None = None
@@ -208,20 +313,13 @@ class RecoveryOrchestrator:
                             f"{branch}: {fails}/{total} prior outcomes failed"
                         )
                     ],
-                    "decision": decision.to_dict(),
-                    "parsed_error": parsed_error,
-                    "recovery": recovery,
-                    "memory_hits": memory_hits,
                     "memory_outcomes": memory_outcomes,
+                    **common_payload,
                 }
 
         if not self.config.auto_execute:
             return {
                 "status": "awaiting_confirmation",
-                "decision": decision.to_dict(),
-                "parsed_error": parsed_error,
-                "recovery": recovery,
-                "memory_hits": memory_hits,
                 "memory_outcomes": memory_outcomes,
                 "preview": {
                     "branch": branch,
@@ -229,6 +327,7 @@ class RecoveryOrchestrator:
                     "error_leaf": parsed_error.get("error_leaf"),
                     "auto_executable": recovery.get("auto_executable"),
                 },
+                **common_payload,
             }
 
         attempt = self.queue.begin_attempt(
@@ -243,10 +342,15 @@ class RecoveryOrchestrator:
         if self.config.session_id:
             extra_arguments["session_id"] = self.config.session_id
 
+        execution_suggestion = _execution_suggestion(
+            mcp_suggestion=suggestion,
+            recovery=recovery,
+            action=action,
+        )
         result = self.adapter.execute_suggested_recovery(
             robot_ip=self.robot_ip,
             run_id=self.run_id,
-            suggestion=suggestion,
+            suggestion=execution_suggestion,
             extra_arguments=extra_arguments,
         )
         final_status = _unwrap(result.get("data", result)).get("final_run_history", {}).get("status")
@@ -275,10 +379,7 @@ class RecoveryOrchestrator:
         return {
             "status": status,
             "attempt": attempt.to_dict(),
-            "decision": decision.to_dict(),
-            "parsed_error": parsed_error,
-            "recovery": recovery,
             "execution": result,
-            "memory_hits": memory_hits,
             "memory_outcomes": memory_outcomes,
+            **common_payload,
         }

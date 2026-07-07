@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from labscriptai.runtime.actions import CandidateAction
-from labscriptai.runtime.agent_loop import ScriptedCandidateProvider
+from labscriptai.runtime.llm_queue_planner import ScriptedCandidateProvider
 from labscriptai.runtime.cases import RuntimeCase
 from labscriptai.runtime.recovery_shadow_benchmark import (
     assess_shadow_case,

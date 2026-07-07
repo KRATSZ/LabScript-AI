@@ -13,7 +13,7 @@ from typing import Any
 from .actions import CandidateAction
 from .adapters.robot_http import RobotHttpConfig, RobotHttpReadOnlyAdapter
 from .adapters.mcp import McpToolConfig, OpentronsMcpRuntimeAdapter
-from .agent_loop import ScriptedCandidateProvider, run_offline_loop
+from .llm_queue_planner import ScriptedCandidateProvider, plan_action
 from .cases import collect_runtime_cases
 from .chat_controller import RuntimeChatController
 from .gatekeeper import evaluate_action
@@ -495,7 +495,7 @@ def _chat(args: argparse.Namespace) -> int:
     action = CandidateAction.from_mapping(candidate_payload)
     decision = evaluate_action(action, state)
     print(json.dumps({"check": decision.to_dict()}, indent=2, ensure_ascii=False))
-    result = run_offline_loop(
+    result = plan_action(
         initial_state=state,
         package_dir=args.package_dir,
         trace_path=args.trace_path,

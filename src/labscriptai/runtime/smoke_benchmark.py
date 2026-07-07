@@ -18,7 +18,7 @@ from labscriptai.benchmark.tasks import (
 )
 
 from .actions import CandidateAction
-from .agent_loop import CandidateProvider, LoopResult, ScriptedCandidateProvider, run_offline_loop
+from .llm_queue_planner import CandidateProvider, LoopResult, ScriptedCandidateProvider, plan_action
 from .model_adapter import OpenAICompatibleConfig, OpenAICompatibleCandidateProvider
 from .state import RuntimeState
 
@@ -168,7 +168,7 @@ def run_runtime_smoke(
                 trace_path = output_dir / f"{task.task_id}.attempt{attempt}.trace.jsonl"
                 trace_paths.append(trace_path)
                 try:
-                    result = run_offline_loop(
+                    result = plan_action(
                         initial_state=_state_for_task(task),
                         package_dir=package_dir,
                         trace_path=trace_path,

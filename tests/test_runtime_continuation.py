@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from labscriptai.runtime.actions import CandidateAction
-from labscriptai.runtime.agent_loop import ScriptedCandidateProvider, run_offline_loop
+from labscriptai.runtime.llm_queue_planner import ScriptedCandidateProvider, plan_action
 from labscriptai.runtime.continuation import (
     build_ledger_from_run_history,
     validate_continuation_patch,
@@ -128,7 +128,7 @@ class RuntimeContinuationTests(unittest.TestCase):
             trace_path = root / "trace.jsonl"
             patch_log_path = root / "patch_log.jsonl"
 
-            result = run_offline_loop(
+            result = plan_action(
                 initial_state=RuntimeState(run_id="run-1", phase="recovering", robot={"id": "FLX-1"}),
                 package_dir=package_dir,
                 trace_path=trace_path,

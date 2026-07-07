@@ -8,6 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from labscriptai.runtime.actions import CandidateAction
+from labscriptai.runtime.llm_queue_planner import ScriptedCandidateProvider
 from labscriptai.runtime.recovery_orchestrator import RecoveryOrchestrator, RecoveryOrchestratorConfig
 from labscriptai.runtime.memory import append_memory_note
 from labscriptai.runtime.recovery_queue import RecoveryQueue
@@ -282,6 +284,95 @@ class RecoveryOrchestratorTests(unittest.TestCase):
 
             self.assertEqual(summary["status"], "escalated")
             self.assertEqual(adapter.executions, [])
+
+    def test_llm_fallback_when_branch_not_auto_executable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "checkpoint.json"
+            adapter = FakeMcpAdapter(auto_executable=False)
+            provider = ScriptedCandidateProvider(
+                [
+                    CandidateAction(
+                        action_type="request_human_confirmation",
+                        reason="MCP branch needs operator review before retrying.",
+                        parameters={"question": "Replace tip rack and confirm retry?"},
+                        proposed_by="llm_planner",
+                    )
+                ]
+            )
+            orchestrator = RecoveryOrchestrator(
+                adapter=adapter,
+                robot_ip="10.0.0.2",
+                run_id="run-1",
+                queue=RecoveryQueue.load(path),
+                state=RuntimeState(
+                    run_id="run-1",
+                    phase="recovering",
+                    robot={"host": "10.0.0.2", "id": "FLX-1"},
+                    expected={"autonomy_mode": "auto"},
+                ),
+                config=RecoveryOrchestratorConfig(auto_execute=True),
+                candidate_provider=provider,
+            )
+
+            summary = orchestrator.step()
+
+            self.assertEqual(summary["status"], "awaiting_confirmation")
+            self.assertEqual(summary["action_source"], "llm_planner")
+            self.assertEqual(summary["action"]["action_type"], "request_human_confirmation")
+            self.assertEqual(adapter.executions, [])
+
+    def test_llm_fallback_when_branch_unsupported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "checkpoint.json"
+            adapter = FakeMcpAdapter(
+                snapshot={
+                    "parse_error": {
+                        "data": {
+                            "error_leaf": "DESTINATION_OCCUPIED",
+                            "failed_command": {"id": "cmd-failed"},
+                        }
+                    },
+                    "suggest_recovery_action": {
+                        "data": {
+                            "action": "unsupported_custom_branch",
+                            "auto_executable": True,
+                        }
+                    },
+                }
+            )
+            provider = ScriptedCandidateProvider(
+                [
+                    CandidateAction(
+                        action_type="execute_recovery_branch",
+                        reason="Use a known safe destination recovery branch.",
+                        parameters={
+                            "branch": "suggest_new_destination_slot",
+                            "human_confirmed": True,
+                        },
+                        proposed_by="llm_planner",
+                    )
+                ]
+            )
+            orchestrator = RecoveryOrchestrator(
+                adapter=adapter,
+                robot_ip="10.0.0.2",
+                run_id="run-1",
+                queue=RecoveryQueue.load(path),
+                state=RuntimeState(
+                    run_id="run-1",
+                    phase="recovering",
+                    robot={"host": "10.0.0.2", "id": "FLX-1"},
+                    expected={"autonomy_mode": "auto"},
+                ),
+                config=RecoveryOrchestratorConfig(auto_execute=True),
+                candidate_provider=provider,
+            )
+
+            summary = orchestrator.step()
+
+            self.assertEqual(summary["status"], "succeeded")
+            self.assertEqual(summary["action_source"], "llm_planner")
+            self.assertEqual(len(adapter.executions), 1)
 
     def test_memory_note_written_after_success(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

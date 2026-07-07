@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .actions import CandidateAction
-from .agent_loop import CandidateProvider, ScriptedCandidateProvider
+from .llm_queue_planner import CandidateProvider, ScriptedCandidateProvider
 from .gatekeeper import GatekeeperDecision, evaluate_action
 from .model_adapter import OpenAICompatibleConfig, OpenAICompatibleCandidateProvider
 from .state import RuntimeRisk, RuntimeState

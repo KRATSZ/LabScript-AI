@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .actions import CandidateAction
-from .agent_loop import CandidateProvider, ScriptedCandidateProvider, run_offline_loop
+from .llm_queue_planner import CandidateProvider, ScriptedCandidateProvider, plan_action
 from .gatekeeper import GatekeeperDecision, evaluate_action
 from .state import RuntimeState
 
@@ -735,7 +735,7 @@ class RuntimeChatController:
                 context={"intent": "approve_pending", "approved": True, "execution": execution},
                 fallback=ChatMessage("assistant", title, lines),
             )
-        result = run_offline_loop(
+        result = plan_action(
             initial_state=self.state,
             package_dir=self.package_dir,
             trace_path=self.trace_path,

@@ -1,4 +1,4 @@
-"""Minimal offline LabscriptAI runtime loop."""
+"""LLM-backed runtime action planner for the LabscriptAI recovery queue."""
 
 from __future__ import annotations
 
@@ -49,7 +49,19 @@ def _coerce_action(payload: Mapping[str, Any] | CandidateAction) -> CandidateAct
     return CandidateAction.from_mapping(payload)
 
 
-def run_offline_loop(
+def suggest_action(
+    state: RuntimeState,
+    candidate_provider: CandidateProvider,
+) -> CandidateAction | None:
+    """Ask the LLM queue planner for a single candidate recovery action."""
+
+    raw_action = candidate_provider(state)
+    if raw_action is None:
+        return None
+    return _coerce_action(raw_action)
+
+
+def plan_action(
     *,
     initial_state: RuntimeState,
     package_dir: Path | str,
@@ -59,7 +71,7 @@ def run_offline_loop(
     simulation_pass: bool = False,
     patch_log_path: Path | str | None = None,
 ) -> LoopResult:
-    """Run the first offline loop: package validation, candidate action, gate, trace."""
+    """Run the offline planner loop: package validation, candidate action, gate, trace."""
 
     state = initial_state
     writer = TraceWriter(trace_path)
@@ -214,3 +226,7 @@ def run_offline_loop(
         )
     )
     return LoopResult(final_state=state, decisions=tuple(decisions), completed=completed)
+
+
+# Backward-compatible alias for benchmark harnesses migrating to plan_action.
+run_offline_loop = plan_action
