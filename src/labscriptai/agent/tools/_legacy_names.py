@@ -10,6 +10,7 @@ from labscriptai.agent.tools import TOOL_NAMES, ToolCall, ToolName
 LEGACY_TOOL_NAMES: dict[str, tuple[ToolName, dict[str, Any]]] = {
     "read_file": ("package.read_write", {"op": "read"}),
     "write_file": ("package.read_write", {"op": "write"}),
+    "apply_patch": ("package.patch", {}),
     "str_replace": ("package.read_write", {"op": "str_replace"}),
     "json_set": ("package.read_write", {"op": "json_set"}),
     "append_md": ("package.read_write", {"op": "append_md"}),
@@ -22,6 +23,7 @@ LEGACY_TOOL_NAMES: dict[str, tuple[ToolName, dict[str, Any]]] = {
     "recovery_suggest": ("recovery.suggest", {}),
     "run_control": ("run.control", {}),
     "package_read_write": ("package.read_write", {}),
+    "package_patch": ("package.patch", {}),
     "package_validate": ("package.validate", {}),
     "package_simulate": ("package.simulate", {}),
     "skill_search_load": ("skill.search_load", {}),

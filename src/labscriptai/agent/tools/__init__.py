@@ -10,6 +10,7 @@ from labscriptai.runtime.gatekeeper import GatekeeperDecision
 
 ToolName: TypeAlias = Literal[
     "package.read_write",
+    "package.patch",
     "package.validate",
     "package.simulate",
     "robot.inspect",
@@ -97,6 +98,7 @@ def register_default_tools(
 ) -> None:
     from .error_parse import ErrorParseTool
     from .memory_read_write import MemoryReadWriteTool
+    from .package_patch import PackagePatchTool
     from .package_read_write import PackageReadWriteTool
     from .package_simulate import PackageSimulateTool
     from .package_validate import PackageValidateTool
@@ -108,6 +110,7 @@ def register_default_tools(
     from .skill_search_load import SkillSearchLoadTool
 
     registry.register(PackageReadWriteTool(skill_mode=skill_mode, tool_profile=tool_profile))
+    registry.register(PackagePatchTool(skill_mode=skill_mode, tool_profile=tool_profile))
     registry.register(PackageValidateTool())
     registry.register(
         PackageSimulateTool(

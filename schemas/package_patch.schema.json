@@ -20,6 +20,7 @@
     "tool": {
       "enum": [
         "write_file",
+        "apply_patch",
         "str_replace",
         "json_set",
         "append_md",

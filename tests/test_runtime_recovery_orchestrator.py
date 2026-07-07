@@ -299,6 +299,36 @@ class RecoveryOrchestratorTests(unittest.TestCase):
             self.assertIn("TIP_PHYSICALLY_MISSING", note)
             self.assertIn("error_leaf: TIP_PHYSICALLY_MISSING", note)
 
+    def test_error_observation_injects_memory_hits_without_tool_call(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "checkpoint.json"
+            memory_dir = root / "memory"
+            append_memory_note(
+                memory_dir,
+                title="missing tip recovery",
+                body="retry with next candidate tip worked before",
+                tags=("runtime", "recovery", "TIP_PHYSICALLY_MISSING"),
+                metadata={
+                    "branch": "retry_pick_up_tip_with_next_candidate",
+                    "error_leaf": "TIP_PHYSICALLY_MISSING",
+                    "status": "succeeded",
+                },
+            )
+            orchestrator, _adapter = self._orchestrator(path=path, auto_execute=False, memory_dir=memory_dir)
+
+            summary = orchestrator.step()
+
+            self.assertEqual(summary["status"], "awaiting_confirmation")
+            self.assertTrue(summary["memory_hits"])
+            observed = orchestrator.state.observed
+            self.assertEqual(observed["error_leaf"], "TIP_PHYSICALLY_MISSING")
+            self.assertEqual(observed["memory_hits"], summary["memory_hits"])
+            self.assertEqual(
+                observed["recovery_branch"],
+                "retry_pick_up_tip_with_next_candidate",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

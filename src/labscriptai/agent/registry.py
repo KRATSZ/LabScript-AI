@@ -31,7 +31,7 @@ class ToolRegistry:
 
     def list_specs(self, *, mode: Literal["author", "run"]) -> list[dict[str, Any]]:
         if mode == "author":
-            names = ["read_file", "write_file", "str_replace", "json_set", "append_md"]
+            names = ["read_file", "write_file", "apply_patch", "json_set", "append_md"]
             if self.tool_profile in {"simulate", "kb", "kb_strong"}:
                 names.extend(["run_simulate", "validate_package"])
             if self.tool_profile in {"kb", "kb_strong"} and self.skill_mode != "off":
@@ -48,6 +48,7 @@ class ToolRegistry:
                 "recovery.suggest",
                 "run.control",
                 "package.read_write",
+                "package.patch",
                 "package.validate",
                 "package.simulate",
                 "skill.search_load",

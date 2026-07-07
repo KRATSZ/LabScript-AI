@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
+from labscriptai.authoring.diff_edit import DiffEditError, apply_search_replace_diff
 from labscriptai.benchmark.package_validator import validate_package
 from labscriptai.runtime.trace import TraceEvent, TraceWriter, utc_now_iso
 
@@ -59,6 +60,7 @@ class AuthoringToolRegistry:
         self._tools: dict[str, ToolFn] = {
             "read_file": self._read_file,
             "write_file": self._write_file,
+            "apply_patch": self._patch,
             "str_replace": self._str_replace,
             "json_set": self._json_set,
             "append_md": self._append_md,
@@ -109,6 +111,7 @@ class AuthoringToolRegistry:
             )
         if name in {
             "write_file",
+            "apply_patch",
             "str_replace",
             "json_set",
             "append_md",
@@ -127,8 +130,9 @@ class AuthoringToolRegistry:
     @staticmethod
     def _safe_args(arguments: dict[str, Any]) -> dict[str, Any]:
         safe = dict(arguments)
-        if "content" in safe and isinstance(safe["content"], str):
-            safe["content"] = f"<{len(safe['content'])} chars>"
+        for key in ("content", "diff"):
+            if key in safe and isinstance(safe[key], str):
+                safe[key] = f"<{len(safe[key])} chars>"
         return safe
 
     def _read_file(self, arguments: dict[str, Any]) -> ToolResult:
@@ -143,6 +147,35 @@ class AuthoringToolRegistry:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
         return ToolResult(True, {"path": str(path), "bytes": len(content.encode("utf-8"))})
+
+    def _patch(self, arguments: dict[str, Any]) -> ToolResult:
+        path = self._safe_path(str(arguments["path"]))
+        diff_content = str(arguments.get("diff") or arguments.get("content") or "")
+        if not path.exists():
+            return ToolResult(False, {"error": "file not found", "path": str(path)})
+        if not diff_content.strip():
+            return ToolResult(False, {"error": "diff content is required", "path": str(path)})
+        original = path.read_text(encoding="utf-8")
+        try:
+            result = apply_search_replace_diff(original, diff_content)
+        except DiffEditError as exc:
+            return ToolResult(
+                False,
+                {
+                    "error": str(exc),
+                    "path": str(path),
+                    "rejected_count": exc.rejected_count,
+                },
+            )
+        path.write_text(result.content, encoding="utf-8")
+        return ToolResult(
+            True,
+            {
+                "path": str(path),
+                "applied_count": result.applied_count,
+                "rejected_count": result.rejected_count,
+            },
+        )
 
     def _str_replace(self, arguments: dict[str, Any]) -> ToolResult:
         path = self._safe_path(str(arguments["path"]))

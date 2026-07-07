@@ -236,6 +236,21 @@ def _native_tool_specs(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "required": ["path", "content"],
             },
         },
+        "apply_patch": {
+            "description": (
+                "Apply SEARCH/REPLACE diff blocks to a package file. "
+                "Use ------- SEARCH, =======, and +++++++ REPLACE markers."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "diff": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                "required": ["path", "diff"],
+            },
+        },
         "str_replace": {
             "description": "Replace exact text in a package file.",
             "parameters": {
@@ -351,6 +366,20 @@ def _native_tool_specs(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "reason": {"type": "string"},
                 },
                 "required": ["op", "path"],
+            },
+        },
+        "package.patch": {
+            "description": (
+                "Apply SEARCH/REPLACE diff blocks to a file in the current protocol package."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "path": {"type": "string"},
+                    "diff": {"type": "string"},
+                    "reason": {"type": "string"},
+                },
+                "required": ["path", "diff"],
             },
         },
         "package.validate": {

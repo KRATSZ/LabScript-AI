@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import json
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from labscriptai.authoring.protocol_rag import search_protocol_library
 from labscriptai.benchmark.tasks import AuthoringTask
 
 
@@ -306,14 +306,15 @@ def _search_protocols(
     max_items: int,
     compact: bool = False,
 ) -> list[dict[str, str]]:
-    script = repo_root / "skills" / "opentrons-protocol-library" / "scripts" / "search_protocols.py"
-    if not script.exists():
-        return []
     hits: list[dict[str, str]] = []
     seen: set[str] = set()
     for task_type in task_types:
         for query in TASK_TYPE_QUERIES.get(task_type, ()):
-            for hit in _run_protocol_search(script, repo_root, query):
+            try:
+                raw_hits = search_protocol_library(query, repo_root=repo_root, limit=max_items)
+            except (FileNotFoundError, OSError):
+                return []
+            for hit in raw_hits:
                 key = str(hit.get("path") or hit.get("name") or "")
                 if not key or key in seen:
                     continue
@@ -337,24 +338,3 @@ def _search_protocols(
                 if len(hits) >= max_items:
                     return hits
     return hits
-
-
-def _run_protocol_search(script: Path, repo_root: Path, query: str) -> list[dict[str, Any]]:
-    try:
-        completed = subprocess.run(
-            ["uv", "run", "python", str(script), "search", query],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    if completed.returncode != 0:
-        return []
-    try:
-        payload = json.loads(completed.stdout)
-    except json.JSONDecodeError:
-        return []
-    return payload if isinstance(payload, list) else []

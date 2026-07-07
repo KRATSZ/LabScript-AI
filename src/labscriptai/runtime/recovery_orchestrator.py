@@ -32,6 +32,47 @@ def _branch(recovery: Mapping[str, Any]) -> str:
     return str(recovery.get("action") or recovery.get("recovery_branch") or "")
 
 
+def _error_leaf(parsed_error: Mapping[str, Any]) -> str:
+    return str(parsed_error.get("error_leaf") or "").strip()
+
+
+def _memory_query(parsed_error: Mapping[str, Any], branch: str, failed_command_id: str) -> str:
+    return " ".join(
+        part
+        for part in (
+            _error_leaf(parsed_error),
+            branch,
+            failed_command_id,
+        )
+        if part
+    )
+
+
+def _inject_error_observation(
+    state: RuntimeState,
+    *,
+    parsed_error: Mapping[str, Any],
+    memory_hits: list[dict[str, Any]],
+    branch: str = "",
+    recovery: Mapping[str, Any] | None = None,
+) -> RuntimeState:
+    """Merge runtime error context and memory hits into the live observation."""
+
+    observed: dict[str, Any] = {
+        **dict(state.observed),
+        "parsed_error": dict(parsed_error),
+        "memory_hits": memory_hits,
+    }
+    error_leaf = _error_leaf(parsed_error)
+    if error_leaf:
+        observed["error_leaf"] = error_leaf
+    if branch:
+        observed["recovery_branch"] = branch
+    if recovery:
+        observed["recovery"] = dict(recovery)
+    return state.with_observation(observed)
+
+
 @dataclass
 class RecoveryOrchestratorConfig:
     auto_execute: bool = False
@@ -80,14 +121,32 @@ class RecoveryOrchestrator:
         recovery = _unwrap(suggestion)
         branch = _branch(recovery)
         failed_command_id = _failed_command_id(parsed_error)
-
-        if not branch:
-            return {"status": "no_action", "snapshot": snapshot, "parsed_error": parsed_error}
+        error_leaf = _error_leaf(parsed_error)
 
         memory_hits: list[dict[str, Any]] = []
-        if self.config.memory_dir is not None:
-            query = f"{parsed_error.get('error_leaf', '')} {branch} {failed_command_id}"
-            memory_hits = [hit.to_dict() for hit in search_memory(self.config.memory_dir, query)]
+        if error_leaf and self.config.memory_dir is not None:
+            memory_hits = [
+                hit.to_dict()
+                for hit in search_memory(
+                    self.config.memory_dir,
+                    _memory_query(parsed_error, branch, failed_command_id),
+                )
+            ]
+            self.state = _inject_error_observation(
+                self.state,
+                parsed_error=parsed_error,
+                memory_hits=memory_hits,
+                branch=branch,
+                recovery=recovery if branch else None,
+            )
+
+        if not branch:
+            return {
+                "status": "no_action",
+                "snapshot": snapshot,
+                "parsed_error": parsed_error,
+                "memory_hits": memory_hits,
+            }
 
         action = CandidateAction(
             action_type="execute_recovery_branch",

@@ -4,10 +4,20 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Any
+from pathlib import Path
+from typing import Any, Mapping
 
 from labscriptai.agent.registry import ToolRegistry
 from labscriptai.agent.state import AgentState
+from labscriptai.agent.suspend import (
+    SuspendStore,
+    deserialize_agent_state,
+    deserialize_tool_call,
+    new_suspend_id,
+    serialize_agent_state,
+    serialize_tool_call,
+    SuspendedLoopSnapshot,
+)
 from labscriptai.agent.tools import ToolCall, ToolResult
 from labscriptai.runtime.trace import TraceEvent
 
@@ -16,6 +26,8 @@ from labscriptai.runtime.trace import TraceEvent
 class LoopResult:
     final_state: AgentState
     completed: bool
+    suspended: bool = False
+    suspend_id: str | None = None
 
 
 class LabscriptAgentLoop:
@@ -26,22 +38,79 @@ class LabscriptAgentLoop:
         registry: ToolRegistry,
         max_steps: int = 12,
         initial_messages: list[dict[str, Any]] | None = None,
+        suspend_store: SuspendStore | None = None,
+        suspend_dir: Path | str | None = None,
     ) -> None:
         self.client = client
         self.registry = registry
         self.max_steps = max_steps
         self.initial_messages = initial_messages
+        self.suspend_store = suspend_store or SuspendStore()
+        self.suspend_dir = Path(suspend_dir) if suspend_dir is not None else None
         self.messages: list[dict[str, Any]] = []
         self.last_tool_results: list[ToolResult] = []
         self.final_response: dict[str, Any] | None = None
 
     def run(self, state: AgentState) -> LoopResult:
+        self.messages = list(self.initial_messages) if self.initial_messages is not None else _initial_messages(state)
+        return self._execute_loop(state, steps_remaining=self.max_steps)
+
+    def resume_loop(
+        self,
+        suspend_id: str,
+        payload: Mapping[str, Any],
+    ) -> LoopResult:
+        if not bool(payload.get("human_confirmed")):
+            raise ValueError("resume_loop requires human_confirmed=true in payload")
+        snapshot = self.suspend_store.pop(suspend_id, persist_dir=self.suspend_dir)
+        state = deserialize_agent_state(snapshot.state_payload)
+        self.messages = list(snapshot.messages)
+        pending_call = _apply_human_confirmation(
+            deserialize_tool_call(snapshot.pending_call),
+            payload,
+        )
+        self._append_human_confirmation_message(suspend_id, payload)
+        state.trace.append(
+            TraceEvent(
+                run_id=state.run_id,
+                event_type="observation",
+                actor="human",
+                payload={
+                    "suspend_id": suspend_id,
+                    "human_confirmed": True,
+                    **{key: value for key, value in payload.items() if key != "human_confirmed"},
+                },
+                state_hash=state.stable_hash(),
+            )
+        )
+        result = self.registry.call_with_gating(pending_call, state)
+        self.last_tool_results.append(result)
+        state = state.apply(result.state_patch).with_counters(tool_calls=1)
+        self._append_tool_message(pending_call, result)
+        if result.decision and result.decision.blocked:
+            state = state.with_phase("paused")
+        elif result.decision and result.decision.escalated:
+            return self._suspend(state, pending_call, steps_remaining=snapshot.steps_remaining)
+        state.trace.append(
+            TraceEvent(
+                run_id=state.run_id,
+                event_type="state_update",
+                actor="system",
+                payload=state.to_dict(),
+            )
+        )
+        if state.phase in {"aborted", "failed"}:
+            return self._finalize_loop(state, completed=False, suspended=False)
+        if state.mode == "run" and state.phase in {"paused", "completed"}:
+            return self._finalize_loop(state, completed=state.phase == "completed", suspended=False)
+        return self._execute_loop(state, steps_remaining=snapshot.steps_remaining)
+
+    def _execute_loop(self, state: AgentState, *, steps_remaining: int) -> LoopResult:
         completed = False
         state.trace.append(
             TraceEvent(run_id=state.run_id, event_type="state_update", actor="system", payload=state.to_dict())
         )
-        self.messages = list(self.initial_messages) if self.initial_messages is not None else _initial_messages(state)
-        for _ in range(self.max_steps):
+        for step_index in range(steps_remaining):
             response = self.client.complete(self.messages, self.registry.list_specs(mode=state.mode))
             state = state.with_counters(
                 steps=1,
@@ -78,7 +147,8 @@ class LabscriptAgentLoop:
                     break
                 if state.mode == "run" and result.decision and result.decision.escalated:
                     state = state.with_phase("recovering")
-                    break
+                    remaining = steps_remaining - step_index - 1
+                    return self._suspend(state, call, steps_remaining=remaining)
             state.trace.append(
                 TraceEvent(run_id=state.run_id, event_type="state_update", actor="system", payload=state.to_dict())
             )
@@ -88,15 +158,74 @@ class LabscriptAgentLoop:
                 break
         if state.mode == "author":
             completed = state.package_ready and _required_files_exist(state)
+        return self._finalize_loop(state, completed=completed, suspended=False)
+
+    def _suspend(self, state: AgentState, call: ToolCall, *, steps_remaining: int) -> LoopResult:
+        suspend_id = new_suspend_id(run_id=state.run_id)
+        state.trace.append(
+            TraceEvent(
+                run_id=state.run_id,
+                event_type="escalation",
+                actor="system",
+                payload={
+                    "reason": "human confirmation required",
+                    "tool_name": call.name,
+                    "tool_call": call.to_dict(),
+                    "suspend_id": suspend_id,
+                },
+                state_hash=state.stable_hash(),
+            )
+        )
+        snapshot = SuspendedLoopSnapshot(
+            suspend_id=suspend_id,
+            state_payload=serialize_agent_state(state),
+            messages=list(self.messages),
+            pending_call=serialize_tool_call(call),
+            steps_remaining=steps_remaining,
+            initial_messages=list(self.initial_messages) if self.initial_messages is not None else None,
+        )
+        persist_dir = self.suspend_dir
+        if persist_dir is None:
+            persist_dir = state.trace_path.parent / "suspended"
+        self.suspend_store.save(snapshot, persist_dir=persist_dir)
         state.trace.append(
             TraceEvent(
                 run_id=state.run_id,
                 event_type="summary",
                 actor="system",
-                payload={"completed": completed, **state.to_dict()},
+                payload={"completed": False, "suspended": True, "suspend_id": suspend_id, **state.to_dict()},
             )
         )
-        return LoopResult(final_state=state, completed=completed)
+        return LoopResult(final_state=state, completed=False, suspended=True, suspend_id=suspend_id)
+
+    def _finalize_loop(self, state: AgentState, *, completed: bool, suspended: bool) -> LoopResult:
+        state.trace.append(
+            TraceEvent(
+                run_id=state.run_id,
+                event_type="summary",
+                actor="system",
+                payload={"completed": completed, "suspended": suspended, **state.to_dict()},
+            )
+        )
+        return LoopResult(final_state=state, completed=completed, suspended=suspended)
+
+    def _append_human_confirmation_message(self, suspend_id: str, payload: Mapping[str, Any]) -> None:
+        self.messages.append(
+            {
+                "role": "system",
+                "content": json.dumps(
+                    {
+                        "human_confirmation": {
+                            "suspend_id": suspend_id,
+                            "human_confirmed": True,
+                            **{key: value for key, value in payload.items()},
+                        }
+                    },
+                    ensure_ascii=False,
+                    default=str,
+                ),
+            }
+        )
 
     def _finalize(self, state: AgentState, final: dict[str, Any]) -> tuple[AgentState, bool]:
         if state.mode == "author":
@@ -127,6 +256,31 @@ class LabscriptAgentLoop:
                     ),
                 }
             )
+
+
+def resume_loop(
+    loop: LabscriptAgentLoop,
+    suspend_id: str,
+    payload: Mapping[str, Any],
+) -> LoopResult:
+    """Resume a suspended loop after explicit human confirmation."""
+    return loop.resume_loop(suspend_id, payload)
+
+
+def _apply_human_confirmation(call: ToolCall, payload: Mapping[str, Any]) -> ToolCall:
+    arguments = dict(call.arguments)
+    arguments["human_confirmed"] = True
+    for key, value in payload.items():
+        if key == "human_confirmed":
+            continue
+        arguments[key] = value
+    return ToolCall(
+        name=call.name,
+        arguments=arguments,
+        reason=call.reason,
+        proposed_by=call.proposed_by,
+        call_id=call.call_id,
+    )
 
 
 def _initial_messages(state: AgentState) -> list[dict[str, Any]]:

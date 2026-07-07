@@ -129,8 +129,19 @@ def _evaluate_non_runtime(call: ToolCall, state: AgentState) -> GatekeeperDecisi
             reasons.append("error.parse requires raw_error or run_id")
         if call.name == "package.read_write" and op != "read" and "package.write" not in state.permissions:
             reasons.append("package writes are blocked in run mode")
+        if call.name == "package.patch" and "package.write" not in state.permissions:
+            reasons.append("package patches are blocked in run mode")
         if call.name == "shell.run" and "shell.run" not in state.permissions:
             reasons.append("shell.run permission is required")
+    if call.name == "package.patch":
+        path = str(args.get("path", ""))
+        if not path:
+            reasons.append("package.patch requires path")
+        if path.startswith("/") or ".." in path.split("/"):
+            reasons.append("package path must stay inside package_dir")
+        diff = str(args.get("diff") or args.get("content") or "")
+        if not diff.strip():
+            reasons.append("package.patch requires diff content")
     if call.name == "package.read_write":
         path = str(args.get("path", ""))
         if op in {"read", "write", "str_replace", "json_set", "append_md"}:

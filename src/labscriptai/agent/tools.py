@@ -16,6 +16,7 @@ __path__ = [str(Path(__file__).with_suffix(""))]
 
 ToolName: TypeAlias = Literal[
     "package.read_write",
+    "package.patch",
     "package.validate",
     "package.simulate",
     "robot.inspect",
@@ -78,8 +79,9 @@ class ToolResult:
 
 def _safe_args(arguments: Mapping[str, Any]) -> dict[str, Any]:
     safe = dict(arguments)
-    if "content" in safe and isinstance(safe["content"], str):
-        safe["content"] = f"<{len(safe['content'])} chars>"
+    for key in ("content", "diff"):
+        if key in safe and isinstance(safe[key], str):
+            safe[key] = f"<{len(safe[key])} chars>"
     return safe
 
 

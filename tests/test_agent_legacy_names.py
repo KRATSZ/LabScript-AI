@@ -4,14 +4,14 @@ from labscriptai.agent.tools import ToolCall
 
 
 def test_legacy_name_mapping() -> None:
-    cases = {
+    read_write_cases = {
         "read_file": "read",
         "write_file": "write",
         "str_replace": "str_replace",
         "json_set": "json_set",
         "append_md": "append_md",
     }
-    for legacy_name, op in cases.items():
+    for legacy_name, op in read_write_cases.items():
         call = ToolCall.from_model(
             {
                 "name": legacy_name,
@@ -22,6 +22,15 @@ def test_legacy_name_mapping() -> None:
         assert call.arguments["op"] == op
         assert call.arguments["path"] == "protocol.py"
 
+    patch_call = ToolCall.from_model(
+        {
+            "name": "apply_patch",
+            "arguments": {"path": "protocol.py", "diff": "------- SEARCH\nx\n=======\ny\n+++++++ REPLACE\n"},
+        }
+    )
+    assert patch_call.name == "package.patch"
+    assert patch_call.arguments["path"] == "protocol.py"
+
 
 def test_safe_run_tool_name_mapping() -> None:
     cases = {
@@ -30,6 +39,7 @@ def test_safe_run_tool_name_mapping() -> None:
         "recovery_suggest": "recovery.suggest",
         "run_control": "run.control",
         "package_read_write": "package.read_write",
+        "package_patch": "package.patch",
         "package_validate": "package.validate",
         "package_simulate": "package.simulate",
         "skill_search_load": "skill.search_load",
