@@ -1,0 +1,293 @@
+{
+  "runs": {
+    "A_direct": {
+      "label": "Direct (LLM-only, DeepSeek-V4-Pro)",
+      "root": "runs/table1_v2_external66_llm_only_py_official_deepseek",
+      "source_paths": {
+        "summary": "runs/table1_v2_external66_llm_only_py_official_deepseek/summary.json",
+        "analysis": "runs/table1_v2_external66_llm_only_py_official_deepseek/analysis/attribution-summary.json",
+        "review": "runs/table1_v2_external66_llm_only_py_official_deepseek/expert_review/review-summary.json"
+      },
+      "overall": {
+        "n": 66,
+        "fp_composite": 29,
+        "bob_composite": 31,
+        "sim_pass": 34,
+        "validator_pass": 34,
+        "semantic_pass": 58,
+        "param_sweep_pass": 63,
+        "input_tokens": 25252,
+        "output_tokens": 324290,
+        "total_tokens": 349542,
+        "tokens_per_task": 5296.090909090909,
+        "cost_total_usd": 0.29311692,
+        "cost_per_task_usd": 0.004441165454545455,
+        "expert_mean": 3.784848484848485,
+        "expert_n": 66,
+        "expert_subdims": {
+          "task_alignment_score": 3.9545454545454546,
+          "biological_reasonableness_score": 4.196969696969697,
+          "liquid_handling_quality_score": 3.590909090909091,
+          "safety_control_score": 3.8636363636363638,
+          "code_quality_score": 3.3181818181818183
+        },
+        "trace_present": 0,
+        "repair_distribution": {
+          "0": 66
+        }
+      },
+      "subsets": {
+        "EOPL": {
+          "n": 18,
+          "fp_composite": 7,
+          "bob_composite": 7,
+          "sim_pass": 8,
+          "validator_pass": 8,
+          "semantic_pass": 14,
+          "param_sweep_pass": 17,
+          "input_tokens": 7714,
+          "output_tokens": 119979,
+          "total_tokens": 127693,
+          "tokens_per_task": 7094.055555555556,
+          "cost_total_usd": 0.10773732,
+          "cost_per_task_usd": 0.005985406666666667,
+          "expert_mean": 3.5555555555555554,
+          "expert_n": 18,
+          "expert_subdims": {
+            "task_alignment_score": 3.6666666666666665,
+            "biological_reasonableness_score": 3.9444444444444446,
+            "liquid_handling_quality_score": 3.388888888888889,
+            "safety_control_score": 3.7222222222222223,
+            "code_quality_score": 3.0555555555555554
+          },
+          "trace_present": null,
+          "repair_distribution": {
+            "0": 18
+          }
+        },
+        "EOPEN": {
+          "n": 18,
+          "fp_composite": 6,
+          "bob_composite": 7,
+          "sim_pass": 8,
+          "validator_pass": 8,
+          "semantic_pass": 15,
+          "param_sweep_pass": 16,
+          "input_tokens": 8002,
+          "output_tokens": 116530,
+          "total_tokens": 124532,
+          "tokens_per_task": 6918.444444444444,
+          "cost_total_usd": 0.10486197,
+          "cost_per_task_usd": 0.005825665,
+          "expert_mean": 3.8444444444444446,
+          "expert_n": 18,
+          "expert_subdims": {
+            "task_alignment_score": 4.0,
+            "biological_reasonableness_score": 4.166666666666667,
+            "liquid_handling_quality_score": 3.6666666666666665,
+            "safety_control_score": 3.888888888888889,
+            "code_quality_score": 3.5
+          },
+          "trace_present": null,
+          "repair_distribution": {
+            "0": 18
+          }
+        },
+        "EPLR": {
+          "n": 30,
+          "fp_composite": 16,
+          "bob_composite": 17,
+          "sim_pass": 18,
+          "validator_pass": 18,
+          "semantic_pass": 29,
+          "param_sweep_pass": 30,
+          "input_tokens": 9536,
+          "output_tokens": 87781,
+          "total_tokens": 97317,
+          "tokens_per_task": 3243.9,
+          "cost_total_usd": 0.08051763,
+          "cost_per_task_usd": 0.002683921,
+          "expert_mean": 3.8866666666666663,
+          "expert_n": 30,
+          "expert_subdims": {
+            "task_alignment_score": 4.1,
+            "biological_reasonableness_score": 4.366666666666666,
+            "liquid_handling_quality_score": 3.6666666666666665,
+            "safety_control_score": 3.933333333333333,
+            "code_quality_score": 3.3666666666666667
+          },
+          "trace_present": null,
+          "repair_distribution": {
+            "0": 30
+          }
+        }
+      },
+      "top_level": {
+        "provider_events": 2,
+        "final_api_fail": 0,
+        "tool_calls": 0,
+        "simulator_calls": 66,
+        "package_complete": 66,
+        "trace_present_count_toplevel": 0,
+        "model_id": "deepseek-v4-pro"
+      },
+      "review_taskid_key": "task_id",
+      "trace_per_task_key": null
+    },
+    "B_agent": {
+      "label": "LabscriptAI authoring (light)",
+      "root": "runs/table1_v2_external66_unified_py_official_deepseek_pure",
+      "source_paths": {
+        "summary": "runs/table1_v2_external66_unified_py_official_deepseek_pure/summary.json",
+        "analysis": "runs/table1_v2_external66_unified_py_official_deepseek_pure/analysis/attribution-summary.json",
+        "review": "runs/table1_v2_external66_unified_py_official_deepseek_pure/expert_review/review-summary.json"
+      },
+      "overall": {
+        "n": 66,
+        "fp_composite": 47,
+        "bob_composite": 56,
+        "sim_pass": 60,
+        "validator_pass": 60,
+        "semantic_pass": 64,
+        "param_sweep_pass": 64,
+        "input_tokens": 4175137,
+        "output_tokens": 405170,
+        "total_tokens": 4580307,
+        "tokens_per_task": 69398.59090909091,
+        "cost_total_usd": 2.168682495,
+        "cost_per_task_usd": 0.032858825681818186,
+        "expert_mean": 4.3121212121212125,
+        "expert_n": 66,
+        "expert_subdims": {
+          "task_alignment_score": 4.53030303030303,
+          "biological_reasonableness_score": 4.636363636363637,
+          "liquid_handling_quality_score": 4.090909090909091,
+          "safety_control_score": 4.287878787878788,
+          "code_quality_score": 4.015151515151516
+        },
+        "trace_present": 66,
+        "repair_distribution": {
+          "0": 53,
+          "1": 5,
+          "2": 1,
+          "3": 7
+        }
+      },
+      "subsets": {
+        "EOPL": {
+          "n": 18,
+          "fp_composite": 11,
+          "bob_composite": 14,
+          "sim_pass": 15,
+          "validator_pass": 15,
+          "semantic_pass": 17,
+          "param_sweep_pass": 18,
+          "input_tokens": 1329652,
+          "output_tokens": 165227,
+          "total_tokens": 1494879,
+          "tokens_per_task": 83048.83333333333,
+          "cost_total_usd": 0.72214611,
+          "cost_per_task_usd": 0.04011922833333333,
+          "expert_mean": 4.011111111111111,
+          "expert_n": 18,
+          "expert_subdims": {
+            "task_alignment_score": 4.222222222222222,
+            "biological_reasonableness_score": 4.444444444444445,
+            "liquid_handling_quality_score": 3.7777777777777777,
+            "safety_control_score": 4.0,
+            "code_quality_score": 3.611111111111111
+          },
+          "trace_present": null,
+          "repair_distribution": {
+            "0": 12,
+            "1": 2,
+            "3": 4
+          }
+        },
+        "EOPEN": {
+          "n": 18,
+          "fp_composite": 11,
+          "bob_composite": 13,
+          "sim_pass": 15,
+          "validator_pass": 15,
+          "semantic_pass": 18,
+          "param_sweep_pass": 16,
+          "input_tokens": 1500547,
+          "output_tokens": 163194,
+          "total_tokens": 1663741,
+          "tokens_per_task": 92430.05555555556,
+          "cost_total_usd": 0.794716725,
+          "cost_per_task_usd": 0.044150929166666665,
+          "expert_mean": 4.211111111111111,
+          "expert_n": 18,
+          "expert_subdims": {
+            "task_alignment_score": 4.277777777777778,
+            "biological_reasonableness_score": 4.444444444444445,
+            "liquid_handling_quality_score": 4.111111111111111,
+            "safety_control_score": 4.111111111111111,
+            "code_quality_score": 4.111111111111111
+          },
+          "trace_present": null,
+          "repair_distribution": {
+            "0": 13,
+            "1": 1,
+            "2": 1,
+            "3": 3
+          }
+        },
+        "EPLR": {
+          "n": 30,
+          "fp_composite": 25,
+          "bob_composite": 29,
+          "sim_pass": 30,
+          "validator_pass": 30,
+          "semantic_pass": 29,
+          "param_sweep_pass": 30,
+          "input_tokens": 1344938,
+          "output_tokens": 76749,
+          "total_tokens": 1421687,
+          "tokens_per_task": 47389.566666666666,
+          "cost_total_usd": 0.65181966,
+          "cost_per_task_usd": 0.021727322,
+          "expert_mean": 4.553333333333333,
+          "expert_n": 30,
+          "expert_subdims": {
+            "task_alignment_score": 4.866666666666666,
+            "biological_reasonableness_score": 4.866666666666666,
+            "liquid_handling_quality_score": 4.266666666666667,
+            "safety_control_score": 4.566666666666666,
+            "code_quality_score": 4.2
+          },
+          "trace_present": null,
+          "repair_distribution": {
+            "0": 28,
+            "1": 2
+          }
+        }
+      },
+      "top_level": {
+        "provider_events": 3,
+        "final_api_fail": 0,
+        "tool_calls": 538,
+        "simulator_calls": 215,
+        "package_complete": 66,
+        "trace_present_count_toplevel": 66,
+        "model_id": "deepseek-v4-pro"
+      },
+      "review_taskid_key": "task_id",
+      "trace_per_task_key": null
+    }
+  },
+  "subset_names": {
+    "EOPL": "Opentrons Protocol Library",
+    "EOPEN": "OpenPlant source-strict",
+    "EPLR": "PyLabRobot-style"
+  },
+  "pricing": {
+    "model": "deepseek-v4-pro",
+    "usd_per_m": {
+      "input": 0.435,
+      "output": 0.87
+    }
+  }
+}

@@ -186,7 +186,7 @@ Live runs require instrument connectivity, API keys for LLM providers, and adher
 - **Web interface:** [labscriptai.cn](https://labscriptai.cn/)
 - **Citation metadata:** `CITATION.cff` (at canonical release)
 
-Manuscript source (architecture without LangGraph): `.paper/main0706.md` in this dev workspace.
+Manuscript source (working draft): `docs/paper/.laipaper/main0714.md` (supersedes removed `.paper/main0706.md`).
 
 ---
 

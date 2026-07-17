@@ -26,7 +26,7 @@ Frozen task inputs only.
 |------|------|
 | `benchmarks/authoring/` | 90-task main table (`tasks.yaml`, holdout, catalog PDF) |
 | `benchmarks/external_community/` | 66-task external/generalization table + provenance |
-| `benchmarks/runtime/` | Runtime20 recovery cases (`runtime20.yaml`) |
+| `benchmarks/runtime/` | Runtime recovery case banks (Flex15 / HardNest / holdout / Hamilton); results under `runs/runtime-*` |
 
 Run outputs go under `runs/` (gitignored), not here.
 
@@ -43,6 +43,12 @@ Run outputs go under `runs/` (gitignored), not here.
 
 Agent entry: [`../AGENTS.md`](../AGENTS.md). Doc map: [`README.md`](README.md).
 
+## Research / supplement tables
+
+| Path | Role |
+|------|------|
+| `supplementary/` | Paper supplement exports kept in-repo: `runtime_cases*.csv/json` (Flex15 per-case), `table_s2a_external66*` (S2A), `fp_vs_bob_recommendation.md` (metric choice note). Generated/updated by `benchmarks/runtime/build_runtime_cases_supplement.py`; not local scratch. |
+
 ## Optional data
 
 | Path | Role |
@@ -57,6 +63,7 @@ Agent entry: [`../AGENTS.md`](../AGENTS.md). Doc map: [`README.md`](README.md).
 | `artifacts/` | Ad-hoc protocols, camera captures, local inputs |
 | `outputs/` | Generated presentation/document/export artifacts |
 | `backups/`, `protocol_data/` | Local recovery or protocol scratch state |
+| `tmp/` | Local scratch only (docx edit / cite tools / ad-hoc contracts); never commit |
 | root `checkpoint*.json`, `recovery_checkpoint.json`, `error_log_*.csv`, `summary_report_*.csv`, `batch_processing_log*.txt`, `plate_map_summary*.csv`, `sample_transfers*.log` | Local run logs/checkpoints |
 | `artifacts/local-run-logs/` | Archived root runtime logs moved out of repo root |
 | `vision/runs/`, `vision/data/` | Vision training/detection outputs |

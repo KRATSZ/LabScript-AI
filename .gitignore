@@ -11,6 +11,7 @@ __pycache__/
 /outputs/
 /backups/
 /protocol_data/
+/tmp/
 /weights
 /runs/
 /vision/runs/
