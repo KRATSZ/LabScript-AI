@@ -39,7 +39,7 @@ Run outputs go under `runs/` (gitignored), not here.
 | `docs/runbooks/` | Operator procedures |
 | `docs/guides/` | SOP and agent UX |
 | `docs/research/` | Benchmark/paper plans, evidence pointers, HTML dashboards |
-| `docs/paper/` | Manuscript draft |
+| `docs/paper/` | Manuscript materials; map in [`paper/README.md`](paper/README.md). Canonical draft: `paper/.laipaper/main0714.md`. Word/PDF drafts and reference PDFs are local-only (gitignored); keep `zhou-dongzhan-lab-series/` as a sibling of `.laipaper/reference_papers/` |
 
 Agent entry: [`../AGENTS.md`](../AGENTS.md). Doc map: [`README.md`](README.md).
 

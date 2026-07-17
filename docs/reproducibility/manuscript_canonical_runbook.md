@@ -42,7 +42,7 @@ Benchmark shells (`scripts/run_table1_v2_py_benchmark.sh`, native-agent runners)
 | Role | Model / service | Where used |
 |------|-----------------|------------|
 | **Table 1 / Table 2 authoring backbone** | `deepseek-v4-flash` | `scripts/run_table1_v2_py_benchmark.sh` unified mode; ablation rows under `runs/authoring90/ablation5_*` |
-| **Production / Methods LLM operations** | Gemini 2.5 Pro via OpenRouter API | Web product and Methods description (`.paper/main0706.md` Online Methods) |
+| **Production / Methods LLM operations** | Gemini 2.5 Pro via OpenRouter API | Web product and Methods description (`docs/paper/.laipaper/main0714.md` Online Methods) |
 | **CODE_EXAMPLES retrieval** | Qwen3-Embedding-8B in Chroma DB | Knowledge-base RAG in unified authoring |
 
 Table rebuild from cached artifacts does **not** call any LLM. Live re-runs require API keys (Section 5).

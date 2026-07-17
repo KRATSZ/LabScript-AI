@@ -52,3 +52,11 @@ scripts/local/**
 !scripts/local/run_repair_edit_smoke.py
 scripts/tmp/
 scripts/__pycache__/
+
+# Paper binaries — md is source of truth (see docs/paper/README.md)
+docs/paper/**/*.docx
+docs/paper/**/*.pdf
+docs/paper/.laipaper/archive/
+docs/paper/.laipaper/.*-done
+docs/paper/.laipaper/__pycache__/
+

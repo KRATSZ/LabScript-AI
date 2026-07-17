@@ -90,4 +90,4 @@ Frozen row roots are hard-coded in `scripts/build_table1_v2.py` (under `runs/`).
 ## LLM stack note
 
 - **Benchmark backbone (Tables 1–2):** `deepseek-v4-flash`
-- **Methods / product stack:** Gemini 2.5 Pro via OpenRouter; Qwen3-Embedding-8B + Chroma for CODE_EXAMPLES RAG (see `.paper/main0706.md` Online Methods)
+- **Methods / product stack:** Gemini 2.5 Pro via OpenRouter; Qwen3-Embedding-8B + Chroma for CODE_EXAMPLES RAG (see `docs/paper/.laipaper/main0714.md` Online Methods)
