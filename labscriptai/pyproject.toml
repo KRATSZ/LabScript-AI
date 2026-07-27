@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "labscriptai"
+version = "0.1.0"
+description = "LabscriptAI lean agent (5-tool loop: chat, doctor, recover)"
+readme = { text = "See repo-root README_AGENT_MIN.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+# Colleague install: `cd labscriptai && pip install -e .` then `labscriptai …`
+# Do not install this package and `core/` into the same venv (both claim this script).
+labscriptai = "labscriptai.agent.cli:main"
+
+[tool.setuptools]
+packages = ["labscriptai", "labscriptai.agent"]
+include-package-data = true
+
+[tool.setuptools.package-dir]
+"labscriptai" = "."
+"labscriptai.agent" = "agent"
+
+# Ship skills + MCP sources with the wheel/sdist. node_modules stays out
+# (exclude-package-data + .gitignore); colleagues run `npm install` under plugins/mcp.
+[tool.setuptools.package-data]
+labscriptai = [
+  "plugins/SOURCE_MCP.md",
+  "plugins/__init__.py",
+  "plugins/skills/*.md",
+  "plugins/mcp/__init__.py",
+  "plugins/mcp/opentrons-mcp/index.js",
+  "plugins/mcp/opentrons-mcp/package.json",
+  "plugins/mcp/opentrons-mcp/package-lock.json",
+  "plugins/mcp/opentrons-mcp/README.md",
+  "plugins/mcp/opentrons-mcp/.gitignore",
+  "plugins/mcp/opentrons-mcp/lib/**/*.js",
+  "plugins/mcp/opentrons-mcp/scripts/**/*",
+  "plugins/mcp/opentrons-mcp/examples/**/*",
+]
+
+[tool.setuptools.exclude-package-data]
+labscriptai = [
+  "plugins/mcp/*/node_modules",
+  "plugins/mcp/*/node_modules/*",
+  "plugins/mcp/*/node_modules/**/*",
+  "qa_artifacts",
+  "qa_artifacts/*",
+  "*.egg-info",
+  "*.egg-info/*",
+  ".pytest_cache",
+  ".pytest_cache/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Repo-root parent so `import labscriptai` resolves without editable install.
+pythonpath = [".."]

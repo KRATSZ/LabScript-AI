@@ -85,6 +85,7 @@ The bundled **833-protocol reference catalog** (`reference-protocols/`) is Opent
 
 | Layer | Paths |
 |-------|--------|
+| **Lean agent CLI** | `labscriptai/` — 5-tool chat/doctor/recover for live Flex (**install this** for colleague runs; see [`README_AGENT_MIN.md`](README_AGENT_MIN.md)) |
 | **Python core** | `src/labscriptai/` — agent loop, runtime, benchmark, IR |
 | **MCP instrument bridge** | `mcp-servers/opentrons-mcp/` — simulation gate, live control, recovery tools (one concrete backend) |
 | **Operator skills** | `skills/*/SKILL.md` — scenario routing for agents and humans |
@@ -94,6 +95,18 @@ The bundled **833-protocol reference catalog** (`reference-protocols/`) is Opent
 | **Local outputs** | `runs/`, `artifacts/` (gitignored; shard bundle via Zenodo) |
 
 Map: [`docs/REPO_LAYOUT.md`](docs/REPO_LAYOUT.md)
+
+### Lean agent (colleague install)
+
+```bash
+cd labscriptai && pip install -e .
+# once, for robot tools:
+(cd plugins/mcp/opentrons-mcp && npm install)
+labscriptai doctor --robot <ROBOT_IP>
+labscriptai chat --provider offline
+```
+
+Use a dedicated venv — do not install `core/` alongside (both claim the `labscriptai` script).
 
 ---
 

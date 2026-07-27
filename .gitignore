@@ -22,6 +22,12 @@ __pycache__/
 /labagentyolo/
 node_modules/
 mcp-servers/**/node_modules/
+labscriptai/**/node_modules/
+labscriptai/**/*.egg-info/
+labscriptai/.pytest_cache/
+labscriptai/qa_artifacts/
+labscriptai/dist/
+labscriptai/build/
 mcp-servers/opentrons-mcp/data/session-state/
 mcp-servers/opentrons-mcp/data/result-logs/
 mcp-servers/opentrons-mcp/data/tmp/

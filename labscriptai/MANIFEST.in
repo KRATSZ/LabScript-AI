@@ -1,0 +1,8 @@
+# Ensure plugins land in the sdist; never ship node_modules or QA dumps.
+recursive-include plugins *
+prune plugins/mcp/opentrons-mcp/node_modules
+global-exclude *.pyc
+global-exclude __pycache__/*
+prune qa_artifacts
+prune labscriptai.egg-info
+prune .pytest_cache
