@@ -1,181 +1,87 @@
 # LabscriptAI
 
-**Execution-aware agent framework for liquid-handling laboratory automation**
+**Execution-aware agent for liquid-handling laboratory automation**
 
-将自然语言实验意图转化为可验证、可执行、可审计的移液工作站脚本，并在物理运行中支持策略约束下的自恢复。
+将自然语言实验意图转化为可验证、可执行的移液工作站脚本，并在物理运行中支持策略约束下的恢复。
 
 [![Canonical release](https://img.shields.io/github/v/tag/KRATSZ/LabScript-AI?label=v1.0-canonical)](https://github.com/KRATSZ/LabScript-AI/releases/tag/v1.0-canonical)
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.17697326.svg)](https://doi.org/10.5281/zenodo.17697326)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Live web UI:** [labscriptai.cn](https://labscriptai.cn/) — interactive authoring frontend (not the benchmark runner).
+**Live web UI:** [labscriptai.cn](https://labscriptai.cn/)
 
 ---
 
-## Why LabscriptAI
+## Install (colleagues — start here)
 
-Liquid-handling robots are the workhorses of modern biology: serial dilutions, plate mapping, sample prep, enzyme screens, kit assembly, and foundry-scale distribution. Yet most teams still depend on bespoke scripting—Python APIs, vendor worklists, deck layouts, and simulator quirks—that excludes researchers who think in protocols, not code.
-
-LabscriptAI closes that gap with a **platform-agnostic automation stack**:
-
-- **Authoring** — natural language and SOPs become simulator-validated execution packages through an LLM-driven loop with targeted repair (Precise Refactoring Engine), not wholesale regeneration.
-- **Runtime** — instrument state is polled over standard control interfaces; recovery actions pass through a deterministic **Gatekeeper** before any command reaches hardware; successes are logged to trace and case memory for reuse.
-- **Cross-vendor scope** — the architecture targets **liquid-handling workstations** broadly (benchtop pipetting robots, integrated deck systems, and biofoundry cells), with concrete adapters and simulators for Opentrons, Hamilton, and Tecan Fluent today and an IR layer designed for extension.
-- **Responsible automation** — biosecurity screening, human-in-the-loop checkpoints, and simulation-first gates are first-class, not bolt-ons.
-
-This repository is the **canonical Python implementation** behind the LabscriptAI manuscript benchmark (90-task liquid-handling evaluation, Tables 1–2). It is maintained in sync with the public release branch on [KRATSZ/LabScript-AI](https://github.com/KRATSZ/LabScript-AI/tree/manuscript) (`v1.0-canonical`).
-
----
-
-## System architecture
-
-Two coupled **deterministic Python control loops** share protocol knowledge, run traces, and recovery case memory:
-
-```
-Natural language / SOP
-        │
-        ▼
-┌───────────────────────────────────────┐
-│  Authoring loop (LabscriptAgentLoop)  │
-│  LLM ↔ ToolRegistry · simulators      │
-│  PRE search/replace repair            │
-│  → execution package                  │
-└───────────────────────────────────────┘
-        │
-        ▼
-┌───────────────────────────────────────┐
-│  Runtime loop (RecoveryOrchestrator)  │
-│  HTTP/MCP state · error parse         │
-│  Gatekeeper approve/block/escalate    │
-│  trace.json · case memory             │
-└───────────────────────────────────────┘
-        │
-        ▼
-   Liquid-handling workstation
-```
-
-| Component | Role |
-|-----------|------|
-| `LabscriptAgentLoop` | Turn-based authoring: write packages, validate in platform simulators, iterate until pass or retry limit |
-| `RecoveryOrchestrator` + `RecoveryQueue` | Poll runs, propose recovery branches, idempotent retries, episodic memory |
-| `Gatekeeper` | Deterministic policy on every candidate action before hardware |
-| `ToolRegistry` + MCP/HTTP adapters | Pluggable instrument backends; one agent surface, multiple vendors |
-| `benchmarks/` + `scripts/` | Reproducible evaluation harness (manuscript Tables 1–2) |
-
-Full design: [`docs/architecture/architecture.md`](docs/architecture/architecture.md) · Agent entry: [`AGENTS.md`](AGENTS.md)
-
----
-
-## Supported platforms
-
-LabscriptAI is **not** a single-vendor driver. It is built for **liquid-handling workstations** as a class of instrument:
-
-| Class | Examples in tree | Validation path |
-|-------|------------------|-----------------|
-| Benchtop pipetting robots | Opentrons OT-2, Flex | `opentrons_simulate` |
-| High-throughput integrated decks | Hamilton Vantage | PyLabRobot / PyHamilton |
-| Biofoundry liquid handlers | Tecan Fluent | pyFluent → worklist compilation |
-| Extensible IR | `src/labscriptai/ir/` | Compile/export to vendor targets |
-
-The bundled **833-protocol reference catalog** (`reference-protocols/`) is Opentrons-shaped today—a practical seed library—not a statement that the framework is Opentrons-only. New backends plug in at the adapter and simulator layer without rewriting the agent loops.
-
----
-
-## Repository layout
-
-| Layer | Paths |
-|-------|--------|
-| **Lean agent CLI** | `labscriptai/` — 5-tool chat/doctor/recover for live Flex (**install this** for colleague runs; see [`README_AGENT_MIN.md`](README_AGENT_MIN.md)) |
-| **Python core** | `src/labscriptai/` — agent loop, runtime, benchmark, IR |
-| **MCP instrument bridge** | `mcp-servers/opentrons-mcp/` — simulation gate, live control, recovery tools (one concrete backend) |
-| **Operator skills** | `skills/*/SKILL.md` — scenario routing for agents and humans |
-| **Benchmark tasks** | `benchmarks/` — frozen YAML task suites |
-| **Reproducibility** | `docs/reproducibility/` — manuscript runbook, freeze record, Zenodo metadata |
-| **Policy & runbooks** | `docs/rules/`, `docs/runbooks/` |
-| **Local outputs** | `runs/`, `artifacts/` (gitignored; shard bundle via Zenodo) |
-
-Map: [`docs/REPO_LAYOUT.md`](docs/REPO_LAYOUT.md)
-
-### Lean agent (colleague install)
-
-```bash
-cd labscriptai && pip install -e .
-# once, for robot tools:
-(cd plugins/mcp/opentrons-mcp && npm install)
-labscriptai doctor --robot <ROBOT_IP>
-labscriptai chat --provider offline
-```
-
-Use a dedicated venv — do not install `core/` alongside (both claim the `labscriptai` script).
-
----
-
-## Skills (operator routing)
-
-| Skill | When to use |
-|-------|-------------|
-| `opentrons-experiment-run` | Default live execution, status, resume, recovery |
-| `opentrons-experiment-intent-review` | Plate mapping, tip strategy, deck alignment before authoring |
-| `opentrons-protocol-author` | Write or revise Python protocols |
-| `opentrons-protocol-verify` | Local doctor / analyze / simulate (no MCP) |
-| `opentrons-simulation-repair` | Simulate → parse → edit loop |
-| `opentrons-protocol-library` | Search the 833-protocol catalog |
-| `opentrons-robot-lan` | HTTP route when MCP unavailable or for debug |
-
-Skill folder names retain historical `opentrons-*` prefixes; behavior is defined by [`docs/rules/workflows.md`](docs/rules/workflows.md) and extends to additional liquid-handler backends as adapters land.
-
----
-
-## Quick start
+The installable entrypoint is the lean package under **`labscriptai/`** (5-tool loop: `bash`, `edit`, `robot`, `memory`, `skill`). Use a **fresh venv**:
 
 ```bash
 git clone https://github.com/KRATSZ/LabScript-AI.git
 cd LabScript-AI
-git checkout v1.0-canonical
+git checkout manuscript
 
-uv venv .venv && uv sync
-cd mcp-servers/opentrons-mcp && npm install && cd ../..
+cd labscriptai
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+# robot act/status needs Node deps once:
+(cd plugins/mcp/opentrons-mcp && npm install)
 
-# Tests
-uv run pytest
-cd mcp-servers/opentrons-mcp && npm test
+labscriptai doctor --robot <ROBOT_IP>
+labscriptai chat --provider offline
+# or: labscriptai chat --provider deepseek --robot <ROBOT_IP>
 ```
 
-**Reproduce manuscript Tables 1–2 without LLM calls** (requires Zenodo `runs/` shard bundle):
+Details: [`README_AGENT_MIN.md`](README_AGENT_MIN.md). Env: `DEEPSEEK_API_KEY` (optional). MCP override: `LABSCRIPTAI_MCP_INDEX`.
 
-```bash
-PYTHONPATH=src uv run python scripts/build_table1_v2.py
-```
-
-Step-by-step: [`docs/reproducibility/manuscript_canonical_runbook.md`](docs/reproducibility/manuscript_canonical_runbook.md)
-
-### Development clone (this workspace)
-
-```bash
-git clone https://github.com/SmartisanNaive/Opentrons-Lab-Agent.git
-cd Opentrons-Lab-Agent
-uv venv .venv && uv sync
-```
+Do **not** install local `core/` into the same venv (both claim the `labscriptai` console script).
 
 ---
 
-## Example commands
+## What this branch ships
 
-```bash
-# Local runtime smoke (no robot API)
-PYTHONPATH=src uv run python -m labscriptai.runtime.smoke_benchmark \
-  --provider offline --output-dir runs/runtime-smoke/offline-demo
+| Path | Role |
+|------|------|
+| **`labscriptai/`** | Lean CLI agent + vendored MCP under `plugins/mcp/` + skills under `plugins/skills/` |
+| `src/labscriptai/` | Historical runtime / IR baseline (not required for colleague CLI install) |
+| `docs/` | Rules, architecture, reproducibility notes |
+| Root meta | `README.md`, `README_AGENT_MIN.md`, `AGENTS.md`, `CITATION.cff`, `.env.example` |
 
-# Small authoring pilot with simulation
-PYTHONPATH=src uv run python -m labscriptai.benchmark.authoring_pilot \
-  --provider offline --simulate --limit 3 \
-  --output-dir runs/authoring-pilot/offline-sim-demo
+**Removed from this branch (not needed to run CLI or live Flex):** evaluation corpora under `benchmarks/`, the 833-protocol `reference-protocols/` tree, duplicate root `mcp-servers/`, root `skills/` / `scripts/` / `tests/` / `schemas/`, `vision/`, and `supplementary/`. Local leftovers stay gitignored so they are not re-added by mistake. Manuscript evaluation shards remain on [Zenodo](https://doi.org/10.5281/zenodo.17697326).
 
-# Search reference protocols
-uv run python skills/opentrons-protocol-library/scripts/search_protocols.py search "serial dilution"
+---
+
+## Repository layout (lean)
+
+```
+labscriptai/           # pip install -e .  ← colleague entry
+  agent/               # llm, gate, tools, loop, cli
+  plugins/
+    skills/*.md
+    mcp/opentrons-mcp/ # vendored Node MCP (npm install locally)
+  tests/
+src/labscriptai/       # retained baseline library
+docs/rules/            # safety / workflows / error-response
 ```
 
-Live runs require instrument connectivity, API keys for LLM providers, and adherence to [`docs/rules/safety-policy.md`](docs/rules/safety-policy.md).
+Agent entry for operators: [`AGENTS.md`](AGENTS.md) → points at `labscriptai/`.
+
+---
+
+## MCP (Cursor / IDE)
+
+Vendored server path (after clone):
+
+```json
+{
+  "mcpServers": {
+    "opentrons-lab": {
+      "command": "node",
+      "args": ["labscriptai/plugins/mcp/opentrons-mcp/index.js"]
+    }
+  }
+}
+```
 
 ---
 
@@ -183,47 +89,20 @@ Live runs require instrument connectivity, API keys for LLM providers, and adher
 
 | Document | Role |
 |----------|------|
-| [`docs/README.md`](docs/README.md) | Doc map and priority |
-| [`docs/rules/workflows.md`](docs/rules/workflows.md) | End-to-end tool order |
-| [`docs/rules/safety-policy.md`](docs/rules/safety-policy.md) | Hard bans, deck truth, vision tiering |
-| [`docs/rules/error-response.md`](docs/rules/error-response.md) | Error taxonomy and recovery |
-| [`docs/reproducibility/`](docs/reproducibility/) | Manuscript reproduction |
-| [`docs/architecture/architecture.md`](docs/architecture/architecture.md) | Layer diagram (text) |
+| [`README_AGENT_MIN.md`](README_AGENT_MIN.md) | Lean agent install & layout |
+| [`docs/rules/safety-policy.md`](docs/rules/safety-policy.md) | Hard bans, deck truth |
+| [`docs/rules/workflows.md`](docs/rules/workflows.md) | Tool order |
+| [`docs/rules/error-response.md`](docs/rules/error-response.md) | Error taxonomy / recovery |
+| [`docs/architecture/architecture.md`](docs/architecture/architecture.md) | Layer overview |
+| [`docs/reproducibility/`](docs/reproducibility/) | Manuscript / Zenodo notes |
 
 ---
 
 ## Citation & data
 
-- **Code (canonical):** [github.com/KRATSZ/LabScript-AI/tree/v1.0-canonical](https://github.com/KRATSZ/LabScript-AI/tree/v1.0-canonical) — branch `manuscript`, tag `v1.0-canonical`
-- **Data & benchmark shards:** [Zenodo 10.5281/zenodo.17697326](https://doi.org/10.5281/zenodo.17697326)
-- **Web interface:** [labscriptai.cn](https://labscriptai.cn/)
-- **Citation metadata:** `CITATION.cff` (at canonical release)
-
-Manuscript source (working draft): `docs/paper/.laipaper/main0714.md` (supersedes removed `.paper/main0706.md`).
-
----
-
-## Using as a dependency
-
-### Git submodule
-
-```bash
-git submodule add https://github.com/KRATSZ/LabScript-AI.git labscriptai
-cd labscriptai && git checkout v1.0-canonical
-```
-
-### MCP server only
-
-```json
-{
-  "mcpServers": {
-    "opentrons-lab": {
-      "command": "node",
-      "args": ["/path/to/mcp-servers/opentrons-mcp/index.js"]
-    }
-  }
-}
-```
+- **Code:** [github.com/KRATSZ/LabScript-AI](https://github.com/KRATSZ/LabScript-AI/tree/manuscript) — branch `manuscript`
+- **Benchmark / shard data (archived):** [Zenodo 10.5281/zenodo.17697326](https://doi.org/10.5281/zenodo.17697326)
+- **Citation metadata:** `CITATION.cff`
 
 ---
 

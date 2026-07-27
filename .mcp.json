@@ -3,7 +3,7 @@
     "opentrons-lab": {
       "command": "node",
       "args": [
-        "mcp-servers/opentrons-mcp/index.js"
+        "labscriptai/plugins/mcp/opentrons-mcp/index.js"
       ]
     },
     "opentrons-docs": {

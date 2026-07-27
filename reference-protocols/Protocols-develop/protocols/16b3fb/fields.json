@@ -1,8 +1,0 @@
-[
-    {
-        "type": "float",
-        "label": "filling volume (in ul)",
-        "name": "vol_bulb",
-        "default": 150.0
-    }
-]

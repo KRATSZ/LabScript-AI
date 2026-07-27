@@ -1,8 +1,0 @@
-[
-  {
-    "type": "int",
-    "label": "Number of plates to fill (starting from slot 4)",
-    "name": "num_plates",
-    "default": 8
-  }
-]

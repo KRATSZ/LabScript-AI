@@ -1,5 +1,7 @@
-# Opentrons-Lab-Agent
+# LabscriptAI
 
-Use [AGENTS.md](AGENTS.md) as the primary instruction entrypoint for this repository.
+Use [AGENTS.md](AGENTS.md) as the primary instruction entrypoint.
 
-Runtime policy: `docs/rules/` only. Map and priority: [docs/README.md](docs/README.md). Do not treat `docs/research/` or `docs/guides/` as overriding rules.
+Colleague / live Flex entrypoint: **`labscriptai/`** (`cd labscriptai && pip install -e .`). Details: [README_AGENT_MIN.md](README_AGENT_MIN.md).
+
+Runtime policy: `docs/rules/` only. Map: [docs/README.md](docs/README.md). Do not treat `docs/research/` or `docs/guides/` as overriding rules.
