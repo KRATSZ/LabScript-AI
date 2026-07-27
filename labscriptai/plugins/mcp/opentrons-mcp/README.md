@@ -2,16 +2,14 @@
 
 This folder contains the canonical MCP server for `Opentrons-Lab-Agent`: local simulation, live robot control, session/restart helpers, and optional vision.
 
-## Canonical repo documentation
+## Operator docs (lean agent)
 
 | Topic | Path |
 |-------|------|
-| Workflows | [`../../docs/rules/workflows.md`](../../docs/rules/workflows.md) |
-| Safety policy | [`../../docs/rules/safety-policy.md`](../../docs/rules/safety-policy.md) |
-| Errors, recovery branches, Phase 2/4 policy | [`../../docs/rules/error-response.md`](../../docs/rules/error-response.md) |
-| Architecture | [`../../docs/architecture/architecture.md`](../../docs/architecture/architecture.md) |
-
-Do not duplicate long policy text here; link the files above.
+| Install / CLI | [`../../../../README.md`](../../../../README.md) |
+| Safety brief | [`../../skills/safety-brief.md`](../../skills/safety-brief.md) |
+| Error taxonomy | [`../../skills/error-taxonomy.md`](../../skills/error-taxonomy.md) |
+| Recovery playbooks | [`../../skills/recovery-playbooks.md`](../../skills/recovery-playbooks.md) |
 
 ## Why this server exists
 
@@ -67,7 +65,7 @@ See `index.js` for the authoritative tool list and schemas.
 
 ## Recovery policy (Phase 2 / Phase 4)
 
-Full rules and the error table live in [`../../docs/rules/error-response.md`](../../docs/rules/error-response.md).
+Full rules and the error table live in [`../../skills/error-taxonomy.md`](../../skills/error-taxonomy.md) and [`../../skills/recovery-playbooks.md`](../../skills/recovery-playbooks.md).
 
 ## Real Response Samples
 
@@ -158,7 +156,7 @@ npm test
 
 ### What the tests prove
 
-Policy mapping: [`../../docs/rules/error-response.md`](../../docs/rules/error-response.md).
+Policy mapping: [`../../skills/error-taxonomy.md`](../../skills/error-taxonomy.md).
 
 | Area | Primary test files |
 |------|-------------------|

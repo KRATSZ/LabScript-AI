@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "labscriptai"
 version = "0.1.0"
 description = "LabscriptAI lean agent (5-tool loop: chat, doctor, recover)"
-readme = { text = "See repo-root README_AGENT_MIN.md", content-type = "text/markdown" }
+readme = { text = "See repo-root README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = { text = "MIT" }
 dependencies = []

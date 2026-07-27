@@ -9,6 +9,8 @@ __pycache__/
 .DS_Store
 
 # Local bulk / eval leftovers (stripped from manuscript; do not re-add)
+/src/
+/docs/
 /benchmarks/
 /reference-protocols/
 /mcp-servers/
@@ -73,10 +75,3 @@ labscriptai/build/
 /backup_*.json
 /error_log_*.csv
 /summary_report_*.csv
-
-# Paper binaries — md is source of truth (see docs/paper/README.md)
-docs/paper/**/*.docx
-docs/paper/**/*.pdf
-docs/paper/.laipaper/archive/
-docs/paper/.laipaper/.*-done
-docs/paper/.laipaper/__pycache__/

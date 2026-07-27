@@ -1,6 +1,6 @@
 # Safety brief (skill)
 
-Compressed from `docs/rules/safety-policy.md` + recovery hard stops. Non-negotiable.
+Compressed safety + recovery hard stops for the lean agent. Non-negotiable.
 
 ## Hard bans
 
