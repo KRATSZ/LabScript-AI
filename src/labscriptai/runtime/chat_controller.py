@@ -11,7 +11,8 @@ from typing import Any
 
 from .actions import CandidateAction
 from .llm_queue_planner import CandidateProvider, ScriptedCandidateProvider, plan_action
-from .gatekeeper import GatekeeperDecision, evaluate_action
+from .current_policy import evaluate_runtime_action
+from .gatekeeper import GatekeeperDecision
 from .state import RuntimeState
 
 StatusLoader = Callable[[], tuple[RuntimeState, Mapping[str, Any] | None]]
@@ -568,7 +569,7 @@ class RuntimeChatController:
             title = "恢复方案格式错误" if language == "zh" else "Invalid recovery plan"
             return ChatResponse((ChatMessage("error", title, (str(exc),)),))
 
-        decision = evaluate_action(action, state)
+        decision = evaluate_runtime_action(action, state)
         self.pending_action = action
         self.pending_decision = decision
         fallback_messages = [self.action_message(action, decision, language=language)]
@@ -651,7 +652,7 @@ class RuntimeChatController:
                 context={"intent": "check_pending", "has_pending_plan": False},
                 fallback=ChatMessage("assistant", title, (line,)),
             )
-        self.pending_decision = evaluate_action(self.pending_action, self.state)
+        self.pending_decision = evaluate_runtime_action(self.pending_action, self.state)
         return self.model_chat(
             "is the current recovery plan okay?",
             language=language,
@@ -679,7 +680,7 @@ class RuntimeChatController:
                 fallback=ChatMessage("warning", title, (line,)),
             )
         action = self._with_human_confirmation(self.pending_action)
-        decision = evaluate_action(action, self.state)
+        decision = evaluate_runtime_action(action, self.state)
         self.pending_decision = decision
         if not decision.approved:
             title = "不能执行" if language == "zh" else "Cannot Execute"

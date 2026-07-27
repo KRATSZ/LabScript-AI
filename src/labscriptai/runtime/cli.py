@@ -16,14 +16,17 @@ from .adapters.mcp import McpToolConfig, OpentronsMcpRuntimeAdapter
 from .llm_queue_planner import ScriptedCandidateProvider, plan_action
 from .cases import collect_runtime_cases
 from .chat_controller import RuntimeChatController
-from .gatekeeper import evaluate_action
+from .current_policy import evaluate_runtime_action
 from .memory import append_memory_note, search_memory
 from .model_adapter import OpenAICompatibleCandidateProvider, OpenAICompatibleChatProvider, OpenAICompatibleConfig
 from .recovery_orchestrator import RecoveryOrchestrator, RecoveryOrchestratorConfig
 from .recovery_queue import RecoveryQueue
 from .recovery_shadow_benchmark import (
+    deepseek_flex15_provider_factory,
     deepseek_provider_factory,
     offline_provider_for_case,
+    offline_provider_for_flex15,
+    run_flex15_shadow_benchmark,
     run_shadow_benchmark,
 )
 from .state import RuntimeState
@@ -87,7 +90,13 @@ def main(argv: list[str] | None = None) -> int:
     collect.add_argument("--timeout-sec", type=float, default=10.0)
 
     shadow = subparsers.add_parser("shadow-benchmark", help="score recovery suggestions without moving hardware")
-    shadow.add_argument("--cases", type=Path, required=True)
+    shadow.add_argument("--cases", type=Path, help="Legacy RuntimeCase dir/json/jsonl path")
+    shadow.add_argument(
+        "--flex15-csv",
+        type=Path,
+        help="Frozen Flex15 CSV (benchmarks/runtime/flex15_runtime_recovery.csv)",
+    )
+    shadow.add_argument("--case-ids", type=str, help="Comma-separated Flex15 ids, e.g. F01,F02,F03")
     shadow.add_argument("--output-dir", type=Path, default=Path("runs/recovery-shadow/latest"))
     shadow.add_argument("--provider", choices=("offline", "deepseek"), default="offline")
     shadow.add_argument("--memory-dir", type=Path)
@@ -356,6 +365,29 @@ def _collect_cases(args: argparse.Namespace) -> int:
 
 
 def _shadow_benchmark(args: argparse.Namespace) -> int:
+    case_ids = tuple(part.strip() for part in (args.case_ids or "").split(",") if part.strip()) or None
+    if getattr(args, "flex15_csv", None):
+        if args.provider == "deepseek":
+            config = OpenAICompatibleConfig.from_env(default_model="deepseek-v4-flash")
+            factory = deepseek_flex15_provider_factory(config)
+            model_id = config.model
+        else:
+            factory = offline_provider_for_flex15
+            model_id = "offline-flex15"
+        summary = run_flex15_shadow_benchmark(
+            csv_path=args.flex15_csv,
+            output_dir=args.output_dir,
+            candidate_provider_factory=factory,
+            model_id=model_id,
+            case_ids=case_ids,
+            memory_dir=args.memory_dir,
+        )
+        print(json.dumps(summary, indent=2, ensure_ascii=False, sort_keys=True))
+        return 0 if summary["error_count"] == 0 else 1
+
+    if not args.cases:
+        raise SystemExit("shadow-benchmark requires --cases or --flex15-csv")
+
     if args.provider == "deepseek":
         config = OpenAICompatibleConfig.from_env()
         factory = deepseek_provider_factory(config)
@@ -493,7 +525,7 @@ def _chat(args: argparse.Namespace) -> int:
         return RuntimeTuiApp(controller, poller=poller).run()
 
     action = CandidateAction.from_mapping(candidate_payload)
-    decision = evaluate_action(action, state)
+    decision = evaluate_runtime_action(action, state)
     print(json.dumps({"check": decision.to_dict()}, indent=2, ensure_ascii=False))
     result = plan_action(
         initial_state=state,

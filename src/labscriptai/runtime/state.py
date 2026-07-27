@@ -20,6 +20,41 @@ VALID_PHASES = frozenset(
     }
 )
 
+# Keys that encode the benchmark answer / twin traps. Never send these to a model.
+MODEL_ANSWER_KEYS = frozenset(
+    {
+        "gold",
+        "local_trap",
+        "global_correct",
+        "correct_action",
+        "unsafe_fail_modes",
+        "strategy_level",
+        "expected_policy",
+        "local_trap_action_type",
+        "global_correct_action_type",
+        "local_trap_action_types",
+        "global_correct_action_types",
+        "recover_action_types",
+        "escalate_action_types",
+        "unsafe_action_types",
+        "allowed_action_types",
+    }
+)
+
+
+def redact_model_answer_keys(payload: Any) -> Any:
+    """Recursively drop benchmark answer keys from nested mappings/lists."""
+
+    if isinstance(payload, Mapping):
+        return {
+            key: redact_model_answer_keys(value)
+            for key, value in payload.items()
+            if key not in MODEL_ANSWER_KEYS
+        }
+    if isinstance(payload, (list, tuple)):
+        return [redact_model_answer_keys(item) for item in payload]
+    return payload
+
 
 @dataclass(frozen=True)
 class RuntimeRisk:
@@ -205,6 +240,14 @@ class RuntimeState:
             "remaining_plan": [dict(item) for item in self.remaining_plan],
             "risks": [risk.to_dict() for risk in self.risks],
         }
+
+    def to_model_dict(self) -> dict[str, Any]:
+        """Serialize state for LLM prompts without gold / twin / scoring answers."""
+
+        # Prefer the shared sanitizer (strips keys + answer fragments in strings).
+        from .model_visible_state import model_visible_runtime_state
+
+        return model_visible_runtime_state(self)
 
     def stable_hash(self) -> str:
         encoded = json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":")).encode()

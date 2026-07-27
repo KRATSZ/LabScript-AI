@@ -7,7 +7,8 @@ from typing import Any, Mapping
 from labscriptai.agent.state import AgentState
 from labscriptai.agent.tools import TOOL_NAMES, ToolCall
 from labscriptai.runtime.actions import CandidateAction
-from labscriptai.runtime.gatekeeper import GatekeeperDecision, evaluate_action
+from labscriptai.runtime.current_policy import evaluate_runtime_action
+from labscriptai.runtime.gatekeeper import GatekeeperDecision
 from labscriptai.runtime.state import RuntimeState
 
 SHELL_ALLOWED_COMMANDS = {"ls", "find", "rg", "cat", "sed", "head", "tail", "wc", "python", "uv"}
@@ -43,7 +44,7 @@ def evaluate_tool_call(call: ToolCall, state: AgentState) -> GatekeeperDecision:
             parameters={k: v for k, v in call.arguments.items() if k != "action_type"},
             proposed_by=call.proposed_by,
         )
-        return evaluate_action(action, _project_to_runtime_state(state))
+        return evaluate_runtime_action(action, _project_to_runtime_state(state))
     return _evaluate_non_runtime(call, state)
 
 

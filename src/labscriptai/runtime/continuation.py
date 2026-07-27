@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from .recovery_contract import validate_alternative_source
 from .state import RuntimeState
 
 PATCH_SCHEMA_VERSION = "0.1"
@@ -59,21 +60,37 @@ def validate_continuation_patch(
         )
         for item in state.liquid_transfers
     }
+    has_retire_tip = False
+    has_use_tip = False
+    has_effectful_operation = False
 
     for index, raw_operation in enumerate(operations):
         if not isinstance(raw_operation, Mapping):
             reasons.append(f"operations[{index}] must be an object")
             continue
         op_type = str(raw_operation.get("op_type", ""))
+        if op_type == "retire_tip":
+            tip = _resource_id(raw_operation, "tip")
+            if not tip:
+                reasons.append(f"operations[{index}] retire_tip requires tip")
+            else:
+                has_retire_tip = True
+                has_effectful_operation = True
+            continue
+
         if op_type == "use_tip":
             tip = _resource_id(raw_operation, "tip")
             if not tip:
                 reasons.append(f"operations[{index}] use_tip requires tip")
             elif tip in used_tips:
                 reasons.append(f"operations[{index}] reuses already used tip {tip}")
+            else:
+                has_use_tip = True
+                has_effectful_operation = True
             continue
 
         if op_type == "transfer":
+            has_effectful_operation = True
             tip = _resource_id(raw_operation, "tip")
             source = _resource_id(raw_operation, "source_well", fallback="source")
             destination = _resource_id(
@@ -93,6 +110,11 @@ def validate_continuation_patch(
                 reasons.append(f"operations[{index}] transfer requires positive volume_ul")
             if source and source in unavailable:
                 reasons.append(f"operations[{index}] source {source} is unavailable")
+            known_sources = _known_source_ids(state)
+            if source and known_sources and source not in known_sources:
+                reasons.append(
+                    f"operations[{index}] source {source} is not present in runtime inventory"
+                )
             if source and volume_ul is not None and source in source_volumes:
                 if volume_ul > source_volumes[source]:
                     reasons.append(
@@ -113,6 +135,7 @@ def validate_continuation_patch(
             continue
 
         if op_type == "resource_substitution":
+            has_effectful_operation = True
             from_resource = _resource_id(raw_operation, "from_resource")
             to_resource = _resource_id(raw_operation, "to_resource")
             if not from_resource or not to_resource:
@@ -127,6 +150,16 @@ def validate_continuation_patch(
                 reasons.append(
                     f"operations[{index}] substitute target {to_resource} has insufficient volume"
                 )
+            if to_resource:
+                source_result = validate_alternative_source(
+                    state,
+                    source_id=to_resource,
+                    liquid_id=str(raw_operation.get("liquid_id") or "") or None,
+                    required_volume_ul=required,
+                )
+                reasons.extend(
+                    f"operations[{index}] {reason}" for reason in source_result.reasons
+                )
             continue
 
         if op_type in {"skip", "comment"}:
@@ -134,7 +167,40 @@ def validate_continuation_patch(
 
         reasons.append(f"operations[{index}] has unsupported op_type {op_type or '<missing>'}")
 
+    requires_tip_replacement = bool(state.observed.get("tip_contaminated")) or str(
+        state.observed.get("tip_clog_class") or ""
+    ).lower() == "ordinary"
+    # Same-liquid path after buffer probe: tip may be wet/contaminated-flagged but reuse is allowed
+    # when tip_swap is not required (live_paired_v2 P4 green / F11 tip-policy).
+    same_liquid_ok = bool(state.observed.get("same_liquid_path")) and not bool(
+        state.observed.get("tip_swap_required")
+    )
+    if requires_tip_replacement and not same_liquid_ok:
+        if not has_retire_tip:
+            reasons.append("recovery patch must retire the contaminated or clogged current tip")
+        if not has_use_tip:
+            reasons.append("recovery patch must select a fresh tip")
+    if operations and not has_effectful_operation:
+        reasons.append("recovery patch must include at least one effectful operation")
+
     return PatchValidationResult(ok=not reasons, reasons=tuple(reasons))
+
+
+def _known_source_ids(state: RuntimeState) -> set[str]:
+    known: set[str] = set()
+    for container in (state.expected, state.committed, state.observed):
+        for key in ("source_id", "current_source_id", "backup_source_id"):
+            value = str(container.get(key) or "").strip()
+            if value:
+                known.add(value)
+        raw = container.get("annotated_alternative_sources") or []
+        if isinstance(raw, (list, tuple)):
+            for item in raw:
+                if isinstance(item, Mapping):
+                    value = str(item.get("source_id") or "").strip()
+                    if value:
+                        known.add(value)
+    return known
 
 
 def build_ledger_from_run_history(run_history: Mapping[str, Any]) -> dict[str, Any]:

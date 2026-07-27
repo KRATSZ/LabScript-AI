@@ -14,6 +14,7 @@ from .actions import (
     CandidateAction,
 )
 from .continuation import validate_continuation_patch
+from .recovery_contract import validate_alternative_source
 from .state import RuntimeState
 
 SUPPORTED_RECOVERY_BRANCHES = frozenset(
@@ -23,6 +24,8 @@ SUPPORTED_RECOVERY_BRANCHES = frozenset(
         "wait_and_poll_module_status",
         "reconcile_state_first",
         "continuation_patch",
+        # v4.1 gated ordinary TIP_CLOG: one tip-swap then re-eval (see tip_clog_policy).
+        "ordinary_tip_swap_then_reeval",
     }
 )
 
@@ -81,6 +84,29 @@ def evaluate_action(action: CandidateAction, state: RuntimeState) -> GatekeeperD
     if not action.reason.strip():
         reasons.append("candidate action must include a reason")
 
+    observed_pause = state.observed.get("observed_pause_s")
+    max_pause = state.observed.get("max_pause_s")
+    try:
+        pause_breached = (
+            observed_pause is not None
+            and max_pause is not None
+            and float(observed_pause) > float(max_pause)
+        )
+    except (TypeError, ValueError):
+        pause_breached = False
+    if pause_breached and action.action_type in {
+        "mark_resource_unavailable",
+        "choose_alternative_source",
+        "propose_continuation_patch",
+        "validate_continuation_patch",
+        "resume_run",
+    }:
+        reasons.append("biology pause window exceeded; recovery continuation requires escalation")
+    if pause_breached and action.action_type == "execute_recovery_branch":
+        branch = str(action.parameters.get("branch") or "")
+        if branch != "wait_and_poll_module_status":
+            reasons.append("biology pause window exceeded; recovery continuation requires escalation")
+
     if action.action_type in HARDWARE_ACTION_TYPES and not state.has_robot_identity:
         reasons.append("hardware action requires robot identity in runtime state")
 
@@ -106,8 +132,25 @@ def evaluate_action(action: CandidateAction, state: RuntimeState) -> GatekeeperD
             )
 
     if action.action_type == "choose_alternative_source":
-        if not action.parameters.get("source_id"):
+        source_id = str(action.parameters.get("source_id") or "").strip()
+        if not source_id:
             reasons.append("choose_alternative_source requires source_id")
+        else:
+            required_volume = action.parameters.get("required_volume_ul")
+            try:
+                required_volume_ul = (
+                    float(required_volume) if required_volume is not None else None
+                )
+            except (TypeError, ValueError):
+                reasons.append("choose_alternative_source required_volume_ul must be numeric")
+                required_volume_ul = None
+            source_result = validate_alternative_source(
+                state,
+                source_id=source_id,
+                liquid_id=str(action.parameters.get("liquid_id") or "") or None,
+                required_volume_ul=required_volume_ul,
+            )
+            reasons.extend(source_result.reasons)
 
     if action.action_type == "mark_resource_unavailable":
         if not action.parameters.get("resource_id"):

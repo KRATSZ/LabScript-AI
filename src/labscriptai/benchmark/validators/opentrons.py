@@ -16,10 +16,27 @@ def _literal_string(node: ast.AST | None) -> str | None:
     return None
 
 
+def _literal_slot(node: ast.AST | None) -> str | None:
+    """Slot/location as str (accepts string or int constants like load_labware(..., 3))."""
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, str) and node.value.strip():
+            return node.value.strip()
+        if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+            return str(int(node.value))
+    return None
+
+
 def _keyword_string(call: ast.Call, name: str) -> str | None:
     for keyword in call.keywords:
         if keyword.arg == name:
             return _literal_string(keyword.value)
+    return None
+
+
+def _keyword_slot(call: ast.Call, name: str) -> str | None:
+    for keyword in call.keywords:
+        if keyword.arg == name:
+            return _literal_slot(keyword.value)
     return None
 
 
@@ -39,9 +56,9 @@ def extract_protocol_refs(path: Path) -> tuple[set[tuple[str, str]], set[tuple[s
         if func.attr == "load_labware":
             load_name = _literal_string(node.args[0]) if node.args else _keyword_string(node, "load_name")
             slot = (
-                _literal_string(node.args[1])
+                _literal_slot(node.args[1])
                 if len(node.args) > 1
-                else _keyword_string(node, "location") or _keyword_string(node, "slot")
+                else _keyword_slot(node, "location") or _keyword_slot(node, "slot")
             )
             if load_name and slot:
                 labware.add((load_name, slot))

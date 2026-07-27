@@ -10,7 +10,8 @@ from typing import Any
 from .actions import CandidateAction
 from .adapters.simulator import simulate_protocol_package
 from .continuation import validate_continuation_patch
-from .gatekeeper import GatekeeperDecision, evaluate_action
+from .current_policy import evaluate_runtime_action
+from .gatekeeper import GatekeeperDecision
 from .patch_log import PatchLogEntry, PatchLogWriter
 from .state import RuntimeState
 from .trace import TraceEvent, TraceWriter
@@ -127,7 +128,7 @@ def plan_action(
                 payload=action.to_dict(),
             )
         )
-        decision = evaluate_action(action, state)
+        decision = evaluate_runtime_action(action, state)
         decisions.append(decision)
         writer.append(
             TraceEvent.for_state(

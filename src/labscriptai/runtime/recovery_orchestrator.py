@@ -8,7 +8,8 @@ from typing import Any, Mapping
 
 from .actions import CandidateAction
 from .adapters.mcp import snapshot_errors
-from .gatekeeper import GatekeeperDecision, evaluate_action, is_supported_recovery_branch
+from .current_policy import evaluate_runtime_action
+from .gatekeeper import GatekeeperDecision, is_supported_recovery_branch
 from .llm_queue_planner import CandidateProvider, suggest_action
 from .memory import append_memory_note, count_branch_outcomes, search_memory
 from .recovery_queue import RecoveryQueue
@@ -72,6 +73,34 @@ def _inject_error_observation(
     if recovery:
         observed["recovery"] = dict(recovery)
     return state.with_observation(observed)
+
+
+def _merge_runtime_state(prior: RuntimeState, live: RuntimeState) -> RuntimeState:
+    """Merge fresh MCP truth without dropping benchmark/global constraints."""
+
+    risks = list(prior.risks)
+    seen_risks = {(risk.code, risk.severity, risk.message) for risk in risks}
+    for risk in live.risks:
+        key = (risk.code, risk.severity, risk.message)
+        if key not in seen_risks:
+            risks.append(risk)
+            seen_risks.add(key)
+    return RuntimeState(
+        schema_version=live.schema_version or prior.schema_version,
+        run_id=live.run_id,
+        phase=live.phase,
+        robot={**dict(prior.robot), **dict(live.robot)},
+        expected={**dict(prior.expected), **dict(live.expected)},
+        committed={**dict(prior.committed), **dict(live.committed)},
+        observed={**dict(prior.observed), **dict(live.observed)},
+        completed_commands=live.completed_commands or prior.completed_commands,
+        failed_commands=live.failed_commands or prior.failed_commands,
+        used_tips=live.used_tips or prior.used_tips,
+        treated_wells=live.treated_wells or prior.treated_wells,
+        liquid_transfers=live.liquid_transfers or prior.liquid_transfers,
+        remaining_plan=live.remaining_plan or prior.remaining_plan,
+        risks=tuple(risks),
+    )
 
 
 def _deterministic_action(
@@ -142,6 +171,7 @@ class RecoveryOrchestratorConfig:
     memory_fail_rate: float = 0.6
     session_id: str | None = None
     candidate_provider: CandidateProvider | None = None
+    model_decision_required: bool = False
 
 
 class RecoveryOrchestrator:
@@ -172,6 +202,21 @@ class RecoveryOrchestrator:
     ) -> tuple[CandidateAction | None, GatekeeperDecision | None, str | None]:
         human_confirmed = self.config.auto_execute
 
+        if self.config.model_decision_required:
+            if self.candidate_provider is None:
+                return None, None, None
+            try:
+                llm_action = suggest_action(self.state, self.candidate_provider)
+            except ValueError:
+                return None, None, None
+            if llm_action is None:
+                return None, None, None
+            return (
+                llm_action,
+                evaluate_runtime_action(llm_action, self.state),
+                "llm_planner",
+            )
+
         if _deterministic_candidate_viable(
             recovery=recovery,
             branch=branch,
@@ -181,7 +226,7 @@ class RecoveryOrchestrator:
                 branch=branch,
                 human_confirmed=human_confirmed,
             )
-            deterministic_decision = evaluate_action(deterministic_action, self.state)
+            deterministic_decision = evaluate_runtime_action(deterministic_action, self.state)
             if deterministic_decision.approved:
                 return deterministic_action, deterministic_decision, "deterministic"
 
@@ -195,7 +240,11 @@ class RecoveryOrchestrator:
                     branch=branch,
                     human_confirmed=human_confirmed,
                 )
-                return deterministic_action, evaluate_action(deterministic_action, self.state), "deterministic"
+                return (
+                    deterministic_action,
+                    evaluate_runtime_action(deterministic_action, self.state),
+                    "deterministic",
+                )
             return None, None, None
 
         try:
@@ -204,7 +253,7 @@ class RecoveryOrchestrator:
             return None, None, None
         if llm_action is None:
             return None, None, None
-        return llm_action, evaluate_action(llm_action, self.state), "llm_planner"
+        return llm_action, evaluate_runtime_action(llm_action, self.state), "llm_planner"
 
     def step(self) -> dict[str, Any]:
         snapshot = self.adapter.recovery_snapshot(robot_ip=self.robot_ip, run_id=self.run_id)
@@ -213,12 +262,13 @@ class RecoveryOrchestrator:
             return {"status": "mcp_error", "snapshot": snapshot, "errors": errors}
 
         autonomy_mode = str(self.state.expected.get("autonomy_mode", "auto"))
-        self.state = self.adapter.state_from_snapshot(
+        live_state = self.adapter.state_from_snapshot(
             robot_ip=self.robot_ip,
             run_id=self.run_id,
             snapshot=snapshot,
             autonomy_mode=autonomy_mode,
         )
+        self.state = _merge_runtime_state(self.state, live_state)
         parsed_error = _unwrap(snapshot.get("parse_error"))
         suggestion = snapshot.get("suggest_recovery_action")
         recovery = _unwrap(suggestion)
@@ -235,6 +285,7 @@ class RecoveryOrchestrator:
                     _memory_query(parsed_error, branch, failed_command_id),
                 )
             ]
+        if parsed_error or branch or memory_hits:
             self.state = _inject_error_observation(
                 self.state,
                 parsed_error=parsed_error,
