@@ -6,10 +6,12 @@ import { PLUGIN_ROOT } from "./paths.js";
 /**
  * Resolve which .env file to read for automation secrets (ARK_API_KEY, etc.).
  *
- * Priority when envFilePath is omitted:
- * 1. <repo-root>/.env          — Opentrons-Lab-Agent root (preferred in core)
- * 2. <PLUGIN_ROOT>/../.env     — same when PLUGIN_ROOT is core/mcp
- * 3. <PLUGIN_ROOT>/automation/.env — legacy labscriptai-ot plugin layout
+ * Priority when envFilePath is omitted (labscriptai/plugins/mcp layout):
+ * 1. <repo-root>/.env
+ * 2. <labscriptai>/.env
+ * 3. <cwd>/.env
+ * 4. <PLUGIN_ROOT>/.env
+ * 5. <PLUGIN_ROOT>/automation/.env — legacy plugin layout
  */
 export function resolveAutomationEnvPath(envFilePath = null) {
   if (envFilePath) {
@@ -17,11 +19,11 @@ export function resolveAutomationEnvPath(envFilePath = null) {
   }
 
   const candidates = [];
-  // Vendored layout: PLUGIN_ROOT = <repo>/core/mcp
-  candidates.push(path.resolve(PLUGIN_ROOT, "../../.env")); // repo root (preferred)
-  candidates.push(path.resolve(PLUGIN_ROOT, "../.env")); // core/.env
+  // PLUGIN_ROOT = <repo>/labscriptai/plugins/mcp
+  candidates.push(path.resolve(PLUGIN_ROOT, "../../../.env")); // repo root
+  candidates.push(path.resolve(PLUGIN_ROOT, "../../.env")); // labscriptai/
+  candidates.push(path.resolve(process.cwd(), ".env")); // cwd
   candidates.push(path.join(PLUGIN_ROOT, ".env"));
-  // Legacy plugin layout.
   candidates.push(path.join(PLUGIN_ROOT, "automation", ".env"));
 
   for (const candidate of candidates) {

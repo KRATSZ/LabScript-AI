@@ -221,8 +221,14 @@ class _FriendlyOffline:
                 "列出文件",
                 "bash 列",
                 "用 bash 列",
+                "执行 ls",
+                "bash ls",
+                "用 bash 执行 ls",
+                "run ls",
             )
-        ) or lowered.strip() in {"ls", "ls -la", "ls -l"}
+        ) or lowered.strip() in {"ls", "ls -la", "ls -l"} or (
+            "bash" in lowered and ("ls" in lowered or "列" in prompt)
+        )
         wants_protocol = (
             ("protocol.py" in lowered or "protocol" in lowered or "协议" in prompt)
             and any(key in lowered or key in prompt for key in ("写", "write", "edit", "创建", "minimal", "最小"))

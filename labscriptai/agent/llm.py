@@ -37,7 +37,8 @@ class OpenAICompatibleConfig:
     ) -> OpenAICompatibleConfig:
         """Load config from env (default DeepSeek OpenAI-compatible).
 
-        Loads ``core/.env`` and repo-root ``.env`` without overwriting existing env.
+        Loads ``cwd``, ``labscriptai/``, and repo-root ``.env`` without
+        overwriting existing env.
         """
         _load_package_dotenv()
         api_key = os.environ.get(f"{prefix}_API_KEY", "")
@@ -75,16 +76,17 @@ def _load_dotenv_if_present(path: str | Path) -> None:
 
 
 def _load_package_dotenv() -> None:
-    """Load cwd, core/, and repo-root .env without overwriting existing keys.
+    """Load cwd, labscriptai/, and repo-root .env without overwriting existing keys.
 
     Search order (first wins for each key): process env → cwd/.env →
-    ``core/.env`` → repo-root ``.env``.
+    ``labscriptai/.env`` → repo-root ``.env``.
     """
     _load_dotenv_if_present(".env")
     here = Path(__file__).resolve()
-    # labscriptai/agent/llm.py → repo root is parents[2]
+    # labscriptai/agent/llm.py → package root parents[1], repo root parents[2]
+    package_root = here.parents[1]
     repo_root = here.parents[2]
-    _load_dotenv_if_present(repo_root / "core" / ".env")
+    _load_dotenv_if_present(package_root / ".env")
     _load_dotenv_if_present(repo_root / ".env")
 
 
