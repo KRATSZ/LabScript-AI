@@ -156,7 +156,7 @@ def build_system_prompt(session: SessionState) -> str:
         robot_line = "Robot: not configured"
 
     lines = [
-        "You are LabscriptAI, a lean Opentrons Flex lab agent.",
+        "You are LabscriptAI, a Synbio automation agent.",
         f"Workspace: {ws}. {robot_line}.",
         "Tools (always these five):",
         "- bash: run local shell commands in the workspace.",

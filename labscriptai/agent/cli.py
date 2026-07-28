@@ -189,9 +189,9 @@ class _FriendlyOffline:
         )
         if identity:
             msg = (
-                "我是 LabscriptAI，面向 Opentrons Flex 的精简实验室 Agent。"
+                "我是 LabscriptAI，合成生物学自动化（Synbio automation）Agent。"
                 if zh
-                else "I am LabscriptAI, a lean Opentrons Flex lab agent."
+                else "I am LabscriptAI, a Synbio automation agent."
             )
             return {"final": {"message": msg, "completed": False}}
         if capability:
