@@ -21,8 +21,8 @@ class OpenAICompatibleConfig:
     base_url: str
     api_key: str
     model: str
-    timeout_sec: int = 60
-    max_tokens: int = 1024
+    timeout_sec: int = 90
+    max_tokens: int = 8192
     transport_retries: int = 3
 
     @classmethod
@@ -32,7 +32,7 @@ class OpenAICompatibleConfig:
         prefix: str = "DEEPSEEK",
         default_base_url: str = "https://api.deepseek.com",
         default_model: str = "deepseek-v4-pro",
-        default_max_tokens: int = 1024,
+        default_max_tokens: int = 8192,
         require_key: bool = True,
     ) -> OpenAICompatibleConfig:
         """Load config from env (default DeepSeek OpenAI-compatible).
@@ -48,7 +48,7 @@ class OpenAICompatibleConfig:
             base_url=os.environ.get(f"{prefix}_BASE_URL", default_base_url).rstrip("/"),
             api_key=api_key or "offline",
             model=os.environ.get(f"{prefix}_MODEL", default_model),
-            timeout_sec=int(os.environ.get(f"{prefix}_TIMEOUT_SEC", "60")),
+            timeout_sec=int(os.environ.get(f"{prefix}_TIMEOUT_SEC", "90")),
             max_tokens=int(os.environ.get(f"{prefix}_MAX_TOKENS", str(default_max_tokens))),
             transport_retries=max(1, int(os.environ.get(f"{prefix}_TRANSPORT_RETRIES", "3"))),
         )
@@ -319,16 +319,13 @@ class OfflineClient:
         }
 
 
-def build_client(*, provider: str = "auto") -> OpenAICompatibleClient | OfflineClient:
-    """Factory: deepseek when key present, else offline stub."""
+def build_client(*, provider: str = "deepseek") -> OpenAICompatibleClient | OfflineClient:
+    """Factory: deepseek (requires DEEPSEEK_API_KEY) or explicit offline stub."""
     _load_package_dotenv()
     if provider == "offline":
         return OfflineClient()
-    if provider in {"auto", "deepseek"}:
-        key = os.environ.get("DEEPSEEK_API_KEY", "")
-        if not key and provider == "auto":
-            return OfflineClient()
-        config = OpenAICompatibleConfig.from_env(require_key=provider != "auto")
+    if provider == "deepseek":
+        config = OpenAICompatibleConfig.from_env(require_key=True)
         return OpenAICompatibleClient(config)
     raise ValueError(f"unknown provider: {provider}")
 

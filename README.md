@@ -6,7 +6,6 @@ Natural-language lab intent → verifiable Opentrons scripts, with policy-constr
 
 [![Canonical release](https://img.shields.io/github/v/tag/KRATSZ/LabScript-AI?label=v1.0-canonical)](https://github.com/KRATSZ/LabScript-AI/releases/tag/v1.0-canonical)
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.17697326.svg)](https://doi.org/10.5281/zenodo.17697326)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **Live web UI:** [labscriptai.cn](https://labscriptai.cn/)
 
@@ -31,12 +30,19 @@ pip install -e ".[dev]"
 (cd plugins/mcp/opentrons-mcp && npm install)
 
 labscriptai doctor --robot <ROBOT_IP>
-labscriptai chat --provider offline
-# or: labscriptai chat --provider deepseek --robot <ROBOT_IP>
+labscriptai chat --robot <ROBOT_IP>   # default provider: deepseek (DEEPSEEK_API_KEY)
+# offline smoke only: labscriptai chat --provider offline
 pytest -q
 ```
 
-Env (see `.env.example`): `DEEPSEEK_API_KEY`, `ROBOT_IP`, optional `ARK_API_KEY` for MCP vision. Workspace for `edit`: `LABSCRIPTAI_WORKSPACE` or cwd. MCP override: `LABSCRIPTAI_MCP_INDEX`.
+Copy env vars into a `.env` file in the repo root (or export them), for example:
+
+```
+DEEPSEEK_API_KEY=your_key_here
+ROBOT_IP=192.168.x.x
+```
+
+Optional: `ARK_API_KEY` (MCP vision), `LABSCRIPTAI_WORKSPACE` (default workspace for `edit`; falls back to cwd), `LABSCRIPTAI_MCP_INDEX` (MCP server override).
 
 Do **not** install a local `core/` tree into the same venv (both claim the `labscriptai` console script).
 
@@ -104,7 +110,6 @@ This `manuscript` tree is the **runnable 5-tool CLI agent** for colleagues and l
 
 - **Code:** [github.com/KRATSZ/LabScript-AI](https://github.com/KRATSZ/LabScript-AI/tree/manuscript) — branch `manuscript`
 - **Benchmark / shard data:** [Zenodo 10.5281/zenodo.17697326](https://doi.org/10.5281/zenodo.17697326)
-- **Citation metadata:** [`CITATION.cff`](CITATION.cff)
 
 ## License
 

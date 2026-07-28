@@ -54,10 +54,22 @@ def test_parser_subcommands() -> None:
     assert ns2.command == "daemon"
 
 
-def test_default_provider_respects_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_default_provider_is_deepseek() -> None:
     from labscriptai.agent.cli import _default_provider
 
+    assert _default_provider() == "deepseek"
+
+
+def test_chat_missing_api_key_exits_nonzero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from labscriptai.agent import llm as llm_mod
+
+    monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
-    # May still load from repo .env — so only assert the function returns a known token
-    provider = _default_provider()
-    assert provider in {"offline", "deepseek"}
+    monkeypatch.setattr(llm_mod, "_load_package_dotenv", lambda: None)
+    err = io.StringIO()
+    with redirect_stderr(err):
+        rc = main(["chat", "--workspace", str(tmp_path)])
+    assert rc != 0
+    assert "DEEPSEEK_API_KEY" in err.getvalue()

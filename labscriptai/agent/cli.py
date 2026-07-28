@@ -109,9 +109,7 @@ def _default_provider() -> str:
         _load_package_dotenv()
     except ImportError:
         pass
-    if os.environ.get("DEEPSEEK_API_KEY"):
-        return "deepseek"
-    return "offline"
+    return "deepseek"
 
 
 _MIN_FLEX_PROTOCOL = '''\
@@ -638,9 +636,9 @@ def build_parser() -> argparse.ArgumentParser:
     chat.add_argument("--robot", default=None, help="Robot IP/host (normalized to :31950)")
     chat.add_argument(
         "--provider",
-        choices=("auto", "offline", "deepseek"),
+        choices=("offline", "deepseek"),
         default=None,
-        help="LLM provider (default: deepseek if DEEPSEEK_API_KEY else offline)",
+        help="LLM provider (default: deepseek; requires DEEPSEEK_API_KEY)",
     )
     chat.add_argument("--run-id", default=None, help="Optional active run id")
     chat.add_argument("--verbose", action="store_true")
@@ -651,7 +649,12 @@ def build_parser() -> argparse.ArgumentParser:
     recover.add_argument("--robot", required=True)
     recover.add_argument("--workspace", default=".")
     recover.add_argument("--yes", action="store_true", help="Non-interactive (ask→suspend; SAFE may auto)")
-    recover.add_argument("--provider", choices=("auto", "offline", "deepseek"), default=None)
+    recover.add_argument(
+        "--provider",
+        choices=("offline", "deepseek"),
+        default=None,
+        help="LLM provider (default: deepseek; requires DEEPSEEK_API_KEY)",
+    )
     recover.set_defaults(func=cmd_recover)
 
     daemon = sub.add_parser("daemon", help="Minimal outbox-wake poller")
@@ -659,7 +662,12 @@ def build_parser() -> argparse.ArgumentParser:
     daemon.add_argument("--run-id", required=True)
     daemon.add_argument("--workspace", default=".")
     daemon.add_argument("--interval", type=float, default=5.0)
-    daemon.add_argument("--provider", choices=("auto", "offline", "deepseek"), default=None)
+    daemon.add_argument(
+        "--provider",
+        choices=("offline", "deepseek"),
+        default=None,
+        help="LLM provider (default: deepseek; requires DEEPSEEK_API_KEY)",
+    )
     daemon.set_defaults(func=cmd_daemon)
 
     doctor = sub.add_parser("doctor", help="Probe http://IP:31950/health (no MCP)")
