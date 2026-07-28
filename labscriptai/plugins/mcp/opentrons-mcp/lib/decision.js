@@ -9,7 +9,7 @@ import {
   setLiquidContainerState,
 } from "./state.js";
 import { buildErrorTaxonomy, mapRobotBlockerToLeaf } from "./error-taxonomy.js";
-import { decideTipRecoveryRoute } from "./protocol-tips.js";
+import { assessTipRecoveryBudget, decideTipRecoveryRoute } from "./protocol-tips.js";
 import { findSameLiquidSourceCandidates } from "./liquid-source-substitution.js";
 
 export const HARD_STOP_ERROR_CATEGORIES = ["HARDWARE_FAULT", "DECK_COLLISION", "UNKNOWN"];
@@ -1106,6 +1106,8 @@ export function buildRecoverySuggestion({
   tipBindingMode = null,
   tipBindingClassification = null,
   sessionState = null,
+  protocolSource = null,
+  tiprackSlots = null,
 } = {}) {
   const normalizedRun = normalizeRunRecord(run) || {};
   const runStatus = readNested(normalizedRun, [["status"]], null);
@@ -1290,10 +1292,8 @@ export function buildRecoverySuggestion({
 
         if (route === "human") {
           return manualOnly({
-            rationale: tipBindingMode ? "tip_recovery_route_requires_human" : "tip_binding_mode_unknown",
-            recommendedManualAction: tipBindingMode
-              ? "inspect_tip_state_before_recovery"
-              : "provide_protocol_source_or_confirm_tip_binding",
+            rationale: "tip_recovery_route_requires_human",
+            recommendedManualAction: "inspect_tip_state_before_recovery",
             extra: {
               tip_binding_mode: tipBindingMode,
               tip_binding_classification: tipBindingClassification,
@@ -1319,33 +1319,67 @@ export function buildRecoverySuggestion({
         }
       }
 
-      if (awaitingRecovery) {
-        return {
-          ...buildErrorTaxonomy({
-            phase: "recovery",
-            errorLeaf: resolvedErrorLeaf,
-            overrides: {
-              actionability: "auto_executable",
-              auto_executable: true,
-              required_inputs: ["tiprack_slots"],
-              requires_confirmation: false,
-              evidence_sources: ["commands", "session_state"],
+      {
+        const tipCandidateSummary = listTipCandidates({
+          sessionState,
+          run,
+          tiprackSlots,
+        });
+        const tipBudget = assessTipRecoveryBudget({
+          protocolSource: protocolSource || "",
+          commands,
+          viableCandidates: tipCandidateSummary.viable_candidates,
+          tipBindingClassification,
+        });
+
+        if (tipBudget.enforced && !tipBudget.sufficient) {
+          return manualOnly({
+            rationale: tipBudget.reason,
+            recommendedManualAction: "escalate_tip_search_exhausted",
+            extra: {
+              tip_budget: tipBudget,
+              tip_binding_mode: tipBindingMode,
+              tip_binding_classification: tipBindingClassification,
+              route: "human",
+              suggested_tip: nextTipSuggestion.next_candidate,
+              operator_steps: [
+                tipBudget.message,
+                "Do not execute recover_tip_pickup or resume-from-recovery.",
+                "Inspect deck tip loading against protocol tip budget before continuing.",
+              ],
             },
-          }),
-          error_category: errorCategory,
-          action: "retry_pick_up_tip_with_next_candidate",
-          hard_stop: false,
-          escalate_to_human: false,
-          rationale: "run_is_awaiting_recovery",
-          failed_command_type: readNested(failed_command, [["commandType"]]),
-          failed_well: readNested(failed_command, [["params", "wellName"]], null),
-          suggested_tip: nextTipSuggestion.next_candidate,
-          tip_binding_mode: tipBindingMode,
-          tip_binding_classification: tipBindingClassification,
-          route: "fixit",
-          intent: "fixit",
-          should_resume_run: true,
-        };
+          });
+        }
+
+        if (awaitingRecovery) {
+          return {
+            ...buildErrorTaxonomy({
+              phase: "recovery",
+              errorLeaf: resolvedErrorLeaf,
+              overrides: {
+                actionability: "auto_executable",
+                auto_executable: true,
+                required_inputs: ["tiprack_slots"],
+                requires_confirmation: false,
+                evidence_sources: ["commands", "session_state", "protocol_source"],
+              },
+            }),
+            error_category: errorCategory,
+            action: "retry_pick_up_tip_with_next_candidate",
+            hard_stop: false,
+            escalate_to_human: false,
+            rationale: "run_is_awaiting_recovery",
+            failed_command_type: readNested(failed_command, [["commandType"]]),
+            failed_well: readNested(failed_command, [["params", "wellName"]], null),
+            suggested_tip: nextTipSuggestion.next_candidate,
+            tip_binding_mode: tipBindingMode,
+            tip_binding_classification: tipBindingClassification,
+            tip_budget: tipBudget,
+            route: "fixit",
+            intent: "fixit",
+            should_resume_run: true,
+          };
+        }
       }
       return manualOnly({
         rationale: "retry_requires_recovery_context",
@@ -1567,10 +1601,24 @@ export function buildActionSummary({
           intent: recoverySuggestion?.intent || "normal",
           tip_binding_mode: recoverySuggestion?.tip_binding_mode || null,
           route: recoverySuggestion?.route || null,
+          tip_budget: recoverySuggestion?.tip_budget || null,
         };
         summary.then_resume = recoverySuggestion?.should_resume_run || false;
         summary.if_fails = "escalate_tip_search_exhausted";
       }
+      break;
+
+    case "manual_only":
+      summary.params = {
+        recommended_manual_action: recoverySuggestion?.recommended_manual_action || null,
+        tip_budget: recoverySuggestion?.tip_budget || null,
+        operator_steps: recoverySuggestion?.operator_steps || [],
+      };
+      summary.then_resume = false;
+      summary.if_fails =
+        recoverySuggestion?.recommended_manual_action === "escalate_tip_search_exhausted"
+          ? "manual_intervention"
+          : "manual_intervention";
       break;
 
     case "protocol_edit_required":

@@ -8,6 +8,9 @@ __pycache__/
 !.env.example
 .DS_Store
 
+# Local protocol runs / chat logs (not tracked)
+/local/
+
 # Local bulk / eval leftovers (stripped from manuscript; do not re-add)
 /src/
 /docs/

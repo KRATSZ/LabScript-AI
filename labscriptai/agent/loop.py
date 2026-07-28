@@ -165,6 +165,7 @@ def build_system_prompt(session: SessionState) -> str:
         "- memory: read/write case memory for reuse.",
         "- skill: load domain markdown skills on demand.",
         "Safety: robot actions only through robot; dangerous calls are gated and you will get feedback.",
+        "Tip recovery: when robot(op=status) reports tip_budget_blocked or tip_budget.sufficient=false, stop — do not recover_tip_pickup, play, or resume.",
         "Prefer short replies. Load skills when you need domain detail; do not invent robot HTTP calls.",
     ]
     return "\n".join(lines)

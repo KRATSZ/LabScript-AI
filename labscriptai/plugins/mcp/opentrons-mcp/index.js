@@ -82,7 +82,12 @@ import {
   setPipetteState,
   uniqueSessionStrings,
 } from "./lib/state.js";
-import { classifyTipBindingModeDetail } from "./lib/protocol-tips.js";
+import { classifyTipBindingModeDetail, assessTipRecoveryBudget } from "./lib/protocol-tips.js";
+import {
+  enrichRecoveryArgsWithProtocolPath as enrichRecoveryArgsWithProtocolPathImpl,
+  extractProtocolNameFromSource,
+  resolveProtocolPathForRecovery as resolveProtocolPathForRecoveryImpl,
+} from "./lib/protocol-path.js";
 import {
   appendResultLogEntry,
   readResultLogEntries,
@@ -1643,6 +1648,15 @@ const TOOL_DEFINITIONS = [
       properties: {
         robot_ip: { type: "string", description: "Robot IP or full base URL" },
         protocol_id: { type: "string", description: "Uploaded protocol ID" },
+        file_path: {
+          type: "string",
+          description: "Optional local protocol .py path (stored for recovery tip-budget parsing).",
+        },
+        protocol_name: {
+          type: "string",
+          description: "Optional protocol display name for workspace lookup when file_path is omitted.",
+        },
+        session_id: { type: "string" },
         run_time_parameters: { type: "object" },
         labware_offsets: {
           type: "array",
@@ -3683,7 +3697,7 @@ function recordToolResultLog({
     event_kind: eventKind || toolName,
     status: resolveLoggedStatus({ result, error, fallback: fallbackStatus }),
     summary,
-    protocol_path: args.file_path || null,
+    protocol_path: args.file_path || args.protocol_path || data.protocol_path || null,
     robot_ip: args.robot_ip || null,
     state_revision: result?.stateRevision ?? error?.toolContext?.stateRevision ?? 0,
     requires_attention:
@@ -4150,6 +4164,47 @@ function resolveFailedWellAndTiprackSlot({ args, run, failedCommand } = {}) {
   };
 }
 
+function protocolPathResolverDeps() {
+  return { readSessionState };
+}
+
+function resolveProtocolPathForRecovery(args = {}) {
+  return resolveProtocolPathForRecoveryImpl(args, protocolPathResolverDeps());
+}
+
+function enrichRecoveryArgsWithProtocolPath(args = {}) {
+  return enrichRecoveryArgsWithProtocolPathImpl(args, protocolPathResolverDeps());
+}
+
+function storeRunProtocolMetadata({ runId, sessionId = null, filePath, protocolName = null } = {}) {
+  if (!runId || !filePath) {
+    return;
+  }
+  const resolved = path.resolve(String(filePath));
+  if (!fs.existsSync(resolved)) {
+    return;
+  }
+  let resolvedName = protocolName;
+  if (!resolvedName) {
+    try {
+      resolvedName = extractProtocolNameFromSource(fs.readFileSync(resolved, "utf8"));
+    } catch {
+      resolvedName = null;
+    }
+  }
+  const sessionIds = uniqueSessionStrings([runId, sessionId].filter(Boolean));
+  for (const id of sessionIds) {
+    mutateSessionState(id, session => {
+      session.protocol_path = resolved;
+      if (resolvedName) {
+        session.protocol_name = resolvedName;
+      }
+      session.last_run_id = runId;
+      return session;
+    });
+  }
+}
+
 function readProtocolSourceForTipBinding(args = {}) {
   if (typeof args.protocol_source === "string" && args.protocol_source.trim()) {
     return {
@@ -4159,7 +4214,7 @@ function readProtocolSourceForTipBinding(args = {}) {
     };
   }
 
-  const inputPath = args.file_path || args.protocol_path || null;
+  const inputPath = resolveProtocolPathForRecovery(args);
   if (!inputPath) {
     return null;
   }
@@ -4192,7 +4247,16 @@ function resolveTipBindingClassification(args = {}) {
 
   const protocolSource = readProtocolSourceForTipBinding(args);
   if (!protocolSource) {
-    return null;
+    return {
+      mode: "auto",
+      reason: "assumed_auto_without_protocol_source",
+      source_type: "assumed",
+      file_path: null,
+      starting_tip_detected: false,
+      explicit_pick_up_tip_calls: 0,
+      auto_pick_up_tip_calls: 0,
+      total_pick_up_tip_calls: 0,
+    };
   }
 
   const classification = classifyTipBindingModeDetail(protocolSource.source);
@@ -4204,13 +4268,18 @@ function resolveTipBindingClassification(args = {}) {
 }
 
 async function readRunFailureGuidance(args, runId, sessionId = null) {
-  const parseResult = await TOOL_HANDLERS.parse_error({
+  const enrichedArgs = enrichRecoveryArgsWithProtocolPath({
     ...args,
+    run_id: runId,
+    session_id: sessionId || args.session_id,
+  });
+  const parseResult = await TOOL_HANDLERS.parse_error({
+    ...enrichedArgs,
     run_id: runId,
     session_id: sessionId,
   });
   const recoveryResult = await TOOL_HANDLERS.suggest_recovery_action({
-    ...args,
+    ...enrichedArgs,
     run_id: runId,
     session_id: parseResult.sessionId || sessionId,
     target_slot: parseResult.data?.target_slot || args.target_slot,
@@ -4441,6 +4510,7 @@ async function finalizeProtocolRecovery({
 }
 
 async function executeProtocolRecovery(args, { expectedAction = null, watchMode = false } = {}) {
+  args = enrichRecoveryArgsWithProtocolPath(args);
   const sessionId = args.session_id || args.run_id;
   const guidance = await readRunFailureGuidance(args, args.run_id, sessionId);
   const parsedError = guidance.parsedError || {};
@@ -4486,6 +4556,28 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
         throw new Error(
           `execute_protocol_recovery expected TIP_PHYSICALLY_MISSING, got ${parsedError.error_category || "unknown"}.`,
         );
+      }
+      const protocolSourceForBudget = readProtocolSourceForTipBinding(args);
+      if (protocolSourceForBudget?.source) {
+        const budgetSessionId = sessionId || args.run_id;
+        const budgetSession = readSessionState(budgetSessionId);
+        const tipCandidateSummary = listTipCandidates({
+          sessionState: budgetSession,
+          run: context.detail,
+          tiprackSlots: args.tiprack_slots,
+        });
+        const tipBindingClassification = resolveTipBindingClassification(args);
+        const tipBudget = assessTipRecoveryBudget({
+          protocolSource: protocolSourceForBudget.source,
+          commands: context.commands,
+          viableCandidates: tipCandidateSummary.viable_candidates,
+          tipBindingClassification,
+        });
+        if (tipBudget.enforced && !tipBudget.sufficient) {
+          throw new Error(
+            `tip_budget_insufficient: ${tipBudget.message}`,
+          );
+        }
       }
       const labwareId = readNested(failedCommand, [["params", "labwareId"]], null);
       const pipetteId = readNested(failedCommand, [["params", "pipetteId"]], null);
@@ -5744,11 +5836,18 @@ const TOOL_HANDLERS = {
   },
 
   async suggest_recovery_action(args) {
+    args = enrichRecoveryArgsWithProtocolPath(args);
     const [robotStatusResult, moduleStatusResult, runContext] = await Promise.all([
       readRobotStatus(args),
       readModuleStatus(args),
       readAnyContext(args, { includeCommands: true }),
     ]);
+    const runRecord = unwrapData(runContext.run) || {};
+    args = enrichRecoveryArgsWithProtocolPath({
+      ...args,
+      protocol_name:
+        args.protocol_name || readNested(runRecord, [["protocolName"]], null) || null,
+    });
     const sessionId = resolveSessionId(args, robotStatusResult);
     const observedDeckState = buildObservedDeckState({
       deckConfiguration: robotStatusResult.hardwareSnapshot.deck_configuration,
@@ -5770,6 +5869,7 @@ const TOOL_HANDLERS = {
 
     let nextTipSuggestion = null;
     let tipBindingClassification = null;
+    const protocolSourceForRecovery = readProtocolSourceForTipBinding(args);
     let stateAfterSuggestion = sessionState;
     if ((args.error_category || classification.error_category) === "TIP_PHYSICALLY_MISSING") {
       tipBindingClassification = resolveTipBindingClassification(args);
@@ -5824,6 +5924,8 @@ const TOOL_HANDLERS = {
       tipBindingMode: tipBindingClassification?.mode || null,
       tipBindingClassification,
       sessionState: stateAfterSuggestion,
+      protocolSource: protocolSourceForRecovery?.source || null,
+      tiprackSlots: args.tiprack_slots,
       }),
     );
     const actionSummary = buildActionSummary({
@@ -7154,6 +7256,19 @@ const TOOL_HANDLERS = {
 
   async upload_protocol(args) {
     const uploaded = await uploadProtocol(args);
+    if (args.file_path) {
+      recordToolResultLog({
+        toolName: "upload_protocol",
+        eventKind: "protocol_upload",
+        args,
+        result: { data: { protocol: uploaded } },
+        fallbackSessionId: args.session_id || DEFAULT_SESSION_ID,
+        summary: `Uploaded protocol from ${path.basename(String(args.file_path))}.`,
+        data: {
+          protocol_path: path.resolve(String(args.file_path)),
+        },
+      });
+    }
     return {
       data: {
         protocol: uploaded,
@@ -7184,6 +7299,14 @@ const TOOL_HANDLERS = {
       const runId = readNested(unwrapData(createdRun) || {}, [["id"]], null);
       if (!runId) {
         throw new Error("Run creation did not return a run id.");
+      }
+      if (args.file_path) {
+        storeRunProtocolMetadata({
+          runId,
+          sessionId: args.session_id || runId,
+          filePath: args.file_path,
+          protocolName: args.protocol_name || null,
+        });
       }
 
       let preflightGate;
@@ -7503,13 +7626,21 @@ const TOOL_HANDLERS = {
       ),
     });
     const runId = run?.data?.id || run?.id || null;
+    if (runId && args.file_path) {
+      storeRunProtocolMetadata({
+        runId,
+        sessionId: args.session_id || runId,
+        filePath: args.file_path,
+        protocolName: args.protocol_name || null,
+      });
+    }
     const snapshot = await collectRunExecutionSnapshot({
       robotIp: args.robot_ip,
       runId,
       pageLength: args.page_length ?? 10,
     });
 
-    return {
+    const result = {
       data: {
         run,
         run_history: snapshot.runHistoryResult.data,
@@ -7520,7 +7651,21 @@ const TOOL_HANDLERS = {
         ...snapshot.runHistoryResult.hardwareSnapshot,
       },
       runId,
+      sessionId: args.session_id || runId,
     };
+    recordToolResultLog({
+      toolName: "create_run",
+      eventKind: "run_created",
+      args,
+      result,
+      fallbackSessionId: args.session_id || runId || DEFAULT_SESSION_ID,
+      summary: `Created run ${runId || "unknown"}.`,
+      data: {
+        protocol_id: args.protocol_id || null,
+        protocol_path: args.file_path ? path.resolve(String(args.file_path)) : null,
+      },
+    });
+    return result;
   },
 
   async control_run(args) {
@@ -7666,6 +7811,7 @@ const TOOL_HANDLERS = {
   },
 
   async runtime_watch_poll(args) {
+    args = enrichRecoveryArgsWithProtocolPath(args);
     const result = await runtimeWatchPoll(args, {
       readSnapshot: async stepArgs =>
         collectRunExecutionSnapshot({

@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import json
+import os
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -347,7 +349,6 @@ def _robot(
     robot_ip: str | None,
     session: dict,
 ) -> dict:
-    del workspace
     op = str(args.get("op") or "")
     host = robot_ip or session.get("robot_ip") or args.get("robot_ip")
     if not host:
@@ -372,6 +373,7 @@ def _robot(
             run_id=run_id,
             session_id=session_id,
             include_modules=bool(args.get("include_modules", True)),
+            workspace=workspace,
         )
     if op == "watch":
         return _robot_watch(
@@ -381,6 +383,7 @@ def _robot(
             session_id=session_id,
             prefer_outbox=bool(args.get("prefer_outbox", False)),
             extra=extra,
+            workspace=workspace,
         )
     if op == "act":
         return _robot_act(
@@ -392,6 +395,7 @@ def _robot(
             action=args.get("action") or args.get("action_type"),
             extra=extra,
             raw_args=args,
+            workspace=workspace,
         )
     return {"error": "invalid_op", "op": op, "allowed": ["status", "watch", "act"]}
 
@@ -403,6 +407,7 @@ def _robot_status(
     run_id: Any,
     session_id: Any,
     include_modules: bool,
+    workspace: Path | None = None,
 ) -> dict:
     mcp_args: dict[str, Any] = {"robot_ip": host}
     if run_id:
@@ -419,8 +424,22 @@ def _robot_status(
     if include_modules:
         out["module_status"] = call_tool("module_status", mcp_args)
     if run_id:
-        out["parse_error"] = call_tool("parse_error", mcp_args)
-        out["suggest_recovery"] = call_tool("suggest_recovery_action", mcp_args)
+        recovery_args = dict(mcp_args)
+        if workspace is not None:
+            _maybe_attach_protocol_path(recovery_args, workspace)
+        out["parse_error"] = call_tool("parse_error", recovery_args)
+        suggest = call_tool("suggest_recovery_action", recovery_args)
+        out["suggest_recovery"] = suggest
+        recovery = ((suggest.get("data") or {}).get("recovery") or {})
+        tip_budget = recovery.get("tip_budget")
+        if tip_budget:
+            out["tip_budget"] = tip_budget
+        if recovery.get("action") == "manual_only" and recovery.get("recommended_manual_action") == "escalate_tip_search_exhausted":
+            out["tip_budget_blocked"] = True
+            out["tip_budget_message"] = (
+                (tip_budget or {}).get("message")
+                or "Tip budget insufficient; do not retry pickup or resume."
+            )
     if _is_error_payload(robot_status) and not run_id:
         out["error"] = robot_status.get("error") or "robot_status_failed"
     return out
@@ -434,6 +453,7 @@ def _robot_watch(
     session_id: Any,
     prefer_outbox: bool,
     extra: dict,
+    workspace: Path | None = None,
 ) -> dict:
     if prefer_outbox or (not run_id and session_id):
         outbox_args: dict[str, Any] = {"limit": int(extra.get("limit", 20))}
@@ -457,6 +477,8 @@ def _robot_watch(
         for key in ("tiprack_slots",):
             if key in extra:
                 watch_args[key] = extra[key]
+        if workspace is not None:
+            _maybe_attach_protocol_path(watch_args, workspace)
         watched = call_tool("runtime_watch_poll", watch_args, timeout_sec=WATCH_TIMEOUT_SEC)
         # Fall back to status only when the MCP tool itself is missing/unloadable.
         stderr = str(watched.get("stderr", ""))
@@ -476,6 +498,7 @@ def _robot_watch(
         run_id=run_id,
         session_id=session_id,
         include_modules=True,
+        workspace=workspace,
     )
     degraded["op"] = "watch"
     degraded["source"] = "status_fallback"
@@ -494,6 +517,91 @@ _ACT_ALIASES: dict[str, tuple[str, dict[str, Any]]] = {
 }
 
 
+def _mcp_plugin_data_dir() -> Path:
+    return plugins_mcp_index().parent / ".plugin-data"
+
+
+def _protocol_path_from_mcp_artifacts(run_id: Any) -> str | None:
+    if not run_id:
+        return None
+    rid = str(run_id)
+    session_file = _mcp_plugin_data_dir() / "session-state" / f"{rid}.json"
+    if session_file.is_file():
+        try:
+            payload = json.loads(session_file.read_text(encoding="utf-8"))
+            candidate = payload.get("protocol_path")
+            if candidate:
+                path = Path(str(candidate)).expanduser()
+                if path.is_file():
+                    return str(path.resolve())
+        except (OSError, json.JSONDecodeError):
+            pass
+    log_file = _mcp_plugin_data_dir() / "result-logs" / f"{rid}.jsonl"
+    if log_file.is_file():
+        try:
+            for line in reversed(log_file.read_text(encoding="utf-8").splitlines()):
+                line = line.strip()
+                if not line:
+                    continue
+                entry = json.loads(line)
+                for key in ("protocol_path",):
+                    candidate = entry.get(key) or (entry.get("data") or {}).get(key)
+                    if not candidate and (entry.get("data") or {}).get("file_path"):
+                        candidate = (entry.get("data") or {}).get("file_path")
+                    if candidate:
+                        path = Path(str(candidate)).expanduser()
+                        if path.is_file():
+                            return str(path.resolve())
+        except (OSError, json.JSONDecodeError):
+            pass
+    return None
+
+
+def _protocol_path_from_local_workspace(workspace: Path, protocol_name: str | None = None) -> str | None:
+    local_dir = workspace / "local"
+    if not local_dir.is_dir():
+        return None
+    py_files = sorted(p for p in local_dir.glob("*.py") if p.is_file())
+    if len(py_files) == 1:
+        return str(py_files[0].resolve())
+    if protocol_name:
+        needle = str(protocol_name).strip()
+        for candidate in py_files:
+            try:
+                source = candidate.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            if (
+                f'"protocolName": "{needle}"' in source
+                or f'"protocolName":"{needle}"' in source
+                or f"'protocolName': '{needle}'" in source
+            ):
+                return str(candidate.resolve())
+    return None
+
+
+def _maybe_attach_protocol_path(payload: dict[str, Any], workspace: Path) -> None:
+    """Help recovery classify tip binding by attaching a local protocol path when omitted."""
+    if payload.get("file_path") or payload.get("protocol_path") or payload.get("protocol_source"):
+        return
+    env_path = os.environ.get("LABSCRIPTAI_PROTOCOL_PATH")
+    if env_path:
+        candidate = Path(env_path).expanduser()
+        if candidate.is_file():
+            payload["file_path"] = str(candidate.resolve())
+            return
+    artifact_path = _protocol_path_from_mcp_artifacts(payload.get("run_id"))
+    if artifact_path:
+        payload["file_path"] = artifact_path
+        return
+    local_match = _protocol_path_from_local_workspace(
+        workspace,
+        protocol_name=payload.get("protocol_name"),
+    )
+    if local_match:
+        payload["file_path"] = local_match
+
+
 def _robot_act(
     *,
     host: str,
@@ -504,6 +612,7 @@ def _robot_act(
     action: Any,
     extra: dict,
     raw_args: dict,
+    workspace: Path,
 ) -> dict:
     skip = {
         "op",
@@ -530,6 +639,7 @@ def _robot_act(
     if branch or action_key in {"execute_recovery_branch", "execute_protocol_recovery"}:
         if branch:
             payload["recovery_branch"] = branch
+        _maybe_attach_protocol_path(payload, workspace)
         if not payload.get("run_id"):
             return {
                 "error": "run_id_required",
@@ -553,6 +663,8 @@ def _robot_act(
     if action_key:
         tool_name, injected = _ACT_ALIASES.get(action_key, (action_key, {}))
         call_payload = {**payload, **injected}
+        if tool_name in {"execute_protocol_recovery", "recover_tip_pickup"}:
+            _maybe_attach_protocol_path(call_payload, workspace)
         # control_run uses action=pause|play|stop — don't leave action_type clutter
         result = call_tool(tool_name, call_payload)
         return {"op": "act", "robot_base": base, "tool": tool_name, "result": result}

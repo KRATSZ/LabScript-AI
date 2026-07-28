@@ -90,6 +90,8 @@ process.stdout.write(JSON.stringify(result ?? {}));
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=limit,
         )
     except subprocess.TimeoutExpired as exc:

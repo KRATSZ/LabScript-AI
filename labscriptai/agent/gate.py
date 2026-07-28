@@ -275,7 +275,9 @@ def _eval_robot(
             context=context,
         )
 
-    action_type = str(args.get("action_type") or args.get("type") or "").strip()
+    action_type = str(
+        args.get("action_type") or args.get("action") or args.get("type") or ""
+    ).strip()
     if action_type in SAFE_ACTION_TYPES or action_type in preauthorized:
         return GateDecision(
             status="allow",

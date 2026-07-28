@@ -114,6 +114,27 @@ export function evaluateAutonomy({
     };
   }
 
+  const tipBudget = recovery?.tip_budget || recovery?.recovery?.tip_budget || null;
+  if (tipBudget?.enforced === true && tipBudget?.sufficient === false) {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason: "tip_budget_insufficient",
+    };
+  }
+
+  if (recovery?.recommended_manual_action === "escalate_tip_search_exhausted") {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason: "tip_budget_insufficient",
+    };
+  }
+
   return {
     level: "L0",
     status: "auto_fix",
