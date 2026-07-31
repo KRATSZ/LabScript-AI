@@ -1,0 +1,24 @@
+{
+  "annotated_backup_exists": true,
+  "backup_source_id": "B3:A2",
+  "deck_check_required": [
+    "yolo_slot_class",
+    "vlm_deck_disturbance",
+    "reconcile_state"
+  ],
+  "door_now_closed": true,
+  "error_signal": "DOOR_OPEN",
+  "error_type": "blocked-by-open-door",
+  "expected_layout_slots": {
+    "A3": "trash_bin",
+    "B3": "nest_12_reservoir_15ml",
+    "C2": "opentrons_flex_96_tiprack_200ul",
+    "C3": "corning_96_wellplate_360ul_flat"
+  },
+  "max_pause_s": 300,
+  "observed_pause_s": 120,
+  "required_liquid_id": "lysis_buffer_control",
+  "resume_requires_deck_check": true,
+  "run_status_at_fault": "blocked-by-open-door",
+  "step_role": "timed_lysis"
+}

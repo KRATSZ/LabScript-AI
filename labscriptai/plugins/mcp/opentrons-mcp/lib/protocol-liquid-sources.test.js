@@ -1,8 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 
 import {
   parseProtocolDeckHints,
@@ -11,11 +8,57 @@ import {
   seedProtocolLiquidSourceMap,
 } from "./protocol-liquid-sources.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const protocol03 = fs.readFileSync(
-  path.resolve(__dirname, "../../../../../local/protocol/03_primary_reserve_buffer.py"),
-  "utf8",
-);
+/** Self-contained fixture mirroring the primary/reserve Assay Buffer protocol shape. */
+const protocol03 = `
+"""Primary + reserve Assay Buffer transfer.
+
+Deck:
+  B2  opentrons_flex_96_tiprack_1000ul
+  C2  nest_12_reservoir_15ml
+  D2  nest_96_wellplate_200ul_flat
+  A3  trash bin
+
+Liquid source map:
+  C2.A1  primary Assay Buffer
+  C2.A2  reserve Assay Buffer (same identity)
+
+Confirm D2.A1 after transfers.
+"""
+from opentrons import protocol_api
+
+metadata = {"protocolName": "Primary reserve buffer", "author": "LabscriptAI OT"}
+requirements = {"robotType": "Flex", "apiLevel": "2.24"}
+
+def run(protocol: protocol_api.ProtocolContext) -> None:
+    trash = protocol.load_trash_bin("A3")
+    tiprack = protocol.load_labware("opentrons_flex_96_tiprack_1000ul", "B2")
+    reservoir = protocol.load_labware("nest_12_reservoir_15ml", "C2")
+    plate = protocol.load_labware("nest_96_wellplate_200ul_flat", "D2")
+    pipette = protocol.load_instrument(
+        "flex_1channel_1000",
+        "left",
+        tip_racks=[tiprack],
+    )
+    water = protocol.get_liquid_class(name="water")
+    primary = reservoir["A1"]
+    pipette.pick_up_tip()
+    pipette.transfer_with_liquid_class(
+        liquid_class=water, volume=100, source=primary, dest=plate["A1"],
+        new_tip="never", trash_location=trash,
+    )
+    pipette.transfer_with_liquid_class(
+        liquid_class=water, volume=100, source=primary, dest=plate["A2"],
+        new_tip="never", trash_location=trash,
+    )
+    pipette.transfer_with_liquid_class(
+        liquid_class=water, volume=100, source=primary, dest=plate["A3"],
+        new_tip="never", trash_location=trash,
+    )
+    pipette.drop_tip(trash)
+    pipette.pick_up_tip()
+    pipette.require_liquid_presence(plate["A1"])
+    pipette.drop_tip(trash)
+`;
 
 test("parseProtocolLiquidSourceMap reads primary and reserve Assay Buffer wells", () => {
   const parsed = parseProtocolLiquidSourceMap(protocol03);

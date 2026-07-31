@@ -86,6 +86,7 @@ import {
   uniqueSessionStrings,
 } from "./lib/state.js";
 import { classifyTipBindingModeDetail, assessTipRecoveryBudget } from "./lib/protocol-tips.js";
+import { assessTimeWindow } from "./lib/protocol-time-window.js";
 import {
   parseProtocolDeckHints,
   parseProtocolTransferContinuationHints,
@@ -529,11 +530,17 @@ const TOOL_DEFINITIONS = [
   {
     name: "robot_status",
     description:
-      "Fetch the live hardware snapshot needed before physical actions: health, instruments, door, estop, and deck configuration.",
+      "Fetch the live hardware snapshot needed before physical actions: health, instruments, door, estop, and deck configuration. When run_id is set, also attaches time_window (and tip contact enrichment) using protocol_path resolved from args, session state, or result logs.",
     inputSchema: {
       type: "object",
       properties: {
         robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        run_id: { type: "string", description: "Optional live run id for command history + time_window" },
+        session_id: { type: "string", description: "Optional session id for protocol_path lookup" },
+        protocol_path: { type: "string", description: "Optional protocol .py path for time_window / tip contact" },
+        file_path: { type: "string", description: "Alias for protocol_path" },
+        protocol_source: { type: "string", description: "Optional inline protocol source" },
+        page_length: { type: "integer", description: "Command page length when run_id is set", default: 50 },
       },
     },
   },
@@ -5667,7 +5674,70 @@ const TOOL_HANDLERS = {
   },
 
   async robot_status(args) {
-    return readRobotStatus(args);
+    // Reuse recovery protocol-path resolution so time_window / tip contact do not
+    // require the caller to pass protocol_path when session/result logs already know it.
+    args = enrichRecoveryArgsWithProtocolPath(args);
+    const result = await readRobotStatus(args);
+    let protocolSource = "";
+    try {
+      const resolved = readProtocolSourceForTipBinding(args);
+      protocolSource = resolved?.source || "";
+    } catch {
+      protocolSource = "";
+    }
+
+    let commands = null;
+    let run = null;
+    if (args.run_id && args.robot_ip) {
+      try {
+        const history = await readRunHistory({
+          robot_ip: args.robot_ip,
+          run_id: args.run_id,
+          page_length: args.page_length ?? 50,
+        });
+        commands = history.hardwareSnapshot?.commands || null;
+        run = history.hardwareSnapshot?.run || null;
+      } catch {
+        commands = null;
+        run = null;
+      }
+    }
+
+    const sessionId = args.session_id || args.run_id || null;
+    const sessionState = sessionId ? readSessionState(sessionId) : null;
+    const timeWindow = assessTimeWindow({
+      protocolSource,
+      commands,
+    });
+
+    if (commands) {
+      const enriched = buildRobotStatusSnapshot({
+        health: result.hardwareSnapshot.health,
+        instruments: result.hardwareSnapshot.instruments,
+        doorStatus: result.hardwareSnapshot.door_status,
+        estopStatus: result.hardwareSnapshot.estop_status,
+        deckConfiguration: result.hardwareSnapshot.deck_configuration,
+        commands,
+        sessionState,
+        protocolSource,
+        run,
+      });
+      return {
+        ...result,
+        data: {
+          ...enriched,
+          time_window: timeWindow,
+        },
+      };
+    }
+
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        time_window: timeWindow,
+      },
+    };
   },
 
   async module_status(args) {
@@ -8504,10 +8574,39 @@ const TOOL_HANDLERS = {
           watchDir: args.watch_dir || null,
         })
       : [];
+
+    let protocolSource = "";
+    try {
+      const resolved = readProtocolSourceForTipBinding(args);
+      protocolSource = resolved?.source || "";
+    } catch {
+      protocolSource = "";
+    }
+
+    let commands = result.data?.commands || result.data?.recent_commands || null;
+    if (!commands && args.robot_ip && args.run_id) {
+      try {
+        const history = await readRunHistory({
+          robot_ip: args.robot_ip,
+          run_id: args.run_id,
+          page_length: args.page_length ?? 50,
+        });
+        commands = history.hardwareSnapshot?.commands || null;
+      } catch {
+        commands = null;
+      }
+    }
+
+    const timeWindow = assessTimeWindow({
+      protocolSource,
+      commands,
+    });
+
     const payload = {
       ...(result.data || {}),
       status: result.status,
       alerts,
+      time_window: timeWindow,
     };
 
     if (result.status !== "running") {

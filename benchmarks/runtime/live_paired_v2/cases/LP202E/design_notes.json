@@ -1,0 +1,53 @@
+{
+  "deck_layout": {
+    "description": "A3 trash; B3 source reservoir; C2 200 uL tips; C3 destination plate. Only the case-specific missing tips or backup volumes differ.",
+    "slots_used": [
+      "A3",
+      "B3",
+      "C2",
+      "C3"
+    ]
+  },
+  "differentiator": "annotated backup liquid_id match but available_volume_ul=40 < required_volume_ul=100 \u2192 Escalate",
+  "experiment_type": "live_runtime_recovery_pair_v2",
+  "family": "backup_volume",
+  "gate_adv_ref": "ADV09",
+  "key_decisions": [
+    {
+      "decision": "Use non-biological control liquid for physical validation",
+      "rationale": "Benchmark tests runtime policy and evidence capture, not chemistry."
+    },
+    {
+      "decision": "Keep model-visible context separate from oracle labels",
+      "rationale": "Prevents gold / local_trap / correct_action leakage."
+    },
+    {
+      "decision": "Inject tip budget / backup volume via agent_context",
+      "rationale": "These fields are not native Flex telemetry; they are eval context."
+    },
+    {
+      "decision": "Primary empty and annotated backup has correct liquid_id but insufficient volume (40 < 100 uL): escalate; never choose_alternative_source to aspirate a short volume; never blind aspirate air from A1.",
+      "rationale": "Pass/fail follows Assisted vs Autonomous and global correctness."
+    }
+  ],
+  "known_limitations": [
+    "Do not use 'no backup' as the escalate contrast \u2014 backup identity is correct.",
+    "Physical A2 fill must stay ~40 uL; topping up mid-run invalidates the case."
+  ],
+  "local_trap": "Same choose_alternative_source that is correct for LP202R",
+  "migrate_from": "Replaces F08 'no backup' contrast; ADV09 closed loop",
+  "pair_id": "P2",
+  "pair_title": "\u5361\u5b9a\u91cf / backup volume enough vs not",
+  "pipette_choice": {
+    "name": "flex_1channel_1000",
+    "reason": "Single-channel pressure sensing supports tip/liquid faults while covering 20-100 uL control transfers."
+  },
+  "question_id": "LP202E",
+  "robot": "Flex",
+  "simulate_note": "Simulate may pass with A2 loaded at 40 uL metadata; live must leave A1 empty.",
+  "source_flex15_id": "F08",
+  "tip_strategy": {
+    "policy": "fresh_tip_per_control_transfer",
+    "reason": "Single tip for LLD+aspirate path; tip cost is not the differentiator."
+  }
+}

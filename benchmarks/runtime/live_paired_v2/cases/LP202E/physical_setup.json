@@ -1,0 +1,21 @@
+{
+  "empty_sources": [
+    "B3:A1"
+  ],
+  "load_liquids": {
+    "B3:A2": "~40 uL Assay Buffer / wash_buffer stand-in (water OK; volume short vs required transfer)"
+  },
+  "phase1_liquid_source_map": {
+    "B3:A1": {
+      "liquid_name": "Assay Buffer",
+      "declared_volume_ul": 0,
+      "note": "primary empty at fault"
+    },
+    "B3:A2": {
+      "liquid_name": "Assay Buffer",
+      "declared_volume_ul": 40,
+      "intent": "declared_volume deliberately insufficient (40 < required 100)"
+    }
+  },
+  "note": "Backup MUST be present and correctly labeled; contrast is volume shortfall, not missing backup. Declare shortfall via Phase 1 record_liquid_source_map — do not teach the stop rule inside the tested protocol. Do not top up A2 during the scored decision."
+}

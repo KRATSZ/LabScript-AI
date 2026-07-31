@@ -1,0 +1,10 @@
+{
+  "differentiator": "sample_culture probe + sterile_shared_mother_liquor next \u2192 must tip-swap",
+  "experiment_type": "live_runtime_recovery_pair_v2",
+  "local_trap": "Reuse culture-wet tip into sterile mother liquor",
+  "pair_id": "P4",
+  "pair_kind": "tip_policy",
+  "question_id": "LP204E",
+  "robot": "Flex",
+  "simulate": ".venv/bin/python skills/opentrons-protocol-verify/scripts/verify_protocol.py simulate protocols/LP204E.py"
+}

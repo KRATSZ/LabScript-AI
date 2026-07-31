@@ -200,3 +200,440 @@ def test_resume_run_allowed_when_succeeded() -> None:
         active_run_status="succeeded",
     )
     assert d.status == "allow"
+
+
+def test_time_window_missing_does_not_block_resume() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "resume_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="paused",
+        time_window=None,
+    )
+    assert d.status == "allow"
+
+
+def test_time_window_not_expired_allows_resume() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "play_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="paused",
+        time_window={
+            "declared": True,
+            "window_minutes": 5,
+            "elapsed_minutes": 2,
+            "expired": False,
+        },
+    )
+    assert d.status == "allow"
+
+
+def test_time_window_expired_blocks_play_resume() -> None:
+    for args in (
+        {"op": "act", "action": "resume_run", "run_id": "abc"},
+        {"op": "act", "action": "play_run", "run_id": "abc"},
+        {"op": "act", "action": "control_run", "args": {"action": "play"}},
+    ):
+        d = evaluate(
+            "robot",
+            args,
+            context="run",
+            interactive=True,
+            active_run_status="paused",
+            time_window={"declared": True, "expired": True, "elapsed_minutes": 20},
+        )
+        assert d.status == "suspend", (args, d)
+        assert any("time window has expired" in r for r in d.reasons)
+        assert any("abort" in r.lower() or "stop" in r.lower() for r in d.reasons)
+
+
+def test_time_window_expired_does_not_block_abort() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "abort_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="paused",
+        time_window={"expired": True},
+    )
+    assert d.status == "allow"
+
+
+def test_contamination_fields_missing_no_behavior_change() -> None:
+    args = {
+        "op": "act",
+        "action": "probe_wells",
+        "args": {"well": "C2:A1"},
+    }
+    d = evaluate("robot", args, context="run", interactive=True)
+    assert d.status == "allow"
+    d2 = evaluate(
+        "robot",
+        args,
+        context="run",
+        interactive=True,
+        instruments_summary=[{"mount": "left", "contact_class": "sample", "has_tip": True}],
+        well_roles=None,
+    )
+    assert d2.status == "allow"
+
+
+def test_contamination_sample_tip_blocks_common_stock_probe() -> None:
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"well": "C2:A1"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[{"mount": "left", "contact_class": "sample", "has_tip": True}],
+        well_roles={"C2:A1": "common_stock"},
+    )
+    assert d.status == "suspend"
+    assert any("drop tip" in r.lower() for r in d.reasons)
+
+
+def test_contamination_clean_tip_allows_common_stock() -> None:
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"well": "C2:A1"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[{"mount": "left", "contact_class": "clean", "has_tip": True}],
+        well_roles={"C2:A1": "common_stock"},
+    )
+    assert d.status == "allow"
+
+
+def test_contamination_sample_tip_allows_sample_well() -> None:
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"well": "D2:A1"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[{"mount": "left", "contact_class": "sample", "has_tip": True}],
+        well_roles={"D2:A1": "sample", "C2:A1": "common_stock"},
+    )
+    assert d.status == "allow"
+
+
+def test_contamination_blocks_even_when_action_preauthorized() -> None:
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "aspirate",
+            "args": {"well": "C2:A1"},
+        },
+        context="run",
+        interactive=True,
+        preauthorized={"aspirate"},
+        instruments_summary=[{"mount": "left", "contact_class": "sample", "has_tip": True}],
+        well_roles={"C2:A1": "common_stock"},
+    )
+    assert d.status == "suspend"
+
+
+def test_legacy_source_role_is_not_common_stock() -> None:
+    """liquid_tracking legacy role='source' must not trigger contamination gate."""
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"well": "C2:A1"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[{"mount": "left", "contact_class": "sample", "has_tip": True}],
+        well_roles={"C2:A1": "source"},
+    )
+    assert d.status == "allow"
+
+
+def test_tip_budget_insufficient_blocks_recover_tip_pickup() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_tip_pickup"},
+        context="run",
+        interactive=True,
+        tip_budget={
+            "enforced": True,
+            "sufficient": False,
+            "basis": "live_scan",
+            "available_tips": 0,
+        },
+    )
+    assert d.status == "suspend"
+    assert any("insufficient" in r.lower() for r in d.reasons)
+
+
+def test_tip_budget_insufficient_blocks_tip_recovery_branch() -> None:
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "execute_protocol_recovery",
+            "recovery_branch": "retry_pick_up_tip_with_next_candidate",
+        },
+        context="run",
+        interactive=True,
+        tip_budget={"enforced": True, "sufficient": False, "basis": "live_scan"},
+    )
+    assert d.status == "suspend"
+
+
+def test_tip_budget_basis_none_does_not_block() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_tip_pickup"},
+        context="run",
+        interactive=True,
+        tip_budget={
+            "enforced": False,
+            "sufficient": False,
+            "basis": "none",
+        },
+    )
+    assert d.status == "allow"
+
+
+def test_tip_budget_missing_does_not_block() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_tip_pickup"},
+        context="run",
+        interactive=True,
+        tip_budget=None,
+    )
+    assert d.status == "allow"
+
+
+def test_tip_budget_insufficient_blocks_play() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "play_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="paused",
+        tip_budget={
+            "enforced": True,
+            "sufficient": False,
+            "basis": "live_scan",
+            "available_tips": 0,
+        },
+    )
+    assert d.status == "suspend"
+    assert any("insufficient" in r.lower() for r in d.reasons)
+    assert any("play" in r.lower() or "resume" in r.lower() for r in d.reasons)
+
+
+def test_tip_budget_insufficient_allows_abort_and_stop() -> None:
+    tip_budget = {
+        "enforced": True,
+        "sufficient": False,
+        "basis": "live_scan",
+    }
+    for action in ("abort_run", "stop_run"):
+        d = evaluate(
+            "robot",
+            {"op": "act", "action": action, "run_id": "abc"},
+            context="run",
+            interactive=True,
+            active_run_status="paused",
+            tip_budget=tip_budget,
+        )
+        assert d.status == "allow", (action, d)
+
+
+def test_tip_budget_basis_none_allows_play() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "play_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="paused",
+        tip_budget={
+            "enforced": False,
+            "sufficient": False,
+            "basis": "none",
+        },
+    )
+    assert d.status == "allow"
+
+
+def test_tip_budget_missing_allows_play() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "resume_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="paused",
+        tip_budget=None,
+    )
+    assert d.status == "allow"
+
+
+def test_volume_check_declared_insufficient_blocks_substitution() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        context="run",
+        interactive=True,
+        volume_check={
+            "required_ul": 100,
+            "usable_ul": 40,
+            "sufficient": False,
+            "basis": "declared_source_map",
+        },
+    )
+    assert d.status == "suspend"
+    assert any("insufficient" in r.lower() for r in d.reasons)
+
+
+def test_volume_blocked_reason_blocks_substitution() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        context="run",
+        interactive=True,
+        blocked_reason="substitute_volume_insufficient",
+    )
+    assert d.status == "suspend"
+
+
+def test_volume_insufficient_data_does_not_block() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        context="run",
+        interactive=True,
+        volume_check={
+            "sufficient": False,
+            "basis": "insufficient_data",
+        },
+    )
+    assert d.status == "allow"
+
+
+def test_volume_check_missing_does_not_block() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        context="run",
+        interactive=True,
+        volume_check=None,
+    )
+    assert d.status == "allow"
+
+
+def test_mcp_dot_keys_block_contamination_after_sample_probe() -> None:
+    """08 shape: MCP wells_summary keys are SLOT.WELL; tip_detected not has_tip."""
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"slot_name": "C2", "well_name": "A1"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[
+            {
+                "mount": "left",
+                "instrument_name": "p1000_single_flex",
+                "tip_detected": True,
+                "contact_class": "sample",
+            }
+        ],
+        well_roles={
+            "D2.A1": "sample",
+            "C2.A1": "common_stock",
+            "D2.*": "sample",
+            "C2.*": "common_stock",
+        },
+    )
+    assert d.status == "suspend"
+
+
+def test_mcp_slot_wildcard_blocks_common_stock() -> None:
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"key": "C2.A3"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[
+            {"mount": "left", "tip_detected": True, "contact_class": "sample"}
+        ],
+        well_roles={"C2.*": "common_stock", "D2.*": "sample"},
+    )
+    assert d.status == "suspend"
+
+
+def test_case07_same_reagent_path_not_blocked() -> None:
+    """07 FIX: tip only contacted common_stock (reservoir probe); dispense to plate
+    does not set contact_class=sample, so re-probe of C2.A1 must remain allowed.
+    """
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "probe_wells",
+            "args": {"slot_name": "C2", "well_name": "A1"},
+        },
+        context="run",
+        interactive=True,
+        instruments_summary=[
+            {
+                "mount": "left",
+                "tip_detected": True,
+                # After reservoir aspirate/probe MCP marks stock/clean — not sample.
+                "contact_class": "stock",
+            }
+        ],
+        well_roles={
+            "C2.A1": "common_stock",
+            "D2.A1": "sample",
+            "C2.*": "common_stock",
+            "D2.*": "sample",
+        },
+    )
+    assert d.status == "allow"
+
+
+def test_case08_after_sample_probe_blocks_stock() -> None:
+    """08 STOP: liquidProbe on sample plate marks tip sample; next stock move blocked."""
+    d = evaluate(
+        "robot",
+        {
+            "op": "act",
+            "action": "aspirate",
+            "args": {"key": "C2.A1"},
+        },
+        context="run",
+        interactive=True,
+        preauthorized={"aspirate"},
+        instruments_summary=[
+            {"mount": "left", "tip_detected": True, "contact_class": "sample"}
+        ],
+        well_roles={"C2.A1": "common_stock", "D2.A1": "sample"},
+    )
+    assert d.status == "suspend"
+

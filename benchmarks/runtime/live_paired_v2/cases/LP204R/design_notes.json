@@ -1,0 +1,10 @@
+{
+  "differentiator": "probe_well_role=discardable_buffer + same_liquid_path \u2192 same tip OK",
+  "experiment_type": "live_runtime_recovery_pair_v2",
+  "local_trap": "Unnecessary escalate or wrong switch to sterile mother liquor",
+  "pair_id": "P4",
+  "pair_kind": "tip_policy",
+  "question_id": "LP204R",
+  "robot": "Flex",
+  "simulate": ".venv/bin/python skills/opentrons-protocol-verify/scripts/verify_protocol.py simulate protocols/LP204R.py"
+}

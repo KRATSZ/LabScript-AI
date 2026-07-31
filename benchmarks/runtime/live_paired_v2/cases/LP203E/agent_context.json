@@ -1,0 +1,16 @@
+{
+  "delivered_volume_known": false,
+  "destination_role": "live_cell_culture",
+  "destination_well": "C3:A1",
+  "dispense_interrupted": true,
+  "error_signal": "TIP_CLOG",
+  "error_type": "overpressure",
+  "fault_phase": "mid_dispense",
+  "operation_phase": "mid_dispense",
+  "ordinary_tip_swaps_already": 0,
+  "tip_attached": true,
+  "tip_disposable": true,
+  "tips_remaining": 95,
+  "tips_still_needed": 1,
+  "well_volume_unknown": true
+}

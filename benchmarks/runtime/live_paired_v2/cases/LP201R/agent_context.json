@@ -1,0 +1,11 @@
+{
+  "error_signal": "TIP_PHYSICALLY_MISSING",
+  "error_type": "tipPhysicallyMissing",
+  "failed_resource": "C2:A1",
+  "next_candidate": "C2:B1",
+  "retry_count": 1,
+  "retry_limit": 3,
+  "tips_remaining": 95,
+  "tips_required_total": 10,
+  "tips_still_needed": 10
+}

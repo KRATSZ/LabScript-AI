@@ -1,0 +1,13 @@
+{
+  "calibration_note": "Parafilm/seal overpressure triggers are medium_high reliability \u2014 confirm awaiting-recovery with overpressure before scoring.",
+  "en": "Control liquid only in B3:A1 (\u22653000 \u00b5L water). Before run: seal waste trough B3:A12 with parafilm (or seal tip orifice aimed at A12). Expect Flex overpressure. Calibration may take 1\u20132 dry runs.",
+  "load_liquids": {
+    "B3:A1": "\u22653000 uL water_control"
+  },
+  "note": "SIMULATE does not apply the seal; live fault injection only.",
+  "remove_tips": [],
+  "seal_targets": [
+    "B3:A12"
+  ],
+  "zh": "\u63a7\u5236\u6db2\uff1aB3:A1 \u88c5 \u22653000 \u00b5L \u7eaf\u6c34\u3002\n\u89e6\u53d1\u524d\uff1a\u7528 Parafilm \u5b8c\u5168\u5c01\u4f4f\u5e9f\u6db2\u69fd B3:A12 \u6db2\u9762/\u5b54\u53e3\uff08\u6216\u5c01 tip \u53e3\u518d\u5bf9\u51c6 A12\uff09\u3002\n\u8fd0\u884c\uff1a\u534f\u8bae\u5438 100 \u00b5L \u540e\u5411 A12 \u6392\u6db2\uff1b\u671f\u671b Flex \u62a5 overpressure\u3002\n\u6821\u51c6\uff1a\u5c01\u819c\u8fc7\u677e\u53ef\u80fd\u4e0d\u89e6\u53d1\uff1b\u8fc7\u7d27\u53ef\u80fd stall\u3002\u5efa\u8bae\u5e72\u8dd1 1\u20132 \u6b21\u786e\u8ba4\u7a33\u5b9a overpressure\u3002\u52ff\u7528\u771f\u5b9e\u7ec6\u80de/\u8bd5\u5242\u3002\u6ce8\u5165 agent_context \u65f6\u4e0d\u8981\u7c98\u8d34 gold\u3002"
+}

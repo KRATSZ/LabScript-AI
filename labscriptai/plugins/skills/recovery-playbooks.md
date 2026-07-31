@@ -52,6 +52,10 @@ Equivalent: `execute_protocol_recovery` when guidance returns `substitute_liquid
 
 
 
+**Volume gate.** A reserve that shares identity is not automatically enough. Check `volume_check` before substituting: `blocked_reason=substitute_volume_insufficient`, or `basis=declared_source_map` with `sufficient` false, means the reserve cannot cover the remaining transfers — refill or escalate, do not substitute. `basis=insufficient_data` means the required or usable volume is unknown, which is not the same as known-empty: stay on the human-confirmation path.
+
+
+
 Without attached tip reuse: **manual_only** — refill primary or restart protocol.
 
 
@@ -72,7 +76,31 @@ Do **not** `resume_run` on the failed run when the uploaded protocol still targe
 
 
 
-When `robot(op=status)` includes `tip_budget_blocked`: stop — do not `recover_tip_pickup`, `play`, or `resume_run`.
+Stop — no `recover_tip_pickup`, `play`, or `resume_run` — when `tip_budget.enforced` is true and `tip_budget.sufficient` is false. Deck tips cannot cover the remaining `pick_up_tip` steps, so retrying only wastes the tips that are left.
+
+
+
+`basis` records where the counts came from: `live_scan` (deck scan, the normal case), `protocol_metadata` (protocol also declares loaded wells), `none` (pickup count unknown). `none` means unadjudicated, not sufficient.
+
+
+
+## Time window gate (before any resume)
+
+
+
+When `time_window.expired` is true the assay validity is already lost: `abort` or `stop` only, never `play` or `resume_run`, even when the operator asks to continue. Offer discard/restart, or an explicit risk override that the operator must state.
+
+
+
+`declared` false or `anchor_completed_at` missing means the window could not be adjudicated — treat it as unknown and ask the operator, not as satisfied.
+
+
+
+## Contamination gate
+
+
+
+A tip whose `contact_class` is `sample` must not aspirate or probe a well whose `role` is `common_stock`: drop it and pick up a fresh tip first. Read the role from `wells_summary[].role` or `well_roles`; the legacy `role` field in liquid tracking is a source filter, not a contamination role.
 
 
 

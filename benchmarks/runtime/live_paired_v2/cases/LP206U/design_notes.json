@@ -1,0 +1,9 @@
+{
+  "differentiator": "evidence_sufficient=false \u2192 Abstain (gold=A; case id LP206U)",
+  "experiment_type": "live_runtime_recovery_pair_v2",
+  "local_trap": "Treat as mild reconcile and continue",
+  "pair_id": "P6",
+  "question_id": "LP206U",
+  "robot": "Flex",
+  "simulate": ".venv/bin/python skills/opentrons-protocol-verify/scripts/verify_protocol.py simulate protocols/LP206U.py"
+}

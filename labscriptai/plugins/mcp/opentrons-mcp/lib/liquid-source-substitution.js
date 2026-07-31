@@ -171,6 +171,69 @@ function sourceWithKey(key, source = {}) {
     observed_at: source.observed_at || null,
     observed_run_id: source.observed_run_id || null,
     observed_source: source.observed_source || null,
+    declared_volume: source.declared_volume ?? source.declared_volume_ul ?? source.volume_ul ?? null,
+    dead_volume: source.dead_volume ?? source.dead_volume_ul ?? null,
+    consumed_volume_ul: source.consumed_volume_ul ?? source.consumed ?? null,
+    volume_ul: source.volume_ul ?? null,
+    dead_volume_ul: source.dead_volume_ul ?? source.dead_volume ?? null,
+  };
+}
+
+function asFiniteNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+/**
+ * Check whether a substitute liquid source has enough usable volume for remaining transfers.
+ * usable_ul = declared_volume − consumed − dead_volume.
+ * required_ul = remaining destination count × transfer_volume.
+ */
+export function assessSubstituteSourceVolume({
+  candidate = null,
+  candidateKey = null,
+  protocolSource = "",
+  transferHints = null,
+  remainingDestinationCount = null,
+} = {}) {
+  const key = candidateKey || candidate?.source_map_key || null;
+  const hints = transferHints || parseProtocolTransferContinuationHints(protocolSource || "");
+  const transferVolume = asFiniteNumber(hints?.transfer_volume);
+  const destinations = Array.isArray(hints?.destination_wells) ? hints.destination_wells : [];
+  const remaining =
+    remainingDestinationCount !== null && remainingDestinationCount !== undefined
+      ? asFiniteNumber(remainingDestinationCount)
+      : destinations.length > 0
+        ? destinations.length
+        : null;
+
+  const declared = asFiniteNumber(
+    candidate?.declared_volume ?? candidate?.declared_volume_ul ?? candidate?.volume_ul,
+  );
+  const consumed = asFiniteNumber(candidate?.consumed_volume_ul ?? candidate?.consumed) ?? 0;
+  const dead = asFiniteNumber(candidate?.dead_volume ?? candidate?.dead_volume_ul) ?? 0;
+
+  if (declared === null || transferVolume === null || remaining === null) {
+    return {
+      required_ul: transferVolume !== null && remaining !== null ? remaining * transferVolume : null,
+      usable_ul: declared === null ? null : Math.max(0, declared - consumed - dead),
+      sufficient: false,
+      candidate_key: key,
+      basis: "insufficient_data",
+    };
+  }
+
+  const requiredUl = remaining * transferVolume;
+  const usableUl = Math.max(0, declared - consumed - dead);
+  return {
+    required_ul: requiredUl,
+    usable_ul: usableUl,
+    sufficient: usableUl >= requiredUl,
+    candidate_key: key,
+    basis: "declared_source_map",
   };
 }
 
@@ -397,11 +460,16 @@ export function buildLiquidSourceSubstitutionPlan({
   failedSlotName = null,
   failedWellName = null,
   preferredSourceKey = null,
+  protocolSource = "",
+  transferHints = null,
+  remainingDestinationCount = null,
 } = {}) {
   const sources = sessionState?.liquid_tracking?.sources || {};
   const resolvedFailedKey =
     failedSourceKey || liquidSourceKey({ slotName: failedSlotName, wellName: failedWellName });
   const failedSource = resolvedFailedKey ? sources[resolvedFailedKey] || null : null;
+  const resolvedTransferHints =
+    transferHints || (protocolSource ? parseProtocolTransferContinuationHints(protocolSource) : null);
 
   const base = {
     status: "blocked",
@@ -420,6 +488,8 @@ export function buildLiquidSourceSubstitutionPlan({
     patch: null,
     blocked_reason: null,
     required_next_step: null,
+    same_liquid_source_substitution_allowed: false,
+    volume_check: null,
     no_robot_motion: true,
   };
 
@@ -477,6 +547,31 @@ export function buildLiquidSourceSubstitutionPlan({
     };
   }
 
+  const selectedRaw = sources[selected.source_map_key] || selected;
+  const volumeCheck = assessSubstituteSourceVolume({
+    candidate: selectedRaw,
+    candidateKey: selected.source_map_key,
+    protocolSource,
+    transferHints: resolvedTransferHints,
+    remainingDestinationCount,
+  });
+
+  // Known shortfall: stop substitution. Missing volume data keeps the existing
+  // human-confirmation path (do not invent a new auto-allow branch).
+  if (volumeCheck.basis === "declared_source_map" && volumeCheck.sufficient === false) {
+    return {
+      ...base,
+      candidates,
+      candidate_count: candidates.length,
+      selected_source_key: selected.source_map_key,
+      selected_source: selected,
+      volume_check: volumeCheck,
+      same_liquid_source_substitution_allowed: false,
+      blocked_reason: "substitute_volume_insufficient",
+      required_next_step: "refill_source_or_escalate",
+    };
+  }
+
   const patch = {
     recovery_type: "alternative_resource",
     resource_type: "liquid_source",
@@ -502,6 +597,8 @@ export function buildLiquidSourceSubstitutionPlan({
     candidates,
     candidate_count: candidates.length,
     patch,
+    volume_check: volumeCheck,
+    same_liquid_source_substitution_allowed: true,
     blocked_reason: autoResumeEligible
       ? "suffix_plan_not_sufficient"
       : "liquid_source_substitution_requires_validated_presence_before_auto_resume",

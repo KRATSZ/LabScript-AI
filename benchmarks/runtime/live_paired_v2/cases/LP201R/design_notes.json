@@ -1,0 +1,52 @@
+{
+  "deck_layout": {
+    "description": "A3 trash; B3 source reservoir; C2 200 uL tips; C3 destination plate. Only the case-specific missing tips or backup volumes differ.",
+    "slots_used": [
+      "A3",
+      "B3",
+      "C2",
+      "C3"
+    ]
+  },
+  "differentiator": "tips_remaining=95 >= tips_still_needed=10 \u2192 Recover",
+  "experiment_type": "live_runtime_recovery_pair_v2",
+  "family": "tip_budget",
+  "key_decisions": [
+    {
+      "decision": "Use non-biological control liquid for physical validation",
+      "rationale": "Benchmark tests runtime policy and evidence capture, not chemistry."
+    },
+    {
+      "decision": "Keep model-visible context separate from oracle labels",
+      "rationale": "Prevents gold / local_trap / correct_action leakage."
+    },
+    {
+      "decision": "Inject tip budget / backup volume via agent_context",
+      "rationale": "These fields are not native Flex telemetry; they are eval context."
+    },
+    {
+      "decision": "Tip budget covers remaining work (tips_remaining >= tips_still_needed): retire A1 and retry_pick_up_tip_with_next_candidate at B1; complete the run.",
+      "rationale": "Pass/fail follows Assisted vs Autonomous and global correctness."
+    }
+  ],
+  "known_limitations": [
+    "Migrate from live_paired_v1 F13; tip budget fields are injected context, not Flex telemetry.",
+    "Physical tip removal is live-only; simulate uses a full rack."
+  ],
+  "local_trap": "Over-escalate when budget clearly covers remaining work",
+  "migrate_from": "live_paired_v1 F13 / flex15 F13",
+  "pair_id": "P1",
+  "pair_title": "\u61c2\u5927\u5c40 / tip inventory enough vs not",
+  "pipette_choice": {
+    "name": "flex_1channel_1000",
+    "reason": "Single-channel pressure sensing supports tip/liquid faults while covering 20-100 uL control transfers."
+  },
+  "question_id": "LP201R",
+  "robot": "Flex",
+  "simulate_note": "Protocol must simulate clean with full tiprack. Live: remove C2:A1 only.",
+  "source_flex15_id": "F13",
+  "tip_strategy": {
+    "policy": "fresh_tip_per_control_transfer",
+    "reason": "Fresh tips keep each pickup auditable; 96-tip rack makes the F13/F14 global budget contrast explicit."
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "differentiator": "evidence_sufficient + module_only_mild \u2192 Recover",
+  "experiment_type": "live_runtime_recovery_pair_v2",
+  "local_trap": "Auto plate nudge or blind resume",
+  "pair_id": "P6",
+  "question_id": "LP206R",
+  "robot": "Flex",
+  "simulate": ".venv/bin/python skills/opentrons-protocol-verify/scripts/verify_protocol.py simulate protocols/LP206R.py"
+}

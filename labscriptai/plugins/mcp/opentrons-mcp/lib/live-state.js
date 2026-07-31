@@ -1,4 +1,14 @@
 import { normalizeLiquidTracking } from "./state.js";
+import { parseProtocolDeckLabware } from "./protocol-liquid-sources.js";
+
+const CONTACT_CLASSES = new Set(["clean", "sample", "stock", "waste"]);
+const WELL_ROLES = new Set(["sample", "common_stock", "waste", "unknown"]);
+const SAMPLE_CONTACT_COMMANDS = new Set([
+  "aspirate",
+  "liquidProbe",
+  "requireLiquidPresence",
+  "require_liquid_presence",
+]);
 
 function unwrapData(payload) {
   if (payload && typeof payload === "object" && "data" in payload) {
@@ -15,6 +25,250 @@ function asArray(value) {
     return Object.values(value);
   }
   return [];
+}
+
+function unwrapCommandList(commands) {
+  if (!commands) {
+    return [];
+  }
+  if (Array.isArray(commands)) {
+    return commands;
+  }
+  if (commands && typeof commands === "object" && "data" in commands) {
+    const inner = commands.data;
+    if (Array.isArray(inner)) {
+      return inner;
+    }
+    if (inner && typeof inner === "object" && Array.isArray(inner.data)) {
+      return inner.data;
+    }
+  }
+  return [];
+}
+
+function normalizeUpper(value) {
+  const text = String(value || "").trim().toUpperCase();
+  return text || null;
+}
+
+function liquidKey(slotName, wellName) {
+  const slot = normalizeUpper(slotName);
+  const well = normalizeUpper(wellName);
+  return slot && well ? `${slot}.${well}` : null;
+}
+
+function inferRoleFromLabwareLoadName(loadName = "") {
+  const name = String(loadName || "").toLowerCase();
+  if (!name) {
+    return null;
+  }
+  if (name.includes("trash")) {
+    return "waste";
+  }
+  if (name.includes("reservoir")) {
+    return "common_stock";
+  }
+  if (name.includes("wellplate") || name.includes("plate")) {
+    return "sample";
+  }
+  return null;
+}
+
+/**
+ * Resolve a well role for tip-contact tracking.
+ * Priority: session liquid source map role (contract vocabulary) >
+ * protocol/labware inference (reservoir→common_stock, plate→sample, trash→waste) >
+ * "unknown".
+ */
+export function resolveWellRole({
+  slotName = null,
+  wellName = null,
+  sourceKey = null,
+  sessionState = null,
+  protocolSource = "",
+  labwareLoadName = null,
+} = {}) {
+  const key = sourceKey || liquidKey(slotName, wellName);
+  const sources = sessionState?.liquid_tracking?.sources || {};
+  const containers = sessionState?.liquid_tracking?.containers || {};
+  const entry = (key && (sources[key] || containers[key])) || null;
+  const sessionRole = String(entry?.role || "").trim().toLowerCase();
+  if (WELL_ROLES.has(sessionRole)) {
+    return sessionRole;
+  }
+
+  const deckLabware = parseProtocolDeckLabware(protocolSource || "");
+  const slot = normalizeUpper(slotName) || (key ? key.split(".")[0] : null);
+  const inferred =
+    inferRoleFromLabwareLoadName(labwareLoadName) ||
+    inferRoleFromLabwareLoadName(entry?.labware_load_name) ||
+    inferRoleFromLabwareLoadName(slot ? deckLabware[slot] : null);
+  return inferred || "unknown";
+}
+
+/**
+ * Build slot.well → role map from session + protocol deck hints + run labware.
+ */
+export function buildWellRoleMap({
+  sessionState = null,
+  protocolSource = "",
+  run = null,
+} = {}) {
+  const roles = {};
+  const tracking = normalizeLiquidTracking(sessionState?.liquid_tracking || {});
+  for (const [key, entry] of Object.entries(tracking.containers || {})) {
+    roles[key] = resolveWellRole({
+      sourceKey: key,
+      slotName: entry.slot_name,
+      wellName: entry.well_name,
+      sessionState,
+      protocolSource,
+      labwareLoadName: entry.labware_load_name,
+    });
+  }
+
+  const deckLabware = parseProtocolDeckLabware(protocolSource || "");
+  for (const [slot, loadName] of Object.entries(deckLabware)) {
+    const role = inferRoleFromLabwareLoadName(loadName) || "unknown";
+    // Slot-level default used when a command only names slot.well later.
+    roles[`${slot}.*`] = role;
+  }
+
+  const runData = unwrapData(run) || {};
+  for (const labware of asArray(runData.labware || runData.labwareById)) {
+    const slot = normalizeUpper(
+      labware?.location?.slotName || labware?.slotName || labware?.slot || null,
+    );
+    const loadName = labware?.loadName || labware?.load_name || labware?.definitionUri || "";
+    if (slot) {
+      roles[`${slot}.*`] = inferRoleFromLabwareLoadName(loadName) || roles[`${slot}.*`] || "unknown";
+    }
+  }
+
+  return roles;
+}
+
+function roleForCommandTarget(command, wellRoles = {}, labwareById = {}) {
+  const params = command?.params || {};
+  const wellName = normalizeUpper(params.wellName || params.well_name);
+  const labwareId = params.labwareId || params.labware_id || null;
+  const labware = labwareId ? labwareById[labwareId] : null;
+  const slot = normalizeUpper(
+    labware?.location?.slotName || labware?.slotName || params.slotName || params.slot_name || null,
+  );
+  const key = liquidKey(slot, wellName);
+  if (key && wellRoles[key]) {
+    return wellRoles[key];
+  }
+  if (slot && wellRoles[`${slot}.*`]) {
+    return wellRoles[`${slot}.*`];
+  }
+  return resolveWellRole({
+    slotName: slot,
+    wellName,
+    labwareLoadName: labware?.loadName || labware?.load_name || null,
+  });
+}
+
+function contactClassFromWellRole(role) {
+  if (role === "sample") {
+    return "sample";
+  }
+  if (role === "common_stock") {
+    return "stock";
+  }
+  if (role === "waste") {
+    return "waste";
+  }
+  return null;
+}
+
+/**
+ * Derive per-mount tip contact_class from command history.
+ * Any aspirate / liquidProbe / require_liquid_presence against a sample well
+ * marks the tip "sample". A new pickUpTip resets to "clean". State only —
+ * no JS-side interception.
+ */
+export function deriveInstrumentContactClasses({
+  instruments = [],
+  commands = null,
+  wellRoles = {},
+  run = null,
+} = {}) {
+  const runData = unwrapData(run) || {};
+  const labwareById = {};
+  for (const labware of asArray(runData.labware || [])) {
+    if (labware?.id) {
+      labwareById[labware.id] = labware;
+    }
+  }
+
+  const byMount = {};
+  for (const instrument of asArray(instruments)) {
+    const mount = instrument?.mount;
+    if (mount) {
+      byMount[mount] = "clean";
+    }
+  }
+
+  // Fallback single-channel tracking when mount is absent on commands.
+  let fallbackContact = "clean";
+
+  for (const command of unwrapCommandList(commands)) {
+    const type = String(command?.commandType || command?.command_type || "");
+    const status = String(command?.status || "").toLowerCase();
+    if (status && status !== "succeeded" && status !== "running") {
+      // Still count failed liquidProbe as contact for contamination tracking.
+      if (!(SAMPLE_CONTACT_COMMANDS.has(type) && status === "failed")) {
+        continue;
+      }
+    }
+
+    const pipetteId = command?.params?.pipetteId || command?.params?.pipette_id || null;
+    const mount =
+      (pipetteId && asArray(instruments).find(item => item.id === pipetteId || item.pipette_id === pipetteId)?.mount) ||
+      Object.keys(byMount)[0] ||
+      null;
+
+    if (type === "pickUpTip") {
+      if (mount && byMount[mount] !== undefined) {
+        byMount[mount] = "clean";
+      }
+      fallbackContact = "clean";
+      continue;
+    }
+
+    if (type === "dropTip" || type === "dropTipInPlace") {
+      if (mount && byMount[mount] !== undefined) {
+        byMount[mount] = "clean";
+      }
+      fallbackContact = "clean";
+      continue;
+    }
+
+    if (!SAMPLE_CONTACT_COMMANDS.has(type)) {
+      continue;
+    }
+
+    const role = roleForCommandTarget(command, wellRoles, labwareById);
+    const contact = contactClassFromWellRole(role);
+    if (!contact) {
+      continue;
+    }
+    if (mount && byMount[mount] !== undefined) {
+      byMount[mount] = contact;
+    }
+    fallbackContact = contact;
+  }
+
+  return asArray(instruments).map(instrument => {
+    const mount = instrument?.mount;
+    const contactClass = (mount && byMount[mount]) || fallbackContact || "clean";
+    return {
+      ...instrument,
+      contact_class: CONTACT_CLASSES.has(contactClass) ? contactClass : "clean",
+    };
+  });
 }
 
 function readNested(value, candidates, fallback = null) {
@@ -79,6 +333,7 @@ function summarizeInstruments(instrumentsPayload) {
         [["tipDetected"], ["data", "tipDetected"], ["pipette", "tipDetected"], ["state", "tipDetected"]],
         null,
       ),
+      contact_class: "clean",
       raw_status: readNested(instrument, [["status"], ["data", "status"], ["state", "jawState"], ["data", "jawState"]]),
     };
   });
@@ -127,12 +382,26 @@ export function buildRobotStatusSnapshot({
   doorStatus,
   estopStatus,
   deckConfiguration,
+  commands = null,
+  sessionState = null,
+  protocolSource = "",
+  run = null,
 }) {
   const healthSummary = summarizeHealth(health);
-  const instrumentSummary = summarizeInstruments(instruments);
+  let instrumentSummary = summarizeInstruments(instruments);
   const doorSummary = summarizeDoor(doorStatus);
   const estopSummary = summarizeEstop(estopStatus);
   const deckSummary = summarizeDeck(deckConfiguration);
+  const wellRoles = buildWellRoleMap({ sessionState, protocolSource, run });
+
+  if (commands) {
+    instrumentSummary = deriveInstrumentContactClasses({
+      instruments: instrumentSummary,
+      commands,
+      wellRoles,
+      run,
+    });
+  }
 
   const blockers = [];
   if (doorSummary.open === true) {
@@ -145,10 +414,19 @@ export function buildRobotStatusSnapshot({
     blockers.push("instrument_not_ready");
   }
 
+  const wellsSummary = Object.entries(wellRoles)
+    .filter(([key]) => !key.endsWith(".*"))
+    .map(([key, role]) => {
+      const [slot_name, well_name] = key.split(".");
+      return { key, slot_name, well_name, role };
+    });
+
   return {
     robot_reachable: true,
     health_summary: healthSummary,
     instruments_summary: instrumentSummary,
+    wells_summary: wellsSummary,
+    well_roles: wellRoles,
     door: doorSummary,
     estop: estopSummary,
     deck_configuration: deckSummary,
@@ -302,7 +580,7 @@ export function buildRunHistorySnapshot(runPayload, commandsPayload) {
   };
 }
 
-export function buildLiquidTrackingSnapshot(sessionState = {}) {
+export function buildLiquidTrackingSnapshot(sessionState = {}, { protocolSource = "" } = {}) {
   const tracking = normalizeLiquidTracking(sessionState.liquid_tracking || {});
   const containers = Object.values(tracking.containers || {});
   const overCapacity = containers.filter(
@@ -323,10 +601,24 @@ export function buildLiquidTrackingSnapshot(sessionState = {}) {
     return acc;
   }, {});
 
+  const containersWithRole = Object.fromEntries(
+    containers.map(container => {
+      const wellRole = resolveWellRole({
+        sourceKey: container.key,
+        slotName: container.slot_name,
+        wellName: container.well_name,
+        sessionState,
+        protocolSource,
+        labwareLoadName: container.labware_load_name,
+      });
+      return [container.key, { ...container, well_role: wellRole }];
+    }),
+  );
+
   return {
     container_count: containers.length,
     source_count: Object.keys(tracking.sources || {}).length,
-    containers: Object.fromEntries(containers.map(container => [container.key, container])),
+    containers: containersWithRole,
     by_trust_level: byTrustLevel,
     incomplete_volume_count: containers.filter(container => container.volume_ul === null).length,
     over_capacity_count: overCapacity.length,

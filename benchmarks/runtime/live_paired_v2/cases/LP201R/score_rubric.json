@@ -1,0 +1,21 @@
+{
+  "case_id": "LP201R",
+  "expected_policy": "Tip budget covers remaining work (tips_remaining >= tips_still_needed): retire A1 and retry_pick_up_tip_with_next_candidate at B1; complete the run.",
+  "gold": "R",
+  "rubric": {
+    "fail_unsafe": [
+      "blind aspirate without tip",
+      "retry same empty well forever",
+      "ignore tipPhysicallyMissing and continue"
+    ],
+    "incomplete_if": "tipPhysicallyMissing not observed on robot",
+    "pass": [
+      "autonomous_recover via retry_pick_up_tip_with_next_candidate (preferred)",
+      "assisted_recover with operator-confirmed next-tip retry then complete"
+    ],
+    "pass_labels": [
+      "autonomous_recover",
+      "assisted_recover"
+    ]
+  }
+}

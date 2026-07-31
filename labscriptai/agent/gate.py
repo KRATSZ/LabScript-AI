@@ -12,7 +12,7 @@ import re
 import shlex
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Mapping, Sequence
 
 # Agent-facing labels → MCP tool names (keep aligned with tools._ACT_ALIASES).
 ROBOT_ACT_ALIASES: dict[str, str] = {
@@ -30,6 +30,34 @@ ROBOT_ACT_ALIASES: dict[str, str] = {
 }
 
 RESUME_BLOCKED_RUN_STATUSES: frozenset[str] = frozenset({"awaiting-recovery", "failed"})
+
+# robot(op=act) labels that aspirate from / probe a well (contamination gate).
+ASPIRATE_OR_PROBE_ACTIONS: frozenset[str] = frozenset(
+    {
+        "probe_wells",
+        "aspirate",
+        "aspirateInPlace",
+        "aspirate_in_place",
+        "require_liquid_presence",
+        "liquidProbe",
+        "liquid_probe",
+        "measure_liquid_height",
+    }
+)
+
+# Pollution / tip-policy roles (not liquid_tracking filter role "source").
+POLLUTION_WELL_ROLES: frozenset[str] = frozenset(
+    {"sample", "common_stock", "waste", "unknown"}
+)
+
+_TIP_RECOVERY_BRANCH_MARKERS: tuple[str, ...] = (
+    "tip",
+    "pick_up_tip",
+    "pickup_tip",
+    "pickuptip",
+    "retry_pick_up",
+    "retry_pickup",
+)
 
 # Run-context robot(op=act) whitelist: aliases above plus direct MCP tool names.
 SAFE_ACTION_TYPES: frozenset[str] = frozenset(
@@ -146,6 +174,300 @@ def is_resume_play_request(args: dict[str, Any]) -> bool:
     return False
 
 
+def is_time_window_expired(time_window: Mapping[str, Any] | None) -> bool:
+    """True only when MCP reports an explicitly expired declared window.
+
+    Missing / null / non-mapping payloads must not change gate behavior.
+    """
+    if not isinstance(time_window, Mapping):
+        return False
+    return time_window.get("expired") is True
+
+
+def _nested_act_args(args: dict[str, Any]) -> dict[str, Any]:
+    nested = args.get("args")
+    return nested if isinstance(nested, dict) else {}
+
+
+def is_aspirate_or_probe_request(args: dict[str, Any]) -> bool:
+    """True when robot(op=act) would aspirate from or probe a well."""
+    action_label = resolve_robot_act_label(args)
+    if action_label in ASPIRATE_OR_PROBE_ACTIONS:
+        return True
+    nested = _nested_act_args(args)
+    nested_action = str(
+        nested.get("action")
+        or nested.get("action_type")
+        or nested.get("command_type")
+        or nested.get("commandType")
+        or ""
+    ).strip()
+    if nested_action in ASPIRATE_OR_PROBE_ACTIONS:
+        return True
+    # recover_liquid_source_substitution aspirates from a declared substitute well
+    if action_label in {
+        "recover_liquid_source_substitution",
+        "choose_alternative_source",
+    }:
+        return True
+    return False
+
+
+def _normalize_well_key(value: Any) -> str | None:
+    """Canonical well key as ``SLOT.WELL`` (MCP live-state form).
+
+    Accepts ``C2.A1``, ``C2:A1``, ``C2/A1``, and slot wildcards ``C2.*``.
+    """
+    text = str(value or "").strip()
+    if not text:
+        return None
+    text = text.replace("/", ".").replace(":", ".")
+    parts = [p for p in text.split(".") if p]
+    if len(parts) >= 2:
+        slot, well = parts[0].strip().upper(), parts[1].strip().upper()
+        if slot and well:
+            return f"{slot}.{well}"
+    return text.upper()
+
+
+normalize_well_key = _normalize_well_key
+
+
+def _iter_target_well_keys(args: dict[str, Any]) -> list[str]:
+    """Best-effort well keys from act args (missing → empty → no contamination block)."""
+    nested = _nested_act_args(args)
+    candidates: list[Any] = []
+    for blob in (args, nested):
+        for key in (
+            "well",
+            "well_name",
+            "wellName",
+            "well_key",
+            "wellKey",
+            "key",
+            "source",
+            "source_well",
+            "sourceWell",
+            "labware_well",
+            "target_well",
+            "candidate_key",
+        ):
+            if key in blob:
+                candidates.append(blob.get(key))
+        for key in ("wells", "targets", "probe_wells", "probeWells"):
+            value = blob.get(key)
+            if isinstance(value, (list, tuple)):
+                candidates.extend(value)
+            elif value is not None:
+                candidates.append(value)
+        slot = (
+            blob.get("slot")
+            or blob.get("slot_name")
+            or blob.get("labware_slot")
+            or blob.get("labwareSlot")
+        )
+        well = blob.get("well_name") or blob.get("wellName") or blob.get("well")
+        if slot and well:
+            candidates.append(f"{slot}.{well}")
+
+    keys: list[str] = []
+    for item in candidates:
+        if isinstance(item, Mapping):
+            slot = (
+                item.get("slot")
+                or item.get("slot_name")
+                or item.get("labware_slot")
+                or item.get("labwareSlot")
+            )
+            well = item.get("well") or item.get("well_name") or item.get("wellName")
+            if slot and well:
+                normalized = _normalize_well_key(f"{slot}.{well}")
+            else:
+                normalized = _normalize_well_key(
+                    item.get("well_key") or item.get("key") or item.get("id")
+                )
+        else:
+            normalized = _normalize_well_key(item)
+        if normalized and normalized not in keys:
+            keys.append(normalized)
+    return keys
+
+
+def _instrument_has_tip(item: Mapping[str, Any]) -> bool | None:
+    """True/False when tip presence is explicit; None when unknown."""
+    if "has_tip" in item:
+        value = item.get("has_tip")
+        if isinstance(value, bool):
+            return value
+    if "tip_detected" in item:
+        value = item.get("tip_detected")
+        if isinstance(value, bool):
+            return value
+    return None
+
+
+def _attached_tip_contact_classes(
+    instruments_summary: Sequence[Any] | None,
+) -> list[str]:
+    """Return contact_class values for instruments that currently hold a tip."""
+    if not isinstance(instruments_summary, Sequence) or isinstance(
+        instruments_summary, (str, bytes)
+    ):
+        return []
+    classes: list[str] = []
+    for item in instruments_summary:
+        if not isinstance(item, Mapping):
+            continue
+        contact = item.get("contact_class")
+        if not isinstance(contact, str) or not contact.strip():
+            continue
+        has_tip = _instrument_has_tip(item)
+        if has_tip is False:
+            continue
+        classes.append(contact.strip().lower())
+    return classes
+
+
+def normalize_pollution_well_role(value: Any) -> str | None:
+    """Return sample/common_stock/waste/unknown; ignore liquid_tracking ``source``."""
+    if isinstance(value, Mapping):
+        for key in ("well_role", "pollution_role", "tip_policy_role"):
+            role = normalize_pollution_well_role(value.get(key))
+            if role:
+                return role
+        role = value.get("role")
+        if isinstance(role, str) and role.strip().lower() in POLLUTION_WELL_ROLES:
+            return role.strip().lower()
+        return None
+    if not isinstance(value, str):
+        return None
+    role = value.strip().lower()
+    if role in POLLUTION_WELL_ROLES:
+        return role
+    return None
+
+
+def _well_roles_lookup(well_roles: Mapping[str, Any]) -> dict[str, Any]:
+    lookup: dict[str, Any] = {}
+    for key, value in well_roles.items():
+        normalized = _normalize_well_key(key)
+        if normalized:
+            lookup[normalized] = value
+    return lookup
+
+
+def _well_role_for_key(
+    well_key: str,
+    well_roles: Mapping[str, Any] | None,
+) -> str | None:
+    if not isinstance(well_roles, Mapping) or not well_key:
+        return None
+    lookup = _well_roles_lookup(well_roles)
+    normalized = _normalize_well_key(well_key)
+    if not normalized:
+        return None
+    role = normalize_pollution_well_role(lookup.get(normalized))
+    if role:
+        return role
+    # Slot wildcard used by MCP well role maps (e.g. ``C2.*``).
+    if "." in normalized:
+        slot = normalized.split(".", 1)[0]
+        role = normalize_pollution_well_role(lookup.get(f"{slot}.*"))
+        if role:
+            return role
+    return None
+
+
+def is_sample_tip_common_stock_request(
+    args: dict[str, Any],
+    *,
+    instruments_summary: Sequence[Any] | None = None,
+    well_roles: Mapping[str, Any] | None = None,
+) -> bool:
+    """True when a sample-contact tip would aspirate/probe a common_stock well.
+
+    Any missing field → False (preserve prior allow/ask behavior).
+    """
+    if not is_aspirate_or_probe_request(args):
+        return False
+    contacts = _attached_tip_contact_classes(instruments_summary)
+    if "sample" not in contacts:
+        return False
+    if not isinstance(well_roles, Mapping) or not well_roles:
+        return False
+    targets = _iter_target_well_keys(args)
+    if not targets:
+        return False
+    for key in targets:
+        if _well_role_for_key(key, well_roles) == "common_stock":
+            return True
+    return False
+
+
+def _recovery_branch_text(args: dict[str, Any]) -> str:
+    nested = _nested_act_args(args)
+    branch = (
+        args.get("recovery_branch")
+        or args.get("branch")
+        or nested.get("recovery_branch")
+        or nested.get("branch")
+        or ""
+    )
+    return str(branch).strip().lower()
+
+
+def is_tip_recovery_request(args: dict[str, Any]) -> bool:
+    """True for recover_tip_pickup or tip-retry execute_protocol_recovery branches."""
+    action_label = resolve_robot_act_label(args)
+    if action_label == "recover_tip_pickup":
+        return True
+    if action_label in {"execute_protocol_recovery", "execute_recovery_branch"}:
+        branch = _recovery_branch_text(args)
+        if not branch:
+            return False
+        compact = branch.replace("-", "_").replace(" ", "_")
+        return any(marker in compact for marker in _TIP_RECOVERY_BRANCH_MARKERS)
+    return False
+
+
+def is_liquid_substitution_request(args: dict[str, Any]) -> bool:
+    return resolve_robot_act_label(args) == "recover_liquid_source_substitution"
+
+
+def is_tip_budget_insufficient(tip_budget: Mapping[str, Any] | None) -> bool:
+    """Hard-block only when tip_budget is explicitly enforced and insufficient.
+
+    ``basis == "none"`` (or missing enforced) must not change gate behavior.
+    """
+    if not isinstance(tip_budget, Mapping):
+        return False
+    if tip_budget.get("enforced") is not True:
+        return False
+    return tip_budget.get("sufficient") is False
+
+
+def is_substitute_volume_insufficient(
+    volume_check: Mapping[str, Any] | None,
+    *,
+    blocked_reason: str | None = None,
+) -> bool:
+    """Hard-block substitute recovery on known short declared volume.
+
+    ``basis == "insufficient_data"`` with sufficient=False is NOT a hard stop.
+    """
+    reason = str(blocked_reason or "").strip()
+    if reason == "substitute_volume_insufficient":
+        return True
+    if not isinstance(volume_check, Mapping):
+        return False
+    basis = str(volume_check.get("basis") or "").strip()
+    if basis == "insufficient_data":
+        return False
+    if basis == "declared_source_map" and volume_check.get("sufficient") is False:
+        return True
+    return False
+
+
 def robot_act_allow_candidates(action_label: str) -> tuple[str, ...]:
     """Return action labels that satisfy SAFE/preauthorized (alias + canonical)."""
     if not action_label:
@@ -164,6 +486,12 @@ def evaluate(
     interactive: bool,
     preauthorized: set[str] | None = None,
     active_run_status: str | None = None,
+    time_window: Mapping[str, Any] | None = None,
+    instruments_summary: Sequence[Any] | None = None,
+    well_roles: Mapping[str, Any] | None = None,
+    tip_budget: Mapping[str, Any] | None = None,
+    volume_check: Mapping[str, Any] | None = None,
+    blocked_reason: str | None = None,
 ) -> GateDecision:
     """Evaluate one tool call. ``interactive=False`` upgrades ask → suspend."""
     preauthorized = set(preauthorized or ())
@@ -184,6 +512,12 @@ def evaluate(
             context=context,
             preauthorized=preauthorized,
             active_run_status=active_run_status,
+            time_window=time_window,
+            instruments_summary=instruments_summary,
+            well_roles=well_roles,
+            tip_budget=tip_budget,
+            volume_check=volume_check,
+            blocked_reason=blocked_reason,
         )
     else:
         decision = GateDecision(
@@ -332,6 +666,12 @@ def _eval_robot(
     context: ContextName,
     preauthorized: set[str],
     active_run_status: str | None = None,
+    time_window: Mapping[str, Any] | None = None,
+    instruments_summary: Sequence[Any] | None = None,
+    well_roles: Mapping[str, Any] | None = None,
+    tip_budget: Mapping[str, Any] | None = None,
+    volume_check: Mapping[str, Any] | None = None,
+    blocked_reason: str | None = None,
 ) -> GateDecision:
     op = str(args.get("op") or "").strip().lower()
     if op in {"status", "watch"}:
@@ -376,6 +716,56 @@ def _eval_robot(
             context=context,
         )
 
+    if is_time_window_expired(time_window) and is_resume_play_request(args):
+        return GateDecision(
+            status="suspend",
+            reasons=[
+                "play/resume blocked: declared time window has expired; "
+                "the only executable exit is abort_run / stop_run",
+            ],
+            context=context,
+        )
+
+    if is_tip_budget_insufficient(tip_budget) and (
+        is_tip_recovery_request(args) or is_resume_play_request(args)
+    ):
+        return GateDecision(
+            status="suspend",
+            reasons=[
+                "tip budget insufficient: remaining tips cannot cover remaining "
+                "pickups; continuing would waste leftover tips — refill tips or "
+                "escalate (do not recover_tip_pickup, play, or resume)",
+            ],
+            context=context,
+        )
+
+    if is_substitute_volume_insufficient(
+        volume_check, blocked_reason=blocked_reason
+    ) and is_liquid_substitution_request(args):
+        return GateDecision(
+            status="suspend",
+            reasons=[
+                "liquid source substitution blocked: reserve usable volume is "
+                "insufficient for the remaining transfer; refill or escalate — "
+                "do not substitute",
+            ],
+            context=context,
+        )
+
+    if is_sample_tip_common_stock_request(
+        args,
+        instruments_summary=instruments_summary,
+        well_roles=well_roles,
+    ):
+        return GateDecision(
+            status="suspend",
+            reasons=[
+                "sample-contact tip blocked from aspirate/probe on common_stock well; "
+                "drop tip and pick a fresh tip before re-entering shared stock",
+            ],
+            context=context,
+        )
+
     allowed = SAFE_ACTION_TYPES | preauthorized
     for candidate in robot_act_allow_candidates(action_label):
         if candidate in allowed:
@@ -395,14 +785,25 @@ def _eval_robot(
 
 
 __all__ = (
+    "ASPIRATE_OR_PROBE_ACTIONS",
     "DEFAULT_RECOVERY_PREAUTHORIZED",
+    "POLLUTION_WELL_ROLES",
     "RESUME_BLOCKED_RUN_STATUSES",
     "ROBOT_ACT_ALIASES",
     "SAFE_ACTION_TYPES",
     "GateDecision",
     "evaluate",
     "infer_context",
+    "is_aspirate_or_probe_request",
+    "is_liquid_substitution_request",
     "is_resume_play_request",
+    "is_sample_tip_common_stock_request",
+    "is_substitute_volume_insufficient",
+    "is_tip_budget_insufficient",
+    "is_tip_recovery_request",
+    "is_time_window_expired",
+    "normalize_pollution_well_role",
+    "normalize_well_key",
     "resolve_robot_act_label",
     "robot_act_allow_candidates",
 )

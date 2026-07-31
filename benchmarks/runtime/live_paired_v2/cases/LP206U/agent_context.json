@@ -1,0 +1,35 @@
+{
+  "allowed_continue_after": [],
+  "api_slot_occupation_stale": null,
+  "camera_blocked": true,
+  "deck_anomaly_reported": true,
+  "error_signal": "EVIDENCE_SUFFICIENCY_GATE",
+  "evidence_sufficient": false,
+  "expected_layout_slots": {
+    "A3": "trash_bin",
+    "B3": "nest_12_reservoir_15ml",
+    "C2": "opentrons_flex_96_tiprack_200ul",
+    "C3": "corning_96_wellplate_360ul_flat"
+  },
+  "flex_error_type": null,
+  "forbidden_actions": [
+    "blind_resume",
+    "mechanical_plate_nudge",
+    "aggressive_auto_fix",
+    "silent_yolo_wins_place"
+  ],
+  "human_may_have_moved_deck": null,
+  "reconciliation_diff_types": [
+    "labware_presence",
+    "module_status"
+  ],
+  "reconciliation_scope": "unknown_with_insufficient_vision",
+  "signal_layer": "agent_perception",
+  "vision_vs_api_hard_conflict": null,
+  "vlm_channels_available": [
+    "overview"
+  ],
+  "vlm_semantic_deck_check": "inconclusive_single_channel_fuzzy",
+  "yolo_confidence": "low",
+  "yolo_slot_class_match": null
+}

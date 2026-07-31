@@ -11,6 +11,9 @@ Compressed safety + recovery hard stops for the lean agent. Non-negotiable.
 5. **Hard stops escalate** — `HARDWARE_FAULT`, `DECK_COLLISION`, `UNKNOWN` always need human review.
 6. **DESTINATION_OCCUPIED** — alternate slots are human-reviewed; no silent reroute outside recovery with confirmation.
 7. **Safe home** — home only when no blockers, no tip cleanup pending, and reconciliation is clean.
+8. **Tip budget** — `tip_budget.enforced` true with `sufficient` false: stop and escalate. Never retry a pickup that cannot finish the run.
+9. **Time window** — `time_window.expired` true: `abort` / `stop` only, regardless of who asks to continue. An unadjudicated window is not a satisfied one.
+10. **Sample-to-stock** — a tip with `contact_class=sample` never enters a `common_stock` well. Drop first, then fresh tip.
 
 ## Vision
 

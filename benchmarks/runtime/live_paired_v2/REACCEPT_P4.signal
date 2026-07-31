@@ -1,0 +1,22 @@
+# REACCEPT_P4 — sibling signal
+
+**Priority:** re-acceptance required before claiming P4 paired-joint pass.
+
+## What changed
+P4 is now a **tip-policy pair** (both `oracle.gold=R`):
+- `LP204R` green → same tip OK on same buffer path (tip-swap optional; unnecessary escalate fails).
+- `LP204E` red → **must tip-swap** before sterile mother liquor (F11). Prior dry-run “tip-swap = FAIL” was a **rubric bug**.
+
+## Sibling action (owns DeepSeek)
+```bash
+PYTHONPATH=.:src .venv/bin/python \
+  benchmarks/runtime/live_paired_v2/dry_run_decisions.py \
+  --pairs P4 \
+  --bundle runs/runtime-flex15/live_paired_v2
+```
+Update `dry_runs/FEEDBACK_P4_P6.md` / `ACCEPTANCE_REPORT.md` / `PAIR_STATUS.md` after re-run.
+
+## Do not
+- Revert red gold to escalate-only.
+- Redesign P1/P2/P3/P5/P6 as part of this re-accept.
+- Claim paper 6/6 joint until sibling re-dry-run lands.

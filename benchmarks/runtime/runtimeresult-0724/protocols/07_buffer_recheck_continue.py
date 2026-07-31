@@ -1,0 +1,82 @@
+"""Flex protocol — Buffer recheck then continue.
+
+Deck (same family as automation/new/protocol_b2_tip_c2_water_to_c1.py):
+  B2  opentrons_flex_96_tiprack_1000ul
+  C2  nest_12_reservoir_15ml
+  D2  nest_96_wellplate_200ul_flat
+  A3  trash bin
+"""
+from opentrons import protocol_api
+
+requirements = {"robotType": "Flex", "apiLevel": "2.24"}
+
+
+def finish_tip(pipette, trash, dry_run_on: bool) -> None:
+    if dry_run_on:
+        pipette.return_tip()
+    else:
+        pipette.drop_tip(trash)
+
+
+def add_parameters(parameters: protocol_api.ParameterContext) -> None:
+    parameters.add_bool(
+        display_name="Dry run: return tips",
+        variable_name="dry_run_on",
+        default=False,
+    )
+    parameters.add_bool(
+        display_name="Use liquid probe",
+        variable_name="use_liquid_probe",
+        default=True,
+    )
+
+metadata = {
+    "protocolName": "Buffer recheck then continue",
+    "author": "LabscriptAI OT",
+    "description": "Probe Assay Buffer, transfer, re-probe same Assay Buffer, continue transfer with same tip.",
+}
+
+
+def run(protocol: protocol_api.ProtocolContext) -> None:
+
+    trash = protocol.load_trash_bin("A3")
+    tip_rack = protocol.load_labware("opentrons_flex_96_tiprack_1000ul", "B2")
+    reservoir = protocol.load_labware("nest_12_reservoir_15ml", "C2")
+    plate = protocol.load_labware("nest_96_wellplate_200ul_flat", "D2")
+
+    dry_run_on = protocol.params.dry_run_on
+    use_liquid_probe = protocol.params.use_liquid_probe
+
+    pipette = protocol.load_instrument(
+        "flex_1channel_1000",
+        "left",
+        tip_racks=[tip_rack],
+        liquid_presence_detection=use_liquid_probe,
+    )
+    water = protocol.get_liquid_class(name="water")
+    glycerol = protocol.get_liquid_class(name="glycerol_50")
+    if dry_run_on:
+        protocol.comment("DRY RUN: no liquids loaded; tips return to rack.")
+
+    buf = reservoir["A1"]
+    d1 = plate["A1"]
+    d2 = plate["A2"]
+
+    protocol.comment("Same-reagent path: one tip for C2.A1 -> A1 then A2")
+    pipette.pick_up_tip()
+    if use_liquid_probe:
+        pipette.require_liquid_presence(buf)
+        protocol.comment("LPD: Assay Buffer before first transfer")
+    pipette.transfer_with_liquid_class(
+        liquid_class=water, volume=80, source=buf, dest=d1,
+        new_tip="never", trash_location=trash,
+    )
+    if use_liquid_probe:
+        pipette.require_liquid_presence(buf)
+        protocol.comment("LPD: same Assay Buffer before second transfer")
+    pipette.transfer_with_liquid_class(
+        liquid_class=water, volume=80, source=buf, dest=d2,
+        new_tip="never", trash_location=trash,
+    )
+    finish_tip(pipette, trash, dry_run_on)
+

@@ -1,0 +1,18 @@
+{
+  "camera_required_for_simulate": false,
+  "en": "Control liquid only. Protocol is a short transfer + pause. Simulate needs no camera. Live: inject YOLO/VLM/reconcile summaries. Never auto-nudge plates. R = reconcile+continue; U = abstain + human.",
+  "injected_evidence": {
+    "evidence_sufficient": true,
+    "reconciliation_diff_types": [
+      "module_status"
+    ],
+    "vlm_semantic_deck_check": "layout_ok_no_disturbance",
+    "yolo_slot_class_match": true
+  },
+  "load_liquids": {
+    "B3:A1": "\u22653000 uL water_control"
+  },
+  "note": "Evidence/abstain is decision-layer; simulate must stay hardware-free.",
+  "remove_tips": [],
+  "zh": "\u63a7\u5236\u6db2\uff1aB3:A1 \u22653000 \u00b5L \u7eaf\u6c34\u3002\u534f\u8bae\u53ea\u505a\u77ed\u8f6c\u79fb + pause \u51b3\u7b56\u95e8\u3002\n\u6a21\u62df\u5668\uff1a\u4e0d\u9700\u8981\u6444\u50cf\u5934\uff1b\u5fc5\u8fc7 opentrons simulate / verify_protocol simulate\u3002\n\u771f\u673a\uff1a\u5728 pause \u6ce8\u5165 agent_context \u7684 YOLO/VLM/reconcile \u6458\u8981\uff1b\u7981\u6b62\u201c\u81ea\u52a8\u5fae\u8c03\u677f\u4f4d\u201d\u8bdd\u672f\u6216\u52a8\u4f5c\u2014\u2014\u4ea7\u54c1\u53ea\u80fd\u5bf9\u8d26/\u4ea4\u4eba\u3002\nR \u4fa7\uff1aYOLO+VLM \u4e00\u81f4\u4e14\u4ec5 module_status \u8f7b\u91cf\u6f02\u79fb \u2192 reconcile \u540e\u7ee7\u7eed\uff08assisted OK\uff09\u3002\nU \u4fa7\uff1a\u955c\u5934\u906e\u6321 / \u5355\u901a\u9053\u6a21\u7cca / \u8bc1\u636e\u4e0d\u8db3 \u2192 abstain \u547c\u53eb\u4eba\u5de5\uff08\u7981\u6b62\u76f2 resume \u6216\u5f3a\u884c\u201c\u4fee\u597d\u201d\uff09\u3002"
+}

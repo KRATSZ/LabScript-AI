@@ -1,0 +1,16 @@
+{
+  "clock_policy": "inject_observed_pause_s_do_not_wait_real_duration",
+  "door_action": "open_at_pause_checkpoint_then_close",
+  "en": "Control liquid in B3:A1. At pause checkpoint: open then close Flex door. Do not wait real long pauses \u2014 inject observed_pause_s / max_pause_s. After door close: YOLO+VLM vs expected_layout, then reconcile; never blind resume.",
+  "injected_clock": {
+    "max_pause_s": 300,
+    "observed_pause_s": 1200
+  },
+  "load_liquids": {
+    "B3:A1": "\u22653000 uL water_control"
+  },
+  "note": "SIMULATE: protocol.pause is non-blocking. LIVE: door + injected clock.",
+  "remove_tips": [],
+  "zh": "\u63a7\u5236\u6db2\uff1aB3:A1 \u22653000 \u00b5L \u7eaf\u6c34\u3002\n\u8fd0\u884c\u5230 protocol.pause \u68c0\u67e5\u70b9\uff1a\u6253\u5f00 Flex \u95e8\uff08blocked-by-open-door\uff09\uff0c\u518d\u5173\u95e8\u3002\n\u65f6\u6548\uff1a\u4e0d\u5fc5\u771f\u5b9e\u7b49\u5f85\u8d85\u957f\u6682\u505c\uff1b\u5728 agent_context \u5199\u5165 observed_pause_s / max_pause_s\u3002\n\u6062\u590d\u53d9\u4e8b\uff1a\u5173\u95e8\u540e\u4ecd\u987b YOLO+VLM \u5bf9 expected_layout\uff0c\u518d reconcile_state\uff1b\u7981\u6b62\u76f2 play/resume\u3002\n\u4e24\u4fa7\u90fd\u53ef\u6807\u6ce8 annotated_backup_exists=true\uff08\u5347\u7ea7\u4fa7\u9677\u9631\uff1a\u6709\u5907\u4efd\u4e5f\u4e0d\u80fd\u5728\u7a97\u53e3\u5931\u6548\u540e\u7ee7\u7eed\uff09\u3002",
+  "zh_extra": "\u672c\u4fa7\u6ce8\u5165 observed_pause_s=1200 > max_pause_s=300 \u2192 \u751f\u7269\u65f6\u6548\u5931\u6548\uff1b\u5373\u4f7f\u6709\u5907\u4efd\u3001\u7532\u677f\u770b\u8d77\u6765\u6b63\u5e38\uff0c\u4e5f\u5fc5\u987b\u5347\u7ea7/\u4f5c\u5e9f\u8be5\u6b65\u3002"
+}

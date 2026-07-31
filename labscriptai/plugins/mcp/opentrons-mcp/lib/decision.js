@@ -570,6 +570,7 @@ function buildLiquidManualRecoveryContext({
   run,
   sessionState,
   commands = [],
+  protocolSource = "",
 } = {}) {
   const failedWell = readNested(failedCommand, [["params", "wellName"]], null);
   const sourceLabwareId = readNested(failedCommand, [["params", "labwareId"]], null);
@@ -592,26 +593,35 @@ function buildLiquidManualRecoveryContext({
     failedKey: sourceMap.key,
     failedSource: sourceMap.liquid_source,
   });
-  const hasSameLiquidSourceCandidates = sameLiquidSourceCandidates.length > 0;
   const preferredCandidate = sameLiquidSourceCandidates[0] || null;
-  const substitutionPlan = hasSameLiquidSourceCandidates
+  const substitutionPlan = sameLiquidSourceCandidates.length > 0
     ? buildLiquidSourceSubstitutionPlan({
         sessionState,
         failedSourceKey: sourceMap.key,
         preferredSourceKey: preferredCandidate?.source_map_key || null,
+        protocolSource: protocolSource || "",
       })
     : null;
+  const volumeCheck = substitutionPlan?.volume_check || null;
+  const volumeInsufficient =
+    volumeCheck?.basis === "declared_source_map" && volumeCheck?.sufficient === false;
+  const hasSameLiquidSourceCandidates =
+    sameLiquidSourceCandidates.length > 0 &&
+    !volumeInsufficient &&
+    substitutionPlan?.blocked_reason !== "substitute_volume_insufficient";
   const attachedTips = summarizeAttachedTipsForReuse(robotStatusSnapshot);
   const reuseAttachedTipContext = evaluateReuseAttachedTipEligibility({
     failedCommand,
     recentCommands: normalizeCommandsForReuseEligibility(commands),
-    substitutionPlan,
+    substitutionPlan: hasSameLiquidSourceCandidates ? substitutionPlan : null,
     attachedTips,
   });
   const cleanupRequired = reuseAttachedTipContext.eligible
     ? []
     : summarizeAttachedTipCleanup(robotStatusSnapshot);
-  const blockedAutoRecoveryReason = hasSameLiquidSourceCandidates
+  const blockedAutoRecoveryReason = volumeInsufficient
+    ? "substitute_volume_insufficient"
+    : hasSameLiquidSourceCandidates
     ? "same_liquid_source_substitution_requires_prepared_recovery_bundle_and_live_gate"
     : "liquid_source_change_requires_human_confirmation";
   const operatorSteps = [
@@ -628,7 +638,9 @@ function buildLiquidManualRecoveryContext({
     sourceLabwareId
       ? `Confirm the source labware ${sourceLabwareId} is still the intended liquid source.`
       : "Confirm the source labware is still the intended liquid source.",
-    hasSameLiquidSourceCandidates
+    volumeInsufficient
+      ? `Substitute source ${volumeCheck.candidate_key} has insufficient usable volume (${volumeCheck.usable_ul} uL usable vs ${volumeCheck.required_ul} uL required). Refill source or escalate.`
+      : hasSameLiquidSourceCandidates
       ? `Same-liquid alternatives are recorded: ${sameLiquidSourceCandidates.map(source => source.source_map_key).join(", ")}.`
       : "Do not change source wells unless the operator provides a confirmed source map.",
     reuseAttachedTipContext.eligible
@@ -662,6 +674,10 @@ function buildLiquidManualRecoveryContext({
     same_liquid_auto_resume_blocker: hasSameLiquidSourceCandidates && !reuseAttachedTipContext.eligible
       ? "attached_tip_reuse_required_for_same_liquid_substitution"
       : null,
+    volume_check: volumeCheck,
+    blocked_reason: volumeInsufficient ? "substitute_volume_insufficient" : null,
+    required_next_step: volumeInsufficient ? "refill_source_or_escalate" : null,
+    substitution_plan: substitutionPlan,
     failed_command_id: commandId,
     failed_command_type: commandType,
     blocked_auto_recovery_reason: blockedAutoRecoveryReason,
@@ -1505,6 +1521,7 @@ export function buildRecoverySuggestion({
         run,
         sessionState,
         commands,
+        protocolSource: protocolSource || "",
       });
       if (awaitingRecovery && liquidContext.same_liquid_source_substitution_allowed) {
         const preferredCandidate = liquidContext.same_liquid_source_candidates[0] || null;

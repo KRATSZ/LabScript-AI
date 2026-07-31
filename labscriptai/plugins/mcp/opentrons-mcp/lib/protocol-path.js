@@ -66,8 +66,9 @@ function protocolPathFromResultLogs(runId, limit = 50) {
 }
 
 /**
- * Resolve a protocol .py path for recovery / tip-budget parsing.
- * Uses explicit args, session state, result logs, env, then workspace heuristics.
+ * Resolve a protocol .py path for recovery / tip-budget / time-window parsing.
+ * Uses explicit args, session state (run_id then session_id), result logs, env,
+ * then workspace heuristics.
  */
 export function resolveProtocolPathForRecovery(args = {}, deps = {}) {
   const readSessionState = deps.readSessionState || (() => ({}));
@@ -77,8 +78,9 @@ export function resolveProtocolPathForRecovery(args = {}, deps = {}) {
     return direct;
   }
 
-  if (args.run_id) {
-    const session = readSessionState(args.run_id) || {};
+  const sessionIds = [...new Set([args.run_id, args.session_id].filter(Boolean))];
+  for (const sessionId of sessionIds) {
+    const session = readSessionState(sessionId) || {};
     const sessionPath = resolveExistingPath(session.protocol_path);
     if (sessionPath) {
       return sessionPath;

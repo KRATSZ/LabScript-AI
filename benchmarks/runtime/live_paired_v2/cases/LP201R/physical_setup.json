@@ -1,0 +1,9 @@
+{
+  "load_liquids": {
+    "B3:A1": "\u22652200 uL water_control"
+  },
+  "note": "B1 reserved for fixit pickup; planned post-recovery tips begin at C1.",
+  "remove_tips": [
+    "C2:A1"
+  ]
+}

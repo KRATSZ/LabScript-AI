@@ -1,0 +1,9 @@
+{
+  "empty_sources": [
+    "B3:A1"
+  ],
+  "load_liquids": {
+    "B3:A2": "\u22652200 uL wash_buffer (water OK)"
+  },
+  "note": "After approval, operator may redirect aspirate to A2 before resume. Assisted recover requires recorded operator confirmation."
+}

@@ -503,6 +503,9 @@ def _robot_status(
         mcp_args["run_id"] = run_id
     if session_id:
         mcp_args["session_id"] = session_id
+    # Symmetry with _robot_watch: time_window enrichment needs protocol source.
+    if workspace is not None:
+        _maybe_attach_protocol_path(mcp_args, workspace)
 
     robot_status = call_tool("robot_status", mcp_args)
     out: dict[str, Any] = {
@@ -538,6 +541,12 @@ def _robot_status(
                 "candidates": recovery.get("same_liquid_source_candidates") or [],
                 "next_tools": recovery.get("recommended_next_tools") or [],
             }
+        volume_check = recovery.get("volume_check")
+        if isinstance(volume_check, dict):
+            out["volume_check"] = volume_check
+        blocked_reason = recovery.get("blocked_reason")
+        if isinstance(blocked_reason, str) and blocked_reason.strip():
+            out["blocked_reason"] = blocked_reason.strip()
     if _is_error_payload(robot_status) and not run_id:
         out["error"] = robot_status.get("error") or "robot_status_failed"
     _attach_active_run_status(out, host, run_id)

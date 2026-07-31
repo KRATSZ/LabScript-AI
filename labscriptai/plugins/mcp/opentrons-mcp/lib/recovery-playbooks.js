@@ -10,11 +10,20 @@ const PLAYBOOKS = Object.freeze({
     allowed_watch_mode: true,
     can_move_robot: true,
     requires_operator_opt_in: false,
-    required_gates: ["run_status_awaiting_recovery", "same_liquid_identity", "reuse_attached_tip_eligible"],
+    required_gates: [
+      "run_status_awaiting_recovery",
+      "same_liquid_identity",
+      "reuse_attached_tip_eligible",
+      "substitute_volume_sufficient",
+    ],
+    blocked_reason_routes: Object.freeze({
+      substitute_volume_insufficient: "refill_source_or_escalate",
+    }),
     semantic_invariants: [
       "liquid_name_unchanged",
       "replacement_source_expected_present",
       "reuse_attached_tip_probe_and_transfer",
+      "replacement_source_volume_sufficient",
     ],
   }),
   retry_pick_up_tip_with_next_candidate: Object.freeze({

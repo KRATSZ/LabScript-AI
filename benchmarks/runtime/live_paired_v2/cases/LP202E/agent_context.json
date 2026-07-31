@@ -1,0 +1,17 @@
+{
+  "annotated_alternative_sources": [
+    {
+      "annotated": true,
+      "available_volume_ul": 40,
+      "liquid_id": "wash_buffer",
+      "source_id": "B3:A2"
+    }
+  ],
+  "error_signal": "INSUFFICIENT_VOLUME",
+  "error_type": "liquidNotFound",
+  "failed_source": "B3:A1",
+  "liquid_id": "wash_buffer",
+  "primary_available_volume_ul": 0,
+  "required_liquid_id": "wash_buffer",
+  "required_volume_ul": 100
+}

@@ -136,6 +136,20 @@ export function evaluateAutonomy({
     };
   }
 
+  const volumeCheck = recovery?.volume_check || recovery?.recovery?.volume_check || null;
+  if (
+    recovery?.blocked_reason === "substitute_volume_insufficient" ||
+    (volumeCheck?.basis === "declared_source_map" && volumeCheck?.sufficient === false)
+  ) {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason: "substitute_volume_insufficient",
+    };
+  }
+
   return {
     level: "L0",
     status: "auto_fix",

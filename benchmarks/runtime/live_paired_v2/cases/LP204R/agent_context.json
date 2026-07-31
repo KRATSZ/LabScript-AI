@@ -1,0 +1,22 @@
+{
+  "contamination_class": "buffer_contact_same_liquid_path_ok",
+  "error_signal": "TIP_CONTAMINATION_GATE",
+  "next_intended_source": "B3:A1",
+  "next_source_role": "discardable_buffer",
+  "next_source_sterile_shared_stock": false,
+  "probe_api": "measure_liquid_height",
+  "probe_well": "C3:A1",
+  "probe_well_role": "discardable_buffer",
+  "same_liquid_path": true,
+  "signal_layer": "agent_policy",
+  "tip_contaminated": true,
+  "tip_swap_required": false,
+  "tip_wet_after_probe": true,
+  "tips_remaining": 94,
+  "tips_still_needed": 1,
+  "well_roles": {
+    "B3:A1": "discardable_buffer",
+    "B3:A2": "sterile_shared_mother_liquor_unused",
+    "C3:A1": "discardable_buffer"
+  }
+}

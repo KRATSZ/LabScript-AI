@@ -214,3 +214,109 @@ test("continuation guide without attached tip routes to manual intervention", ()
   assert.equal(guide.steps[0], "manual_intervention");
   assert.deepEqual(guide.recommended_next_tools, ["safe_next_action", "parse_error"]);
 });
+
+test("volume_check blocks substitution when usable volume is below remaining transfers", () => {
+  const session = {
+    state_revision: 1,
+    liquid_tracking: {
+      sources: {
+        "C2.A1": {
+          slot_name: "C2",
+          well_name: "A1",
+          labware_load_name: "nest_12_reservoir_15ml",
+          liquid_name: "Assay Buffer",
+          expected_presence: true,
+          volume_ul: 0,
+        },
+        "C2.A2": {
+          slot_name: "C2",
+          well_name: "A2",
+          labware_load_name: "nest_12_reservoir_15ml",
+          liquid_name: "Assay Buffer",
+          expected_presence: true,
+          declared_volume: 300,
+          dead_volume: 0,
+          consumed_volume_ul: 0,
+        },
+      },
+    },
+  };
+  const protocolSource = `
+reservoir = protocol.load_labware("nest_12_reservoir_15ml", "C2")
+plate = protocol.load_labware("nest_96_wellplate_200ul_flat", "D2")
+pipette.transfer_with_liquid_class(liquid_class=water, volume=200, source=buf, dest=plate["A1"])
+pipette.transfer_with_liquid_class(liquid_class=water, volume=200, source=buf, dest=plate["A2"])
+pipette.transfer_with_liquid_class(liquid_class=water, volume=200, source=buf, dest=plate["A3"])
+`;
+  const plan = buildLiquidSourceSubstitutionPlan({
+    sessionState: session,
+    failedSourceKey: "C2.A1",
+    preferredSourceKey: "C2.A2",
+    protocolSource,
+  });
+  assert.equal(plan.status, "blocked");
+  assert.equal(plan.same_liquid_source_substitution_allowed, false);
+  assert.equal(plan.blocked_reason, "substitute_volume_insufficient");
+  assert.equal(plan.required_next_step, "refill_source_or_escalate");
+  assert.equal(plan.volume_check.basis, "declared_source_map");
+  assert.equal(plan.volume_check.sufficient, false);
+  assert.equal(plan.volume_check.required_ul, 600);
+  assert.equal(plan.volume_check.usable_ul, 300);
+  assert.equal(plan.volume_check.candidate_key, "C2.A2");
+});
+
+test("volume_check allows substitution when usable volume covers remaining transfers", () => {
+  const session = {
+    state_revision: 1,
+    liquid_tracking: {
+      sources: {
+        "C2.A1": {
+          slot_name: "C2",
+          well_name: "A1",
+          labware_load_name: "nest_12_reservoir_15ml",
+          liquid_name: "Assay Buffer",
+          expected_presence: true,
+        },
+        "C2.A2": {
+          slot_name: "C2",
+          well_name: "A2",
+          labware_load_name: "nest_12_reservoir_15ml",
+          liquid_name: "Assay Buffer",
+          expected_presence: true,
+          observed_presence: true,
+          declared_volume: 1000,
+          dead_volume: 50,
+          consumed_volume_ul: 0,
+        },
+      },
+    },
+  };
+  const plan = buildLiquidSourceSubstitutionPlan({
+    sessionState: session,
+    failedSourceKey: "C2.A1",
+    preferredSourceKey: "C2.A2",
+    transferHints: {
+      destination_wells: ["A1", "A2", "A3"],
+      transfer_volume: 200,
+    },
+  });
+  assert.equal(plan.status, "planned");
+  assert.equal(plan.same_liquid_source_substitution_allowed, true);
+  assert.equal(plan.volume_check.basis, "declared_source_map");
+  assert.equal(plan.volume_check.sufficient, true);
+  assert.equal(plan.volume_check.required_ul, 600);
+  assert.equal(plan.volume_check.usable_ul, 950);
+});
+
+test("volume_check uses insufficient_data without inventing a new auto-allow path", () => {
+  const plan = buildLiquidSourceSubstitutionPlan({
+    sessionState,
+    failedSourceKey: "C2.A1",
+    preferredSourceKey: "C2.A2",
+  });
+  assert.equal(plan.status, "planned");
+  assert.equal(plan.volume_check.basis, "insufficient_data");
+  assert.equal(plan.volume_check.sufficient, false);
+  assert.equal(plan.same_liquid_source_substitution_allowed, true);
+  assert.notEqual(plan.blocked_reason, "substitute_volume_insufficient");
+});

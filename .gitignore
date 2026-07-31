@@ -14,7 +14,6 @@ __pycache__/
 # Local bulk / eval leftovers (stripped from manuscript; do not re-add)
 /src/
 /docs/
-/benchmarks/
 /reference-protocols/
 /mcp-servers/
 /vision/
@@ -80,3 +79,19 @@ labscriptai/build/
 /summary_report_*.csv
 
 /local
+
+# Runtime evaluation harness: track the pre-registered bundle, scorer and fixtures.
+# Live-robot logs, evidence packs and result bundles stay untracked.
+/benchmarks/*
+!/benchmarks/runtime/
+/benchmarks/runtime/*
+!/benchmarks/runtime/live_paired_v2/
+!/benchmarks/runtime/live_paired_validity.py
+!/benchmarks/runtime/test_live_paired_validity.py
+!/benchmarks/runtime/score_live_flex_paired_bundle.py
+!/benchmarks/runtime/build_live_flex_paired_bundle.py
+!/benchmarks/runtime/RECOVERY_POLICY_v4.md
+!/benchmarks/runtime/runtimeresult-0724/
+/benchmarks/runtime/runtimeresult-0724/*
+!/benchmarks/runtime/runtimeresult-0724/protocols/
+!/benchmarks/runtime/runtimeresult-0724/briefs/

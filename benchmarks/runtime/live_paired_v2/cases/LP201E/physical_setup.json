@@ -1,0 +1,9 @@
+{
+  "load_liquids": {
+    "B3:A1": "\u22654000 uL water_control"
+  },
+  "note": "Do not replenish the rack before the policy decision is captured.",
+  "remove_tips": [
+    "C2:A1"
+  ]
+}

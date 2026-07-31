@@ -301,6 +301,12 @@ function asArray(value) {
 /**
  * Decide whether a tip recovery retry can still finish remaining pick_up_tip steps.
  * Returns sufficient=false when deck tips cannot cover remaining protocol pickups.
+ *
+ * Enforcement no longer requires protocol tip_budget comments. When total_pickups
+ * can be derived from pick_up_tip call counts (or metadata) and live viable
+ * candidates are available, the gate is enforced with basis "live_scan".
+ * Protocol metadata, when present, only narrows candidates to loaded_wells and
+ * sets basis to "protocol_metadata".
  */
 export function assessTipRecoveryBudget({
   protocolSource = "",
@@ -318,16 +324,11 @@ export function assessTipRecoveryBudget({
       sufficient: true,
       reason: "no_pick_up_tip_budget_metadata",
       total_pickups: totalPickups,
-    };
-  }
-
-  if (!budget.constrained) {
-    return {
-      enforced: false,
-      sufficient: true,
-      reason: "no_hard_tip_budget_constraint",
-      total_pickups: totalPickups,
-      parsed_budget: budget,
+      succeeded_pickups: null,
+      pickups_remaining: null,
+      available_tips: null,
+      basis: "none",
+      message: "Tip budget not enforced: no pick_up_tip count available from protocol source or metadata.",
     };
   }
 
@@ -335,13 +336,17 @@ export function assessTipRecoveryBudget({
   const pickupsRemaining = Math.max(0, totalPickups - succeededPickups);
 
   let availableCandidates = asArray(viableCandidates);
-  if (budget.loaded_wells.length > 0) {
-    const allowed = new Set(budget.loaded_wells);
-    availableCandidates = availableCandidates.filter(candidate =>
-      allowed.has(normalizeWellName(candidate?.well_name)),
-    );
-  } else if (budget.tips_loaded !== null) {
-    availableCandidates = availableCandidates.slice(0, budget.tips_loaded);
+  let basis = "live_scan";
+  if (budget.constrained) {
+    basis = "protocol_metadata";
+    if (budget.loaded_wells.length > 0) {
+      const allowed = new Set(budget.loaded_wells);
+      availableCandidates = availableCandidates.filter(candidate =>
+        allowed.has(normalizeWellName(candidate?.well_name)),
+      );
+    } else if (budget.tips_loaded !== null) {
+      availableCandidates = availableCandidates.slice(0, budget.tips_loaded);
+    }
   }
 
   const availableTips = availableCandidates.length;
@@ -355,6 +360,7 @@ export function assessTipRecoveryBudget({
     succeeded_pickups: succeededPickups,
     pickups_remaining: pickupsRemaining,
     available_tips: availableTips,
+    basis,
     parsed_budget: budget,
     allowed_viable_wells: availableCandidates.map(candidate => ({
       tiprack_slot: candidate.tiprack_slot,

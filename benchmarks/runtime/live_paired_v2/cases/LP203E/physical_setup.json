@@ -1,0 +1,13 @@
+{
+  "calibration_note": "Aim for overpressure during dispense into the plate well, not only at aspirate.",
+  "en": "Control liquid only. After aspirate, seal tip orifice before dispense into C3:A1 so overpressure fires mid-dispense with unknown delivered volume. No real cells.",
+  "load_liquids": {
+    "B3:A1": "\u22653000 uL water_control"
+  },
+  "note": "SIMULATE runs an unsealed full dispense; live tip seal only.",
+  "remove_tips": [],
+  "seal_targets": [
+    "tip_orifice_before_C3:A1_dispense"
+  ],
+  "zh": "\u63a7\u5236\u6db2\uff1aB3:A1 \u22653000 \u00b5L \u7eaf\u6c34\uff1bC3:A1 \u4f5c\u4e3a\u57f9\u517b/\u6837\u54c1\u5b54\u66ff\u8eab\uff08\u52ff\u653e\u771f\u5b9e\u7ec6\u80de\uff09\u3002\n\u89e6\u53d1\uff1a\u5438\u6db2\u540e\u3001\u5411 C3:A1 \u6392\u6db2\u524d\u5c01 tip \u53e3\uff0c\u4f7f\u6392\u6db2\u8fc7\u7a0b\u89e6\u53d1 overpressure\uff08mid-dispense\u3001\u5b54\u5185\u4f53\u79ef\u672a\u77e5\uff09\u3002\n\u82e5\u53ea\u5728\u5438\u6db2\u5c31\u62a5\u8fc7\u538b\uff0c\u628a\u5c01\u53e3\u65f6\u673a\u8c03\u5230\u5df2\u5bf9\u51c6\u6837\u54c1\u5b54\u3001\u5f00\u59cb\u4e0b\u538b\u6392\u6db2\u7684\u7a97\u53e3\u3002\u7981\u6b62\u76f2\u8865\u5168\u91cf\u3002"
+}

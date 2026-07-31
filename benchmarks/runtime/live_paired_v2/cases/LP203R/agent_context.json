@@ -1,0 +1,16 @@
+{
+  "delivered_volume_known": true,
+  "destination_delivered_volume_ul": 0,
+  "destination_role": "waste",
+  "destination_well": "B3:A12",
+  "error_signal": "TIP_CLOG",
+  "error_type": "overpressure",
+  "fault_phase": "waste_dispense",
+  "operation_phase": "waste_dispense",
+  "ordinary_tip_swaps_already": 0,
+  "source_identity_intact": true,
+  "tip_attached": true,
+  "tip_disposable": true,
+  "tips_remaining": 95,
+  "tips_still_needed": 1
+}
