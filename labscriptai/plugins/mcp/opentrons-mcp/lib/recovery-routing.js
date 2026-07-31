@@ -49,7 +49,7 @@ const CHANNEL_TOOLS = Object.freeze({
   ],
   reconcile: ["reconcile_state", "robot_status", "get_slot_occupation", "safe_next_action"],
   probe: [
-    "live_liquid_recovery_gate",
+    "recover_liquid_source_substitution",
     "list_critical_probe_targets",
     "probe_wells",
     "apply_liquid_probe_results",
@@ -154,9 +154,25 @@ export function buildRecoveryRoutingGuidance({
 
 export function enrichRecoverySuggestion(recoverySuggestion = {}) {
   const routing = buildRecoveryRoutingGuidance({ recoverySuggestion });
+  const recommendedNextTools = [...(routing.recommended_next_tools || [])];
+  if (
+    recoverySuggestion?.same_liquid_source_substitution_allowed === true &&
+    recoverySuggestion?.same_liquid_source_substitution_next_tool
+  ) {
+    const nextTool = recoverySuggestion.same_liquid_source_substitution_next_tool;
+    if (!recommendedNextTools.includes(nextTool)) {
+      recommendedNextTools.unshift(nextTool);
+    }
+    for (const gateTool of recoverySuggestion.same_liquid_source_substitution_required_gates || []) {
+      if (gateTool && !recommendedNextTools.includes(gateTool)) {
+        recommendedNextTools.push(gateTool);
+      }
+    }
+  }
   return {
     ...recoverySuggestion,
     ...routing,
-    default_next_step: routing.recommended_next_tools[0] || "safe_next_action",
+    recommended_next_tools: recommendedNextTools,
+    default_next_step: recommendedNextTools[0] || routing.recommended_next_tools[0] || "safe_next_action",
   };
 }

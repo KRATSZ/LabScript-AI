@@ -235,7 +235,17 @@ export function buildModuleStatusSnapshot(modulesPayload) {
 
 function summarizeCommand(command) {
   const data = unwrapData(command) || {};
+  const rawError = readNested(data, [["error"]], null);
   const errorDetail = readNested(data, [["error", "detail"], ["error", "message"]], null);
+  const errorType = readNested(data, [["error", "errorType"], ["error", "type"]], null);
+  const error =
+    rawError && typeof rawError === "object"
+      ? {
+          ...rawError,
+          errorType: errorType || rawError.errorType || rawError.type || null,
+          detail: errorDetail || rawError.detail || rawError.message || null,
+        }
+      : errorDetail;
   return {
     id: readNested(data, [["id"]]),
     command_type: readNested(data, [["commandType"], ["command_type"]]),
@@ -243,7 +253,7 @@ function summarizeCommand(command) {
     status: readNested(data, [["status"]]),
     created_at: readNested(data, [["createdAt"], ["created_at"]]),
     completed_at: readNested(data, [["completedAt"], ["completed_at"]]),
-    error: errorDetail,
+    error,
   };
 }
 

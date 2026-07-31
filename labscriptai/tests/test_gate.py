@@ -6,7 +6,16 @@ from pathlib import Path
 
 import pytest
 
-from labscriptai.agent.gate import SAFE_ACTION_TYPES, evaluate, infer_context
+from labscriptai.agent.gate import (
+    RESUME_BLOCKED_RUN_STATUSES,
+    ROBOT_ACT_ALIASES,
+    SAFE_ACTION_TYPES,
+    evaluate,
+    infer_context,
+    is_resume_play_request,
+    resolve_robot_act_label,
+    robot_act_allow_candidates,
+)
 
 
 def test_infer_context_author_without_robot_or_run() -> None:
@@ -128,3 +137,66 @@ def test_daemon_upgrades_ask_to_suspend() -> None:
     )
     assert d.status == "suspend"
     assert any("upgraded" in r for r in d.reasons)
+
+
+def test_robot_act_recovery_aliases_allowed_in_run_context() -> None:
+    for args in (
+        {"op": "act", "action": "execute_protocol_recovery", "recovery_branch": "drop_tip_left"},
+        {"op": "act", "action": "drop_tip", "args": {"mount": "left"}},
+        {"op": "act", "action_type": "recover_tip_pickup"},
+        {"op": "act", "recovery_branch": "retry_pick_up_tip_with_next_candidate"},
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        {"op": "act", "action": "run_protocol"},
+    ):
+        d = evaluate("robot", args, context="run", interactive=True)
+        assert d.status == "allow", (args, d)
+
+
+def test_resolve_robot_act_label_from_recovery_branch_only() -> None:
+    assert (
+        resolve_robot_act_label({"recovery_branch": "retry_pick_up_tip_with_next_candidate"})
+        == "execute_protocol_recovery"
+    )
+
+
+def test_robot_act_alias_maps_to_canonical() -> None:
+    assert ROBOT_ACT_ALIASES["drop_tip"] == "drop_attached_tip"
+    assert ROBOT_ACT_ALIASES["stop_run"] == "control_run"
+    assert "drop_attached_tip" in SAFE_ACTION_TYPES
+    assert "execute_protocol_recovery" in SAFE_ACTION_TYPES
+    candidates = robot_act_allow_candidates("drop_tip")
+    assert "drop_attached_tip" in candidates
+
+
+def test_is_resume_play_request() -> None:
+    assert is_resume_play_request({"op": "act", "action": "resume_run"}) is True
+    assert is_resume_play_request({"op": "act", "action": "play_run"}) is True
+    assert is_resume_play_request({"op": "act", "action": "pause_run"}) is False
+    assert (
+        is_resume_play_request({"op": "act", "action": "control_run", "args": {"action": "play"}})
+        is True
+    )
+
+
+def test_resume_run_blocked_when_awaiting_recovery() -> None:
+    for status in RESUME_BLOCKED_RUN_STATUSES:
+        d = evaluate(
+            "robot",
+            {"op": "act", "action": "resume_run", "run_id": "abc"},
+            context="run",
+            interactive=True,
+            active_run_status=status,
+        )
+        assert d.status == "suspend", (status, d)
+        assert any("resume_run blocked" in r for r in d.reasons)
+
+
+def test_resume_run_allowed_when_succeeded() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "resume_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="succeeded",
+    )
+    assert d.status == "allow"

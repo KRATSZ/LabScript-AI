@@ -22,7 +22,7 @@ class OpenAICompatibleConfig:
     api_key: str
     model: str
     timeout_sec: int = 90
-    max_tokens: int = 8192
+    max_tokens: int = 65536
     transport_retries: int = 3
 
     @classmethod
@@ -32,7 +32,7 @@ class OpenAICompatibleConfig:
         prefix: str = "DEEPSEEK",
         default_base_url: str = "https://api.deepseek.com",
         default_model: str = "deepseek-v4-pro",
-        default_max_tokens: int = 8192,
+        default_max_tokens: int = 65536,
         require_key: bool = True,
     ) -> OpenAICompatibleConfig:
         """Load config from env (default DeepSeek OpenAI-compatible).
@@ -44,12 +44,23 @@ class OpenAICompatibleConfig:
         api_key = os.environ.get(f"{prefix}_API_KEY", "")
         if require_key and not api_key:
             raise RuntimeError(f"{prefix}_API_KEY is not set")
+        max_tokens_raw = (
+            os.environ.get("LABSCRIPTAI_MAX_TOKENS")
+            or os.environ.get(f"{prefix}_MAX_TOKENS")
+            or str(default_max_tokens)
+        )
+        try:
+            max_tokens = int(max_tokens_raw)
+        except ValueError:
+            max_tokens = default_max_tokens
+        if max_tokens <= 0:
+            max_tokens = default_max_tokens
         return cls(
             base_url=os.environ.get(f"{prefix}_BASE_URL", default_base_url).rstrip("/"),
             api_key=api_key or "offline",
             model=os.environ.get(f"{prefix}_MODEL", default_model),
             timeout_sec=int(os.environ.get(f"{prefix}_TIMEOUT_SEC", "90")),
-            max_tokens=int(os.environ.get(f"{prefix}_MAX_TOKENS", str(default_max_tokens))),
+            max_tokens=max_tokens,
             transport_retries=max(1, int(os.environ.get(f"{prefix}_TRANSPORT_RETRIES", "3"))),
         )
 

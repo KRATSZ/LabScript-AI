@@ -2,12 +2,121 @@ import fs from "fs";
 import path from "path";
 
 import { analyzeLiquidProtocolGuards } from "./liquid-protocol-guards.js";
+import { parseProtocolTransferContinuationHints } from "./protocol-liquid-sources.js";
 import {
   buildPlaybookGateSummary,
   summarizeRecoveryPlaybook,
 } from "./recovery-playbooks.js";
 
-export const LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID = "liquid_source_substitution_continuation_protocol";
+export const LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID = "substitute_liquid_source_with_attached_tip";
+
+const LIQUID_NOT_FOUND_ERROR_TYPES = new Set(["liquidNotFound", "PipetteLiquidNotFoundError"]);
+const LIQUID_MOTION_COMMAND_TYPES = new Set([
+  "aspirate",
+  "dispense",
+  "transfer",
+  "liquidClassTransfer",
+  "customAspirate",
+  "customDispense",
+]);
+
+function asCommandArray(value) {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value);
+  }
+  return [];
+}
+
+function normalizeCommandType(command) {
+  return String(command?.command_type || command?.commandType || "").trim();
+}
+
+function readCommandErrorType(command) {
+  const direct = command?.error?.errorType || command?.error?.type || null;
+  if (direct) {
+    return String(direct);
+  }
+  const wrapped = asCommandArray(command?.error?.wrappedErrors);
+  for (const item of wrapped) {
+    const wrappedType = item?.errorType || item?.type || null;
+    if (wrappedType) {
+      return String(wrappedType);
+    }
+  }
+  return null;
+}
+
+export function commandHasLiquidNotFoundError(command) {
+  const rawError = command?.error;
+  if (typeof rawError === "string" && /liquid not found/i.test(rawError)) {
+    return true;
+  }
+  const errorType = readCommandErrorType(command);
+  if (errorType && LIQUID_NOT_FOUND_ERROR_TYPES.has(errorType)) {
+    return true;
+  }
+  const detail = String(rawError?.detail || (typeof rawError === "string" ? rawError : ""));
+  return /liquid not found/i.test(detail);
+}
+
+export function isProbeOnlyLiquidNotFoundFailure(failedCommand, recentCommands = []) {
+  if (normalizeCommandType(failedCommand) !== "liquidProbe") {
+    return false;
+  }
+  if (!commandHasLiquidNotFoundError(failedCommand)) {
+    return false;
+  }
+
+  const commands = asCommandArray(recentCommands);
+  const failedId = failedCommand?.id || null;
+  const failedIndex = failedId ? commands.findIndex(command => command?.id === failedId) : commands.length - 1;
+  const relevantCommands = failedIndex >= 0 ? commands.slice(0, failedIndex + 1) : commands;
+
+  let lastPickUpIndex = -1;
+  for (let index = relevantCommands.length - 1; index >= 0; index -= 1) {
+    if (normalizeCommandType(relevantCommands[index]) === "pickUpTip") {
+      lastPickUpIndex = index;
+      break;
+    }
+  }
+
+  for (let index = lastPickUpIndex + 1; index < relevantCommands.length - 1; index += 1) {
+    const commandType = normalizeCommandType(relevantCommands[index]);
+    if (LIQUID_MOTION_COMMAND_TYPES.has(commandType)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function evaluateReuseAttachedTipEligibility({
+  failedCommand = null,
+  recentCommands = [],
+  substitutionPlan = null,
+  attachedTips = [],
+} = {}) {
+  const hasSubstitution =
+    substitutionPlan?.status === "planned" && Boolean(substitutionPlan?.selected_source_key);
+  const hasAttachedTip = asCommandArray(attachedTips).length > 0;
+  const probeOnlyFailure = isProbeOnlyLiquidNotFoundFailure(failedCommand, recentCommands);
+  const eligible = hasSubstitution && hasAttachedTip && probeOnlyFailure;
+
+  return {
+    eligible,
+    has_substitution_plan: hasSubstitution,
+    has_attached_tip: hasAttachedTip,
+    probe_only_liquid_not_found: probeOnlyFailure,
+    failed_command_type: failedCommand ? normalizeCommandType(failedCommand) : null,
+    recommended_validation_run_time_parameters: eligible ? { reuse_attached_tip: true } : null,
+    rationale: eligible
+      ? "Probe-only liquidNotFound with no aspirate since pick_up_tip; same-liquid substitution may reuse the attached tip."
+      : null,
+  };
+}
 
 function normalize(value) {
   return String(value || "").trim();
@@ -66,6 +175,27 @@ function sourceWithKey(key, source = {}) {
 }
 
 function pythonLiteral(value) {
+  if (value === null || value === undefined) {
+    return "None";
+  }
+  if (typeof value === "boolean") {
+    return value ? "True" : "False";
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "None";
+  }
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => pythonLiteral(item)).join(", ")}]`;
+  }
+  if (typeof value === "object") {
+    const entries = Object.entries(value).map(
+      ([key, nested]) => `${JSON.stringify(key)}: ${pythonLiteral(nested)}`,
+    );
+    return `{${entries.join(", ")}}`;
+  }
   return JSON.stringify(value);
 }
 
@@ -375,7 +505,7 @@ export function buildLiquidSourceSubstitutionPlan({
     blocked_reason: autoResumeEligible
       ? "suffix_plan_not_sufficient"
       : "liquid_source_substitution_requires_validated_presence_before_auto_resume",
-    required_next_step: "prepare_liquid_source_substitution_recovery",
+    required_next_step: "recover_liquid_source_substitution",
   });
   return {
     ...planned,
@@ -431,6 +561,13 @@ export function renderLiquidSourceSubstitutionValidationProtocol({
     'metadata = {"protocolName": "Liquid Source Substitution Validation", "author": "LabscriptAI OT"}',
     `requirements = {"robotType": ${pythonLiteral(robotType)}, "apiLevel": ${pythonLiteral(apiLevel)}}`,
     "",
+    "def add_parameters(parameters: protocol_api.ParameterContext) -> None:",
+    "    parameters.add_bool(",
+    '        display_name="Reuse attached tip",',
+    '        variable_name="reuse_attached_tip",',
+    "        default=False,",
+    "    )",
+    "",
     "def run(protocol: protocol_api.ProtocolContext) -> None:",
     `    protocol.load_trash_bin(${pythonLiteral(resolvedTrashSlot)})`,
     `    replacement_labware = protocol.load_labware(${pythonLiteral(source.labware_load_name)}, ${pythonLiteral(source.slot_name)}, namespace=${pythonLiteral(labwareNamespace)}, version=${labwareVersion})`,
@@ -441,8 +578,10 @@ export function renderLiquidSourceSubstitutionValidationProtocol({
     "        tip_racks=[tiprack],",
     `        liquid_presence_detection=${liquidPresenceDetection ? "True" : "False"},`,
     "    )",
+    "    reuse_attached_tip = protocol.params.reuse_attached_tip",
     `    validation = ${pythonLiteral(validationPayload)}`,
-    "    pipette.pick_up_tip()",
+    "    if not reuse_attached_tip:",
+    "        pipette.pick_up_tip()",
     "    try:",
     `        target_well = replacement_labware[${pythonLiteral(source.well_name)}]`,
     "        pipette.require_liquid_presence(target_well)",
@@ -450,7 +589,8 @@ export function renderLiquidSourceSubstitutionValidationProtocol({
     '            "LIQUID_SOURCE_SUBSTITUTION_VALIDATED:" + json.dumps(validation)',
     "        )",
     "    finally:",
-    "        pipette.drop_tip()",
+    "        if not reuse_attached_tip:",
+    "            pipette.drop_tip()",
     "",
   ].join("\n");
 }
@@ -512,5 +652,318 @@ export function generateLiquidSourceSubstitutionValidationProtocol({
         validationProtocol,
       }),
     },
+  };
+}
+
+export function renderLiquidSourceSubstitutionAttachedTipContinuationProtocol({
+  plan,
+  transferHints = null,
+  protocolSource = "",
+  pipetteName,
+  mount,
+  tiprackLoadName,
+  tiprackSlot,
+  apiLevel = "2.24",
+  robotType = "Flex",
+  tiprackNamespace = "opentrons",
+  tiprackVersion = 1,
+  labwareNamespace = "opentrons",
+  labwareVersion = 1,
+  liquidPresenceDetection = true,
+} = {}) {
+  if (plan?.status !== "planned" || !plan.selected_source) {
+    throw new Error("Attached-tip continuation requires a planned substitution.");
+  }
+  if (!pipetteName || !mount || !tiprackLoadName || !tiprackSlot) {
+    throw new Error("Attached-tip continuation requires pipette and tiprack details.");
+  }
+
+  const source = plan.selected_source;
+  const hints = transferHints || parseProtocolTransferContinuationHints(protocolSource);
+  const reservoirLoadName = hints.reservoir_load_name || source.labware_load_name;
+  const reservoirSlot = hints.reservoir_slot || source.slot_name;
+  const plateLoadName = hints.plate_load_name || "nest_96_wellplate_200ul_flat";
+  const plateSlot = hints.plate_slot || "D2";
+  const trashSlot = hints.trash_slot || "A3";
+  const destinationWells = hints.destination_wells?.length ? hints.destination_wells : ["A1", "A2", "A3"];
+  const transferVolume = hints.transfer_volume ?? 100;
+  const liquidClassName = hints.liquid_class_name || "water";
+  const confirmWell = hints.confirm_destination_well?.split(".")[1] || destinationWells[0];
+  const includeConfirmCycle = hints.has_confirm_probe_cycle !== false;
+
+  const payload = {
+    failed_source_key: plan.failed_source_key,
+    replacement_source_key: plan.selected_source_key,
+    liquid_name: plan.patch?.liquid_name || source.liquid_name || null,
+    recovery_type: plan.patch?.recovery_type || "alternative_resource",
+    resource_type: plan.patch?.resource_type || "liquid_source",
+    attached_tip_continuation: true,
+  };
+
+  const lines = [
+    "from opentrons import protocol_api",
+    "import json",
+    "",
+    'metadata = {"protocolName": "Liquid Source Substitution Attached-Tip Continuation", "author": "LabscriptAI OT"}',
+    `requirements = {"robotType": ${pythonLiteral(robotType)}, "apiLevel": ${pythonLiteral(apiLevel)}}`,
+    "",
+    "def add_parameters(parameters: protocol_api.ParameterContext) -> None:",
+    "    parameters.add_bool(",
+    '        display_name="Reuse attached tip",',
+    '        variable_name="reuse_attached_tip",',
+    "        default=False,",
+    "    )",
+    "    parameters.add_bool(",
+    '        display_name="Dry run: return tips",',
+    '        variable_name="dry_run_on",',
+    "        default=False,",
+    "    )",
+    "    parameters.add_bool(",
+    '        display_name="Use liquid probe",',
+    '        variable_name="use_liquid_probe",',
+    "        default=True,",
+    "    )",
+    "",
+    "def run(protocol: protocol_api.ProtocolContext) -> None:",
+    `    trash = protocol.load_trash_bin(${pythonLiteral(trashSlot)})`,
+    `    tiprack = protocol.load_labware(${pythonLiteral(tiprackLoadName)}, ${pythonLiteral(tiprackSlot)}, namespace=${pythonLiteral(tiprackNamespace)}, version=${tiprackVersion})`,
+    `    reservoir = protocol.load_labware(${pythonLiteral(reservoirLoadName)}, ${pythonLiteral(reservoirSlot)}, namespace=${pythonLiteral(labwareNamespace)}, version=${labwareVersion})`,
+    `    plate = protocol.load_labware(${pythonLiteral(plateLoadName)}, ${pythonLiteral(plateSlot)}, namespace=${pythonLiteral(labwareNamespace)}, version=${labwareVersion})`,
+    "    dry_run_on = protocol.params.dry_run_on",
+    "    use_liquid_probe = protocol.params.use_liquid_probe",
+    "    reuse_attached_tip = protocol.params.reuse_attached_tip",
+    "    pipette = protocol.load_instrument(",
+    `        instrument_name=${pythonLiteral(pipetteName)},`,
+    `        mount=${pythonLiteral(mount)},`,
+    "        tip_racks=[tiprack],",
+    `        liquid_presence_detection=${liquidPresenceDetection ? "True" : "False"},`,
+    "    )",
+    `    liquid_class = protocol.get_liquid_class(name=${pythonLiteral(liquidClassName)})`,
+    `    continuation = ${pythonLiteral(payload)}`,
+    "    if not reuse_attached_tip:",
+    "        pipette.pick_up_tip()",
+    `    replacement = reservoir[${pythonLiteral(source.well_name)}]`,
+    "    if use_liquid_probe:",
+    "        pipette.require_liquid_presence(replacement)",
+    "    protocol.comment(",
+    '        "LIQUID_SOURCE_SUBSTITUTION_ATTACHED_TIP:" + json.dumps(continuation)',
+    "    )",
+  ];
+
+  for (const well of destinationWells) {
+    lines.push(
+      "    pipette.transfer_with_liquid_class(",
+      "        liquid_class=liquid_class,",
+      `        volume=${transferVolume},`,
+      "        source=replacement,",
+      `        dest=plate[${pythonLiteral(well)}],`,
+      '        new_tip="never",',
+      "        trash_location=trash,",
+      "    )",
+    );
+  }
+
+  lines.push(
+    "    if dry_run_on:",
+    "        pipette.return_tip()",
+    "    else:",
+    "        pipette.drop_tip(trash)",
+  );
+
+  if (includeConfirmCycle) {
+    lines.push(
+      "    pipette.pick_up_tip()",
+      "    if use_liquid_probe:",
+      `        pipette.require_liquid_presence(plate[${pythonLiteral(confirmWell)}])`,
+      "    if dry_run_on:",
+      "        pipette.return_tip()",
+      "    else:",
+      "        pipette.drop_tip(trash)",
+    );
+  }
+
+  lines.push("");
+  return lines.join("\n");
+}
+
+export function generateLiquidSourceSubstitutionAttachedTipContinuationProtocol({
+  sessionState,
+  failedSourceKey = null,
+  failedSlotName = null,
+  failedWellName = null,
+  preferredSourceKey = null,
+  protocolSource = "",
+  pipetteName,
+  mount,
+  tiprackLoadName,
+  tiprackSlot,
+  outputPath = null,
+  protocolOptions = {},
+} = {}) {
+  const plan = buildLiquidSourceSubstitutionPlan({
+    sessionState,
+    failedSourceKey,
+    failedSlotName,
+    failedWellName,
+    preferredSourceKey,
+  });
+  if (plan.status !== "planned") {
+    throw new Error(
+      `Cannot generate attached-tip continuation: ${plan.blocked_reason || "blocked"}.`,
+    );
+  }
+
+  const protocolSourceText = renderLiquidSourceSubstitutionAttachedTipContinuationProtocol({
+    plan,
+    transferHints: parseProtocolTransferContinuationHints(protocolSource),
+    protocolSource,
+    pipetteName,
+    mount,
+    tiprackLoadName,
+    tiprackSlot,
+    ...protocolOptions,
+  });
+  const resolvedOutputPath = outputPath ? path.resolve(outputPath) : null;
+  if (resolvedOutputPath) {
+    fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
+    fs.writeFileSync(resolvedOutputPath, protocolSourceText);
+  }
+  const liquidGuardAnalysis = analyzeLiquidProtocolGuards(protocolSourceText);
+
+  return {
+    protocol_source: protocolSourceText,
+    output_path: resolvedOutputPath,
+    plan,
+    transfer_hints: parseProtocolTransferContinuationHints(protocolSource),
+    continuation_protocol: {
+      attached_tip_required: true,
+      retains_tip_through_probe_and_transfer: true,
+      liquid_guard_analysis: liquidGuardAnalysis,
+    },
+  };
+}
+
+export function parseLiquidSourceMapKey(key) {
+  const normalized = String(key || "").trim().toUpperCase();
+  const [slot, well] = normalized.split(".");
+  return {
+    key: normalized,
+    slot_name: slot || null,
+    well_name: well || null,
+  };
+}
+
+export function applyLiquidSourceSubstitutionPatchToProtocol(
+  protocolSource,
+  { failedSourceKey, replacementSourceKey } = {},
+) {
+  const failed = parseLiquidSourceMapKey(failedSourceKey);
+  const replacement = parseLiquidSourceMapKey(replacementSourceKey);
+  if (!failed.well_name || !replacement.well_name) {
+    throw new Error("Liquid source substitution patch requires failed and replacement source keys with wells.");
+  }
+
+  const source = String(protocolSource || "");
+  if (/variable_name\s*=\s*["']primary_well["']/i.test(source)) {
+    return {
+      protocol_source: source,
+      patch_applied: false,
+      continuation_mode: "in_run_fixit",
+      recommended_run_time_parameters: null,
+      failed_source_key: failed.key,
+      replacement_source_key: replacement.key,
+      operator_steps: [
+        "Primary probe failed while a tip is still attached; keep the run in awaiting-recovery.",
+        "Call recover_liquid_source_substitution to fixit-probe the reserve well and complete transfers on the same run.",
+        "Do not stop the failed run or start a new run_protocol that calls pick_up_tip().",
+      ],
+    };
+  }
+
+  let patched = source;
+  for (const quote of ['"', "'"]) {
+    const from = `${quote}${failed.well_name}${quote}`;
+    const to = `${quote}${replacement.well_name}${quote}`;
+    patched = patched.split(from).join(to);
+  }
+
+  const marker = `LIQUID_SOURCE_SUBSTITUTION_PATCH: ${failed.key} -> ${replacement.key}`;
+  if (!patched.includes(marker)) {
+    patched = patched.replace(/^(from opentrons)/m, `# ${marker}\n$1`);
+  }
+
+  return {
+    protocol_source: patched,
+    patch_applied: true,
+    continuation_mode: "patched_protocol",
+    recommended_run_time_parameters: null,
+    failed_source_key: failed.key,
+    replacement_source_key: replacement.key,
+    operator_steps: [
+      `Use the patched protocol file targeting ${replacement.key} instead of ${failed.key}.`,
+      "Simulate, then run_protocol on the patched file. Do not resume the failed run.",
+    ],
+  };
+}
+
+export function generateLiquidSourceSubstitutionRerunProtocol({
+  protocolSource,
+  failedSourceKey,
+  replacementSourceKey,
+  outputPath = null,
+} = {}) {
+  const patchResult = applyLiquidSourceSubstitutionPatchToProtocol(protocolSource, {
+    failedSourceKey,
+    replacementSourceKey,
+  });
+  const resolvedOutputPath = outputPath ? path.resolve(outputPath) : null;
+  if (patchResult.patch_applied && resolvedOutputPath) {
+    fs.mkdirSync(path.dirname(resolvedOutputPath), { recursive: true });
+    fs.writeFileSync(resolvedOutputPath, patchResult.protocol_source);
+  }
+
+  return {
+    ...patchResult,
+    output_path: patchResult.patch_applied ? resolvedOutputPath : null,
+    source_protocol_unchanged: patchResult.continuation_mode === "run_time_parameter",
+  };
+}
+
+export function buildLiquidSourceSubstitutionContinuationGuide({
+  failedSourceKey,
+  replacementSourceKey,
+  validationSucceeded = false,
+  reuseAttachedTipEligible = false,
+} = {}) {
+  if (reuseAttachedTipEligible) {
+    return {
+      do_not_resume_failed_run: true,
+      do_not_drop_attached_tip_before_replacement_probe: true,
+      resume_original_run_only_when: "never; in-run fixit completes transfers and confirm then stops the run",
+      after_validation_succeeded: validationSucceeded,
+      reuse_attached_tip_eligible: true,
+      failed_source_key: failedSourceKey || null,
+      replacement_source_key: replacementSourceKey || null,
+      recommended_next_tools: ["recover_liquid_source_substitution", "execute_protocol_recovery"],
+      steps: [
+        "recover_liquid_source_substitution (one-step L0: in-run fixit probe + transfer on attached tip, same run_id)",
+      ],
+    };
+  }
+
+  return {
+    do_not_resume_failed_run: true,
+    do_not_drop_attached_tip_before_replacement_probe: false,
+    resume_original_run_only_when: "protocol already targets the validated replacement source",
+    after_validation_succeeded: false,
+    reuse_attached_tip_eligible: false,
+    failed_source_key: failedSourceKey || null,
+    replacement_source_key: replacementSourceKey || null,
+    recommended_next_tools: ["safe_next_action", "parse_error"],
+    operator_steps: [
+      "Attached-tip reuse is not eligible; drop tip or refill primary source manually.",
+      "Same-liquid reserve substitution requires an attached tip after probe-only liquidNotFound.",
+    ],
+    steps: ["manual_intervention"],
   };
 }

@@ -14,23 +14,49 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-# Minimal SAFE set copied from core/labscriptai/runtime/actions.py
+# Agent-facing labels → MCP tool names (keep aligned with tools._ACT_ALIASES).
+ROBOT_ACT_ALIASES: dict[str, str] = {
+    "execute_recovery_branch": "execute_protocol_recovery",
+    "execute_protocol_recovery": "execute_protocol_recovery",
+    "pause_run": "control_run",
+    "resume_run": "control_run",
+    "abort_run": "control_run",
+    "play_run": "control_run",
+    "stop_run": "control_run",
+    "inspect_robot_state": "robot_status",
+    "capture_deck_image": "capture_preview_image",
+    "recover_liquid_source_substitution": "recover_liquid_source_substitution",
+    "drop_tip": "drop_attached_tip",
+}
+
+RESUME_BLOCKED_RUN_STATUSES: frozenset[str] = frozenset({"awaiting-recovery", "failed"})
+
+# Run-context robot(op=act) whitelist: aliases above plus direct MCP tool names.
 SAFE_ACTION_TYPES: frozenset[str] = frozenset(
     {
+        *ROBOT_ACT_ALIASES.keys(),
+        *ROBOT_ACT_ALIASES.values(),
         "simulate_protocol",
-        "inspect_robot_state",
-        "capture_deck_image",
         "mark_resource_unavailable",
         "choose_alternative_source",
         "request_human_confirmation",
         "propose_continuation_patch",
         "validate_continuation_patch",
-        "execute_recovery_branch",
-        "pause_run",
-        "resume_run",
-        "abort_run",
+        "record_liquid_source_map",
+        "run_protocol",
+        "recover_tip_pickup",
+        "recover_liquid_source_substitution",
+        "drop_attached_tip",
+        "probe_wells",
+        "apply_liquid_probe_results",
+        "control_run",
+        "robot_status",
+        "capture_preview_image",
     }
 )
+
+# Optional extras for `labscriptai chat --robot` / recover drivers (SAFE already covers recovery).
+DEFAULT_RECOVERY_PREAUTHORIZED: frozenset[str] = frozenset()
 
 ContextName = Literal["author", "run"]
 GateStatus = Literal["allow", "ask", "suspend"]
@@ -82,6 +108,54 @@ def infer_context(*, robot_connected: bool, active_run: bool) -> ContextName:
     return "author"
 
 
+def resolve_robot_act_label(args: dict[str, Any]) -> str:
+    """Normalize robot(op=act) action label from action fields or recovery_branch."""
+    action = str(
+        args.get("action_type") or args.get("action") or args.get("type") or ""
+    ).strip()
+    nested = args.get("args")
+    branch = args.get("recovery_branch")
+    if isinstance(nested, dict):
+        branch = branch or nested.get("recovery_branch") or nested.get("branch")
+    branch = str(branch or "").strip()
+    if branch and not action:
+        return "execute_protocol_recovery"
+    if branch and action in {"execute_recovery_branch", "execute_protocol_recovery"}:
+        return action
+    return action
+
+
+def is_resume_play_request(args: dict[str, Any]) -> bool:
+    """True when robot(op=act) would resume/play an existing run."""
+    action_label = resolve_robot_act_label(args)
+    if action_label in {"resume_run", "play_run", "play"}:
+        return True
+    nested = args.get("args") if isinstance(args.get("args"), dict) else {}
+    if action_label == "control_run":
+        play_action = str(
+            nested.get("action")
+            or nested.get("actionType")
+            or args.get("action_type")
+            or ""
+        ).strip().lower()
+        return play_action == "play"
+    injected = ROBOT_ACT_ALIASES.get(action_label)
+    if injected == "control_run":
+        play_action = str(args.get("action") or args.get("action_type") or "").strip().lower()
+        return play_action == "play"
+    return False
+
+
+def robot_act_allow_candidates(action_label: str) -> tuple[str, ...]:
+    """Return action labels that satisfy SAFE/preauthorized (alias + canonical)."""
+    if not action_label:
+        return ()
+    canonical = ROBOT_ACT_ALIASES.get(action_label)
+    if canonical and canonical != action_label:
+        return (action_label, canonical)
+    return (action_label,)
+
+
 def evaluate(
     tool_name: str,
     args: dict[str, Any],
@@ -89,6 +163,7 @@ def evaluate(
     context: ContextName,
     interactive: bool,
     preauthorized: set[str] | None = None,
+    active_run_status: str | None = None,
 ) -> GateDecision:
     """Evaluate one tool call. ``interactive=False`` upgrades ask → suspend."""
     preauthorized = set(preauthorized or ())
@@ -104,7 +179,12 @@ def evaluate(
     elif name == "bash":
         decision = _eval_bash(args, context=context)
     elif name == "robot":
-        decision = _eval_robot(args, context=context, preauthorized=preauthorized)
+        decision = _eval_robot(
+            args,
+            context=context,
+            preauthorized=preauthorized,
+            active_run_status=active_run_status,
+        )
     else:
         decision = GateDecision(
             status="ask",
@@ -251,6 +331,7 @@ def _eval_robot(
     *,
     context: ContextName,
     preauthorized: set[str],
+    active_run_status: str | None = None,
 ) -> GateDecision:
     op = str(args.get("op") or "").strip().lower()
     if op in {"status", "watch"}:
@@ -275,27 +356,53 @@ def _eval_robot(
             context=context,
         )
 
-    action_type = str(
-        args.get("action_type") or args.get("action") or args.get("type") or ""
-    ).strip()
-    if action_type in SAFE_ACTION_TYPES or action_type in preauthorized:
+    action_label = resolve_robot_act_label(args)
+    if not action_label:
         return GateDecision(
-            status="allow",
-            reasons=[f"robot act allowed: {action_type}"],
+            status="ask",
+            reasons=["robot act requires action_type, action, or recovery_branch"],
             context=context,
         )
+
+    run_status = str(active_run_status or "").strip().lower()
+    if run_status in RESUME_BLOCKED_RUN_STATUSES and is_resume_play_request(args):
+        return GateDecision(
+            status="suspend",
+            reasons=[
+                f"resume_run blocked while run status is {run_status}; "
+                "use recover_liquid_source_substitution (L0, like recover_tip_pickup) "
+                "instead of replaying the failed run",
+            ],
+            context=context,
+        )
+
+    allowed = SAFE_ACTION_TYPES | preauthorized
+    for candidate in robot_act_allow_candidates(action_label):
+        if candidate in allowed:
+            return GateDecision(
+                status="allow",
+                reasons=[f"robot act allowed: {candidate}"],
+                context=context,
+            )
+
     return GateDecision(
         status="ask",
         reasons=[
-            f"robot act not in SAFE/preauthorized: {action_type or '(missing action_type)'}",
+            f"robot act not in SAFE/preauthorized: {action_label}",
         ],
         context=context,
     )
 
 
 __all__ = (
+    "DEFAULT_RECOVERY_PREAUTHORIZED",
+    "RESUME_BLOCKED_RUN_STATUSES",
+    "ROBOT_ACT_ALIASES",
     "SAFE_ACTION_TYPES",
     "GateDecision",
     "evaluate",
     "infer_context",
+    "is_resume_play_request",
+    "resolve_robot_act_label",
+    "robot_act_allow_candidates",
 )

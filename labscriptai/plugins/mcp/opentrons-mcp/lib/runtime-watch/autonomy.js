@@ -1,5 +1,6 @@
 export const WATCH_L0_ACTIONS = new Set([
   "retry_pick_up_tip_with_next_candidate",
+  "substitute_liquid_source_with_attached_tip",
   "wait_and_poll_module_status",
   "reconcile_state_first",
 ]);

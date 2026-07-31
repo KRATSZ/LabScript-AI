@@ -112,8 +112,22 @@ except ImportError:  # pragma: no cover - W2 not ready
         return {"error": "W2 tools not ready", "tool": name}
 
 
-DEFAULT_MAX_STEPS = 12
+# 0 = unlimited tool steps per turn (override via LABSCRIPTAI_MAX_STEPS or session.max_steps).
+DEFAULT_MAX_STEPS = 0
 OUTBOX_DIRNAME = ".labscriptai/outbox"
+
+
+def resolve_max_steps(value: int | None = None) -> int:
+    """Max tool-call iterations per user turn; 0 means no cap."""
+    if value is not None:
+        return max(0, int(value))
+    raw = os.environ.get("LABSCRIPTAI_MAX_STEPS")
+    if raw is None or not str(raw).strip():
+        return DEFAULT_MAX_STEPS
+    try:
+        return max(0, int(str(raw).strip()))
+    except ValueError:
+        return DEFAULT_MAX_STEPS
 
 
 class LLMClient(Protocol):
@@ -132,10 +146,11 @@ class SessionState:
     robot_ip: str | None = None
     robot_connected: bool = False
     active_run_id: str | None = None
+    active_run_status: str | None = None
     messages: list[dict[str, Any]] = field(default_factory=list)
     interactive: bool = True
     preauthorized: set[str] = field(default_factory=set)
-    max_steps: int = DEFAULT_MAX_STEPS
+    max_steps: int = field(default_factory=resolve_max_steps)
 
 
 ConfirmFn = Callable[[str], bool]
@@ -166,6 +181,9 @@ def build_system_prompt(session: SessionState) -> str:
         "- skill: load domain markdown skills on demand.",
         "Safety: robot actions only through robot; dangerous calls are gated and you will get feedback.",
         "Tip recovery: when robot(op=status) reports tip_budget_blocked or tip_budget.sufficient=false, stop — do not recover_tip_pickup, play, or resume.",
+        "Liquid source substitution after probe-only liquidNotFound (attached tip): "
+        "recover_liquid_source_substitution in one step (like recover_tip_pickup). "
+        "Keep the attached tip; do not resume_run on an awaiting-recovery run.",
         "Prefer short replies. Load skills when you need domain detail; do not invent robot HTTP calls.",
     ]
     return "\n".join(lines)
@@ -308,6 +326,41 @@ def _default_confirm(prompt: str) -> bool:
     return answer in {"y", "yes"}
 
 
+def _sync_session_run_status(session: SessionState, result: Any) -> None:
+    """Cache latest run status from robot tool payloads for gate decisions."""
+    if not isinstance(result, dict):
+        return
+    status = result.get("active_run_status")
+    if isinstance(status, str) and status.strip():
+        session.active_run_status = status.strip().lower()
+        return
+    for key in ("watch", "robot_status"):
+        nested = result.get(key)
+        if not isinstance(nested, dict):
+            continue
+        data = nested.get("data")
+        if isinstance(data, dict):
+            hist_status = data.get("status")
+            if isinstance(hist_status, str) and hist_status.strip():
+                session.active_run_status = hist_status.strip().lower()
+                return
+        hist = nested.get("run_history") or nested.get("history")
+        if isinstance(hist, dict):
+            data = hist.get("data") if isinstance(hist.get("data"), dict) else hist
+            if isinstance(data, dict):
+                hist_status = data.get("status")
+                if isinstance(hist_status, str) and hist_status.strip():
+                    session.active_run_status = hist_status.strip().lower()
+                    return
+    tool_result = result.get("result")
+    if isinstance(tool_result, dict):
+        data = tool_result.get("data")
+        if isinstance(data, dict):
+            final_status = data.get("final_status") or data.get("status")
+            if isinstance(final_status, str) and final_status.strip():
+                session.active_run_status = final_status.strip().lower()
+
+
 def _gate_or_raise(
     tool_name: str,
     args: dict[str, Any],
@@ -332,6 +385,7 @@ def _gate_or_raise(
         context=context,
         interactive=interactive,
         preauthorized=set(session.preauthorized or ()),
+        active_run_status=session.active_run_status,
     )
 
 
@@ -354,7 +408,11 @@ def run_turn(
     session.messages.append({"role": "user", "content": user_text})
 
     last_text = ""
-    for _ in range(max(1, session.max_steps)):
+    step = 0
+    while True:
+        step += 1
+        if session.max_steps > 0 and step > session.max_steps:
+            break
         response = llm.complete(session.messages, tools=schema)
         calls = _tool_calls_from(response)
         if not calls:
@@ -389,6 +447,7 @@ def run_turn(
                         "preauthorized": sorted(session.preauthorized),
                     },
                 )
+                _sync_session_run_status(session, result)
                 _append_tool_result(session, call_id=call["id"], name=name, payload=result)
                 continue
 
@@ -408,6 +467,7 @@ def run_turn(
                             "preauthorized": sorted(session.preauthorized),
                         },
                     )
+                    _sync_session_run_status(session, result)
                     _append_tool_result(session, call_id=call["id"], name=name, payload=result)
                 else:
                     _append_tool_result(
@@ -453,8 +513,9 @@ def run_turn(
         # continue loop for model to consume tool results
         continue
 
+    limit_label = str(session.max_steps) if session.max_steps > 0 else "unlimited"
     last_text = (
-        f"Stopped after {session.max_steps} tool steps without a final message. "
+        f"Stopped after {step} tool steps (limit: {limit_label}) without a final message. "
         "Ask me to continue or narrow the task."
     )
     session.messages.append({"role": "assistant", "content": last_text})
@@ -463,6 +524,7 @@ def run_turn(
 
 __all__ = (
     "DEFAULT_MAX_STEPS",
+    "resolve_max_steps",
     "OUTBOX_DIRNAME",
     "SessionState",
     "TOOLS_SCHEMA",

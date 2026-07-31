@@ -10,7 +10,12 @@ import {
 } from "./state.js";
 import { buildErrorTaxonomy, mapRobotBlockerToLeaf } from "./error-taxonomy.js";
 import { assessTipRecoveryBudget, decideTipRecoveryRoute } from "./protocol-tips.js";
-import { findSameLiquidSourceCandidates } from "./liquid-source-substitution.js";
+import {
+  buildLiquidSourceSubstitutionPlan,
+  evaluateReuseAttachedTipEligibility,
+  findSameLiquidSourceCandidates,
+} from "./liquid-source-substitution.js";
+import { readPendingInRunLiquidSubstitutionConfirm } from "./liquid-source-fixit-recovery.js";
 
 export const HARD_STOP_ERROR_CATEGORIES = ["HARDWARE_FAULT", "DECK_COLLISION", "UNKNOWN"];
 
@@ -539,13 +544,38 @@ function compareLiquidTracking({ sessionState, observedLiquidTracking, proposedC
   proposedCommit.liquid_tracking = normalizeLiquidTracking(proposedCommit.liquid_tracking);
 }
 
-function buildLiquidManualRecoveryContext({ failedCommand, robotStatusSnapshot, run, sessionState } = {}) {
+function summarizeAttachedTipsForReuse(robotStatusSnapshot) {
+  return asArray(robotStatusSnapshot?.instruments_summary)
+    .filter(
+      instrument =>
+        instrument?.tip_detected === true && instrument?.mount && instrument.mount !== "extension",
+    )
+    .map(instrument => ({
+      mount: instrument.mount,
+      instrument_name: instrument.instrument_name || null,
+    }));
+}
+
+function normalizeCommandsForReuseEligibility(commandsPayload) {
+  return asArray(unwrapData(commandsPayload)).map(command => ({
+    ...command,
+    command_type:
+      command?.command_type || command?.commandType || readNested(command, [["commandType"]], null),
+  }));
+}
+
+function buildLiquidManualRecoveryContext({
+  failedCommand,
+  robotStatusSnapshot,
+  run,
+  sessionState,
+  commands = [],
+} = {}) {
   const failedWell = readNested(failedCommand, [["params", "wellName"]], null);
   const sourceLabwareId = readNested(failedCommand, [["params", "labwareId"]], null);
   const commandId = readNested(failedCommand, [["id"]], null);
-  const commandType = readNested(failedCommand, [["commandType"]], null);
+  const commandType = readNested(failedCommand, [["commandType"], ["command_type"]], null);
   const sourceMap = sourceMapEntryForFailure({ failedCommand, run, sessionState });
-  const cleanupRequired = summarizeAttachedTipCleanup(robotStatusSnapshot);
   const sourceIdentity = sourceMap.liquid_source
     ? [
         sourceMap.liquid_source.liquid_name,
@@ -563,6 +593,24 @@ function buildLiquidManualRecoveryContext({ failedCommand, robotStatusSnapshot, 
     failedSource: sourceMap.liquid_source,
   });
   const hasSameLiquidSourceCandidates = sameLiquidSourceCandidates.length > 0;
+  const preferredCandidate = sameLiquidSourceCandidates[0] || null;
+  const substitutionPlan = hasSameLiquidSourceCandidates
+    ? buildLiquidSourceSubstitutionPlan({
+        sessionState,
+        failedSourceKey: sourceMap.key,
+        preferredSourceKey: preferredCandidate?.source_map_key || null,
+      })
+    : null;
+  const attachedTips = summarizeAttachedTipsForReuse(robotStatusSnapshot);
+  const reuseAttachedTipContext = evaluateReuseAttachedTipEligibility({
+    failedCommand,
+    recentCommands: normalizeCommandsForReuseEligibility(commands),
+    substitutionPlan,
+    attachedTips,
+  });
+  const cleanupRequired = reuseAttachedTipContext.eligible
+    ? []
+    : summarizeAttachedTipCleanup(robotStatusSnapshot);
   const blockedAutoRecoveryReason = hasSameLiquidSourceCandidates
     ? "same_liquid_source_substitution_requires_prepared_recovery_bundle_and_live_gate"
     : "liquid_source_change_requires_human_confirmation";
@@ -581,12 +629,14 @@ function buildLiquidManualRecoveryContext({ failedCommand, robotStatusSnapshot, 
       ? `Confirm the source labware ${sourceLabwareId} is still the intended liquid source.`
       : "Confirm the source labware is still the intended liquid source.",
     hasSameLiquidSourceCandidates
-      ? `Same-liquid alternatives are recorded: ${sameLiquidSourceCandidates.map(source => source.source_map_key).join(", ")}. Use them only through prepare_liquid_source_substitution_recovery, live_liquid_recovery_gate, and operator opt-in.`
+      ? `Same-liquid alternatives are recorded: ${sameLiquidSourceCandidates.map(source => source.source_map_key).join(", ")}.`
       : "Do not change source wells unless the operator provides a confirmed source map.",
-    cleanupRequired.length > 0
-      ? `Clear attached tips before homing or continuing: ${cleanupRequired.join(", ")}.`
-      : null,
-    "After physical correction, rerun through simulation or a validated continuation path.",
+    reuseAttachedTipContext.eligible
+      ? `Keep the attached tip and call recover_liquid_source_substitution to fixit-probe ${preferredCandidate?.source_map_key || "the reserve source"} and complete transfers on the same run (do not stop the run first or start a new run_protocol with pick_up_tip).`
+      : cleanupRequired.length > 0
+        ? `Clear attached tips before homing or continuing: ${cleanupRequired.join(", ")}.`
+        : null,
+    "After physical correction, rerun through simulation or in-run fixit recovery on the same run_id.",
   ].filter(Boolean);
 
   return {
@@ -601,23 +651,25 @@ function buildLiquidManualRecoveryContext({ failedCommand, robotStatusSnapshot, 
     same_liquid_source_candidates: sameLiquidSourceCandidates,
     same_liquid_source_candidate_count: sameLiquidSourceCandidates.length,
     same_liquid_source_substitution_allowed: hasSameLiquidSourceCandidates,
-    same_liquid_source_substitution_next_tool: hasSameLiquidSourceCandidates
-      ? "prepare_liquid_source_substitution_recovery"
+    same_liquid_source_substitution_next_tool: reuseAttachedTipContext.eligible
+      ? "recover_liquid_source_substitution"
       : null,
-    same_liquid_source_substitution_playbook: hasSameLiquidSourceCandidates
-      ? "liquid_source_substitution_continuation_protocol"
+    same_liquid_source_substitution_playbook: hasSameLiquidSourceCandidates && reuseAttachedTipContext.eligible
+      ? "substitute_liquid_source_with_attached_tip"
       : null,
-    same_liquid_source_substitution_required_gates: hasSameLiquidSourceCandidates
-      ? ["live_liquid_recovery_gate", "run_protocol_only_after_operator_opt_in"]
-      : [],
+    same_liquid_source_substitution_required_gates: [],
     same_liquid_auto_resume_eligible: false,
-    same_liquid_auto_resume_blocker: hasSameLiquidSourceCandidates
-      ? "live_gate_and_operator_opt_in_required_before_any_robot_motion"
+    same_liquid_auto_resume_blocker: hasSameLiquidSourceCandidates && !reuseAttachedTipContext.eligible
+      ? "attached_tip_reuse_required_for_same_liquid_substitution"
       : null,
     failed_command_id: commandId,
     failed_command_type: commandType,
     blocked_auto_recovery_reason: blockedAutoRecoveryReason,
     cleanup_required: cleanupRequired,
+    reuse_attached_tip_eligible: reuseAttachedTipContext.eligible,
+    recommended_validation_run_time_parameters:
+      reuseAttachedTipContext.recommended_validation_run_time_parameters,
+    reuse_attached_tip_context: reuseAttachedTipContext,
     blockers: asArray(robotStatusSnapshot?.blockers),
     operator_steps: operatorSteps,
   };
@@ -1352,6 +1404,8 @@ export function buildRecoverySuggestion({
         }
 
         if (awaitingRecovery) {
+          const runId = readNested(normalizedRun, [["id"]], null) || sessionState?.last_run_id || null;
+          const pendingLiquidConfirm = readPendingInRunLiquidSubstitutionConfirm(sessionState, runId);
           return {
             ...buildErrorTaxonomy({
               phase: "recovery",
@@ -1368,7 +1422,9 @@ export function buildRecoverySuggestion({
             action: "retry_pick_up_tip_with_next_candidate",
             hard_stop: false,
             escalate_to_human: false,
-            rationale: "run_is_awaiting_recovery",
+            rationale: pendingLiquidConfirm
+              ? "post_liquid_substitution_confirm_only"
+              : "run_is_awaiting_recovery",
             failed_command_type: readNested(failed_command, [["commandType"]]),
             failed_well: readNested(failed_command, [["params", "wellName"]], null),
             suggested_tip: nextTipSuggestion.next_candidate,
@@ -1377,7 +1433,8 @@ export function buildRecoverySuggestion({
             tip_budget: tipBudget,
             route: "fixit",
             intent: "fixit",
-            should_resume_run: true,
+            should_resume_run: !pendingLiquidConfirm,
+            post_liquid_substitution_confirm_only: Boolean(pendingLiquidConfirm),
           };
         }
       }
@@ -1441,17 +1498,52 @@ export function buildRecoverySuggestion({
         recommendedManualAction: "fix_deck_configuration_or_protocol",
       });
 
-    case "INSUFFICIENT_VOLUME":
+    case "INSUFFICIENT_VOLUME": {
+      const liquidContext = buildLiquidManualRecoveryContext({
+        failedCommand: failed_command,
+        robotStatusSnapshot,
+        run,
+        sessionState,
+        commands,
+      });
+      if (awaitingRecovery && liquidContext.same_liquid_source_substitution_allowed) {
+        const preferredCandidate = liquidContext.same_liquid_source_candidates[0] || null;
+        if (liquidContext.reuse_attached_tip_eligible) {
+          return {
+            ...buildErrorTaxonomy({
+              phase: "recovery",
+              errorLeaf: resolvedErrorLeaf,
+              overrides: {
+                actionability: "auto_executable",
+                auto_executable: true,
+                required_inputs: [],
+                requires_confirmation: false,
+                evidence_sources: ["run_history", "commands", "session_state"],
+              },
+            }),
+            error_category: errorCategory,
+            action: "substitute_liquid_source_with_attached_tip",
+            hard_stop: false,
+            escalate_to_human: false,
+            rationale: "same_liquid_reserve_substitution_with_attached_tip",
+            recommended_next_tools: ["recover_liquid_source_substitution", "execute_protocol_recovery"],
+            failed_source_key: liquidContext.source_map_key,
+            preferred_source_key: preferredCandidate?.source_map_key || null,
+            ...liquidContext,
+          };
+        }
+        return manualOnly({
+          rationale: "same_liquid_reserve_requires_attached_tip",
+          recommendedManualAction: "refill_primary_or_drop_tip_and_restart",
+          extra: liquidContext,
+        });
+      }
       return manualOnly({
         rationale: "runtime_volume_issue_detected",
         recommendedManualAction: "probe_or_reduce_volume_then_retry",
-        extra: buildLiquidManualRecoveryContext({
-          failedCommand: failed_command,
-          robotStatusSnapshot,
-          run,
-          sessionState,
-        }),
+        extra: liquidContext,
       });
+    }
 
     case "AIR_BUBBLE":
       return manualOnly({
@@ -1608,11 +1700,39 @@ export function buildActionSummary({
       }
       break;
 
+    case "substitute_liquid_source_with_attached_tip":
+      summary.params = {
+        failed_source_key:
+          recoverySuggestion?.failed_source_key ||
+          recoverySuggestion?.source_map_key ||
+          null,
+        preferred_source_key:
+          recoverySuggestion?.preferred_source_key ||
+          recoverySuggestion?.same_liquid_source_candidates?.[0]?.source_map_key ||
+          null,
+        reuse_attached_tip: true,
+        reuse_attached_tip_eligible: recoverySuggestion?.reuse_attached_tip_eligible === true,
+      };
+      summary.then_resume = false;
+      summary.recommended_next_tools = [
+        "recover_liquid_source_substitution",
+        "execute_protocol_recovery",
+      ];
+      summary.if_fails = "manual_intervention";
+      break;
+
     case "manual_only":
       summary.params = {
         recommended_manual_action: recoverySuggestion?.recommended_manual_action || null,
         tip_budget: recoverySuggestion?.tip_budget || null,
         operator_steps: recoverySuggestion?.operator_steps || [],
+        cleanup_required: recoverySuggestion?.cleanup_required || [],
+        source_map_key: recoverySuggestion?.source_map_key || null,
+        source_map_expected_presence: recoverySuggestion?.source_map_expected_presence ?? null,
+        observed_liquid_presence: recoverySuggestion?.observed_liquid_presence ?? null,
+        source_map_expectation_mismatch: recoverySuggestion?.source_map_expectation_mismatch ?? null,
+        blocked_auto_recovery_reason: recoverySuggestion?.blocked_auto_recovery_reason || null,
+        reuse_attached_tip_eligible: recoverySuggestion?.reuse_attached_tip_eligible === true,
       };
       summary.then_resume = false;
       summary.if_fails =

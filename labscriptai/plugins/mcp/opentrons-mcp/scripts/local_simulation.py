@@ -170,7 +170,15 @@ def probe_module(
     if use_source_layout:
         args.extend([str(paths.api_src), str(paths.shared_data_python)])
 
-    result = subprocess.run(args, capture_output=True, text=True, check=False, env=_subprocess_env())
+    result = subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+        env=_subprocess_env(),
+    )
     payload = result.stdout.strip() or result.stderr.strip()
     if not payload:
         return {
@@ -209,7 +217,15 @@ def run_module(
     if use_source_layout:
         args.extend([str(paths.api_src), str(paths.shared_data_python)])
     args.extend(forwarded_argv)
-    return subprocess.run(args, capture_output=True, text=True, check=False, env=_subprocess_env())
+    return subprocess.run(
+        args,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+        env=_subprocess_env(),
+    )
 
 
 def build_result(

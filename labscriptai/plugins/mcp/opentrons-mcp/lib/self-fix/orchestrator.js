@@ -27,9 +27,14 @@ export async function executeRuntimeSelfFix({
 
 export function summarizeSelfFixResult({ recovery = {}, result = {} } = {}) {
   const action = recoveryAction(recovery);
-  const finalStatus = result?.data?.final_run_history?.status || null;
+  const finalStatus = result?.data?.final_run_history?.status || result?.data?.final_status || null;
   const executedParams = result?.data?.executed_params || {};
-  const recoveryApplied = Boolean(result?.data?.resume_action);
+  const normalizedFinalStatus = String(finalStatus || "").toLowerCase();
+  const recoveryApplied =
+    Boolean(result?.data?.resume_action) ||
+    result?.data?.completed_via_in_run_fixit === true ||
+    (action === "substitute_liquid_source_with_attached_tip" &&
+      ["succeeded", "completed", "stopped"].includes(normalizedFinalStatus));
   const summary = {
     action,
     recovery_applied: recoveryApplied,

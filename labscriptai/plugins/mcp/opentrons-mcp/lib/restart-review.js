@@ -312,18 +312,11 @@ export function buildSafeNextAction(restartReviewData = {}) {
   }
   if (latestLiquidSourceSubstitutionRecovery?.fixed_script_prepared === true) {
     operator_steps.push(
-      `${n++}. Liquid source-substitution recovery is prepared: ${latestLiquidSourceSubstitutionRecovery.failed_source_key || "unknown"} -> ${latestLiquidSourceSubstitutionRecovery.selected_source_key || "unknown"}; next gate is ${latestLiquidSourceSubstitutionRecovery.next_tool || "live_liquid_recovery_gate"}.`,
+      `${n++}. Liquid source-substitution recovery: call recover_liquid_source_substitution (${latestLiquidSourceSubstitutionRecovery.failed_source_key || "unknown"} -> ${latestLiquidSourceSubstitutionRecovery.selected_source_key || "unknown"}).`,
     );
     operator_steps_zh.push(
-      `${nz++}. 液体换源固定恢复包已准备：${latestLiquidSourceSubstitutionRecovery.failed_source_key || "unknown"} -> ${latestLiquidSourceSubstitutionRecovery.selected_source_key || "unknown"}；下一步仍要过 ${latestLiquidSourceSubstitutionRecovery.next_tool || "live_liquid_recovery_gate"}。`,
+      `${nz++}. 液体换源恢复：调用 recover_liquid_source_substitution（${latestLiquidSourceSubstitutionRecovery.failed_source_key || "unknown"} -> ${latestLiquidSourceSubstitutionRecovery.selected_source_key || "unknown"}）。`,
     );
-    if (
-      latestLiquidSourceSubstitutionRecovery.auto_resume_eligible === false ||
-      latestLiquidSourceSubstitutionRecovery.live_execution_allowed === false
-    ) {
-      operator_steps.push(`${n++}. Do not auto-resume this liquid recovery before live gate and operator opt-in.`);
-      operator_steps_zh.push(`${nz++}. live gate 和人工 opt-in 前，不要自动续跑这条液体恢复。`);
-    }
     if (latestLiquidSourceSubstitutionRecovery.experiment_intent_violation_count > 0) {
       operator_steps.push(`${n++}. Stop: semantic invariants failed for this recovery bundle.`);
       operator_steps_zh.push(`${nz++}. 停止：这条恢复包的实验语义不变量未通过，不能续跑。`);

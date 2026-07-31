@@ -11,7 +11,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .gate import RESUME_BLOCKED_RUN_STATUSES
 from .mcp_adapter import (
+    RUN_PROTOCOL_TIMEOUT_SEC,
     WATCH_TIMEOUT_SEC,
     call_tool,
     normalize_robot_base,
@@ -26,7 +28,18 @@ __all__ = (
 )
 
 _MEMORY_DIRNAME = ".labscriptai/memory"
-_MAX_BASH_OUTPUT = 50_000
+
+
+def _resolve_bash_output_limit() -> int:
+    """Chars kept from bash stdout/stderr; 0 = no truncation."""
+    raw = os.environ.get("LABSCRIPTAI_MAX_BASH_OUTPUT", "0")
+    try:
+        return max(0, int(str(raw).strip()))
+    except ValueError:
+        return 0
+
+
+_MAX_BASH_OUTPUT = _resolve_bash_output_limit()
 
 
 def _skills_dir() -> Path:
@@ -240,6 +253,8 @@ def _bash(
             cwd=str(workspace),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False,
             timeout=timeout,
         )
@@ -259,10 +274,11 @@ def _bash(
     }
 
 
-def _clip(text: str, limit: int = _MAX_BASH_OUTPUT) -> str:
-    if len(text) <= limit:
+def _clip(text: str, limit: int | None = None) -> str:
+    cap = _MAX_BASH_OUTPUT if limit is None else limit
+    if cap <= 0 or len(text) <= cap:
         return text
-    return text[:limit] + f"\n…[truncated {len(text) - limit} chars]"
+    return text[:cap] + f"\n…[truncated {len(text) - cap} chars]"
 
 
 # --- edit ------------------------------------------------------------------
@@ -340,6 +356,79 @@ def _rel(workspace: Path, path: Path) -> str:
 
 
 # --- robot -----------------------------------------------------------------
+
+
+def _fetch_run_status(host: str, run_id: Any) -> str | None:
+    history = call_tool(
+        "run_history",
+        {"robot_ip": host, "run_id": run_id},
+        timeout_sec=30,
+    )
+    data = history.get("data") if isinstance(history.get("data"), dict) else history
+    if not isinstance(data, dict):
+        return None
+    status = data.get("status")
+    return str(status).strip().lower() if status else None
+
+
+def _attach_active_run_status(
+    out: dict[str, Any],
+    host: str,
+    run_id: Any,
+    *,
+    status: str | None = None,
+) -> None:
+    if status:
+        out["active_run_status"] = status
+        return
+    if not run_id:
+        return
+    fetched = _fetch_run_status(host, run_id)
+    if fetched:
+        out["active_run_status"] = fetched
+
+
+def _status_from_watch_payload(watched: dict[str, Any]) -> str | None:
+    data = watched.get("data") if isinstance(watched.get("data"), dict) else watched
+    if not isinstance(data, dict):
+        return None
+    for key in ("status", "final_status", "run_status"):
+        val = data.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip().lower()
+    return None
+
+
+def _resume_play_blocked(
+    *,
+    host: str,
+    run_id: Any,
+    action_key: str,
+    call_payload: dict[str, Any],
+) -> dict[str, Any] | None:
+    play = action_key in {"resume_run", "play_run"} or (
+        action_key == "control_run" and str(call_payload.get("action") or "").lower() == "play"
+    )
+    if not play or not run_id:
+        return None
+    status = _fetch_run_status(host, run_id)
+    if status not in RESUME_BLOCKED_RUN_STATUSES:
+        return None
+    return {
+        "op": "act",
+        "error": "resume_blocked",
+        "run_id": run_id,
+        "run_status": status,
+        "detail": (
+            f"resume_run/play blocked while run status is {status}. "
+            "Do not replay the failed run. Call recover_liquid_source_substitution "
+            "(one-step L0, like recover_tip_pickup)."
+        ),
+        "recommended_next_tools": [
+            "recover_liquid_source_substitution",
+            "execute_protocol_recovery",
+        ],
+    }
 
 
 def _robot(
@@ -440,8 +529,18 @@ def _robot_status(
                 (tip_budget or {}).get("message")
                 or "Tip budget insufficient; do not retry pickup or resume."
             )
+        if recovery.get("action") in {
+            "substitute_liquid_source_with_attached_tip",
+        }:
+            out["liquid_substitution_recovery"] = {
+                "failed_source_key": recovery.get("failed_source_key") or recovery.get("source_map_key"),
+                "preferred_source_key": recovery.get("preferred_source_key"),
+                "candidates": recovery.get("same_liquid_source_candidates") or [],
+                "next_tools": recovery.get("recommended_next_tools") or [],
+            }
     if _is_error_payload(robot_status) and not run_id:
         out["error"] = robot_status.get("error") or "robot_status_failed"
+    _attach_active_run_status(out, host, run_id)
     return out
 
 
@@ -489,7 +588,19 @@ def _robot_watch(
             watched.get("error") == "mcp_tool_failed" and "Unknown MCP tool" in stderr
         )
         if not tool_missing:
-            return {"op": "watch", "robot_base": base, "source": "runtime_watch_poll", "watch": watched}
+            out = {
+                "op": "watch",
+                "robot_base": base,
+                "source": "runtime_watch_poll",
+                "watch": watched,
+            }
+            _attach_active_run_status(
+                out,
+                host,
+                run_id,
+                status=_status_from_watch_payload(watched),
+            )
+            return out
 
     # Degrade to status
     degraded = _robot_status(
@@ -502,6 +613,7 @@ def _robot_watch(
     )
     degraded["op"] = "watch"
     degraded["source"] = "status_fallback"
+    _attach_active_run_status(degraded, host, run_id)
     return degraded
 
 
@@ -510,10 +622,16 @@ _ACT_ALIASES: dict[str, tuple[str, dict[str, Any]]] = {
     "execute_protocol_recovery": ("execute_protocol_recovery", {}),
     "pause_run": ("control_run", {"action": "pause"}),
     "resume_run": ("control_run", {"action": "play"}),
+    "play_run": ("control_run", {"action": "play"}),
     "abort_run": ("control_run", {"action": "stop"}),
+    "stop_run": ("control_run", {"action": "stop"}),
+    "stop": ("control_run", {"action": "stop"}),
     "inspect_robot_state": ("robot_status", {}),
     "simulate_protocol": ("simulate_protocol", {}),
     "capture_deck_image": ("capture_preview_image", {}),
+    "record_liquid_source_map": ("record_liquid_source_map", {}),
+    "recover_liquid_source_substitution": ("recover_liquid_source_substitution", {}),
+    "run_protocol": ("run_protocol", {}),
 }
 
 
@@ -652,7 +770,13 @@ def _robot_act(
                 "op": "act",
                 "detail": "execute_protocol_recovery requires recovery_branch",
             }
-        result = call_tool("execute_protocol_recovery", payload)
+        payload.setdefault("timeout_ms", 1_800_000)
+        payload.setdefault("poll_interval_ms", 1000)
+        result = call_tool(
+            "execute_protocol_recovery",
+            payload,
+            timeout_sec=RUN_PROTOCOL_TIMEOUT_SEC,
+        )
         return {
             "op": "act",
             "robot_base": base,
@@ -663,8 +787,60 @@ def _robot_act(
     if action_key:
         tool_name, injected = _ACT_ALIASES.get(action_key, (action_key, {}))
         call_payload = {**payload, **injected}
-        if tool_name in {"execute_protocol_recovery", "recover_tip_pickup"}:
+        blocked = _resume_play_blocked(
+            host=host,
+            run_id=call_payload.get("run_id") or run_id,
+            action_key=action_key,
+            call_payload=call_payload,
+        )
+        if blocked is not None:
+            return blocked
+        if tool_name in {
+            "execute_protocol_recovery",
+            "recover_tip_pickup",
+            "recover_liquid_source_substitution",
+        }:
             _maybe_attach_protocol_path(call_payload, workspace)
+        if tool_name in {
+            "run_protocol",
+            "recover_liquid_source_substitution",
+            "execute_protocol_recovery",
+            "recover_tip_pickup",
+        }:
+            call_payload.setdefault("operator_opt_in", True)
+            call_payload.setdefault("timeout_ms", 1_800_000)
+            call_payload.setdefault("poll_interval_ms", 1000)
+        if tool_name == "run_protocol":
+            if not call_payload.get("file_path"):
+                bundle_path = call_payload.get("recovery_bundle_path") or call_payload.get("bundle_path")
+                if isinstance(bundle_path, str) and bundle_path.strip():
+                    try:
+                        bundle = json.loads(Path(bundle_path).read_text(encoding="utf-8"))
+                        generated = bundle.get("generated_protocol_path")
+                        if generated:
+                            call_payload["file_path"] = generated
+                    except (OSError, json.JSONDecodeError):
+                        pass
+            call_payload.setdefault("operator_opt_in", True)
+            call_payload.setdefault("timeout_ms", 1_800_000)
+            call_payload.setdefault("poll_interval_ms", 1000)
+            result = call_tool(
+                tool_name,
+                call_payload,
+                timeout_sec=RUN_PROTOCOL_TIMEOUT_SEC,
+            )
+            return {"op": "act", "robot_base": base, "tool": tool_name, "result": result}
+        if tool_name in {
+            "recover_liquid_source_substitution",
+            "execute_protocol_recovery",
+            "recover_tip_pickup",
+        }:
+            result = call_tool(
+                tool_name,
+                call_payload,
+                timeout_sec=RUN_PROTOCOL_TIMEOUT_SEC,
+            )
+            return {"op": "act", "robot_base": base, "tool": tool_name, "result": result}
         # control_run uses action=pause|play|stop — don't leave action_type clutter
         result = call_tool(tool_name, call_payload)
         return {"op": "act", "robot_base": base, "tool": tool_name, "result": result}

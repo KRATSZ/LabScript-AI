@@ -6,6 +6,23 @@ export const TERMINAL_RUN_STATUSES = new Set([
   "blocked-by-open-door",
 ]);
 
+/** Run statuses that block POST /runs (Opentrons RunAlreadyActive). */
+export const RUN_CREATE_BLOCKING_STATUSES = new Set([
+  "running",
+  "paused",
+  "awaiting-recovery",
+  "stop-requested",
+  "blocked-by-open-door",
+]);
+
+/** Statuses that free the robot run slot for a new protocol run. */
+export const RUN_SLOT_RELEASE_TARGET_STATUSES = new Set([
+  "stopped",
+  "failed",
+  "succeeded",
+  "idle",
+]);
+
 export function normalizeRunStatus(status) {
   return String(status || "").trim().toLowerCase();
 }

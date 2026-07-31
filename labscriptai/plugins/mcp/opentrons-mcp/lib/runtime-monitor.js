@@ -464,7 +464,7 @@ function buildL3RecoveryCoordinator({ args, safeNextCall, liquidGateCall } = {})
           message: "Live liquid recovery gate could not be evaluated.",
           messageZh: "无法评估液体恢复 gate；不能继续液体相关真机动作。",
           requiresAttention: true,
-          recommendedNextTool: "live_liquid_recovery_gate",
+          recommendedNextTool: "recover_liquid_source_substitution",
           data: { error: liquidGateCall.error || null },
         }),
       );
@@ -477,7 +477,7 @@ function buildL3RecoveryCoordinator({ args, safeNextCall, liquidGateCall } = {})
           message: "Live liquid recovery gate did not pass.",
           messageZh: "液体恢复 gate 没通过，不能继续液体真机动作。",
           requiresAttention: true,
-          recommendedNextTool: liquidGate?.allowed_next_tools?.[0] || "live_liquid_recovery_gate",
+          recommendedNextTool: liquidGate?.allowed_next_tools?.[0] || "recover_liquid_source_substitution",
           data: liquidGate,
         }),
       );
@@ -496,7 +496,7 @@ function buildL3RecoveryCoordinator({ args, safeNextCall, liquidGateCall } = {})
         message: "A fixed recovery bundle is prepared.",
         messageZh: `固定恢复包已准备：${latestRecovery.failed_source_key || "unknown"} -> ${latestRecovery.selected_source_key || "unknown"}。`,
         requiresAttention: !liveAllowed,
-        recommendedNextTool: latestRecovery.next_tool || "live_liquid_recovery_gate",
+        recommendedNextTool: latestRecovery.next_tool || "recover_liquid_source_substitution",
         data: latestRecovery,
       }),
     );
