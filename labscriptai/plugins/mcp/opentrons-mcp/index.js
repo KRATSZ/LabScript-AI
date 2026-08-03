@@ -32,6 +32,9 @@ import {
 import {
   buildRunProtocolResult,
   isTerminalRunStatus,
+  normalizeRunStatus,
+  RUN_CREATE_BLOCKING_STATUSES,
+  RUN_SLOT_RELEASE_TARGET_STATUSES,
   shouldAttachRecoveryGuidance,
 } from "./lib/run-control.js";
 import {
@@ -82,7 +85,27 @@ import {
   setPipetteState,
   uniqueSessionStrings,
 } from "./lib/state.js";
-import { classifyTipBindingModeDetail } from "./lib/protocol-tips.js";
+import { classifyTipBindingModeDetail, assessTipRecoveryBudget } from "./lib/protocol-tips.js";
+import { assessTimeWindow } from "./lib/protocol-time-window.js";
+import {
+  parseProtocolDeckHints,
+  parseProtocolTransferContinuationHints,
+  seedProtocolLiquidSourceMap,
+} from "./lib/protocol-liquid-sources.js";
+import {
+  enrichRecoveryArgsWithProtocolPath as enrichRecoveryArgsWithProtocolPathImpl,
+  extractProtocolNameFromSource,
+  resolveProtocolPathForRecovery as resolveProtocolPathForRecoveryImpl,
+} from "./lib/protocol-path.js";
+import {
+  buildInRunLiquidSubstitutionRecord,
+  executeInRunLiquidSourceSubstitutionFixitSteps,
+  findLastSucceededProtocolPickUpTipWell,
+  planConfirmProbeFixitSteps,
+  planInRunLiquidSourceSubstitutionFixitSteps,
+  readPendingInRunLiquidSubstitutionConfirm,
+  splitLiquidSubstitutionFixitSteps,
+} from "./lib/liquid-source-fixit-recovery.js";
 import {
   appendResultLogEntry,
   readResultLogEntries,
@@ -108,7 +131,12 @@ import { MCP_RUNTIME_CAPABILITIES, buildHealthCheck, checkRobotHealth } from "./
 import { generateTipContinuationProtocol } from "./lib/continuation.js";
 import {
   LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID,
+  applyLiquidSourceSubstitutionPatchToProtocol,
+  buildLiquidSourceSubstitutionContinuationGuide,
   buildLiquidSourceSubstitutionPlan,
+  evaluateReuseAttachedTipEligibility,
+  generateLiquidSourceSubstitutionAttachedTipContinuationProtocol,
+  generateLiquidSourceSubstitutionRerunProtocol,
   generateLiquidSourceSubstitutionValidationProtocol,
   setSuffixSufficiencyOnPlan,
   validateLiquidSourceSubstitutionInvariants,
@@ -433,6 +461,8 @@ const REQUIRED_RUNTIME_TOOLS = [
   "summarize_liquid_source_map",
   "plan_liquid_source_substitution",
   "generate_liquid_source_substitution_protocol",
+  "generate_liquid_source_substitution_rerun_protocol",
+  "generate_liquid_source_substitution_attached_tip_continuation",
   "prepare_liquid_source_substitution_recovery",
 ];
 
@@ -500,11 +530,17 @@ const TOOL_DEFINITIONS = [
   {
     name: "robot_status",
     description:
-      "Fetch the live hardware snapshot needed before physical actions: health, instruments, door, estop, and deck configuration.",
+      "Fetch the live hardware snapshot needed before physical actions: health, instruments, door, estop, and deck configuration. When run_id is set, also attaches time_window (and tip contact enrichment) using protocol_path resolved from args, session state, or result logs.",
     inputSchema: {
       type: "object",
       properties: {
         robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        run_id: { type: "string", description: "Optional live run id for command history + time_window" },
+        session_id: { type: "string", description: "Optional session id for protocol_path lookup" },
+        protocol_path: { type: "string", description: "Optional protocol .py path for time_window / tip contact" },
+        file_path: { type: "string", description: "Alias for protocol_path" },
+        protocol_source: { type: "string", description: "Optional inline protocol source" },
+        page_length: { type: "integer", description: "Command page length when run_id is set", default: 50 },
       },
     },
   },
@@ -872,8 +908,52 @@ const TOOL_DEFINITIONS = [
         labware_namespace: { type: "string", default: "opentrons" },
         labware_version: { type: "integer", default: 1 },
         trash_slot: { type: "string" },
+        robot_ip: { type: "string", description: "Optional robot IP for read-only reuse-attached-tip eligibility checks." },
+        run_id: { type: "string", description: "Optional active run id for reuse-attached-tip eligibility checks." },
       },
       required: ["failed_source_key", "pipette_name", "mount", "tiprack_load_name", "tiprack_slot"],
+    },
+  },
+  {
+    name: "generate_liquid_source_substitution_rerun_protocol",
+    description:
+      "After validation confirms a same-liquid replacement source, prepare the experiment rerun: patch the original protocol to use the replacement well, or return primary_well run-time parameters when the protocol supports them. Writes a patched .py when needed; does not upload or run.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+        run_id: { type: "string" },
+        protocol_path: { type: "string", description: "Original protocol .py path (defaults to session protocol_path)" },
+        file_path: { type: "string", description: "Alias for protocol_path" },
+        failed_source_key: { type: "string" },
+        preferred_source_key: { type: "string" },
+        replacement_source_key: { type: "string", description: "Alias for preferred_source_key" },
+        output_path: { type: "string", description: "Optional patched rerun protocol output path" },
+      },
+      required: ["failed_source_key"],
+    },
+  },
+  {
+    name: "generate_liquid_source_substitution_attached_tip_continuation",
+    description:
+      "After probe-only liquidNotFound on the primary source, generate a continuation protocol that reuses the attached tip: probe the replacement well, aspirate/transfers, and only then drop the tip. Does not upload or run.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        session_id: { type: "string" },
+        run_id: { type: "string" },
+        protocol_path: { type: "string", description: "Original experiment protocol .py for transfer hints" },
+        file_path: { type: "string", description: "Alias for protocol_path" },
+        failed_source_key: { type: "string" },
+        preferred_source_key: { type: "string" },
+        replacement_source_key: { type: "string" },
+        output_path: { type: "string" },
+        pipette_name: { type: "string" },
+        mount: { type: "string", enum: ["left", "right"] },
+        tiprack_load_name: { type: "string" },
+        tiprack_slot: { type: "string" },
+      },
+      required: ["failed_source_key"],
     },
   },
   {
@@ -1643,6 +1723,15 @@ const TOOL_DEFINITIONS = [
       properties: {
         robot_ip: { type: "string", description: "Robot IP or full base URL" },
         protocol_id: { type: "string", description: "Uploaded protocol ID" },
+        file_path: {
+          type: "string",
+          description: "Optional local protocol .py path (stored for recovery tip-budget parsing).",
+        },
+        protocol_name: {
+          type: "string",
+          description: "Optional protocol display name for workspace lookup when file_path is omitted.",
+        },
+        session_id: { type: "string" },
         run_time_parameters: { type: "object" },
         labware_offsets: {
           type: "array",
@@ -1907,6 +1996,26 @@ const TOOL_DEFINITIONS = [
         host_adapter_dir: { type: "string" },
         webhook_url: { type: "string" },
       },
+    },
+  },
+  {
+    name: "recover_liquid_source_substitution",
+    description:
+      "L0 same-liquid reserve substitution: keep the attached tip, generate attached-tip continuation, and run it against the replacement source (e.g. C2.A2). Does not resume the failed run.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        run_id: { type: "string" },
+        session_id: { type: "string" },
+        failed_source_key: { type: "string" },
+        preferred_source_key: { type: "string" },
+        protocol_path: { type: "string" },
+        timeout_ms: { type: "integer", default: 1800000 },
+        poll_interval_ms: { type: "integer", default: 1000 },
+        page_length: { type: "integer", default: 20 },
+      },
+      required: ["run_id"],
     },
   },
   {
@@ -2265,6 +2374,11 @@ const TOOL_DEFINITIONS = [
         failed_slot_name: { type: "string" },
         failed_well_name: { type: "string" },
         preferred_source_key: { type: "string" },
+        run_id: {
+          type: "string",
+          description:
+            "Optional active run id; when set with robot_ip, the gate may allow reusing an attached tip after probe-only liquidNotFound failures.",
+        },
       },
       required: ["robot_ip"],
     },
@@ -2614,6 +2728,85 @@ function buildRuntimeRecoverySelfTestResult() {
       notes: "Self-test fixture: expected-present source that probes as empty must stop for human confirmation.",
     },
   });
+  const substitutionCase = (() => {
+    const failedCommand = {
+      id: "self-test-liquid-substitution-command",
+      commandType: "liquidProbe",
+      status: "failed",
+      params: {
+        pipetteId: "pipette-left",
+        labwareId: "self-test-c2-reservoir",
+        wellName: "A1",
+      },
+      error: {
+        errorType: "liquidNotFound",
+        detail: "Liquid Not Found",
+      },
+    };
+    const run = {
+      data: {
+        id: "self-test-substitution-run",
+        status: "awaiting-recovery",
+        currentlyRecoveringFrom: failedCommand.id,
+        labware: [
+          {
+            id: "self-test-c2-reservoir",
+            loadName: "nest_12_reservoir_15ml",
+            location: { slotName: "C2" },
+          },
+        ],
+      },
+    };
+    const commands = { data: [failedCommand] };
+    const robotStatusSnapshot = {
+      blockers: [],
+      instruments_summary: [{ mount: "left", instrument_name: "p1000_single_flex", tip_detected: true }],
+    };
+    const moduleStatusSnapshot = { blockers: [] };
+    const sessionState = {
+      state_revision: 0,
+      deck: { slots: {} },
+      pipettes: {},
+      cleanup: { pending_actions: [] },
+      liquid_tracking: {
+        sources: {
+          "C2.A1": {
+            slot_name: "C2",
+            well_name: "A1",
+            labware_load_name: "nest_12_reservoir_15ml",
+            liquid_name: "Assay Buffer",
+            expected_presence: true,
+          },
+          "C2.A2": {
+            slot_name: "C2",
+            well_name: "A2",
+            labware_load_name: "nest_12_reservoir_15ml",
+            liquid_name: "Assay Buffer",
+            expected_presence: true,
+          },
+        },
+      },
+      tip_tracking: { tipracks: {} },
+    };
+    const classification = classifyRecoveryError({
+      run,
+      commands,
+      moduleStatusSnapshot,
+      robotStatusSnapshot,
+    });
+    const recovery = buildRecoverySuggestion({
+      errorCategory: classification.error_category,
+      errorLeaf: classification.error_leaf,
+      run,
+      commands,
+      robotStatusSnapshot,
+      moduleStatusSnapshot,
+      reconciliation: { diffs: [] },
+      sessionState,
+    });
+    const actionSummary = buildActionSummary({ recoverySuggestion: recovery, run });
+    return { failedCommand, classification, recovery, actionSummary };
+  })();
   const failedCommand = emptySourceCase.failedCommand;
   const classification = emptySourceCase.classification;
   const recovery = emptySourceCase.recovery;
@@ -2699,6 +2892,29 @@ function buildRuntimeRecoverySelfTestResult() {
           expectedPresentActionSummary.params?.blocked_auto_recovery_reason,
       },
     ),
+    buildSelfTestCheck(
+      "same_liquid_substitution_routes_to_l0_recovery",
+      substitutionCase.recovery.action === "substitute_liquid_source_with_attached_tip" &&
+        substitutionCase.recovery.auto_executable === true &&
+        substitutionCase.actionSummary.params?.preferred_source_key === "C2.A2",
+      {
+        action: substitutionCase.recovery.action,
+        auto_executable: substitutionCase.recovery.auto_executable,
+        preferred_source_key: substitutionCase.actionSummary.params?.preferred_source_key,
+      },
+    ),
+    buildSelfTestCheck(
+      "substitution_probe_only_reuses_attached_tip",
+      substitutionCase.recovery.reuse_attached_tip_eligible === true &&
+        substitutionCase.actionSummary.params?.reuse_attached_tip_eligible === true &&
+        !substitutionCase.actionSummary.params?.cleanup_required?.includes("drop_tip:left"),
+      {
+        reuse_attached_tip_eligible: substitutionCase.recovery.reuse_attached_tip_eligible,
+        cleanup_required: substitutionCase.actionSummary.params?.cleanup_required || [],
+        recommended_validation_run_time_parameters:
+          substitutionCase.actionSummary.params?.recommended_validation_run_time_parameters || null,
+      },
+    ),
   ];
   const failedChecks = checks.filter(check => !check.passed);
 
@@ -2777,6 +2993,38 @@ function summarizeAttachedLiquidGateTips(robotStatusSnapshot = {}) {
       model: instrument.model || null,
       serial: instrument.serial || null,
     }));
+}
+
+async function resolveReuseAttachedTipContext({
+  args = {},
+  robotStatus = {},
+  substitutionPlan = null,
+} = {}) {
+  const attachedTips = summarizeAttachedLiquidGateTips(robotStatus);
+  let failedCommand = null;
+  let recentCommands = [];
+
+  if (args.run_id && args.robot_ip) {
+    try {
+      const history = await readRunHistory({
+        robot_ip: args.robot_ip,
+        run_id: args.run_id,
+        page_length: args.page_length ?? 20,
+      });
+      failedCommand = history.data?.latest_failed_command || null;
+      recentCommands = history.data?.recent_commands || [];
+    } catch {
+      failedCommand = null;
+      recentCommands = [];
+    }
+  }
+
+  return evaluateReuseAttachedTipEligibility({
+    failedCommand,
+    recentCommands,
+    substitutionPlan,
+    attachedTips,
+  });
 }
 
 function normalizeLiquidGateSourceRequirement(source = {}) {
@@ -3434,11 +3682,13 @@ function buildLiveLiquidRecoveryGateResult({
   sessionId = DEFAULT_SESSION_ID,
   allowObservedMismatchReprobe = false,
   suffixEvaluation = null,
+  reuseAttachedTipContext = null,
 } = {}) {
   const selfTest = selfTestResult?.data || {};
   const robotStatus = robotStatusResult?.data || {};
   const moduleStatus = moduleStatusResult?.data || {};
   const attachedTips = summarizeAttachedLiquidGateTips(robotStatus);
+  const reuseAttachedTipEligible = reuseAttachedTipContext?.eligible === true;
   const sourcePlanCheck = buildLiquidSourcePlanGateCheck(sourcePlan, invalidSourcePlan);
   const sourceMapCheck = buildLiquidSourceMapGateCheck(sessionState, requiredSources, {
     allowObservedMismatchReprobe,
@@ -3538,12 +3788,16 @@ function buildLiveLiquidRecoveryGateResult({
     ),
     buildGateCheck(
       "no_attached_tip_before_liquid_probe_rerun",
-      attachedTips.length === 0 ? "pass" : "fail",
+      attachedTips.length === 0 || reuseAttachedTipEligible ? "pass" : "fail",
       attachedTips.length === 0
         ? "No pipette reports an attached tip."
-        : "A pipette still reports an attached tip; clear this state before repeating live liquid watcher/probe tests.",
+        : reuseAttachedTipEligible
+          ? "Attached tip may be reused for same-liquid substitution validation after probe-only liquidNotFound."
+          : "A pipette still reports an attached tip; clear this state before repeating live liquid watcher/probe tests.",
       {
         attached_tips: attachedTips,
+        reuse_attached_tip_eligible: reuseAttachedTipEligible,
+        reuse_attached_tip_context: reuseAttachedTipContext || null,
       },
     ),
     buildGateCheck(
@@ -3593,6 +3847,9 @@ function buildLiveLiquidRecoveryGateResult({
     suffix_sufficient: suffixEvaluation?.suffix_sufficient ?? null,
     final_auto_resume_eligible: suffixEvaluation?.final_auto_resume_eligible ?? null,
     suffix_violations: suffixEvaluation?.violations || null,
+    reuse_attached_tip_eligible: reuseAttachedTipEligible,
+    recommended_validation_run_time_parameters:
+      reuseAttachedTipContext?.recommended_validation_run_time_parameters || null,
     source_plan: sourcePlan || null,
     allow_observed_mismatch_reprobe: allowObservedMismatchReprobe,
     checks,
@@ -3620,7 +3877,12 @@ function buildLiveLiquidRecoveryGateResult({
       failedCheckNames.includes("suffix_plan_not_sufficient")
         ? "Resolve suffix replay violations before any substitution auto-resume."
         : null,
-      attachedTips.length > 0 ? "Clear the attached pipette tip state before any liquid watcher/probe re-run." : null,
+      attachedTips.length > 0 && !reuseAttachedTipEligible
+        ? "Clear the attached pipette tip state before any liquid watcher/probe re-run."
+        : null,
+      reuseAttachedTipEligible
+        ? "Run the substitution validation protocol with run_time_parameters reuse_attached_tip=true to probe the replacement source using the current tip."
+        : null,
       failedChecks.length === 0
         ? "Proceed to D3 A12 empty-source watcher and C3/D3 positive liquid probe re-runs using the loaded MCP client."
         : "Do not run live liquid watcher/probe tests until failed gate checks are resolved.",
@@ -3683,7 +3945,7 @@ function recordToolResultLog({
     event_kind: eventKind || toolName,
     status: resolveLoggedStatus({ result, error, fallback: fallbackStatus }),
     summary,
-    protocol_path: args.file_path || null,
+    protocol_path: args.file_path || args.protocol_path || data.protocol_path || null,
     robot_ip: args.robot_ip || null,
     state_revision: result?.stateRevision ?? error?.toolContext?.stateRevision ?? 0,
     requires_attention:
@@ -3791,6 +4053,34 @@ function resolveLiquidSubstitutionRecoveryBundleOutputPath(args, failedSourceKey
     timestamp,
   ].join("_");
   return path.join(DEFAULT_LIQUID_SUBSTITUTION_PROTOCOL_DIR, `${baseName}.json`);
+}
+
+function resolveLiquidSubstitutionRerunProtocolOutputPath(args, failedSourceKey, selectedSourceKey) {
+  if (args.output_path) {
+    return path.resolve(args.output_path);
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const baseName = [
+    "liquid-source-substitution-rerun",
+    sanitizeProbeFilenamePart(failedSourceKey || "failed-source"),
+    sanitizeProbeFilenamePart(selectedSourceKey || args.preferred_source_key || "replacement"),
+    timestamp,
+  ].join("_");
+  return path.join(DEFAULT_LIQUID_SUBSTITUTION_PROTOCOL_DIR, `${baseName}.py`);
+}
+
+function resolveLiquidSubstitutionAttachedTipContinuationOutputPath(args, failedSourceKey, selectedSourceKey) {
+  if (args.output_path) {
+    return path.resolve(args.output_path);
+  }
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const baseName = [
+    "liquid-source-substitution-attached-tip",
+    sanitizeProbeFilenamePart(failedSourceKey || "failed-source"),
+    sanitizeProbeFilenamePart(selectedSourceKey || args.preferred_source_key || "replacement"),
+    timestamp,
+  ].join("_");
+  return path.join(DEFAULT_LIQUID_SUBSTITUTION_PROTOCOL_DIR, `${baseName}.py`);
 }
 
 function selectProtocolAnalysis(analysesPayload) {
@@ -3990,6 +4280,87 @@ async function pollRunToTerminal({
   throw new Error(`Timed out waiting for run ${runId} to reach a terminal status.`);
 }
 
+async function pollRunUntilStatuses({
+  robotIp,
+  runId,
+  acceptedStatuses,
+  timeoutMs = 120000,
+  pollIntervalMs = 1000,
+}) {
+  const startedAt = Date.now();
+  let latest = null;
+
+  while (Date.now() - startedAt <= timeoutMs) {
+    latest = await requestRobotJson("GET", robotIp, `/runs/${runId}`);
+    const status = normalizeRunStatus(readNested(unwrapData(latest) || {}, [["status"]], null));
+    if (acceptedStatuses.has(status)) {
+      return { run: latest, status };
+    }
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error(
+    `Timed out waiting for run ${runId} to reach ${[...acceptedStatuses].join("|")}.`,
+  );
+}
+
+function shouldReleaseRunSlotBeforeProtocolCreate(args = {}) {
+  if (args.release_run_slot_before_create === false) {
+    return false;
+  }
+  if (args.release_run_slot_before_create === true || args.stop_blocking_run_id) {
+    return true;
+  }
+  const filePath = String(args.file_path || "");
+  return filePath.includes("liquid-source-substitution");
+}
+
+async function releaseBlockingRunBeforeCreate({
+  robotIp,
+  runId = null,
+  timeoutMs = 120000,
+  pollIntervalMs = 1000,
+} = {}) {
+  let targetRunId = runId;
+  let priorStatus = null;
+
+  if (!targetRunId) {
+    const runs = await requestRobotJson("GET", robotIp, "/runs");
+    const currentRun = asArray(unwrapData(runs)).find(run => run?.current) || null;
+    targetRunId = readNested(currentRun, [["id"]], null);
+    priorStatus = normalizeRunStatus(readNested(currentRun, [["status"]], null));
+  } else {
+    const run = await requestRobotJson("GET", robotIp, `/runs/${targetRunId}`);
+    priorStatus = normalizeRunStatus(readNested(unwrapData(run) || {}, [["status"]], null));
+  }
+
+  if (!targetRunId || !RUN_CREATE_BLOCKING_STATUSES.has(priorStatus)) {
+    return { released: false, run_id: targetRunId, prior_status: priorStatus };
+  }
+
+  await requestRobotJson("POST", robotIp, `/runs/${targetRunId}/actions`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: {
+        actionType: "stop",
+      },
+    }),
+  });
+  const { status: finalStatus } = await pollRunUntilStatuses({
+    robotIp,
+    runId: targetRunId,
+    acceptedStatuses: RUN_SLOT_RELEASE_TARGET_STATUSES,
+    timeoutMs,
+    pollIntervalMs,
+  });
+  return {
+    released: true,
+    run_id: targetRunId,
+    prior_status: priorStatus,
+    final_status: finalStatus,
+  };
+}
+
 async function enqueueAndPollCommand({
   robotIp,
   contextType,
@@ -4150,6 +4521,57 @@ function resolveFailedWellAndTiprackSlot({ args, run, failedCommand } = {}) {
   };
 }
 
+function protocolPathResolverDeps() {
+  return { readSessionState };
+}
+
+function resolveProtocolPathForRecovery(args = {}) {
+  return resolveProtocolPathForRecoveryImpl(args, protocolPathResolverDeps());
+}
+
+function enrichRecoveryArgsWithProtocolPath(args = {}) {
+  return enrichRecoveryArgsWithProtocolPathImpl(args, protocolPathResolverDeps());
+}
+
+function storeRunProtocolMetadata({ runId, sessionId = null, filePath, protocolName = null } = {}) {
+  if (!runId || !filePath) {
+    return;
+  }
+  const resolved = path.resolve(String(filePath));
+  if (!fs.existsSync(resolved)) {
+    return;
+  }
+  let resolvedName = protocolName;
+  if (!resolvedName) {
+    try {
+      resolvedName = extractProtocolNameFromSource(fs.readFileSync(resolved, "utf8"));
+    } catch {
+      resolvedName = null;
+    }
+  }
+  let protocolSource = null;
+  try {
+    protocolSource = fs.readFileSync(resolved, "utf8");
+  } catch {
+    protocolSource = null;
+  }
+
+  const sessionIds = uniqueSessionStrings([runId, sessionId].filter(Boolean));
+  for (const id of sessionIds) {
+    mutateSessionState(id, session => {
+      session.protocol_path = resolved;
+      if (resolvedName) {
+        session.protocol_name = resolvedName;
+      }
+      session.last_run_id = runId;
+      if (protocolSource) {
+        seedProtocolLiquidSourceMap(session, protocolSource);
+      }
+      return session;
+    });
+  }
+}
+
 function readProtocolSourceForTipBinding(args = {}) {
   if (typeof args.protocol_source === "string" && args.protocol_source.trim()) {
     return {
@@ -4159,7 +4581,7 @@ function readProtocolSourceForTipBinding(args = {}) {
     };
   }
 
-  const inputPath = args.file_path || args.protocol_path || null;
+  const inputPath = resolveProtocolPathForRecovery(args);
   if (!inputPath) {
     return null;
   }
@@ -4192,7 +4614,16 @@ function resolveTipBindingClassification(args = {}) {
 
   const protocolSource = readProtocolSourceForTipBinding(args);
   if (!protocolSource) {
-    return null;
+    return {
+      mode: "auto",
+      reason: "assumed_auto_without_protocol_source",
+      source_type: "assumed",
+      file_path: null,
+      starting_tip_detected: false,
+      explicit_pick_up_tip_calls: 0,
+      auto_pick_up_tip_calls: 0,
+      total_pick_up_tip_calls: 0,
+    };
   }
 
   const classification = classifyTipBindingModeDetail(protocolSource.source);
@@ -4204,13 +4635,18 @@ function resolveTipBindingClassification(args = {}) {
 }
 
 async function readRunFailureGuidance(args, runId, sessionId = null) {
-  const parseResult = await TOOL_HANDLERS.parse_error({
+  const enrichedArgs = enrichRecoveryArgsWithProtocolPath({
     ...args,
+    run_id: runId,
+    session_id: sessionId || args.session_id,
+  });
+  const parseResult = await TOOL_HANDLERS.parse_error({
+    ...enrichedArgs,
     run_id: runId,
     session_id: sessionId,
   });
   const recoveryResult = await TOOL_HANDLERS.suggest_recovery_action({
-    ...args,
+    ...enrichedArgs,
     run_id: runId,
     session_id: parseResult.sessionId || sessionId,
     target_slot: parseResult.data?.target_slot || args.target_slot,
@@ -4362,6 +4798,76 @@ function selectRecoveryDestinationSlot({
   );
 }
 
+async function finalizeInRunLiquidSourceSubstitutionRecovery({
+  args,
+  sessionId,
+  executionResult = {},
+} = {}) {
+  await requestRobotJson("POST", args.robot_ip, `/runs/${args.run_id}/actions`, {
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      data: {
+        actionType: "stop",
+      },
+    }),
+  });
+
+  await pollRunToTerminal({
+    robotIp: args.robot_ip,
+    runId: args.run_id,
+    timeoutMs: args.timeout_ms ?? 120000,
+    pollIntervalMs: args.poll_interval_ms ?? 500,
+  });
+
+  const snapshot = await collectRunExecutionSnapshot({
+    robotIp: args.robot_ip,
+    runId: args.run_id,
+    pageLength: args.page_length ?? 20,
+  });
+  const finalStatus = snapshot.runHistoryResult.data?.status || null;
+
+  const finalSessionId = sessionId;
+  let reconciliation = null;
+  let homeSafety = null;
+  const { state } = mutateSessionState(finalSessionId, sessionState => {
+    ({ reconciliation, homeSafety } = syncSessionStateFromExecution({
+      sessionState,
+      robotStatusResult: snapshot.robotStatusResult,
+      moduleStatusResult: snapshot.moduleStatusResult,
+      contextDetail: snapshot.runHistoryResult.hardwareSnapshot.run,
+      contextRunId: args.run_id,
+      forceCommit: true,
+    }));
+    return sessionState;
+  });
+
+  return {
+    data: {
+      executed_action: executionResult.executedAction || null,
+      executed_params: executionResult.executedParams || {},
+      fixit_commands: executionResult.fixitCommands || [],
+      completed_via_in_run_fixit: true,
+      stopped_run_after_fixit: true,
+      same_run_id: args.run_id,
+      do_not_resume_failed_run: true,
+      recovery_completed_without_protocol_resume: true,
+      resume_action: null,
+      final_run_history: snapshot.runHistoryResult.data,
+      final_status: finalStatus,
+      reconciliation,
+      home_safety: homeSafety,
+    },
+    hardwareSnapshot: {
+      ...snapshot.robotStatusResult.hardwareSnapshot,
+      ...snapshot.moduleStatusResult.hardwareSnapshot,
+      ...snapshot.runHistoryResult.hardwareSnapshot,
+    },
+    stateRevision: state.state_revision,
+    sessionId: finalSessionId,
+    runId: args.run_id,
+  };
+}
+
 async function finalizeProtocolRecovery({
   args,
   sessionId,
@@ -4441,6 +4947,7 @@ async function finalizeProtocolRecovery({
 }
 
 async function executeProtocolRecovery(args, { expectedAction = null, watchMode = false } = {}) {
+  args = enrichRecoveryArgsWithProtocolPath(args);
   const sessionId = args.session_id || args.run_id;
   const guidance = await readRunFailureGuidance(args, args.run_id, sessionId);
   const parsedError = guidance.parsedError || {};
@@ -4487,6 +4994,28 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
           `execute_protocol_recovery expected TIP_PHYSICALLY_MISSING, got ${parsedError.error_category || "unknown"}.`,
         );
       }
+      const protocolSourceForBudget = readProtocolSourceForTipBinding(args);
+      if (protocolSourceForBudget?.source) {
+        const budgetSessionId = sessionId || args.run_id;
+        const budgetSession = readSessionState(budgetSessionId);
+        const tipCandidateSummary = listTipCandidates({
+          sessionState: budgetSession,
+          run: context.detail,
+          tiprackSlots: args.tiprack_slots,
+        });
+        const tipBindingClassification = resolveTipBindingClassification(args);
+        const tipBudget = assessTipRecoveryBudget({
+          protocolSource: protocolSourceForBudget.source,
+          commands: context.commands,
+          viableCandidates: tipCandidateSummary.viable_candidates,
+          tipBindingClassification,
+        });
+        if (tipBudget.enforced && !tipBudget.sufficient) {
+          throw new Error(
+            `tip_budget_insufficient: ${tipBudget.message}`,
+          );
+        }
+      }
       const labwareId = readNested(failedCommand, [["params", "labwareId"]], null);
       const pipetteId = readNested(failedCommand, [["params", "pipetteId"]], null);
       if (!labwareId || !pipetteId) {
@@ -4504,6 +5033,11 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
       if (!nextWell) {
         throw new Error("execute_protocol_recovery could not determine the next recovery well.");
       }
+
+      const pendingLiquidConfirm = readPendingInRunLiquidSubstitutionConfirm(
+        readSessionState(sessionId),
+        args.run_id,
+      );
 
       const fixitCommand = await enqueueAndPollCommand({
         robotIp: args.robot_ip,
@@ -4533,6 +5067,34 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
         });
       }
 
+      let confirmFixitCommands = [];
+      if (pendingLiquidConfirm) {
+        const confirmPlan = planConfirmProbeFixitSteps({
+          pipetteId: pendingLiquidConfirm.pipette_id || pipetteId,
+          tiprackLabwareId: pendingLiquidConfirm.tiprack_labware_id || labwareId,
+          plateLabwareId: pendingLiquidConfirm.plate_labware_id,
+          tipWell: nextWell,
+          confirmWell: pendingLiquidConfirm.confirm_destination_well || "A1",
+          trashSlot: pendingLiquidConfirm.trash_slot || "A3",
+          idempotencyKeyPrefix: args.idempotency_key || null,
+        });
+        confirmFixitCommands = await executeInRunLiquidSourceSubstitutionFixitSteps({
+          steps: confirmPlan.steps.slice(1),
+          enqueueAndPollCommand,
+          robotIp: args.robot_ip,
+          runId: args.run_id,
+          timeoutMs: args.timeout_ms ?? 120000,
+          pollIntervalMs: args.poll_interval_ms ?? 500,
+          assertCommandSucceeded,
+        });
+        mutateSessionState(sessionId, sessionState => {
+          if (sessionState.in_run_liquid_substitution?.run_id === args.run_id) {
+            sessionState.in_run_liquid_substitution.confirm_completed = true;
+          }
+          return sessionState;
+        });
+      }
+
       executionResult = {
         executedAction: action,
         executedParams: {
@@ -4540,9 +5102,14 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
           tiprack_slot: nextTiprackSlot,
           pipette_id: pipetteId,
           labware_id: labwareId,
+          post_liquid_substitution_confirm_only: Boolean(pendingLiquidConfirm),
         },
         fixitCommand: fixitCommand.terminal,
+        fixitCommands: confirmFixitCommands,
         moduleWait: null,
+        ...(pendingLiquidConfirm
+          ? { skipFinalize: true, stopAfterInRunFixit: true }
+          : {}),
       };
       break;
     }
@@ -4639,10 +5206,192 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
       break;
     }
 
+    case "substitute_liquid_source_with_attached_tip": {
+      if (parsedError.error_category !== "INSUFFICIENT_VOLUME") {
+        throw new Error(
+          `execute_protocol_recovery expected INSUFFICIENT_VOLUME, got ${parsedError.error_category || "unknown"}.`,
+        );
+      }
+      if (recovery.reuse_attached_tip_eligible !== true) {
+        throw new Error(
+          "substitute_liquid_source_with_attached_tip requires reuse_attached_tip_eligible=true.",
+        );
+      }
+
+      const failedSourceKey =
+        args.failed_source_key ||
+        recovery.failed_source_key ||
+        recovery.source_map_key ||
+        readNested(actionSummary, [["params", "failed_source_key"]], null);
+      const preferredSourceKey =
+        args.preferred_source_key ||
+        recovery.preferred_source_key ||
+        readNested(recovery, [["same_liquid_source_candidates", 0, "source_map_key"]], null) ||
+        readNested(actionSummary, [["params", "preferred_source_key"]], null);
+      if (!failedSourceKey || !preferredSourceKey) {
+        throw new Error(
+          "substitute_liquid_source_with_attached_tip requires failed_source_key and preferred_source_key.",
+        );
+      }
+
+      const robotStatusResult = await readRobotStatus(args);
+      const motionBlockers = robotStatusResult?.data?.blockers || [];
+      if (motionBlockers.length > 0) {
+        throw new Error(
+          `substitute_liquid_source_with_attached_tip blocked: ${motionBlockers.join(", ")}`,
+        );
+      }
+
+      const protocolPath = resolveProtocolPathForRecovery({
+        ...args,
+        session_id: sessionId,
+      });
+      if (!protocolPath || !fs.existsSync(protocolPath)) {
+        throw new Error(
+          "substitute_liquid_source_with_attached_tip requires protocol_path for in-run fixit recovery.",
+        );
+      }
+      const protocolSource = fs.readFileSync(protocolPath, "utf8");
+      const deckHints = parseProtocolDeckHints(protocolSource);
+      const transferHints = parseProtocolTransferContinuationHints(protocolSource);
+      const resolvedTiprackSlot = deckHints.tiprack_slot || args.tiprack_slot || "B2";
+      const initialTipWell = findLastSucceededProtocolPickUpTipWell(context.commands);
+      if (initialTipWell) {
+        mutateSessionState(sessionId, sessionState => {
+          markTipWellStatus(sessionState, {
+            slotName: resolvedTiprackSlot,
+            wellName: initialTipWell,
+            status: "depleted",
+          });
+          return sessionState;
+        });
+      }
+      const budgetSession = readSessionState(sessionId);
+      const nextTipSuggestion = suggestNextTipWell({
+        sessionState: budgetSession,
+        run: context.detail,
+        tiprackSlots: args.tiprack_slots,
+        tiprackSlot: resolvedTiprackSlot,
+      });
+      const nextTipWell = nextTipSuggestion.next_candidate?.well_name || null;
+
+      const fixitPlan = planInRunLiquidSourceSubstitutionFixitSteps({
+        failedCommand,
+        runDetail: context.detail,
+        preferredSourceKey,
+        protocolSource,
+        nextTipWell,
+        tiprackSlot: resolvedTiprackSlot,
+        idempotencyKeyPrefix: args.idempotency_key || null,
+      });
+
+      const { transferSteps, confirmSteps } = splitLiquidSubstitutionFixitSteps(fixitPlan.steps);
+      const transferFixitCommands = await executeInRunLiquidSourceSubstitutionFixitSteps({
+        steps: transferSteps,
+        enqueueAndPollCommand,
+        robotIp: args.robot_ip,
+        runId: args.run_id,
+        timeoutMs: args.timeout_ms ?? 120000,
+        pollIntervalMs: args.poll_interval_ms ?? 500,
+        assertCommandSucceeded,
+      });
+
+      mutateSessionState(sessionId, sessionState => {
+        const [failedSlot, failedWell] = String(failedSourceKey).split(".");
+        const [preferredSlot, preferredWell] = String(preferredSourceKey).split(".");
+        setLiquidSourceState(sessionState, {
+          slot_name: failedSlot,
+          well_name: failedWell,
+          observed_presence: false,
+          observed_at: new Date().toISOString(),
+          observed_run_id: args.run_id,
+          observed_source: "in_run_fixit_recovery",
+        });
+        setLiquidSourceState(sessionState, {
+          slot_name: preferredSlot,
+          well_name: preferredWell,
+          observed_presence: true,
+          observed_at: new Date().toISOString(),
+          observed_run_id: args.run_id,
+          observed_source: "in_run_fixit_recovery",
+        });
+        sessionState.in_run_liquid_substitution = buildInRunLiquidSubstitutionRecord({
+          runId: args.run_id,
+          fixitPlan,
+          failedSourceKey,
+          preferredSourceKey,
+          transfersCompleted: true,
+          confirmCompleted: false,
+          confirmDestinationWell:
+            transferHints.confirm_destination_well?.split(".")[1] ||
+            fixitPlan.destination_wells?.[0] ||
+            "A1",
+          trashSlot: transferHints.trash_slot || "A3",
+        });
+        return sessionState;
+      });
+
+      let confirmFixitCommands = [];
+      if (confirmSteps.length > 0) {
+        confirmFixitCommands = await executeInRunLiquidSourceSubstitutionFixitSteps({
+          steps: confirmSteps,
+          enqueueAndPollCommand,
+          robotIp: args.robot_ip,
+          runId: args.run_id,
+          timeoutMs: args.timeout_ms ?? 120000,
+          pollIntervalMs: args.poll_interval_ms ?? 500,
+          assertCommandSucceeded,
+        });
+        mutateSessionState(sessionId, sessionState => {
+          if (sessionState.in_run_liquid_substitution?.run_id === args.run_id) {
+            sessionState.in_run_liquid_substitution.confirm_completed = true;
+          }
+          if (fixitPlan.confirm_tip_well && fixitPlan.tiprack_slot) {
+            markTipWellStatus(sessionState, {
+              slotName: fixitPlan.tiprack_slot,
+              wellName: fixitPlan.confirm_tip_well,
+              status: "depleted",
+            });
+          }
+          return sessionState;
+        });
+      }
+
+      const fixitCommands = [...transferFixitCommands, ...confirmFixitCommands];
+
+      executionResult = {
+        executedAction: action,
+        executedParams: {
+          failed_source_key: failedSourceKey,
+          preferred_source_key: preferredSourceKey,
+          replacement_well: fixitPlan.replacement_well,
+          destination_wells: fixitPlan.destination_wells,
+          transfer_volume: fixitPlan.transfer_volume,
+          reuse_attached_tip: true,
+          in_run_fixit: true,
+          confirm_tip_well: fixitPlan.confirm_tip_well,
+        },
+        fixitCommand: fixitCommands.at(-1)?.terminal || null,
+        fixitCommands,
+        moduleWait: null,
+        skipFinalize: true,
+        stopAfterInRunFixit: true,
+      };
+      break;
+    }
+
     default:
       throw new Error(
         `execute_protocol_recovery does not support automatic execution for action ${action || "unknown"}.`,
       );
+  }
+
+  if (executionResult.skipFinalize && executionResult.stopAfterInRunFixit) {
+    return finalizeInRunLiquidSourceSubstitutionRecovery({
+      args,
+      sessionId,
+      executionResult,
+    });
   }
 
   return finalizeProtocolRecovery({
@@ -4925,7 +5674,70 @@ const TOOL_HANDLERS = {
   },
 
   async robot_status(args) {
-    return readRobotStatus(args);
+    // Reuse recovery protocol-path resolution so time_window / tip contact do not
+    // require the caller to pass protocol_path when session/result logs already know it.
+    args = enrichRecoveryArgsWithProtocolPath(args);
+    const result = await readRobotStatus(args);
+    let protocolSource = "";
+    try {
+      const resolved = readProtocolSourceForTipBinding(args);
+      protocolSource = resolved?.source || "";
+    } catch {
+      protocolSource = "";
+    }
+
+    let commands = null;
+    let run = null;
+    if (args.run_id && args.robot_ip) {
+      try {
+        const history = await readRunHistory({
+          robot_ip: args.robot_ip,
+          run_id: args.run_id,
+          page_length: args.page_length ?? 50,
+        });
+        commands = history.hardwareSnapshot?.commands || null;
+        run = history.hardwareSnapshot?.run || null;
+      } catch {
+        commands = null;
+        run = null;
+      }
+    }
+
+    const sessionId = args.session_id || args.run_id || null;
+    const sessionState = sessionId ? readSessionState(sessionId) : null;
+    const timeWindow = assessTimeWindow({
+      protocolSource,
+      commands,
+    });
+
+    if (commands) {
+      const enriched = buildRobotStatusSnapshot({
+        health: result.hardwareSnapshot.health,
+        instruments: result.hardwareSnapshot.instruments,
+        doorStatus: result.hardwareSnapshot.door_status,
+        estopStatus: result.hardwareSnapshot.estop_status,
+        deckConfiguration: result.hardwareSnapshot.deck_configuration,
+        commands,
+        sessionState,
+        protocolSource,
+        run,
+      });
+      return {
+        ...result,
+        data: {
+          ...enriched,
+          time_window: timeWindow,
+        },
+      };
+    }
+
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        time_window: timeWindow,
+      },
+    };
   },
 
   async module_status(args) {
@@ -5450,11 +6262,7 @@ const TOOL_HANDLERS = {
         protocol_source: generated.protocol_source,
         plan: generated.plan,
         validation_protocol: generated.validation_protocol,
-        next_required_gates: [
-          "simulate_protocol",
-          "live_liquid_recovery_gate",
-          "run_protocol_only_after_operator_opt_in",
-        ],
+        next_required_gates: ["recover_liquid_source_substitution"],
       },
       stateRevision: sessionState.state_revision,
       sessionId,
@@ -5483,168 +6291,179 @@ const TOOL_HANDLERS = {
     return result;
   },
 
-  async prepare_liquid_source_substitution_recovery(args) {
-    const sessionId = args.session_id || DEFAULT_SESSION_ID;
+  async generate_liquid_source_substitution_rerun_protocol(args) {
+    const sessionId = args.session_id || args.run_id || DEFAULT_SESSION_ID;
     const sessionState = readSessionState(sessionId);
-    const previewPlan = buildLiquidSourceSubstitutionPlan({
-      sessionState,
-      failedSourceKey: args.failed_source_key,
-      failedSlotName: args.failed_slot_name,
-      failedWellName: args.failed_well_name,
-      preferredSourceKey: args.preferred_source_key,
-    });
-    const protocolOutputPath = args.output_protocol_path
-      ? path.resolve(args.output_protocol_path)
-      : resolveLiquidSubstitutionProtocolOutputPath(
-          {},
-          previewPlan.failed_source_key || args.failed_source_key,
-          previewPlan.selected_source_key || args.preferred_source_key,
-        );
-    const generated = generateLiquidSourceSubstitutionValidationProtocol({
-      sessionState,
-      failedSourceKey: args.failed_source_key,
-      failedSlotName: args.failed_slot_name,
-      failedWellName: args.failed_well_name,
-      preferredSourceKey: args.preferred_source_key,
-      pipetteName: args.pipette_name,
-      mount: args.mount,
-      tiprackLoadName: args.tiprack_load_name,
-      tiprackSlot: args.tiprack_slot,
-      outputPath: protocolOutputPath,
-      protocolOptions: {
-        apiLevel: args.api_level || "2.24",
-        robotType: args.robot_type || "Flex",
-        tiprackNamespace: args.tiprack_namespace || "opentrons",
-        tiprackVersion: args.tiprack_version ?? 1,
-        labwareNamespace: args.labware_namespace || "opentrons",
-        labwareVersion: args.labware_version ?? 1,
-        trashSlot: args.trash_slot || null,
-      },
-    });
-    const simulation = await TOOL_HANDLERS.simulate_protocol({
-      protocol_path: generated.output_path,
-      ...(args.python_executable ? { python_executable: args.python_executable } : {}),
-      max_log_chars: 12000,
-    });
-    const parsed = await TOOL_HANDLERS.parse_simulation_output({
-      simulation_output_json: JSON.stringify(simulation.data),
-    });
-    const simulationParse = parsed.data;
-    const semanticInvariants = validateLiquidSourceSubstitutionInvariants({
-      plan: generated.plan,
-      validationProtocol: generated.validation_protocol,
-      simulationParse,
-      liveGatePassed: false,
-      operatorOptIn: false,
-      liveExecutionAllowed: false,
-      liveProtocolRunAllowed: false,
-    });
-    const prepared =
-      simulationParse?.status === "passed" &&
-      semanticInvariants.experiment_intent_violation_count === 0;
-    const bundleOutputPath = resolveLiquidSubstitutionRecoveryBundleOutputPath(
-      args,
-      generated.plan.failed_source_key,
-      generated.plan.selected_source_key,
+    const protocolPath = path.resolve(
+      args.protocol_path || args.file_path || sessionState?.protocol_path || "",
     );
-    const recoveryBundle = {
-      status: prepared ? "prepared" : "blocked",
-      playbook: LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID,
-      playbook_contract: generated.plan.playbook,
-      session_id: sessionId,
-      state_revision: sessionState.state_revision,
-      failed_source_key: generated.plan.failed_source_key,
-      selected_source_key: generated.plan.selected_source_key,
-      generated_protocol_path: generated.output_path,
-      no_robot_motion: true,
-      no_aspirate_or_dispense: generated.validation_protocol.no_aspirate_or_dispense,
-      plan: generated.plan,
-      validation_protocol: generated.validation_protocol,
-      semantic_invariants: semanticInvariants,
-      simulation: {
-        ok: simulation.data?.ok ?? null,
-        status: simulationParse?.status || null,
-        issue_count: simulationParse?.issue_count ?? null,
-        parsed: simulationParse,
-      },
-      execution: {
-        registered_executor: LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID,
-        fixed_script_prepared: prepared,
-        auto_resume_eligible: prepared && generated.plan.auto_resume_eligible === true,
-        live_execution_allowed: false,
-        live_protocol_run_allowed: false,
-        experiment_intent_violation_count: semanticInvariants.experiment_intent_violation_count,
-        semantic_gate_blocker_count: semanticInvariants.gate_blocker_count,
-        semantic_invariant_status: semanticInvariants.status,
-        next_tool: prepared ? "live_liquid_recovery_gate" : "inspect_simulation_output",
-        required_next_gates: [
-          "live_liquid_recovery_gate",
-          "run_protocol_only_after_operator_opt_in",
-        ],
-        blocked_reason: prepared
-          ? "live_gate_and_operator_opt_in_required_before_any_robot_motion"
-          : semanticInvariants.experiment_intent_violation_count > 0
-            ? "experiment_intent_invariant_failed"
-            : simulationParse?.primary_issue?.category || simulationParse?.status || "simulation_failed",
-      },
-    };
-
-    fs.mkdirSync(path.dirname(bundleOutputPath), { recursive: true });
-    fs.writeFileSync(bundleOutputPath, `${JSON.stringify(recoveryBundle, null, 2)}\n`);
-
+    if (!protocolPath || !fs.existsSync(protocolPath)) {
+      throw new Error(
+        "generate_liquid_source_substitution_rerun_protocol requires protocol_path or a session protocol_path.",
+      );
+    }
+    const plan = buildLiquidSourceSubstitutionPlan({
+      sessionState,
+      failedSourceKey: args.failed_source_key,
+      failedSlotName: args.failed_slot_name,
+      failedWellName: args.failed_well_name,
+      preferredSourceKey: args.preferred_source_key || args.replacement_source_key,
+    });
+    const failedSourceKey = plan.failed_source_key || args.failed_source_key;
+    const replacementSourceKey =
+      plan.selected_source_key || args.preferred_source_key || args.replacement_source_key;
+    if (!replacementSourceKey) {
+      throw new Error("generate_liquid_source_substitution_rerun_protocol requires a replacement source key.");
+    }
+    const protocolSource = fs.readFileSync(protocolPath, "utf8");
+    const outputPath =
+      args.output_path ||
+      resolveLiquidSubstitutionRerunProtocolOutputPath(args, failedSourceKey, replacementSourceKey);
+    const generated = generateLiquidSourceSubstitutionRerunProtocol({
+      protocolSource,
+      failedSourceKey,
+      replacementSourceKey,
+      outputPath,
+    });
+    const continuation = buildLiquidSourceSubstitutionContinuationGuide({
+      failedSourceKey,
+      replacementSourceKey,
+      validationSucceeded: true,
+    });
     const result = {
       data: {
-        ...recoveryBundle,
-        output_path: bundleOutputPath,
+        source_protocol_path: protocolPath,
+        generated_protocol_path: generated.output_path || protocolPath,
+        continuation_mode: generated.continuation_mode,
+        patch_applied: generated.patch_applied,
+        recommended_run_time_parameters: generated.recommended_run_time_parameters,
+        failed_source_key: failedSourceKey,
+        replacement_source_key: replacementSourceKey,
+        operator_steps: generated.operator_steps,
+        continuation,
+        next_required_tools: continuation.recommended_next_tools,
       },
-      stateRevision: sessionState.state_revision,
+      stateRevision: sessionState?.state_revision ?? null,
       sessionId,
     };
 
-    const logEntry = recordToolResultLog({
-      toolName: "prepare_liquid_source_substitution_recovery",
-      eventKind: "liquid_source_substitution_recovery_bundle",
-      args: {
-        ...args,
-        output_path: bundleOutputPath,
-        output_protocol_path: generated.output_path,
-      },
+    recordToolResultLog({
+      toolName: "generate_liquid_source_substitution_rerun_protocol",
+      eventKind: "liquid_source_substitution_rerun_protocol",
+      args: { ...args, protocol_path: protocolPath, output_path: generated.output_path || protocolPath },
       result,
       fallbackSessionId: sessionId,
-      fallbackStatus: recoveryBundle.status,
-      summary: prepared
-        ? `Liquid source substitution recovery prepared for ${generated.plan.failed_source_key} -> ${generated.plan.selected_source_key}.`
-        : `Liquid source substitution recovery blocked for ${generated.plan.failed_source_key || "unknown source"}.`,
-      data: {
-        output_path: bundleOutputPath,
-        generated_protocol_path: generated.output_path,
-        failed_source_key: generated.plan.failed_source_key,
-        selected_source_key: generated.plan.selected_source_key,
-        playbook: recoveryBundle.playbook,
-        fixed_script_prepared: prepared,
-        no_robot_motion: true,
-        no_aspirate_or_dispense: generated.validation_protocol.no_aspirate_or_dispense,
-        liquid_guard_analysis: generated.validation_protocol.liquid_guard_analysis,
-        semantic_invariants: recoveryBundle.semantic_invariants,
-        experiment_intent_violation_count:
-          recoveryBundle.execution.experiment_intent_violation_count,
-        semantic_gate_blocker_count: recoveryBundle.execution.semantic_gate_blocker_count,
-        semantic_invariant_status: recoveryBundle.execution.semantic_invariant_status,
-        simulation_status: simulationParse?.status || null,
-        simulation_issue_count: simulationParse?.issue_count ?? null,
-        auto_resume_eligible: recoveryBundle.execution.auto_resume_eligible,
-        live_execution_allowed: false,
-        live_protocol_run_allowed: false,
-        next_tool: recoveryBundle.execution.next_tool,
-        blocked_reason: recoveryBundle.execution.blocked_reason,
-        required_next_gates: recoveryBundle.execution.required_next_gates,
-      },
+      fallbackStatus: generated.continuation_mode,
+      summary: generated.patch_applied
+        ? `Liquid source substitution rerun protocol written for ${failedSourceKey} -> ${replacementSourceKey}.`
+        : `Prefer attached-tip continuation with reuse_attached_tip=true instead of a full rerun when the primary probe failed with tip attached.`,
+      data: result.data,
     });
-    result.data.result_log_entry_id = logEntry?.entry_id || null;
-    recoveryBundle.result_log_entry_id = result.data.result_log_entry_id;
-    fs.writeFileSync(bundleOutputPath, `${JSON.stringify({ ...recoveryBundle, output_path: bundleOutputPath }, null, 2)}\n`);
 
     return result;
+  },
+
+  async generate_liquid_source_substitution_attached_tip_continuation(args) {
+    const sessionId = args.session_id || args.run_id || DEFAULT_SESSION_ID;
+    const sessionState = readSessionState(sessionId);
+    const protocolPath = path.resolve(
+      args.protocol_path || args.file_path || sessionState?.protocol_path || "",
+    );
+    if (!protocolPath || !fs.existsSync(protocolPath)) {
+      throw new Error(
+        "generate_liquid_source_substitution_attached_tip_continuation requires protocol_path or a session protocol_path.",
+      );
+    }
+    const deckHints = parseProtocolDeckHints(fs.readFileSync(protocolPath, "utf8"));
+    const resolvedArgs = {
+      ...args,
+      pipette_name: args.pipette_name || deckHints.pipette_name,
+      mount: args.mount || deckHints.mount,
+      tiprack_load_name: args.tiprack_load_name || deckHints.tiprack_load_name,
+      tiprack_slot: args.tiprack_slot || deckHints.tiprack_slot,
+    };
+    const plan = buildLiquidSourceSubstitutionPlan({
+      sessionState,
+      failedSourceKey: resolvedArgs.failed_source_key,
+      failedSlotName: resolvedArgs.failed_slot_name,
+      failedWellName: resolvedArgs.failed_well_name,
+      preferredSourceKey: resolvedArgs.preferred_source_key || resolvedArgs.replacement_source_key,
+    });
+    const failedSourceKey = plan.failed_source_key || resolvedArgs.failed_source_key;
+    const replacementSourceKey =
+      plan.selected_source_key || resolvedArgs.preferred_source_key || resolvedArgs.replacement_source_key;
+    if (!replacementSourceKey) {
+      throw new Error(
+        "generate_liquid_source_substitution_attached_tip_continuation requires a replacement source key.",
+      );
+    }
+    const outputPath =
+      resolvedArgs.output_path ||
+      resolveLiquidSubstitutionAttachedTipContinuationOutputPath(
+        resolvedArgs,
+        failedSourceKey,
+        replacementSourceKey,
+      );
+    const generated = generateLiquidSourceSubstitutionAttachedTipContinuationProtocol({
+      sessionState,
+      failedSourceKey: resolvedArgs.failed_source_key,
+      failedSlotName: resolvedArgs.failed_slot_name,
+      failedWellName: resolvedArgs.failed_well_name,
+      preferredSourceKey: replacementSourceKey,
+      protocolSource: fs.readFileSync(protocolPath, "utf8"),
+      pipetteName: resolvedArgs.pipette_name,
+      mount: resolvedArgs.mount,
+      tiprackLoadName: resolvedArgs.tiprack_load_name,
+      tiprackSlot: resolvedArgs.tiprack_slot,
+      outputPath,
+      protocolOptions: {
+        apiLevel: args.api_level || "2.24",
+        robotType: args.robot_type || "Flex",
+      },
+    });
+    const continuation = buildLiquidSourceSubstitutionContinuationGuide({
+      failedSourceKey,
+      replacementSourceKey,
+      validationSucceeded: true,
+      reuseAttachedTipEligible: true,
+    });
+    const result = {
+      data: {
+        source_protocol_path: protocolPath,
+        generated_protocol_path: generated.output_path,
+        continuation_mode: "attached_tip_continuation",
+        recommended_run_time_parameters: {
+          reuse_attached_tip: false,
+          dry_run_on: false,
+          use_liquid_probe: true,
+        },
+        retains_tip_through_probe_and_transfer: true,
+        transfer_hints: generated.transfer_hints,
+        failed_source_key: failedSourceKey,
+        replacement_source_key: replacementSourceKey,
+        continuation,
+        next_required_tools: continuation.recommended_next_tools,
+      },
+      stateRevision: sessionState?.state_revision ?? null,
+      sessionId,
+    };
+
+    recordToolResultLog({
+      toolName: "generate_liquid_source_substitution_attached_tip_continuation",
+      eventKind: "liquid_source_substitution_attached_tip_continuation",
+      args: { ...args, protocol_path: protocolPath, output_path: generated.output_path },
+      result,
+      fallbackSessionId: sessionId,
+      fallbackStatus: "attached_tip_continuation",
+      summary: `Attached-tip continuation generated for ${failedSourceKey} -> ${replacementSourceKey}.`,
+      data: result.data,
+    });
+
+    return result;
+  },
+
+  async prepare_liquid_source_substitution_recovery(args) {
+    return TOOL_HANDLERS.recover_liquid_source_substitution(args);
   },
 
   async is_home_safe(args) {
@@ -5744,11 +6563,18 @@ const TOOL_HANDLERS = {
   },
 
   async suggest_recovery_action(args) {
+    args = enrichRecoveryArgsWithProtocolPath(args);
     const [robotStatusResult, moduleStatusResult, runContext] = await Promise.all([
       readRobotStatus(args),
       readModuleStatus(args),
       readAnyContext(args, { includeCommands: true }),
     ]);
+    const runRecord = unwrapData(runContext.run) || {};
+    args = enrichRecoveryArgsWithProtocolPath({
+      ...args,
+      protocol_name:
+        args.protocol_name || readNested(runRecord, [["protocolName"]], null) || null,
+    });
     const sessionId = resolveSessionId(args, robotStatusResult);
     const observedDeckState = buildObservedDeckState({
       deckConfiguration: robotStatusResult.hardwareSnapshot.deck_configuration,
@@ -5770,6 +6596,7 @@ const TOOL_HANDLERS = {
 
     let nextTipSuggestion = null;
     let tipBindingClassification = null;
+    const protocolSourceForRecovery = readProtocolSourceForTipBinding(args);
     let stateAfterSuggestion = sessionState;
     if ((args.error_category || classification.error_category) === "TIP_PHYSICALLY_MISSING") {
       tipBindingClassification = resolveTipBindingClassification(args);
@@ -5824,6 +6651,8 @@ const TOOL_HANDLERS = {
       tipBindingMode: tipBindingClassification?.mode || null,
       tipBindingClassification,
       sessionState: stateAfterSuggestion,
+      protocolSource: protocolSourceForRecovery?.source || null,
+      tiprackSlots: args.tiprack_slots,
       }),
     );
     const actionSummary = buildActionSummary({
@@ -7154,6 +7983,19 @@ const TOOL_HANDLERS = {
 
   async upload_protocol(args) {
     const uploaded = await uploadProtocol(args);
+    if (args.file_path) {
+      recordToolResultLog({
+        toolName: "upload_protocol",
+        eventKind: "protocol_upload",
+        args,
+        result: { data: { protocol: uploaded } },
+        fallbackSessionId: args.session_id || DEFAULT_SESSION_ID,
+        summary: `Uploaded protocol from ${path.basename(String(args.file_path))}.`,
+        data: {
+          protocol_path: path.resolve(String(args.file_path)),
+        },
+      });
+    }
     return {
       data: {
         protocol: uploaded,
@@ -7163,6 +8005,16 @@ const TOOL_HANDLERS = {
 
   async run_protocol(args) {
     try {
+      let runSlotRelease = null;
+      if (shouldReleaseRunSlotBeforeProtocolCreate(args)) {
+        runSlotRelease = await releaseBlockingRunBeforeCreate({
+          robotIp: args.robot_ip,
+          runId: args.stop_blocking_run_id || args.session_id || null,
+          timeoutMs: Math.max(120000, Number(args.release_run_timeout_ms ?? 0)),
+          pollIntervalMs: args.poll_interval_ms ?? 1000,
+        });
+      }
+
       const simulationGate = await enforceSimulationGate(args);
       const uploaded = await uploadProtocol(args);
       const protocolId = readNested(unwrapData(uploaded) || {}, [["id"]], null);
@@ -7184,6 +8036,14 @@ const TOOL_HANDLERS = {
       const runId = readNested(unwrapData(createdRun) || {}, [["id"]], null);
       if (!runId) {
         throw new Error("Run creation did not return a run id.");
+      }
+      if (args.file_path) {
+        storeRunProtocolMetadata({
+          runId,
+          sessionId: args.session_id || runId,
+          filePath: args.file_path,
+          protocolName: args.protocol_name || null,
+        });
       }
 
       let preflightGate;
@@ -7251,16 +8111,19 @@ const TOOL_HANDLERS = {
       }
 
       const result = {
-        data: buildRunProtocolResult({
-          protocol: uploaded,
-          created_run: createdRun,
-          play_action: playAction,
-          final_run_history: snapshot.runHistoryResult.data,
-          parsed_error: failureGuidance?.parsedError || null,
-          recovery: failureGuidance?.recovery || null,
-          simulation_gate: simulationGate,
-          preflight_gate: preflightGate,
-        }),
+        data: {
+          ...buildRunProtocolResult({
+            protocol: uploaded,
+            created_run: createdRun,
+            play_action: playAction,
+            final_run_history: snapshot.runHistoryResult.data,
+            parsed_error: failureGuidance?.parsedError || null,
+            recovery: failureGuidance?.recovery || null,
+            simulation_gate: simulationGate,
+            preflight_gate: preflightGate,
+          }),
+          run_slot_release: runSlotRelease,
+        },
         hardwareSnapshot:
           failureGuidance?.hardwareSnapshot && Object.keys(failureGuidance.hardwareSnapshot).length > 0
             ? failureGuidance.hardwareSnapshot
@@ -7503,13 +8366,21 @@ const TOOL_HANDLERS = {
       ),
     });
     const runId = run?.data?.id || run?.id || null;
+    if (runId && args.file_path) {
+      storeRunProtocolMetadata({
+        runId,
+        sessionId: args.session_id || runId,
+        filePath: args.file_path,
+        protocolName: args.protocol_name || null,
+      });
+    }
     const snapshot = await collectRunExecutionSnapshot({
       robotIp: args.robot_ip,
       runId,
       pageLength: args.page_length ?? 10,
     });
 
-    return {
+    const result = {
       data: {
         run,
         run_history: snapshot.runHistoryResult.data,
@@ -7520,7 +8391,21 @@ const TOOL_HANDLERS = {
         ...snapshot.runHistoryResult.hardwareSnapshot,
       },
       runId,
+      sessionId: args.session_id || runId,
     };
+    recordToolResultLog({
+      toolName: "create_run",
+      eventKind: "run_created",
+      args,
+      result,
+      fallbackSessionId: args.session_id || runId || DEFAULT_SESSION_ID,
+      summary: `Created run ${runId || "unknown"}.`,
+      data: {
+        protocol_id: args.protocol_id || null,
+        protocol_path: args.file_path ? path.resolve(String(args.file_path)) : null,
+      },
+    });
+    return result;
   },
 
   async control_run(args) {
@@ -7666,6 +8551,7 @@ const TOOL_HANDLERS = {
   },
 
   async runtime_watch_poll(args) {
+    args = enrichRecoveryArgsWithProtocolPath(args);
     const result = await runtimeWatchPoll(args, {
       readSnapshot: async stepArgs =>
         collectRunExecutionSnapshot({
@@ -7688,10 +8574,39 @@ const TOOL_HANDLERS = {
           watchDir: args.watch_dir || null,
         })
       : [];
+
+    let protocolSource = "";
+    try {
+      const resolved = readProtocolSourceForTipBinding(args);
+      protocolSource = resolved?.source || "";
+    } catch {
+      protocolSource = "";
+    }
+
+    let commands = result.data?.commands || result.data?.recent_commands || null;
+    if (!commands && args.robot_ip && args.run_id) {
+      try {
+        const history = await readRunHistory({
+          robot_ip: args.robot_ip,
+          run_id: args.run_id,
+          page_length: args.page_length ?? 50,
+        });
+        commands = history.hardwareSnapshot?.commands || null;
+      } catch {
+        commands = null;
+      }
+    }
+
+    const timeWindow = assessTimeWindow({
+      protocolSource,
+      commands,
+    });
+
     const payload = {
       ...(result.data || {}),
       status: result.status,
       alerts,
+      time_window: timeWindow,
     };
 
     if (result.status !== "running") {
@@ -7876,6 +8791,40 @@ const TOOL_HANDLERS = {
       runId: args.run_id || null,
       sessionId,
     };
+  },
+
+  async recover_liquid_source_substitution(args) {
+    const result = await executeProtocolRecovery(args, {
+      expectedAction: "substitute_liquid_source_with_attached_tip",
+    });
+    const wrappedResult = {
+      ...result,
+      data: {
+        failed_source_key: result.data.executed_params?.failed_source_key || null,
+        preferred_source_key: result.data.executed_params?.preferred_source_key || null,
+        same_run_id: result.data.same_run_id || result.runId || args.run_id || null,
+        completed_via_in_run_fixit: result.data.completed_via_in_run_fixit === true,
+        final_status: result.data.final_status || result.data.final_run_history?.status || null,
+        ...result.data,
+      },
+    };
+    recordToolResultLog({
+      toolName: "recover_liquid_source_substitution",
+      eventKind: "protocol_recovery",
+      args,
+      result: wrappedResult,
+      fallbackSessionId: args.session_id || args.run_id,
+      summary: `Liquid source substitution ${wrappedResult.data.failed_source_key || "?"} -> ${wrappedResult.data.preferred_source_key || "?"} finished with status ${wrappedResult.data.final_status || "unknown"}${wrappedResult.data.completed_via_in_run_fixit ? " (in-run fixit)" : ""}.`,
+      data: {
+        executed_action: wrappedResult.data.executed_action || null,
+        failed_source_key: wrappedResult.data.failed_source_key || null,
+        preferred_source_key: wrappedResult.data.preferred_source_key || null,
+        same_run_id: wrappedResult.data.same_run_id || null,
+        completed_via_in_run_fixit: wrappedResult.data.completed_via_in_run_fixit === true,
+        final_status: wrappedResult.data.final_status || null,
+      },
+    });
+    return wrappedResult;
   },
 
   async recover_tip_pickup(args) {
@@ -8105,6 +9054,13 @@ const TOOL_HANDLERS = {
           substitutionPlan,
         })
       : null;
+    const reuseAttachedTipContext = hasSubstitutionContext
+      ? await resolveReuseAttachedTipContext({
+          args,
+          robotStatus: robotStatusResult?.data || {},
+          substitutionPlan,
+        })
+      : null;
     const gate = buildLiveLiquidRecoveryGateResult({
       robotIp: args.robot_ip,
       selfTestResult,
@@ -8117,6 +9073,7 @@ const TOOL_HANDLERS = {
       sessionId,
       allowObservedMismatchReprobe: args.allow_observed_mismatch_reprobe === true,
       suffixEvaluation,
+      reuseAttachedTipContext,
     });
     const result = {
       data: gate,
@@ -8160,6 +9117,9 @@ const TOOL_HANDLERS = {
         suffix_sufficient: gate.suffix_sufficient,
         final_auto_resume_eligible: gate.final_auto_resume_eligible,
         suffix_violations: gate.suffix_violations,
+        reuse_attached_tip_eligible: gate.reuse_attached_tip_eligible,
+        recommended_validation_run_time_parameters: gate.recommended_validation_run_time_parameters,
+        reuse_attached_tip_context: reuseAttachedTipContext,
       },
     });
 

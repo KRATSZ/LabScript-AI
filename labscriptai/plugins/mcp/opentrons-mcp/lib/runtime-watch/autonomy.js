@@ -1,5 +1,6 @@
 export const WATCH_L0_ACTIONS = new Set([
   "retry_pick_up_tip_with_next_candidate",
+  "substitute_liquid_source_with_attached_tip",
   "wait_and_poll_module_status",
   "reconcile_state_first",
 ]);
@@ -111,6 +112,41 @@ export function evaluateAutonomy({
       can_execute: false,
       action,
       reason: attemptDecision.reason || "attempt_queue_rejected",
+    };
+  }
+
+  const tipBudget = recovery?.tip_budget || recovery?.recovery?.tip_budget || null;
+  if (tipBudget?.enforced === true && tipBudget?.sufficient === false) {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason: "tip_budget_insufficient",
+    };
+  }
+
+  if (recovery?.recommended_manual_action === "escalate_tip_search_exhausted") {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason: "tip_budget_insufficient",
+    };
+  }
+
+  const volumeCheck = recovery?.volume_check || recovery?.recovery?.volume_check || null;
+  if (
+    recovery?.blocked_reason === "substitute_volume_insufficient" ||
+    (volumeCheck?.basis === "declared_source_map" && volumeCheck?.sufficient === false)
+  ) {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason: "substitute_volume_insufficient",
     };
   }
 

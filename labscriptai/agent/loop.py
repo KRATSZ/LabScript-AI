@@ -10,7 +10,7 @@ import os
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Protocol
+from typing import Any, Callable, Mapping, Protocol
 
 # --- W1 / W2 contracts (defensive) -------------------------------------------
 
@@ -112,8 +112,22 @@ except ImportError:  # pragma: no cover - W2 not ready
         return {"error": "W2 tools not ready", "tool": name}
 
 
-DEFAULT_MAX_STEPS = 12
+# 0 = unlimited tool steps per turn (override via LABSCRIPTAI_MAX_STEPS or session.max_steps).
+DEFAULT_MAX_STEPS = 0
 OUTBOX_DIRNAME = ".labscriptai/outbox"
+
+
+def resolve_max_steps(value: int | None = None) -> int:
+    """Max tool-call iterations per user turn; 0 means no cap."""
+    if value is not None:
+        return max(0, int(value))
+    raw = os.environ.get("LABSCRIPTAI_MAX_STEPS")
+    if raw is None or not str(raw).strip():
+        return DEFAULT_MAX_STEPS
+    try:
+        return max(0, int(str(raw).strip()))
+    except ValueError:
+        return DEFAULT_MAX_STEPS
 
 
 class LLMClient(Protocol):
@@ -132,10 +146,17 @@ class SessionState:
     robot_ip: str | None = None
     robot_connected: bool = False
     active_run_id: str | None = None
+    active_run_status: str | None = None
+    time_window: dict[str, Any] | None = None
+    instruments_summary: list[Any] = field(default_factory=list)
+    well_roles: dict[str, Any] = field(default_factory=dict)
+    tip_budget: dict[str, Any] | None = None
+    volume_check: dict[str, Any] | None = None
+    blocked_reason: str | None = None
     messages: list[dict[str, Any]] = field(default_factory=list)
     interactive: bool = True
     preauthorized: set[str] = field(default_factory=set)
-    max_steps: int = DEFAULT_MAX_STEPS
+    max_steps: int = field(default_factory=resolve_max_steps)
 
 
 ConfirmFn = Callable[[str], bool]
@@ -164,7 +185,15 @@ def build_system_prompt(session: SessionState) -> str:
         "- robot: status/watch (read) or act (gated recovery/control).",
         "- memory: read/write case memory for reuse.",
         "- skill: load domain markdown skills on demand.",
-        "Safety: robot actions only through robot; dangerous calls are gated and you will get feedback.",
+        "Safety: robot actions only through robot; dangerous calls are gated and you will get feedback. "
+        "A tool result carrying an error is an observation — read it, adjust, continue; never end the session on one failed call.",
+        "Stop and escalate, with no play/resume/retry, on any of: tip_budget.enforced true with sufficient false; "
+        "time_window.expired true; a contact_class=sample tip about to touch a role=common_stock well. "
+        "Unknown (basis=none, window undeclared or unanchored) is not satisfied — load the recovery-playbooks skill.",
+        "Liquid source substitution after probe-only liquidNotFound (attached tip): "
+        "recover_liquid_source_substitution in one step (like recover_tip_pickup), keeping the attached tip, "
+        "but only once volume_check clears — substitute_volume_insufficient means refill or escalate. "
+        "Do not resume_run on an awaiting-recovery run.",
         "Prefer short replies. Load skills when you need domain detail; do not invent robot HTTP calls.",
     ]
     return "\n".join(lines)
@@ -307,6 +336,300 @@ def _default_confirm(prompt: str) -> bool:
     return answer in {"y", "yes"}
 
 
+def _extract_mapping(payload: Any, *keys: str) -> dict[str, Any] | None:
+    """Walk nested dicts for the first mapping under any of ``keys``."""
+    if not isinstance(payload, dict):
+        return None
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, dict):
+            return value
+    for nested_key in ("watch", "robot_status", "result", "data", "suggest_recovery"):
+        nested = payload.get(nested_key)
+        if nested is payload:
+            continue
+        found = _extract_mapping(nested, *keys)
+        if found is not None:
+            return found
+        if isinstance(nested, dict):
+            data = nested.get("data")
+            found = _extract_mapping(data, *keys)
+            if found is not None:
+                return found
+    return None
+
+
+def _extract_sequence(payload: Any, *keys: str) -> list[Any] | None:
+    if not isinstance(payload, dict):
+        return None
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, list):
+            return value
+    for nested_key in ("watch", "robot_status", "result", "data", "suggest_recovery"):
+        nested = payload.get(nested_key)
+        found = _extract_sequence(nested, *keys)
+        if found is not None:
+            return found
+        if isinstance(nested, dict):
+            found = _extract_sequence(nested.get("data"), *keys)
+            if found is not None:
+                return found
+    return None
+
+
+def _well_key_from_item(item: Mapping[str, Any]) -> str | None:
+    from labscriptai.agent.gate import normalize_well_key
+
+    for key in ("well_key", "key", "id", "source_key", "candidate_key"):
+        raw = item.get(key)
+        if raw:
+            normalized = normalize_well_key(raw)
+            if normalized:
+                return normalized
+    slot = (
+        item.get("slot")
+        or item.get("slot_name")
+        or item.get("labware_slot")
+        or item.get("labwareSlot")
+    )
+    well = item.get("well_name") or item.get("wellName") or item.get("well")
+    if slot and well:
+        return normalize_well_key(f"{slot}.{well}")
+    return None
+
+
+def _derive_well_roles_from_payload(result: dict[str, Any]) -> dict[str, Any] | None:
+    """Build well_roles keyed as ``SLOT.WELL`` from MCP live-state fields.
+
+    Preference: wells_summary[].role → well_roles[key] → liquid snapshot well_role.
+    Ignores liquid_tracking filter role ``source``.
+    """
+    try:
+        from labscriptai.agent.gate import normalize_pollution_well_role, normalize_well_key
+    except ImportError:  # pragma: no cover
+        return None
+
+    derived: dict[str, Any] = {}
+
+    wells_summary = _extract_sequence(result, "wells_summary")
+    if wells_summary:
+        for item in wells_summary:
+            if not isinstance(item, Mapping):
+                continue
+            key = _well_key_from_item(item)
+            role = normalize_pollution_well_role(item.get("role"))
+            if key and role:
+                derived[key] = role
+
+    well_roles = _extract_mapping(result, "well_roles", "well_role_map", "labware_well_roles")
+    if isinstance(well_roles, dict):
+        for key, value in well_roles.items():
+            k = normalize_well_key(key)
+            if not k or k in derived:
+                continue
+            role = normalize_pollution_well_role(value)
+            if role:
+                derived[k] = role
+
+    for seq_key in ("wells", "well_states", "liquid_sources", "sources"):
+        entries = _extract_sequence(result, seq_key)
+        if not entries:
+            continue
+        for item in entries:
+            if not isinstance(item, Mapping):
+                continue
+            key = _well_key_from_item(item)
+            if not key or key in derived:
+                continue
+            role = normalize_pollution_well_role(item.get("well_role"))
+            if role:
+                derived[key] = role
+
+    return derived or None
+
+
+_TERMINAL_RUN_STATUSES = frozenset({"succeeded", "stopped"})
+
+
+def _apply_recovery_gate_fields(
+    session: SessionState,
+    result: dict[str, Any],
+    *,
+    tip_budget: dict[str, Any] | None,
+    tip_budget_seen: bool,
+    volume_check: dict[str, Any] | None,
+    volume_seen: bool,
+    blocked_reason: str | None,
+    blocked_seen: bool,
+) -> None:
+    """Update tip/volume gate fields; clear when a fresher observation supersedes them."""
+    if session.active_run_status in _TERMINAL_RUN_STATUSES:
+        session.tip_budget = None
+        session.volume_check = None
+        session.blocked_reason = None
+        return
+
+    fresh_live = (
+        _extract_sequence(result, "instruments_summary") is not None
+        or _extract_sequence(result, "wells_summary") is not None
+        or "suggest_recovery" in result
+        or _extract_mapping(result, "recovery", "recovery_suggestion") is not None
+    )
+
+    if tip_budget is not None:
+        session.tip_budget = dict(tip_budget)
+    elif tip_budget_seen or result.get("tip_budget_blocked") is False or fresh_live:
+        session.tip_budget = None
+
+    if volume_check is not None:
+        session.volume_check = dict(volume_check)
+    elif volume_seen or fresh_live:
+        session.volume_check = None
+
+    if isinstance(blocked_reason, str) and blocked_reason.strip():
+        session.blocked_reason = blocked_reason.strip()
+    elif blocked_seen or fresh_live:
+        session.blocked_reason = None
+
+
+def _sync_session_run_status(session: SessionState, result: Any) -> None:
+    """Cache latest run status from robot tool payloads for gate decisions."""
+    if not isinstance(result, dict):
+        return
+    status = result.get("active_run_status")
+    if isinstance(status, str) and status.strip():
+        session.active_run_status = status.strip().lower()
+    else:
+        for key in ("watch", "robot_status"):
+            nested = result.get(key)
+            if not isinstance(nested, dict):
+                continue
+            data = nested.get("data")
+            if isinstance(data, dict):
+                hist_status = data.get("status")
+                if isinstance(hist_status, str) and hist_status.strip():
+                    session.active_run_status = hist_status.strip().lower()
+                    break
+            hist = nested.get("run_history") or nested.get("history")
+            if isinstance(hist, dict):
+                data = hist.get("data") if isinstance(hist.get("data"), dict) else hist
+                if isinstance(data, dict):
+                    hist_status = data.get("status")
+                    if isinstance(hist_status, str) and hist_status.strip():
+                        session.active_run_status = hist_status.strip().lower()
+                        break
+        else:
+            tool_result = result.get("result")
+            if isinstance(tool_result, dict):
+                data = tool_result.get("data")
+                if isinstance(data, dict):
+                    final_status = data.get("final_status") or data.get("status")
+                    if isinstance(final_status, str) and final_status.strip():
+                        session.active_run_status = final_status.strip().lower()
+
+    time_window = _extract_mapping(result, "time_window")
+    if time_window is not None:
+        session.time_window = dict(time_window)
+
+    instruments = _extract_sequence(result, "instruments_summary")
+    if instruments is not None:
+        session.instruments_summary = list(instruments)
+
+    derived_roles = _derive_well_roles_from_payload(result)
+    if derived_roles is not None:
+        session.well_roles = derived_roles
+
+    tip_budget_seen = "tip_budget" in result
+    tip_budget = result.get("tip_budget") if tip_budget_seen else None
+    if not isinstance(tip_budget, dict):
+        tip_budget = _extract_mapping(result, "tip_budget")
+        tip_budget_seen = tip_budget_seen or tip_budget is not None
+    if tip_budget is None:
+        recovery = _extract_mapping(result, "recovery", "recovery_suggestion")
+        if isinstance(recovery, dict) and "tip_budget" in recovery:
+            tip_budget_seen = True
+            nested_tb = recovery.get("tip_budget")
+            tip_budget = nested_tb if isinstance(nested_tb, dict) else None
+
+    volume_seen = "volume_check" in result
+    volume_check = result.get("volume_check") if volume_seen else None
+    if not isinstance(volume_check, dict):
+        volume_check = _extract_mapping(result, "volume_check")
+        volume_seen = volume_seen or volume_check is not None
+    if volume_check is None:
+        recovery = _extract_mapping(result, "recovery", "recovery_suggestion")
+        if isinstance(recovery, dict) and "volume_check" in recovery:
+            volume_seen = True
+            nested_vc = recovery.get("volume_check")
+            volume_check = nested_vc if isinstance(nested_vc, dict) else None
+
+    blocked_seen = "blocked_reason" in result
+    blocked = result.get("blocked_reason") if blocked_seen else None
+    if not isinstance(blocked, str) or not blocked.strip():
+        recovery = _extract_mapping(result, "recovery", "recovery_suggestion")
+        if isinstance(recovery, dict) and "blocked_reason" in recovery:
+            blocked_seen = True
+            blocked = recovery.get("blocked_reason")
+        if (not isinstance(blocked, str) or not blocked.strip()) and isinstance(
+            volume_check, dict
+        ):
+            if "blocked_reason" in volume_check:
+                blocked_seen = True
+                blocked = volume_check.get("blocked_reason")
+
+    _apply_recovery_gate_fields(
+        session,
+        result,
+        tip_budget=tip_budget if isinstance(tip_budget, dict) else None,
+        tip_budget_seen=tip_budget_seen,
+        volume_check=volume_check if isinstance(volume_check, dict) else None,
+        volume_seen=volume_seen,
+        blocked_reason=blocked if isinstance(blocked, str) else None,
+        blocked_seen=blocked_seen,
+    )
+
+
+def _tool_error_payload(exc: BaseException, *, tool_name: str) -> dict[str, Any]:
+    """Observation payload when a gated-allow tool raises (do not end the turn)."""
+    return {
+        "status": "error",
+        "tool": tool_name,
+        "error": {
+            "type": type(exc).__name__,
+            "message": str(exc),
+        },
+        "feedback": (
+            "Tool call raised an exception. Treat this as an observation, "
+            "not a completed action; decide the next safe step."
+        ),
+    }
+
+
+def _execute_allowed_tool(
+    name: str,
+    args: dict[str, Any],
+    *,
+    session: SessionState,
+    interactive: bool,
+) -> Any:
+    try:
+        return execute(
+            name,
+            args,
+            workspace=Path(session.workspace),
+            robot_ip=session.robot_ip,
+            session={
+                "active_run_id": session.active_run_id,
+                "robot_connected": session.robot_connected,
+                "interactive": interactive,
+                "preauthorized": sorted(session.preauthorized),
+            },
+        )
+    except Exception as exc:  # noqa: BLE001 — observation feedback; keep turn alive
+        return _tool_error_payload(exc, tool_name=name)
+
+
 def _gate_or_raise(
     tool_name: str,
     args: dict[str, Any],
@@ -331,6 +654,13 @@ def _gate_or_raise(
         context=context,
         interactive=interactive,
         preauthorized=set(session.preauthorized or ()),
+        active_run_status=session.active_run_status,
+        time_window=session.time_window,
+        instruments_summary=session.instruments_summary,
+        well_roles=session.well_roles,
+        tip_budget=session.tip_budget,
+        volume_check=session.volume_check,
+        blocked_reason=session.blocked_reason,
     )
 
 
@@ -353,7 +683,11 @@ def run_turn(
     session.messages.append({"role": "user", "content": user_text})
 
     last_text = ""
-    for _ in range(max(1, session.max_steps)):
+    step = 0
+    while True:
+        step += 1
+        if session.max_steps > 0 and step > session.max_steps:
+            break
         response = llm.complete(session.messages, tools=schema)
         calls = _tool_calls_from(response)
         if not calls:
@@ -376,18 +710,10 @@ def run_turn(
             )
 
             if status == "allow":
-                result = execute(
-                    name,
-                    args,
-                    workspace=Path(session.workspace),
-                    robot_ip=session.robot_ip,
-                    session={
-                        "active_run_id": session.active_run_id,
-                        "robot_connected": session.robot_connected,
-                        "interactive": interactive,
-                        "preauthorized": sorted(session.preauthorized),
-                    },
+                result = _execute_allowed_tool(
+                    name, args, session=session, interactive=interactive
                 )
+                _sync_session_run_status(session, result)
                 _append_tool_result(session, call_id=call["id"], name=name, payload=result)
                 continue
 
@@ -395,18 +721,10 @@ def run_turn(
                 reason_txt = "; ".join(reasons) or "gated action"
                 approved = confirm(f"Allow {name}({json.dumps(args, ensure_ascii=False)})? {reason_txt}")
                 if approved:
-                    result = execute(
-                        name,
-                        args,
-                        workspace=Path(session.workspace),
-                        robot_ip=session.robot_ip,
-                        session={
-                            "active_run_id": session.active_run_id,
-                            "robot_connected": session.robot_connected,
-                            "interactive": interactive,
-                            "preauthorized": sorted(session.preauthorized),
-                        },
+                    result = _execute_allowed_tool(
+                        name, args, session=session, interactive=interactive
                     )
+                    _sync_session_run_status(session, result)
                     _append_tool_result(session, call_id=call["id"], name=name, payload=result)
                 else:
                     _append_tool_result(
@@ -452,8 +770,9 @@ def run_turn(
         # continue loop for model to consume tool results
         continue
 
+    limit_label = str(session.max_steps) if session.max_steps > 0 else "unlimited"
     last_text = (
-        f"Stopped after {session.max_steps} tool steps without a final message. "
+        f"Stopped after {step} tool steps (limit: {limit_label}) without a final message. "
         "Ask me to continue or narrow the task."
     )
     session.messages.append({"role": "assistant", "content": last_text})
@@ -462,6 +781,7 @@ def run_turn(
 
 __all__ = (
     "DEFAULT_MAX_STEPS",
+    "resolve_max_steps",
     "OUTBOX_DIRNAME",
     "SessionState",
     "TOOLS_SCHEMA",

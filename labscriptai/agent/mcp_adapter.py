@@ -16,6 +16,7 @@ from typing import Any, Mapping
 DEFAULT_ROBOT_PORT = 31950
 WATCH_TIMEOUT_SEC = 90.0
 DEFAULT_TIMEOUT_SEC = 30.0
+RUN_PROTOCOL_TIMEOUT_SEC = 600.0
 
 
 def plugins_mcp_index() -> Path:
@@ -90,6 +91,8 @@ process.stdout.write(JSON.stringify(result ?? {}));
             env=env,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=limit,
         )
     except subprocess.TimeoutExpired as exc:

@@ -302,6 +302,7 @@ def _new_session(
     run_id: str | None,
     interactive: bool,
     preauthorized: set[str] | None = None,
+    max_steps: int | None = None,
 ) -> Any:
     workspace = workspace.expanduser().resolve()
     workspace.mkdir(parents=True, exist_ok=True)
@@ -316,6 +317,10 @@ def _new_session(
             print(f"[robot] {detail}")
         else:
             print(f"[robot] unreachable: {detail}", file=sys.stderr)
+    try:
+        from labscriptai.agent.loop import resolve_max_steps
+    except ImportError:
+        resolve_max_steps = lambda value=None: 0  # type: ignore[assignment,misc]
     return SessionState(
         workspace=workspace,
         robot_ip=robot_ip,
@@ -324,6 +329,7 @@ def _new_session(
         messages=[],
         interactive=interactive,
         preauthorized=set(preauthorized or ()),
+        max_steps=resolve_max_steps(max_steps),
     )
 
 
@@ -345,6 +351,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
 
 def cmd_chat(args: argparse.Namespace) -> int:
+    from labscriptai.agent.gate import DEFAULT_RECOVERY_PREAUTHORIZED
+
     try:
         (
             _llm_mod,
@@ -382,6 +390,8 @@ def cmd_chat(args: argparse.Namespace) -> int:
         robot_ip=args.robot,
         run_id=args.run_id,
         interactive=True,
+        preauthorized=set(DEFAULT_RECOVERY_PREAUTHORIZED),
+        max_steps=args.max_steps,
     )
     print(f"LabscriptAI chat  provider={provider}  workspace={session.workspace}")
     print(build_system_prompt(session).splitlines()[0])
@@ -466,6 +476,7 @@ def cmd_recover(args: argparse.Namespace) -> int:
         run_id=args.run_id,
         interactive=interactive,
         preauthorized=preauthorized,
+        max_steps=args.max_steps,
     )
     prompt = (
         f"Recover run {args.run_id} on robot {args.robot}. "
@@ -515,6 +526,7 @@ def cmd_daemon(args: argparse.Namespace) -> int:
         robot_ip=args.robot,
         run_id=args.run_id,
         interactive=False,
+        max_steps=args.max_steps,
     )
     interval = max(1.0, float(args.interval))
     print(
@@ -641,6 +653,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="LLM provider (default: deepseek; requires DEEPSEEK_API_KEY)",
     )
     chat.add_argument("--run-id", default=None, help="Optional active run id")
+    chat.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Max tool steps per turn (0 = unlimited; default: LABSCRIPTAI_MAX_STEPS or unlimited)",
+    )
     chat.add_argument("--verbose", action="store_true")
     chat.set_defaults(func=cmd_chat)
 
@@ -655,6 +673,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="LLM provider (default: deepseek; requires DEEPSEEK_API_KEY)",
     )
+    recover.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Max tool steps per turn (0 = unlimited)",
+    )
     recover.set_defaults(func=cmd_recover)
 
     daemon = sub.add_parser("daemon", help="Minimal outbox-wake poller")
@@ -667,6 +691,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("offline", "deepseek"),
         default=None,
         help="LLM provider (default: deepseek; requires DEEPSEEK_API_KEY)",
+    )
+    daemon.add_argument(
+        "--max-steps",
+        type=int,
+        default=None,
+        help="Max tool steps per turn (0 = unlimited)",
     )
     daemon.set_defaults(func=cmd_daemon)
 

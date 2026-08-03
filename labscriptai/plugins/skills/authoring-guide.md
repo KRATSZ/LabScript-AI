@@ -34,6 +34,8 @@ Pre-sim helpers when useful: validate labware names, inspect geometry/dead volum
 
 If `suggest_recovery` says `protocol_edit_required`, stop live recovery and return to this loop. Hardware awaiting-recovery with `auto_executable` branches → use `recovery-playbooks`, not protocol rewrite.
 
+After **liquid source substitution validation** succeeds, prefer `generate_liquid_source_substitution_rerun_protocol` or `primary_well` run-time parameters before hand-editing the protocol.
+
 ## Style
 
 - Prefer clear well iterators over magic indices.
