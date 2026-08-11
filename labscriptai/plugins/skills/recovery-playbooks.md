@@ -54,6 +54,8 @@ Equivalent: `execute_protocol_recovery` when guidance returns `substitute_liquid
 
 **Volume gate.** A reserve that shares identity is not automatically enough. Check `volume_check` before substituting: `blocked_reason=substitute_volume_insufficient`, or `basis=declared_source_map` with `sufficient` false, means the reserve cannot cover the remaining transfers — refill or escalate, do not substitute. `basis=insufficient_data` means the required or usable volume is unknown, which is not the same as known-empty: stay on the human-confirmation path.
 
+**Reserve LPD gate (in-run).** Before any substitute aspirate, fixit runs `liquidProbe` on the reserve. If that probe fails (`substitute_reserve_lpd_failed`), stop the experiment: drop the attached tip, stop the run, do not transfer. If the probe succeeds, estimate usable volume from liquid height via approximate labware geometry (`basis=approximate_lpd_height`, currently `nest_12_reservoir_15ml` prism + dead-volume ~1900 µL + 1.2 demand margin). When estimated usable volume is short, or height/geometry cannot be converted, stop with `substitute_reserve_volume_insufficient`. Only when the approximate gate passes does fixit continue aspirate/dispense. This estimate is coarse (V-bottom troughs overestimate low fills); it is a stop-gate, not precision metering.
+
 
 
 Without attached tip reuse: **manual_only** — refill primary or restart protocol.

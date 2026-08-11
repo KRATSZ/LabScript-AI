@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 
 import { analyzeLiquidProtocolGuards } from "./liquid-protocol-guards.js";
+import { heightMmToVolumeUl } from "./probe.js";
 import { parseProtocolTransferContinuationHints } from "./protocol-liquid-sources.js";
 import {
   buildPlaybookGateSummary,
@@ -9,6 +10,11 @@ import {
 } from "./recovery-playbooks.js";
 
 export const LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID = "substitute_liquid_source_with_attached_tip";
+
+/** Default unusable volume for nest_12 15 mL troughs (authoring rule of thumb). */
+export const RESERVE_PROBE_DEFAULT_DEAD_VOLUME_UL = 1900;
+/** Conservative factor on remaining transfer demand for approximate LPD height gates. */
+export const RESERVE_PROBE_VOLUME_MARGIN = 1.2;
 
 const LIQUID_NOT_FOUND_ERROR_TYPES = new Set(["liquidNotFound", "PipetteLiquidNotFoundError"]);
 const LIQUID_MOTION_COMMAND_TYPES = new Set([
@@ -188,6 +194,19 @@ function asFiniteNumber(value) {
 }
 
 /**
+ * True when remaining demand is known but usable reserve volume is not yet measured
+ * (no declared map volume / no live LPD height). Suggest must not auto-execute
+ * substitution in this state (decision-bench 04).
+ */
+export function isSubstituteVolumeUnverified(volumeCheck = null) {
+  return (
+    volumeCheck?.basis === "insufficient_data" &&
+    volumeCheck?.sufficient === false &&
+    Number(volumeCheck?.required_ul) > 0
+  );
+}
+
+/**
  * Check whether a substitute liquid source has enough usable volume for remaining transfers.
  * usable_ul = declared_volume − consumed − dead_volume.
  * required_ul = remaining destination count × transfer_volume.
@@ -234,6 +253,106 @@ export function assessSubstituteSourceVolume({
     sufficient: usableUl >= requiredUl,
     candidate_key: key,
     basis: "declared_source_map",
+  };
+}
+
+/**
+ * Gate substitute continuation from a live reserve liquidProbe height.
+ * Uses approximate labware geometry (e.g. nest_12_reservoir_15ml prism).
+ * usable_ul = estimated_ul − dead_volume; required_ul = remaining × transfer × margin.
+ * Missing height/geometry/transfer inputs → sufficient=false (conservative stop).
+ */
+export function assessReserveProbeVolume({
+  height_mm = null,
+  labware_load_name = null,
+  candidate = null,
+  candidateKey = null,
+  protocolSource = "",
+  transferHints = null,
+  remainingDestinationCount = null,
+  deadVolumeDefaultUl = RESERVE_PROBE_DEFAULT_DEAD_VOLUME_UL,
+  margin = RESERVE_PROBE_VOLUME_MARGIN,
+} = {}) {
+  const key = candidateKey || candidate?.source_map_key || null;
+  const hints = transferHints || parseProtocolTransferContinuationHints(protocolSource || "");
+  const transferVolume = asFiniteNumber(hints?.transfer_volume);
+  const destinations = Array.isArray(hints?.destination_wells) ? hints.destination_wells : [];
+  const remaining =
+    remainingDestinationCount !== null && remainingDestinationCount !== undefined
+      ? asFiniteNumber(remainingDestinationCount)
+      : destinations.length > 0
+        ? destinations.length
+        : null;
+  const loadName =
+    labware_load_name ||
+    candidate?.labware_load_name ||
+    hints?.reservoir_load_name ||
+    null;
+  const consumed = asFiniteNumber(candidate?.consumed_volume_ul ?? candidate?.consumed) ?? 0;
+  const dead =
+    asFiniteNumber(candidate?.dead_volume ?? candidate?.dead_volume_ul) ??
+    asFiniteNumber(deadVolumeDefaultUl) ??
+    0;
+  const marginFactor = asFiniteNumber(margin) ?? RESERVE_PROBE_VOLUME_MARGIN;
+  const heightMm = asFiniteNumber(height_mm);
+
+  const baseRequired =
+    transferVolume !== null && remaining !== null ? remaining * transferVolume : null;
+  const requiredUl = baseRequired !== null ? baseRequired * marginFactor : null;
+
+  if (heightMm === null || !loadName || transferVolume === null || remaining === null) {
+    return {
+      required_ul: requiredUl,
+      usable_ul: null,
+      estimated_ul: null,
+      height_mm: heightMm,
+      labware_load_name: loadName,
+      dead_volume_ul: dead,
+      margin: marginFactor,
+      sufficient: false,
+      candidate_key: key,
+      basis: "approximate_lpd_height",
+      blocked_reason: "substitute_reserve_volume_insufficient",
+    };
+  }
+
+  const converted = heightMmToVolumeUl({
+    height_mm: heightMm,
+    labware_load_name: loadName,
+  });
+  const estimatedUl = asFiniteNumber(converted?.volume_ul);
+  if (estimatedUl === null) {
+    return {
+      required_ul: requiredUl,
+      usable_ul: null,
+      estimated_ul: null,
+      height_mm: heightMm,
+      labware_load_name: loadName,
+      dead_volume_ul: dead,
+      margin: marginFactor,
+      conversion_method: converted?.method || "unknown",
+      sufficient: false,
+      candidate_key: key,
+      basis: "approximate_lpd_height",
+      blocked_reason: "substitute_reserve_volume_insufficient",
+    };
+  }
+
+  const usableUl = Math.max(0, estimatedUl - consumed - dead);
+  const sufficient = usableUl >= requiredUl;
+  return {
+    required_ul: requiredUl,
+    usable_ul: usableUl,
+    estimated_ul: estimatedUl,
+    height_mm: heightMm,
+    labware_load_name: loadName,
+    dead_volume_ul: dead,
+    margin: marginFactor,
+    conversion_method: converted?.method || null,
+    sufficient,
+    candidate_key: key,
+    basis: "approximate_lpd_height",
+    blocked_reason: sufficient ? null : "substitute_reserve_volume_insufficient",
   };
 }
 
@@ -556,9 +675,14 @@ export function buildLiquidSourceSubstitutionPlan({
     remainingDestinationCount,
   });
 
-  // Known shortfall: stop substitution. Missing volume data keeps the existing
-  // human-confirmation path (do not invent a new auto-allow branch).
-  if (volumeCheck.basis === "declared_source_map" && volumeCheck.sufficient === false) {
+  // Known shortfall from declared map or live LPD height: stop substitution.
+  // Missing volume data (insufficient_data) keeps the live-probe recover path
+  // so adequate reserves (decision-bench 03) can still substitute after LPD.
+  if (
+    volumeCheck.sufficient === false &&
+    (volumeCheck.basis === "declared_source_map" ||
+      volumeCheck.basis === "approximate_lpd_height")
+  ) {
     return {
       ...base,
       candidates,

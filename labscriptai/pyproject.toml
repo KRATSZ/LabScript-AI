@@ -20,12 +20,13 @@ dev = ["pytest>=7"]
 labscriptai = "labscriptai.agent.cli:main"
 
 [tool.setuptools]
-packages = ["labscriptai", "labscriptai.agent"]
+packages = ["labscriptai", "labscriptai.agent", "labscriptai.fake_robot"]
 include-package-data = true
 
 [tool.setuptools.package-dir]
 "labscriptai" = "."
 "labscriptai.agent" = "agent"
+"labscriptai.fake_robot" = "fake_robot"
 
 # Ship skills + MCP sources with the wheel/sdist. node_modules stays out
 # (exclude-package-data + .gitignore); colleagues run `npm install` under plugins/mcp.

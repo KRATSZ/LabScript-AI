@@ -195,6 +195,14 @@ const APPROXIMATE_LABWARE_GEOMETRY = {
     top_diameter_mm: 5.49,
     approximate: true,
   },
+  // Opentrons nest_12_reservoir_15ml v1: rectangular trough, V-bottom.
+  // Prism cross-section is approximate and overestimates low fills.
+  nest_12_reservoir_15ml: {
+    well_depth_mm: 26.85,
+    capacity_ul: 15000,
+    cross_section_area_mm2: 8.2 * 71.2,
+    approximate: true,
+  },
 };
 
 function hasUsableGeometry(geometry) {

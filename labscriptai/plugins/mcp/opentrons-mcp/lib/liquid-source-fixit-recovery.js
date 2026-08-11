@@ -204,6 +204,70 @@ export function splitLiquidSubstitutionFixitSteps(steps = []) {
   };
 }
 
+/**
+ * Split the leading replacement_liquid_probe from remaining transfer (+ later confirm) steps.
+ */
+export function splitReplacementProbeStep(steps = []) {
+  const list = Array.isArray(steps) ? steps : [];
+  const probeIndex = list.findIndex(
+    step => String(step?.name || "") === "replacement_liquid_probe",
+  );
+  if (probeIndex === -1) {
+    return { probeStep: null, postProbeSteps: list };
+  }
+  return {
+    probeStep: list[probeIndex],
+    postProbeSteps: [...list.slice(0, probeIndex), ...list.slice(probeIndex + 1)],
+  };
+}
+
+/**
+ * Read liquid height (mm from well bottom) from a succeeded liquidProbe command/result.
+ * Opentrons protocol-engine uses result.z_position; tolerate a few aliases.
+ */
+export function extractLiquidProbeHeightMm(commandOrResult = null) {
+  const terminal = commandOrResult?.terminal ?? commandOrResult;
+  const unwrapped =
+    terminal && typeof terminal === "object" && "data" in terminal ? terminal.data : terminal;
+  const candidates = [
+    ["result", "z_position"],
+    ["data", "result", "z_position"],
+    ["result", "zPosition"],
+    ["data", "result", "zPosition"],
+    ["result", "liquidHeight"],
+    ["data", "result", "liquidHeight"],
+    ["result", "height"],
+    ["data", "result", "height"],
+    ["z_position"],
+    ["zPosition"],
+  ];
+  for (const path of candidates) {
+    let current = unwrapped;
+    let found = true;
+    for (const part of path) {
+      if (current && typeof current === "object" && part in current) {
+        current = current[part];
+      } else {
+        found = false;
+        break;
+      }
+    }
+    if (found && current !== undefined && current !== null && current !== "") {
+      const number = Number(current);
+      if (Number.isFinite(number)) {
+        return number;
+      }
+    }
+  }
+  return null;
+}
+
+/** Drop-tip suffix used when reserve LPD/volume gate aborts before transfers. */
+export function selectDropTipCleanupSteps(steps = []) {
+  const names = new Set(["move_to_trash_for_drop", "drop_attached_tip"]);
+  return (Array.isArray(steps) ? steps : []).filter(step => names.has(String(step?.name || "")));
+}
+
 export function planConfirmProbeFixitSteps({
   pipetteId,
   tiprackLabwareId,

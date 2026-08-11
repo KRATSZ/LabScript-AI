@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .gate import RESUME_BLOCKED_RUN_STATUSES
+from .gate import RESUME_BLOCKED_RUN_STATUSES, coerce_path_into_workspace
 from .mcp_adapter import (
     RUN_PROTOCOL_TIMEOUT_SEC,
     WATCH_TIMEOUT_SEC,
@@ -28,6 +28,34 @@ __all__ = (
 )
 
 _MEMORY_DIRNAME = ".labscriptai/memory"
+
+
+def _default_opentrons_python() -> str | None:
+    """Prefer labscriptai/.venv python that has opentrons installed."""
+    env = (os.environ.get("OPENTRONS_PYTHON") or "").strip()
+    if env and Path(env).is_file():
+        return env
+    # tools.py → labscriptai/agent → labscriptai → repo
+    here = Path(__file__).resolve()
+    package_root = here.parents[1]  # labscriptai/
+    candidates = [
+        package_root / ".venv" / "Scripts" / "python.exe",
+        package_root / ".venv" / "bin" / "python",
+        package_root.parent / ".venv" / "Scripts" / "python.exe",
+        package_root.parent / ".venv" / "bin" / "python",
+    ]
+    for path in candidates:
+        if path.is_file():
+            return str(path)
+    return None
+
+
+def _ensure_python_executable(payload: dict[str, Any]) -> None:
+    if payload.get("python_executable"):
+        return
+    resolved = _default_opentrons_python()
+    if resolved:
+        payload["python_executable"] = resolved
 
 
 def _resolve_bash_output_limit() -> int:
@@ -296,6 +324,8 @@ def _edit(
     rel = args.get("path")
     if not isinstance(rel, str) or not rel.strip():
         return {"error": "invalid_args", "detail": "path is required"}
+    rel = coerce_path_into_workspace(rel, workspace)
+    args["path"] = rel
     try:
         path = _resolve_under(workspace, rel)
     except ValueError as exc:
@@ -335,6 +365,24 @@ def _edit(
         return {"ok": True, "path": _rel(workspace, path), "replacements": count}
 
     return {"error": "invalid_op", "op": op, "allowed": ["read", "write", "str_replace"]}
+
+
+def _resolve_protocol_file(workspace: Path, raw: str) -> Path | None:
+    """Resolve a protocol path, coercing mistaken ``../`` prefixes into the workspace."""
+    coerced = coerce_path_into_workspace(raw, workspace)
+    for candidate in (Path(coerced), workspace / coerced, Path(raw), workspace / raw):
+        try:
+            resolved = candidate.expanduser().resolve()
+        except OSError:
+            continue
+        if resolved.is_file():
+            try:
+                resolved.relative_to(workspace.resolve())
+            except ValueError:
+                # Absolute path outside workspace is still usable for MCP upload.
+                pass
+            return resolved
+    return None
 
 
 def _resolve_under(workspace: Path, rel: str) -> Path:
@@ -796,6 +844,36 @@ def _robot_act(
     if action_key:
         tool_name, injected = _ACT_ALIASES.get(action_key, (action_key, {}))
         call_payload = {**payload, **injected}
+        # create_run needs protocol_id. Agents often pass protocol_path alone, which
+        # creates an empty run that plays to succeeded with 0 commands (no motion).
+        # Rewrite to run_protocol (upload + create + play) when a local file is given.
+        if tool_name == "create_run" and not call_payload.get("protocol_id"):
+            proto = call_payload.get("file_path") or call_payload.get("protocol_path")
+            if isinstance(proto, str) and proto.strip():
+                resolved = _resolve_protocol_file(workspace, proto)
+                if resolved is not None:
+                    call_payload["file_path"] = str(resolved)
+                    call_payload.pop("protocol_path", None)
+                    tool_name = "run_protocol"
+                else:
+                    return {
+                        "error": "protocol_file_not_found",
+                        "op": "act",
+                        "detail": (
+                            "create_run with protocol_path requires an existing .py file, "
+                            "or pass protocol_id from upload_protocol first."
+                        ),
+                        "protocol_path": proto,
+                    }
+            else:
+                return {
+                    "error": "protocol_id_required",
+                    "op": "act",
+                    "detail": (
+                        "create_run requires protocol_id (after upload_protocol), "
+                        "or protocol_path/file_path to run via run_protocol."
+                    ),
+                }
         blocked = _resume_play_blocked(
             host=host,
             run_id=call_payload.get("run_id") or run_id,
@@ -812,6 +890,9 @@ def _robot_act(
             _maybe_attach_protocol_path(call_payload, workspace)
         if tool_name in {
             "run_protocol",
+            "simulate_protocol",
+            "doctor_local_runtime",
+            "health_check",
             "recover_liquid_source_substitution",
             "execute_protocol_recovery",
             "recover_tip_pickup",
@@ -819,6 +900,7 @@ def _robot_act(
             call_payload.setdefault("operator_opt_in", True)
             call_payload.setdefault("timeout_ms", 1_800_000)
             call_payload.setdefault("poll_interval_ms", 1000)
+            _ensure_python_executable(call_payload)
         if tool_name == "run_protocol":
             if not call_payload.get("file_path"):
                 bundle_path = call_payload.get("recovery_bundle_path") or call_payload.get("bundle_path")
@@ -830,6 +912,13 @@ def _robot_act(
                             call_payload["file_path"] = generated
                     except (OSError, json.JSONDecodeError):
                         pass
+                if not call_payload.get("file_path") and call_payload.get("protocol_path"):
+                    call_payload["file_path"] = str(call_payload["protocol_path"])
+            if isinstance(call_payload.get("file_path"), str):
+                resolved = _resolve_protocol_file(workspace, call_payload["file_path"])
+                if resolved is not None:
+                    call_payload["file_path"] = str(resolved)
+            _ensure_python_executable(call_payload)
             call_payload.setdefault("operator_opt_in", True)
             call_payload.setdefault("timeout_ms", 1_800_000)
             call_payload.setdefault("poll_interval_ms", 1000)
@@ -850,6 +939,10 @@ def _robot_act(
                 timeout_sec=RUN_PROTOCOL_TIMEOUT_SEC,
             )
             return {"op": "act", "robot_base": base, "tool": tool_name, "result": result}
+        if tool_name == "upload_protocol" and isinstance(call_payload.get("file_path"), str):
+            resolved = _resolve_protocol_file(workspace, call_payload["file_path"])
+            if resolved is not None:
+                call_payload["file_path"] = str(resolved)
         # control_run uses action=pause|play|stop — don't leave action_type clutter
         result = call_tool(tool_name, call_payload)
         return {"op": "act", "robot_base": base, "tool": tool_name, "result": result}

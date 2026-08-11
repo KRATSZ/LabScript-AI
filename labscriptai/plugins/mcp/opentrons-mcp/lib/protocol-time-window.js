@@ -6,12 +6,14 @@
  * including protocol.comment("...") strings that may span lines.
  *
  * Anchor selection (findTimeWindowAnchor):
- *   Prefer the last succeeded `dispenseInPlace` that completed before the
- *   second succeeded `pickUpTip` (Phase 1 ends before Phase 2 picks up a tip).
- *   If fewer than two succeeded pickups exist yet, use the last succeeded
- *   `dispenseInPlace` overall. If none exist, anchor fields stay null and
- *   expired stays false.
+ *   Prefer the last succeeded dispense (`dispense` or `dispenseInPlace`) that
+ *   completed before the second succeeded `pickUpTip` (Phase 1 ends before
+ *   Phase 2 picks up a tip). If fewer than two succeeded pickups exist yet,
+ *   use the last succeeded dispense overall. If none exist, anchor fields stay
+ *   null and expired stays false.
  */
+
+const DISPENSE_TYPES = new Set(["dispense", "dispenseInPlace"]);
 
 function unwrapCommandList(commands) {
   if (!commands) {
@@ -105,7 +107,7 @@ export function findTimeWindowAnchor(commands = []) {
   let anchor = null;
   for (let index = 0; index < phase1EndExclusive; index += 1) {
     const command = list[index];
-    if (commandTypeOf(command) === "dispenseInPlace" && commandStatusOf(command) === "succeeded") {
+    if (DISPENSE_TYPES.has(commandTypeOf(command)) && commandStatusOf(command) === "succeeded") {
       anchor = command;
     }
   }
@@ -159,4 +161,12 @@ export function assessTimeWindow({
   result.elapsed_minutes = Number(elapsedMinutes.toFixed(3));
   result.expired = elapsedMinutes > parsed.window_minutes;
   return result;
+}
+
+/**
+ * Whether MCP play / resume-from-recovery should hard-block on this assessment.
+ * Override only via explicit operator opt-in (allow_expired_time_window).
+ */
+export function isPlayBlockedByTimeWindow(timeWindow = null) {
+  return Boolean(timeWindow?.declared && timeWindow?.expired === true);
 }

@@ -18,13 +18,41 @@ from labscriptai.agent.gate import (
 )
 
 
-def test_infer_context_author_without_robot_or_run() -> None:
-    assert infer_context(robot_connected=False, active_run=False) == "author"
-    assert infer_context(robot_connected=True, active_run=False) == "author"
-    assert infer_context(robot_connected=False, active_run=True) == "author"
+def test_coerce_path_strips_mistaken_parent_prefix(tmp_path: Path) -> None:
+    from labscriptai.agent.gate import coerce_path_into_workspace, evaluate
+
+    (tmp_path / "local").mkdir()
+    target = tmp_path / "local" / "protocol.py"
+    target.write_text("# ok\n", encoding="utf-8")
+
+    coerced = coerce_path_into_workspace("../local/protocol.py", tmp_path)
+    assert coerced == "local/protocol.py"
+
+    import os
+
+    os.environ["LABSCRIPTAI_WORKSPACE"] = str(tmp_path)
+    try:
+        d = evaluate(
+            "edit",
+            {"op": "read", "path": "../local/protocol.py"},
+            context="run",
+            interactive=True,
+        )
+        assert d.status == "allow"
+    finally:
+        os.environ.pop("LABSCRIPTAI_WORKSPACE", None)
 
 
-def test_infer_context_run_when_connected_and_active() -> None:
+def test_coerce_path_leaves_true_escape(tmp_path: Path) -> None:
+    from labscriptai.agent.gate import coerce_path_into_workspace
+
+    # Outside path that does not exist under workspace after stripping
+    out = coerce_path_into_workspace("../../etc/passwd", tmp_path)
+    assert out == "../../etc/passwd"
+
+
+def test_infer_context_run_when_robot_connected() -> None:
+    assert infer_context(robot_connected=True, active_run=False) == "run"
     assert infer_context(robot_connected=True, active_run=True) == "run"
 
 
@@ -511,6 +539,34 @@ def test_volume_blocked_reason_blocks_substitution() -> None:
         context="run",
         interactive=True,
         blocked_reason="substitute_volume_insufficient",
+    )
+    assert d.status == "suspend"
+
+
+def test_reserve_lpd_failed_blocks_substitution() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        context="run",
+        interactive=True,
+        blocked_reason="substitute_reserve_lpd_failed",
+    )
+    assert d.status == "suspend"
+
+
+def test_approximate_lpd_height_insufficient_blocks_substitution() -> None:
+    d = evaluate(
+        "robot",
+        {"op": "act", "action": "recover_liquid_source_substitution"},
+        context="run",
+        interactive=True,
+        volume_check={
+            "required_ul": 360,
+            "usable_ul": 0,
+            "sufficient": False,
+            "basis": "approximate_lpd_height",
+            "blocked_reason": "substitute_reserve_volume_insufficient",
+        },
     )
     assert d.status == "suspend"
 

@@ -86,7 +86,10 @@ import {
   uniqueSessionStrings,
 } from "./lib/state.js";
 import { classifyTipBindingModeDetail, assessTipRecoveryBudget } from "./lib/protocol-tips.js";
-import { assessTimeWindow } from "./lib/protocol-time-window.js";
+import {
+  assessTimeWindow,
+  isPlayBlockedByTimeWindow,
+} from "./lib/protocol-time-window.js";
 import {
   parseProtocolDeckHints,
   parseProtocolTransferContinuationHints,
@@ -100,11 +103,14 @@ import {
 import {
   buildInRunLiquidSubstitutionRecord,
   executeInRunLiquidSourceSubstitutionFixitSteps,
+  extractLiquidProbeHeightMm,
   findLastSucceededProtocolPickUpTipWell,
   planConfirmProbeFixitSteps,
   planInRunLiquidSourceSubstitutionFixitSteps,
   readPendingInRunLiquidSubstitutionConfirm,
+  selectDropTipCleanupSteps,
   splitLiquidSubstitutionFixitSteps,
+  splitReplacementProbeStep,
 } from "./lib/liquid-source-fixit-recovery.js";
 import {
   appendResultLogEntry,
@@ -132,6 +138,7 @@ import { generateTipContinuationProtocol } from "./lib/continuation.js";
 import {
   LIQUID_SOURCE_SUBSTITUTION_PLAYBOOK_ID,
   applyLiquidSourceSubstitutionPatchToProtocol,
+  assessReserveProbeVolume,
   buildLiquidSourceSubstitutionContinuationGuide,
   buildLiquidSourceSubstitutionPlan,
   evaluateReuseAttachedTipEligibility,
@@ -1746,7 +1753,8 @@ const TOOL_DEFINITIONS = [
   },
   {
     name: "control_run",
-    description: "Play, pause, stop, or resume-from-recovery for a run.",
+    description:
+      "Play, pause, stop, or resume-from-recovery for a run. Play/resume are blocked when a declared protocol TIME WINDOW has expired unless allow_expired_time_window=true.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1758,6 +1766,17 @@ const TOOL_DEFINITIONS = [
         },
         page_length: { type: "integer", default: 10 },
         session_id: { type: "string" },
+        protocol_path: {
+          type: "string",
+          description: "Optional protocol .py for TIME WINDOW assessment on play/resume",
+        },
+        file_path: { type: "string", description: "Alias for protocol_path" },
+        allow_expired_time_window: {
+          type: "boolean",
+          description:
+            "Operator override: allow play/resume even when protocol TIME WINDOW has expired",
+          default: false,
+        },
         tiprack_slots: {
           type: "array",
           items: { type: "string" },
@@ -4410,6 +4429,29 @@ function assertCommandSucceeded(result, label) {
   }
 }
 
+function isCommandTerminalSucceeded(result) {
+  const terminal = unwrapData(result?.terminal) || {};
+  return readNested(terminal, [["status"]], null) === "succeeded";
+}
+
+function resolveLabwareLoadNameFromRun(runDetail, labwareId) {
+  if (!labwareId) {
+    return null;
+  }
+  for (const labware of asArray(runDetail?.labware || runDetail?.data?.labware)) {
+    const id = readNested(labware, [["id"]], null);
+    if (id === labwareId) {
+      return (
+        readNested(labware, [["loadName"]], null) ||
+        readNested(labware, [["load_name"]], null) ||
+        readNested(labware, [["definitionUri"]], null)?.split("/")?.[1] ||
+        null
+      );
+    }
+  }
+  return null;
+}
+
 function resolveContextSessionId(args, robotStatusResult, contextId = null) {
   return args.session_id || contextId || resolveSessionId(args, robotStatusResult);
 }
@@ -4533,6 +4575,50 @@ function enrichRecoveryArgsWithProtocolPath(args = {}) {
   return enrichRecoveryArgsWithProtocolPathImpl(args, protocolPathResolverDeps());
 }
 
+/**
+ * Assess protocol TIME WINDOW for a live run (used by robot_status + play gates).
+ */
+async function readRunTimeWindow(args = {}) {
+  const enriched = enrichRecoveryArgsWithProtocolPath(args);
+  let protocolSource = "";
+  try {
+    protocolSource = readProtocolSourceForTipBinding(enriched)?.source || "";
+  } catch {
+    protocolSource = "";
+  }
+  let commands = null;
+  if (enriched.run_id && enriched.robot_ip) {
+    try {
+      const history = await readRunHistory({
+        robot_ip: enriched.robot_ip,
+        run_id: enriched.run_id,
+        page_length: enriched.page_length ?? 80,
+      });
+      commands = history.hardwareSnapshot?.commands || null;
+    } catch {
+      commands = null;
+    }
+  }
+  return assessTimeWindow({ protocolSource, commands });
+}
+
+function buildTimeWindowPlayBlockResult(args, timeWindow, actionRequested) {
+  return {
+    data: {
+      blocked: true,
+      blocked_reason: "time_window_expired",
+      action_requested: actionRequested,
+      time_window: timeWindow,
+      override:
+        "Pass allow_expired_time_window=true only after an explicit human decision to continue or discard the run.",
+    },
+    hardwareSnapshot: {},
+    stateRevision: 0,
+    sessionId: args.session_id || args.run_id || null,
+    runId: args.run_id || null,
+  };
+}
+
 function storeRunProtocolMetadata({ runId, sessionId = null, filePath, protocolName = null } = {}) {
   if (!runId || !filePath) {
     return;
@@ -4640,6 +4726,16 @@ async function readRunFailureGuidance(args, runId, sessionId = null) {
     run_id: runId,
     session_id: sessionId || args.session_id,
   });
+  // Seed liquid source map from protocol even when create_run skipped MCP metadata.
+  // Without this, INSUFFICIENT_VOLUME stays manual_only despite docstring reserves.
+  const protocolPath = resolveProtocolPathForRecovery(enrichedArgs);
+  if (runId && protocolPath) {
+    storeRunProtocolMetadata({
+      runId,
+      sessionId: enrichedArgs.session_id || sessionId || runId,
+      filePath: protocolPath,
+    });
+  }
   const parseResult = await TOOL_HANDLERS.parse_error({
     ...enrichedArgs,
     run_id: runId,
@@ -4846,7 +4942,10 @@ async function finalizeInRunLiquidSourceSubstitutionRecovery({
       executed_action: executionResult.executedAction || null,
       executed_params: executionResult.executedParams || {},
       fixit_commands: executionResult.fixitCommands || [],
-      completed_via_in_run_fixit: true,
+      completed_via_in_run_fixit: executionResult.recoveryAborted !== true,
+      recovery_aborted: executionResult.recoveryAborted === true,
+      blocked_reason: executionResult.blockedReason || executionResult.executedParams?.blocked_reason || null,
+      volume_check: executionResult.volumeCheck || executionResult.executedParams?.volume_check || null,
       stopped_run_after_fixit: true,
       same_run_id: args.run_id,
       do_not_resume_failed_run: true,
@@ -4874,6 +4973,30 @@ async function finalizeProtocolRecovery({
   executionResult = {},
   waitForTerminal = true,
 } = {}) {
+  if (args.allow_expired_time_window !== true) {
+    const timeWindow = await readRunTimeWindow(args);
+    if (isPlayBlockedByTimeWindow(timeWindow)) {
+      return {
+        data: {
+          blocked: true,
+          blocked_reason: "time_window_expired",
+          time_window: timeWindow,
+          executed_action: executionResult.executedAction || null,
+          executed_params: executionResult.executedParams || {},
+          fixit_commands: executionResult.fixitCommands || [],
+          resume_action: null,
+          final_status: null,
+          override:
+            "Pass allow_expired_time_window=true only after an explicit human decision.",
+        },
+        hardwareSnapshot: {},
+        stateRevision: 0,
+        sessionId,
+        runId: args.run_id,
+      };
+    }
+  }
+
   const resumeAction = await requestRobotJson("POST", args.robot_ip, `/runs/${args.run_id}/actions`, {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -4962,7 +5085,16 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
     );
   }
 
-  if (recovery.auto_executable !== true) {
+  // Volume-unverified substitution is confirmation-gated at suggest / autonomy L0,
+  // but the dedicated recover tool itself performs reserve LPD + volume STOP.
+  // Calling recover_liquid_source_substitution is the operator/agent confirmation.
+  const allowVolumeUnverifiedSubstitute =
+    action === "substitute_liquid_source_with_attached_tip" &&
+    guardedExpectedAction === "substitute_liquid_source_with_attached_tip" &&
+    (recovery.volume_unverified === true ||
+      recovery.rationale === "same_liquid_reserve_volume_unverified");
+
+  if (recovery.auto_executable !== true && !allowVolumeUnverifiedSubstitute) {
     throw new Error(
       `execute_protocol_recovery only supports recovery branches marked auto_executable=true; got ${String(
         recovery.auto_executable,
@@ -5039,6 +5171,36 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
         args.run_id,
       );
 
+      // Real Flex glitch (see run 09_hold_tolerant): tipPhysicallyMissing can leave a tip
+      // already attached. Retrying pickUpTip then raises UnexpectedTipAttachError.
+      const tipStatusBefore = await readRobotStatus({ robot_ip: args.robot_ip });
+      const attachedBefore = asArray(tipStatusBefore.data?.instruments_summary).find(
+        item => item?.mount && item.mount !== "extension" && item.tip_detected === true,
+      );
+      if (attachedBefore) {
+        executionResult = {
+          executedAction: action,
+          executedParams: {
+            well: nextWell,
+            tiprack_slot: nextTiprackSlot,
+            pipette_id: pipetteId,
+            labware_id: labwareId,
+            skipped_pickup: true,
+            reason: "tip_already_attached",
+            mount: attachedBefore.mount,
+            post_liquid_substitution_confirm_only: Boolean(pendingLiquidConfirm),
+          },
+          fixitCommand: null,
+          fixitCommands: [],
+          moduleWait: null,
+          tipAlreadyAttached: true,
+          ...(pendingLiquidConfirm
+            ? { skipFinalize: true, stopAfterInRunFixit: true }
+            : {}),
+        };
+        break;
+      }
+
       const fixitCommand = await enqueueAndPollCommand({
         robotIp: args.robot_ip,
         contextType: "protocol",
@@ -5056,7 +5218,18 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
         pollIntervalMs: args.poll_interval_ms ?? 500,
       });
 
-      if (nextTiprackSlot && nextWell) {
+      const fixitTerminal = unwrapData(fixitCommand?.terminal) || {};
+      const fixitStatus = readNested(fixitTerminal, [["status"]], null);
+      const fixitErrorType = String(
+        readNested(fixitTerminal, [["error", "errorType"]], "") || "",
+      ).toLowerCase();
+      const unexpectedTipAttach =
+        fixitStatus === "failed" && fixitErrorType.includes("unexpectedtipattach");
+      if (fixitStatus !== "succeeded" && !unexpectedTipAttach) {
+        assertCommandSucceeded(fixitCommand, "retry_pick_up_tip_with_next_candidate");
+      }
+
+      if (nextTiprackSlot && nextWell && fixitStatus === "succeeded") {
         mutateSessionState(sessionId, sessionState => {
           markTipWellStatus(sessionState, {
             slotName: nextTiprackSlot,
@@ -5103,6 +5276,7 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
           pipette_id: pipetteId,
           labware_id: labwareId,
           post_liquid_substitution_confirm_only: Boolean(pendingLiquidConfirm),
+          unexpected_tip_attach_tolerated: unexpectedTipAttach,
         },
         fixitCommand: fixitCommand.terminal,
         fixitCommands: confirmFixitCommands,
@@ -5286,8 +5460,135 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
       });
 
       const { transferSteps, confirmSteps } = splitLiquidSubstitutionFixitSteps(fixitPlan.steps);
+      const { probeStep, postProbeSteps } = splitReplacementProbeStep(transferSteps);
+      if (!probeStep) {
+        throw new Error(
+          "substitute_liquid_source_with_attached_tip requires a replacement_liquid_probe step.",
+        );
+      }
+
+      const probeEnqueueResult = await enqueueAndPollCommand({
+        robotIp: args.robot_ip,
+        contextType: "protocol",
+        contextId: args.run_id,
+        commandPayload: probeStep.payload,
+        timeoutMs: args.timeout_ms ?? 120000,
+        pollIntervalMs: args.poll_interval_ms ?? 500,
+      });
+      const probeExecuted = {
+        name: probeStep.name,
+        terminal: probeEnqueueResult.terminal,
+      };
+
+      const abortSubstitution = async ({ blockedReason, volumeCheck = null, probeOk }) => {
+        const cleanupSteps = selectDropTipCleanupSteps(postProbeSteps);
+        let cleanupCommands = [];
+        if (cleanupSteps.length > 0) {
+          try {
+            cleanupCommands = await executeInRunLiquidSourceSubstitutionFixitSteps({
+              steps: cleanupSteps,
+              enqueueAndPollCommand,
+              robotIp: args.robot_ip,
+              runId: args.run_id,
+              timeoutMs: args.timeout_ms ?? 120000,
+              pollIntervalMs: args.poll_interval_ms ?? 500,
+              assertCommandSucceeded,
+            });
+          } catch (cleanupError) {
+            cleanupCommands = [
+              {
+                name: "drop_tip_cleanup_failed",
+                error: String(cleanupError?.message || cleanupError),
+              },
+            ];
+          }
+        }
+
+        mutateSessionState(sessionId, sessionState => {
+          const [failedSlot, failedWell] = String(failedSourceKey).split(".");
+          const [preferredSlot, preferredWell] = String(preferredSourceKey).split(".");
+          setLiquidSourceState(sessionState, {
+            slot_name: failedSlot,
+            well_name: failedWell,
+            observed_presence: false,
+            observed_at: new Date().toISOString(),
+            observed_run_id: args.run_id,
+            observed_source: "in_run_fixit_recovery",
+          });
+          setLiquidSourceState(sessionState, {
+            slot_name: preferredSlot,
+            well_name: preferredWell,
+            observed_presence: probeOk === true ? true : false,
+            observed_at: new Date().toISOString(),
+            observed_run_id: args.run_id,
+            observed_source: "in_run_fixit_recovery",
+            ...(volumeCheck?.estimated_ul != null
+              ? { volume_ul: volumeCheck.estimated_ul, observed_height_mm: volumeCheck.height_mm }
+              : {}),
+          });
+          return sessionState;
+        });
+
+        return {
+          executedAction: action,
+          executedParams: {
+            failed_source_key: failedSourceKey,
+            preferred_source_key: preferredSourceKey,
+            replacement_well: fixitPlan.replacement_well,
+            destination_wells: fixitPlan.destination_wells,
+            transfer_volume: fixitPlan.transfer_volume,
+            reuse_attached_tip: true,
+            in_run_fixit: true,
+            recovery_aborted: true,
+            blocked_reason: blockedReason,
+            volume_check: volumeCheck,
+          },
+          fixitCommand: cleanupCommands.at(-1)?.terminal || probeExecuted.terminal || null,
+          fixitCommands: [probeExecuted, ...cleanupCommands],
+          moduleWait: null,
+          skipFinalize: true,
+          stopAfterInRunFixit: true,
+          recoveryAborted: true,
+          blockedReason,
+          volumeCheck,
+        };
+      };
+
+      if (!isCommandTerminalSucceeded(probeEnqueueResult)) {
+        executionResult = await abortSubstitution({
+          blockedReason: "substitute_reserve_lpd_failed",
+          probeOk: false,
+        });
+        break;
+      }
+
+      const probeHeightMm = extractLiquidProbeHeightMm(probeEnqueueResult);
+      const sourceLabwareId = readNested(failedCommand, [["params", "labwareId"]], null);
+      const labwareLoadName =
+        resolveLabwareLoadNameFromRun(context.detail, sourceLabwareId) ||
+        transferHints.reservoir_load_name ||
+        deckHints.reservoir_load_name ||
+        null;
+      const reserveVolumeCheck = assessReserveProbeVolume({
+        height_mm: probeHeightMm,
+        labware_load_name: labwareLoadName,
+        candidateKey: preferredSourceKey,
+        protocolSource,
+        transferHints,
+        remainingDestinationCount: fixitPlan.destination_wells?.length ?? null,
+      });
+      if (reserveVolumeCheck.sufficient !== true) {
+        executionResult = await abortSubstitution({
+          blockedReason:
+            reserveVolumeCheck.blocked_reason || "substitute_reserve_volume_insufficient",
+          volumeCheck: reserveVolumeCheck,
+          probeOk: true,
+        });
+        break;
+      }
+
       const transferFixitCommands = await executeInRunLiquidSourceSubstitutionFixitSteps({
-        steps: transferSteps,
+        steps: postProbeSteps,
         enqueueAndPollCommand,
         robotIp: args.robot_ip,
         runId: args.run_id,
@@ -5314,6 +5615,8 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
           observed_at: new Date().toISOString(),
           observed_run_id: args.run_id,
           observed_source: "in_run_fixit_recovery",
+          volume_ul: reserveVolumeCheck.estimated_ul,
+          observed_height_mm: reserveVolumeCheck.height_mm,
         });
         sessionState.in_run_liquid_substitution = buildInRunLiquidSubstitutionRecord({
           runId: args.run_id,
@@ -5357,7 +5660,7 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
         });
       }
 
-      const fixitCommands = [...transferFixitCommands, ...confirmFixitCommands];
+      const fixitCommands = [probeExecuted, ...transferFixitCommands, ...confirmFixitCommands];
 
       executionResult = {
         executedAction: action,
@@ -5370,6 +5673,7 @@ async function executeProtocolRecovery(args, { expectedAction = null, watchMode 
           reuse_attached_tip: true,
           in_run_fixit: true,
           confirm_tip_well: fixitPlan.confirm_tip_well,
+          volume_check: reserveVolumeCheck,
         },
         fixitCommand: fixitCommands.at(-1)?.terminal || null,
         fixitCommands,
@@ -6576,6 +6880,14 @@ const TOOL_HANDLERS = {
         args.protocol_name || readNested(runRecord, [["protocolName"]], null) || null,
     });
     const sessionId = resolveSessionId(args, robotStatusResult);
+    const protocolPathForSources = resolveProtocolPathForRecovery(args);
+    if ((runContext.runId || args.run_id) && protocolPathForSources) {
+      storeRunProtocolMetadata({
+        runId: runContext.runId || args.run_id,
+        sessionId,
+        filePath: protocolPathForSources,
+      });
+    }
     const observedDeckState = buildObservedDeckState({
       deckConfiguration: robotStatusResult.hardwareSnapshot.deck_configuration,
       modules: moduleStatusResult.hardwareSnapshot.modules,
@@ -8354,6 +8666,13 @@ const TOOL_HANDLERS = {
   },
 
   async create_run(args) {
+    if (!args.protocol_id) {
+      throw new Error(
+        "create_run requires protocol_id from upload_protocol. " +
+          "To upload+create+play a local .py in one step, use run_protocol with file_path. " +
+          "Creating a run without protocol_id yields an empty run that succeeds instantly with 0 commands.",
+      );
+    }
     const labwareOffsets = await resolveRunLabwareOffsets(args.robot_ip, args.labware_offsets);
     const run = await requestRobotJson("POST", args.robot_ip, "/runs", {
       headers: { "Content-Type": "application/json" },
@@ -8409,6 +8728,31 @@ const TOOL_HANDLERS = {
   },
 
   async control_run(args) {
+    const action = args.action;
+    if (
+      (action === "play" || action === "resume-from-recovery") &&
+      args.allow_expired_time_window !== true
+    ) {
+      const timeWindow = await readRunTimeWindow(args);
+      if (isPlayBlockedByTimeWindow(timeWindow)) {
+        const blocked = buildTimeWindowPlayBlockResult(args, timeWindow, action);
+        recordToolResultLog({
+          toolName: "control_run",
+          eventKind: "run_action_blocked",
+          args,
+          result: blocked,
+          fallbackSessionId: args.session_id || args.run_id,
+          summary: `Blocked ${action}: protocol TIME WINDOW expired (${timeWindow.elapsed_minutes} > ${timeWindow.window_minutes} min).`,
+          data: {
+            action_type: action,
+            blocked_reason: "time_window_expired",
+            time_window: timeWindow,
+          },
+        });
+        return blocked;
+      }
+    }
+
     const actionResult = await requestRobotJson(
       "POST",
       args.robot_ip,
@@ -8814,13 +9158,17 @@ const TOOL_HANDLERS = {
       args,
       result: wrappedResult,
       fallbackSessionId: args.session_id || args.run_id,
-      summary: `Liquid source substitution ${wrappedResult.data.failed_source_key || "?"} -> ${wrappedResult.data.preferred_source_key || "?"} finished with status ${wrappedResult.data.final_status || "unknown"}${wrappedResult.data.completed_via_in_run_fixit ? " (in-run fixit)" : ""}.`,
+      summary: wrappedResult.data.recovery_aborted
+        ? `Liquid source substitution aborted (${wrappedResult.data.blocked_reason || "blocked"}): ${wrappedResult.data.failed_source_key || "?"} -> ${wrappedResult.data.preferred_source_key || "?"}; run ${wrappedResult.data.final_status || "unknown"}.`
+        : `Liquid source substitution ${wrappedResult.data.failed_source_key || "?"} -> ${wrappedResult.data.preferred_source_key || "?"} finished with status ${wrappedResult.data.final_status || "unknown"}${wrappedResult.data.completed_via_in_run_fixit ? " (in-run fixit)" : ""}.`,
       data: {
         executed_action: wrappedResult.data.executed_action || null,
         failed_source_key: wrappedResult.data.failed_source_key || null,
         preferred_source_key: wrappedResult.data.preferred_source_key || null,
         same_run_id: wrappedResult.data.same_run_id || null,
         completed_via_in_run_fixit: wrappedResult.data.completed_via_in_run_fixit === true,
+        recovery_aborted: wrappedResult.data.recovery_aborted === true,
+        blocked_reason: wrappedResult.data.blocked_reason || null,
         final_status: wrappedResult.data.final_status || null,
       },
     });

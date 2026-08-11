@@ -192,9 +192,14 @@ def build_system_prompt(session: SessionState) -> str:
         "Unknown (basis=none, window undeclared or unanchored) is not satisfied — load the recovery-playbooks skill.",
         "Liquid source substitution after probe-only liquidNotFound (attached tip): "
         "recover_liquid_source_substitution in one step (like recover_tip_pickup), keeping the attached tip, "
-        "but only once volume_check clears — substitute_volume_insufficient means refill or escalate. "
+        "but only once volume_check clears — substitute_volume_insufficient / "
+        "substitute_reserve_lpd_failed / substitute_reserve_volume_insufficient means refill or escalate. "
         "Do not resume_run on an awaiting-recovery run.",
         "Prefer short replies. Load skills when you need domain detail; do not invent robot HTTP calls.",
+        "Paths are workspace-relative (never prefix with ../). Example: local/protocol/01_dual_well_buffer_load.py.",
+        "To run a local protocol .py on the robot: call robot act run_protocol once with file_path "
+        "(upload+create+play). Do not loop upload_protocol / create_run / doctor_local_runtime / health_check "
+        "with alternate path spellings.",
     ]
     return "\n".join(lines)
 
@@ -721,6 +726,13 @@ def run_turn(
                 reason_txt = "; ".join(reasons) or "gated action"
                 approved = confirm(f"Allow {name}({json.dumps(args, ensure_ascii=False)})? {reason_txt}")
                 if approved:
+                    # Remember this act label so slight arg retries do not re-prompt.
+                    if name == "robot":
+                        from labscriptai.agent.gate import resolve_robot_act_label
+
+                        label = resolve_robot_act_label(args)
+                        if label:
+                            session.preauthorized.add(label)
                     result = _execute_allowed_tool(
                         name, args, session=session, interactive=interactive
                     )

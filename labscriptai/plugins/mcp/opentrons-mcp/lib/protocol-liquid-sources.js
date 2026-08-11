@@ -34,37 +34,89 @@ export function parseProtocolDeckLabware(protocolSource = "") {
  */
 export function parseProtocolLiquidSourceMap(protocolSource = "") {
   const source = String(protocolSource || "");
-  const sectionMatch = source.match(
-    /Liquid source map[^:\n]*:([\s\S]*?)(?:\n\n|\n"""|\nfrom\s|\nimport\s|$)/i,
-  );
-  if (!sectionMatch) {
-    return { entries: [], deck_labware: parseProtocolDeckLabware(source) };
-  }
-
   const deckLabware = parseProtocolDeckLabware(source);
-  const entries = [];
-  for (const line of sectionMatch[1].split("\n")) {
-    const match = line.match(/^\s*([A-D]\d+)\.([A-H](?:1[0-2]|[1-9]))\s+(.+?)\s*$/i);
-    if (!match) {
-      continue;
+  const byKey = new Map();
+
+  function upsertEntry({ slotName, wellName, description, notes = null }) {
+    const key = `${slotName}.${wellName}`;
+    if (byKey.has(key)) {
+      return;
     }
-    const slotName = normalizeUpper(match[1]);
-    const wellName = normalizeUpper(match[2]);
-    const description = match[3].trim();
-    entries.push({
+    byKey.set(key, {
       slot_name: slotName,
       well_name: wellName,
-      key: `${slotName}.${wellName}`,
+      key,
       liquid_name: normalizeLiquidName(description),
       expected_presence: true,
       trust_level: "declared",
       role: "source",
-      notes: description,
+      notes: notes || description,
       labware_load_name: deckLabware[slotName] || null,
     });
   }
 
-  return { entries, deck_labware: deckLabware };
+  const sectionMatch = source.match(
+    /Liquid source map[^:\n]*:([\s\S]*?)(?:\n\n|\n"""|\nfrom\s|\nimport\s|$)/i,
+  );
+  if (sectionMatch) {
+    for (const line of sectionMatch[1].split("\n")) {
+      const match = line.match(/^\s*([A-D]\d+)\.([A-H](?:1[0-2]|[1-9]))\s+(.+?)\s*$/i);
+      if (!match) {
+        continue;
+      }
+      upsertEntry({
+        slotName: normalizeUpper(match[1]),
+        wellName: normalizeUpper(match[2]),
+        description: match[3].trim(),
+      });
+    }
+  }
+
+  // Bench protocols often only declare reserve in comments / assignments, e.g.:
+  //   protocol.comment("Reserve same-identity stock available at C2.A2")
+  //   primary = reservoir["A1"]; reserve = reservoir["A2"]
+  for (const match of source.matchAll(
+    /Reserve[^\n"']{0,80}?([A-D]\d+)\.([A-H](?:1[0-2]|[1-9]))/gi,
+  )) {
+    upsertEntry({
+      slotName: normalizeUpper(match[1]),
+      wellName: normalizeUpper(match[2]),
+      description: "reserve Assay Buffer (same identity)",
+      notes: match[0].trim(),
+    });
+  }
+  for (const match of source.matchAll(
+    /(?:primary|Assay Buffer primary)[^\n"']{0,40}?([A-D]\d+)\.([A-H](?:1[0-2]|[1-9]))/gi,
+  )) {
+    upsertEntry({
+      slotName: normalizeUpper(match[1]),
+      wellName: normalizeUpper(match[2]),
+      description: "primary Assay Buffer",
+      notes: match[0].trim(),
+    });
+  }
+  const primaryAssign = source.match(/primary\s*=\s*reservoir\s*\[\s*["']([A-H]\d+)["']\s*\]/i);
+  const reserveAssign = source.match(/reserve\s*=\s*reservoir\s*\[\s*["']([A-H]\d+)["']\s*\]/i);
+  const reservoirSlotMatch = source.match(
+    /reservoir\s*=\s*protocol\.load_labware\(\s*["'][^"']+["']\s*,\s*["']([A-D]\d+)["']/i,
+  );
+  const reservoirSlot = reservoirSlotMatch ? normalizeUpper(reservoirSlotMatch[1]) : "C2";
+  if (primaryAssign) {
+    upsertEntry({
+      slotName: reservoirSlot,
+      wellName: normalizeUpper(primaryAssign[1]),
+      description: "primary Assay Buffer",
+    });
+  }
+  if (reserveAssign) {
+    upsertEntry({
+      slotName: reservoirSlot,
+      wellName: normalizeUpper(reserveAssign[1]),
+      description: "reserve Assay Buffer (same identity)",
+    });
+  }
+
+  return { entries: [...byKey.values()], deck_labware: deckLabware };
 }
 
 /**
