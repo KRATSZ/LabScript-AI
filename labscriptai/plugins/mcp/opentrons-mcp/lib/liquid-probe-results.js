@@ -6,8 +6,24 @@ export function inferSlotFromProtocolPath(protocolPath) {
   return match ? match[1].toUpperCase() : null;
 }
 
-export function inferLabwareFromProtocolPath(protocolPath) {
+/**
+ * Infer load_name from a protocol file.
+ * When slotName is set, prefer the labware loaded on that slot (avoids tiprack-first bench protocols).
+ */
+export function inferLabwareFromProtocolPath(protocolPath, { slotName = null } = {}) {
   const text = protocolPath && fs.existsSync(protocolPath) ? fs.readFileSync(protocolPath, "utf8") : "";
+  if (!text) {
+    return null;
+  }
+  const slot = slotName ? String(slotName).trim().toUpperCase() : null;
+  if (slot) {
+    const slotMatch = text.match(
+      new RegExp(`load_labware\\(\\s*["']([^"']+)["']\\s*,\\s*["']${slot}["']`, "i"),
+    );
+    if (slotMatch) {
+      return slotMatch[1];
+    }
+  }
   const match = text.match(/protocol\.load_labware\(["']([^"']+)["'],\s*["'][A-D][1-4]["']/i);
   return match ? match[1] : null;
 }
@@ -49,7 +65,9 @@ export function resolveProbeContext({
   }
 
   const resolvedLabwareLoadName =
-    labwareLoadName || inferLabwareFromProtocolPath(protocolPath) || null;
+    labwareLoadName ||
+    inferLabwareFromProtocolPath(protocolPath, { slotName: resolvedSlotName }) ||
+    null;
   const resolvedRunId = runId || artifact?.run_id || artifact?.run_protocol?.runId || null;
   const resolvedMode = mode || artifact?.mode || resolvedProbeResults[0]?.mode || "detect_presence";
 

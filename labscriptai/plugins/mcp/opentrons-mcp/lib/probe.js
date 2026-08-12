@@ -363,6 +363,29 @@ export function lookupLabwareGeometry(labware_load_name) {
   return { ...geometry };
 }
 
+/**
+ * Default liquid_tracking role for known bench labware.
+ * Destination plates are writeback-only (no volume stop-gate).
+ */
+export function defaultLiquidRoleForLabware(labware_load_name) {
+  const key = String(labware_load_name || "")
+    .trim()
+    .toLowerCase();
+  if (!key) {
+    return null;
+  }
+  if (key.includes("tiprack") || key.includes("tip_rack")) {
+    return null;
+  }
+  if (key.includes("wellplate") || key.includes("well_plate")) {
+    return "destination";
+  }
+  if (key.includes("reservoir")) {
+    return "source";
+  }
+  return null;
+}
+
 export function heightMmToVolumeUl({ height_mm, labware_load_name, well_name, geometry }) {
   void well_name;
 

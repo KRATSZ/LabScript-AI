@@ -41,7 +41,7 @@ See `index.js` for the authoritative tool list and schemas.
 | `deck_vision_check` | **beta** | Preflight orchestration: capture → YOLO → conditional Ark VLM. |
 | `list_critical_probe_targets` | **stable** | Read-only critical well list for Phase 3c LPD probing. |
 | `probe_wells` | **stable (opt-in live)** | Default simulate-only; live motion requires `OPENTRONS_ENABLE_PROBE_WELLS=1` and operator sign-off ([`../../docs/runbooks/probe-wells-live-validation.md`](../../docs/runbooks/probe-wells-live-validation.md)). |
-| `apply_liquid_probe_results` | **stable** | Bookkeeping only; writes `observed_presence` / `observed_height_mm` from probe results. |
+| `apply_liquid_probe_results` | **stable** | Bookkeeping only; writes `observed_presence` / `observed_height_mm` / estimated `volume_ul` (height→volume for `nest_12_reservoir_15ml` and destination `nest_96_wellplate_200ul_flat`). No destination volume stop-gate. |
 
 ## Operator runbooks (this repo)
 

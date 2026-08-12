@@ -304,6 +304,20 @@ function callHeightMmToVolumeUl(args = {}) {
   return fn(args);
 }
 
+function resolveProbeWritebackRole({ existingRole = null, labwareLoadName = null, explicitRole = null } = {}) {
+  if (explicitRole) {
+    return explicitRole;
+  }
+  if (existingRole && existingRole !== "unknown") {
+    return existingRole;
+  }
+  const inferred =
+    typeof probeLib.defaultLiquidRoleForLabware === "function"
+      ? probeLib.defaultLiquidRoleForLabware(labwareLoadName)
+      : null;
+  return inferred || existingRole || "source";
+}
+
 async function writeObservedProbeResults({ sessionId, context, sources }) {
   const appliedSources = [];
   const blockedSources = [];
@@ -329,11 +343,13 @@ async function writeObservedProbeResults({ sessionId, context, sources }) {
       continue;
     }
 
+    const labwareLoadName =
+      source.labware_load_name || existing.labware_load_name || context.labwareLoadName || null;
     let volumeUl = null;
     if (source.observed_height_mm !== null && source.observed_height_mm !== undefined) {
       const conversion = callHeightMmToVolumeUl({
         height_mm: source.observed_height_mm,
-        labware_load_name: source.labware_load_name || existing.labware_load_name || context.labwareLoadName || null,
+        labware_load_name: labwareLoadName,
         well_name: wellName,
       });
       if (conversion) {
@@ -345,7 +361,7 @@ async function writeObservedProbeResults({ sessionId, context, sources }) {
       setLiquidContainerState(sessionState, {
         slot_name: slotName,
         well_name: wellName,
-        labware_load_name: source.labware_load_name || existing.labware_load_name || context.labwareLoadName || null,
+        labware_load_name: labwareLoadName,
         volume_ul: volumeUl,
         observed_presence: source.observed_presence ?? null,
         observed_height_mm: source.observed_height_mm ?? null,
@@ -355,7 +371,11 @@ async function writeObservedProbeResults({ sessionId, context, sources }) {
         observed_at: source.observed_at || new Date().toISOString(),
         observed_run_id: source.observed_run_id || context.runId || null,
         notes: source.notes || null,
-        role: existing.role || "source",
+        role: resolveProbeWritebackRole({
+          existingRole: existing.role,
+          labwareLoadName,
+          explicitRole: source.role || null,
+        }),
         why: "apply_liquid_probe_results",
       });
       return sessionState;
@@ -6256,6 +6276,9 @@ const TOOL_HANDLERS = {
     let volumeUl = null;
     let method = "presence_only";
     let observedPresence = args.observed_presence;
+    const labwareLoadName = args.labware_load_name || existing.labware_load_name || null;
+    const observedHeightMm =
+      args.height_mm !== undefined && args.height_mm !== null ? Number(args.height_mm) : null;
 
     if (args.actual_volume_ul !== undefined && args.actual_volume_ul !== null) {
       volumeUl = Number(args.actual_volume_ul);
@@ -6263,10 +6286,10 @@ const TOOL_HANDLERS = {
     } else if (args.height_mm !== undefined && args.height_mm !== null) {
       const conversion = callHeightMmToVolumeUl({
         height_mm: args.height_mm,
-        labware_load_name: args.labware_load_name || existing.labware_load_name || null,
+        labware_load_name: labwareLoadName,
         well_name: wellName,
       });
-      if (!conversion) {
+      if (!conversion || conversion.volume_ul === null || conversion.volume_ul === undefined) {
         throw new Error(
           "apply_liquid_probe_results received height_mm but heightMmToVolumeUl is unavailable or could not convert.",
         );
@@ -6311,14 +6334,19 @@ const TOOL_HANDLERS = {
       setLiquidContainerState(sessionState, {
         slot_name: slotName,
         well_name: wellName,
-        labware_load_name: args.labware_load_name || existing.labware_load_name || null,
+        labware_load_name: labwareLoadName,
         volume_ul: volumeUl,
         observed_presence: observedPresence ?? null,
+        observed_height_mm: Number.isFinite(observedHeightMm) ? observedHeightMm : existing.observed_height_mm ?? null,
         trust_level: "observed",
         observed_source: "live_probe",
         observed_at: observedAt,
         observed_run_id: runId,
-        role: existing.role || "source",
+        role: resolveProbeWritebackRole({
+          existingRole: existing.role,
+          labwareLoadName,
+          explicitRole: args.role || null,
+        }),
         why: "apply_liquid_probe_results",
       });
       return sessionState;
