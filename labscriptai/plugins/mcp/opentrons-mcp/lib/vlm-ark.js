@@ -7,6 +7,7 @@ import {
 } from "./siliconflow.js";
 
 const DEFAULT_ARK_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
+// Default Ark endpoint for Seed 2.0 Pro (Volcengine Ark Responses API).
 const DEFAULT_ARK_MODEL_ENDPOINT = "ep-20260716144817-n6rgn";
 const DEFAULT_ARK_MAX_OUTPUT_TOKENS = 4096;
 

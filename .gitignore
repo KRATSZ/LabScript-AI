@@ -7,6 +7,8 @@ __pycache__/
 .env.*
 !.env.example
 .DS_Store
+.codegraph/
+*.rar
 
 # Local bulk / eval leftovers (stripped from manuscript; do not re-add)
 /src/
@@ -38,6 +40,8 @@ node_modules/
 # Lean agent packaging
 labscriptai/**/node_modules/
 labscriptai/**/*.egg-info/
+labscriptai/plugins/mcp/.plugin-data/
+labscriptai/plugins/mcp/opentrons-mcp/artifacts/
 labscriptai/.pytest_cache/
 labscriptai/qa_artifacts/
 labscriptai/dist/

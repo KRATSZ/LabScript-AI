@@ -1,3 +1,5 @@
+import { buildProbeAttachedPressureLines } from "./pressure-protocol.js";
+
 function unwrapData(payload) {
   if (payload && typeof payload === "object" && "data" in payload) {
     return payload.data;
@@ -56,6 +58,9 @@ export function buildProbeWellsProtocol({
   liquidPresenceDetection = true,
   trashSlot = null,
   startingTip = null,
+  recordPressure = false,
+  pressureSampleIntervalMs = 150,
+  pressureSampleCount = 3,
 } = {}) {
   const normalizedWells = wells.map(well => String(well).toUpperCase());
   const usedSlots = new Set([tiprackSlot, labwareSlot].filter(Boolean).map(slot => String(slot).toUpperCase()));
@@ -77,11 +82,26 @@ export function buildProbeWellsProtocol({
       "            probe_success = True",
       "            probe_value = pipette.measure_liquid_height(target_well)",
     ],
+    // Deprecated alias: prefer MCP run_pressure_trace. Still emits PRESSURE_CSV_B64.
+    record_pressure_trace: [
+      "            pipette.move_to(target_well.top())",
+      "            probe_success = True",
+      "            probe_value = None",
+    ],
   };
   const probeLines = probeLinesByMode[mode];
   if (!probeLines) {
     throw new Error(`Unsupported probe mode: ${mode}`);
   }
+
+  const shouldRecordPressure = mode === "record_pressure_trace" || recordPressure === true;
+  const pressureLines = shouldRecordPressure
+    ? buildProbeAttachedPressureLines({
+        mount,
+        sampleCount: pressureSampleCount,
+        sampleIntervalS: Math.max(0.05, Number(pressureSampleIntervalMs) / 1000),
+      })
+    : [];
 
   return [
     "from opentrons import protocol_api",
@@ -110,12 +130,14 @@ export function buildProbeWellsProtocol({
     "        probe_value = None",
     "        try:",
     ...probeLines,
+    ...pressureLines,
     "            protocol.comment(",
     '                "PROBE_RESULT:" + json.dumps({',
     '                    "well": well_name,',
     '                    "mode": probe_mode,',
     '                    "success": probe_success,',
     '                    "value": probe_value,',
+    ...(shouldRecordPressure ? ['                    "pressure_trace_advisory": True,'] : []),
     "                })",
     "            )",
     "        finally:",

@@ -77,9 +77,23 @@ SAFE_ACTION_TYPES: frozenset[str] = frozenset(
         "drop_attached_tip",
         "probe_wells",
         "apply_liquid_probe_results",
+        # Advisory-only pressure evidence (no resume authority).
+        "run_pressure_trace",
+        "fetch_pressure_trace",
+        "analyze_pressure_trace",
         "control_run",
         "robot_status",
         "capture_preview_image",
+    }
+)
+
+# Author-context robot(op=act): local simulate / advisory pressure only (no live motion).
+AUTHOR_SAFE_ACTS: frozenset[str] = frozenset(
+    {
+        "simulate_protocol",
+        "run_pressure_trace",
+        "fetch_pressure_trace",
+        "analyze_pressure_trace",
     }
 )
 
@@ -689,14 +703,26 @@ def _eval_robot(
         )
 
     # op=act
+    action_label = resolve_robot_act_label(args)
     if context == "author":
+        author_ok = False
+        if action_label:
+            for candidate in (action_label, *robot_act_allow_candidates(action_label)):
+                if candidate in AUTHOR_SAFE_ACTS:
+                    author_ok = True
+                    break
+        if author_ok:
+            return GateDecision(
+                status="allow",
+                reasons=[f"robot act allowed in author context: {action_label}"],
+                context=context,
+            )
         return GateDecision(
             status="suspend",
             reasons=["robot act suspended in author context (no robot / no active run)"],
             context=context,
         )
 
-    action_label = resolve_robot_act_label(args)
     if not action_label:
         return GateDecision(
             status="ask",
@@ -786,6 +812,7 @@ def _eval_robot(
 
 __all__ = (
     "ASPIRATE_OR_PROBE_ACTIONS",
+    "AUTHOR_SAFE_ACTS",
     "DEFAULT_RECOVERY_PREAUTHORIZED",
     "POLLUTION_WELL_ROLES",
     "RESUME_BLOCKED_RUN_STATUSES",

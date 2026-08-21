@@ -64,9 +64,13 @@ def resolve_workspace_paths(
 def build_bootstrap_code(module_name: str, use_source_layout: bool) -> str:
     if use_source_layout:
         return f"""
+import asyncio
 import runpy
 import sys
 import types
+
+if not hasattr(asyncio, "get_child_watcher"):
+    asyncio.get_child_watcher = lambda: None
 
 api_src = sys.argv[1]
 shared_data_python = sys.argv[2]
@@ -84,8 +88,12 @@ runpy.run_module("{module_name}", run_name="__main__")
 """.strip()
 
     return f"""
+import asyncio
 import runpy
 import sys
+
+if not hasattr(asyncio, "get_child_watcher"):
+    asyncio.get_child_watcher = lambda: None
 
 forwarded_argv = sys.argv[1:]
 sys.argv = ["{module_name}"] + forwarded_argv
@@ -339,6 +347,90 @@ def handle_simulate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_analyze_payload(json_output: Path) -> dict[str, Any] | None:
+    if not json_output.is_file():
+        return None
+    try:
+        loaded = json.loads(json_output.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return loaded if isinstance(loaded, dict) else None
+
+
+def handle_analyze(args: argparse.Namespace) -> int:
+    """Run ``opentrons.cli analyze --json-output`` (SimPass errors + LogicPass commands)."""
+
+    paths = resolve_workspace_paths(
+        workspace_root=Path(args.workspace_root).resolve() if args.workspace_root else None,
+        api_root=Path(args.api_root).resolve() if args.api_root else None,
+        shared_data_root=Path(args.shared_data_root).resolve()
+        if args.shared_data_root
+        else None,
+    )
+    python_executable = choose_python(args.python)
+    probe = probe_module(python_executable, paths, "opentrons.cli")
+    protocol_path = str(Path(args.protocol).resolve())
+    json_output = Path(args.json_output).resolve()
+    json_output.parent.mkdir(parents=True, exist_ok=True)
+
+    if not probe.get("ok"):
+        print(
+            json.dumps(
+                {
+                    **build_result(
+                        ok=False,
+                        python_executable=python_executable,
+                        module_name="opentrons.cli",
+                        paths=paths,
+                        protocol=protocol_path,
+                        exit_code=None,
+                        stdout="",
+                        stderr="",
+                        error=probe,
+                    ),
+                    "json_output": str(json_output),
+                    "errors": [],
+                    "commands": [],
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
+
+    extra = [item for item in args.extra_args if item != "--"]
+    completed = run_module(
+        python_executable,
+        paths,
+        "opentrons.cli",
+        ["analyze", "--json-output", str(json_output), protocol_path, *extra],
+    )
+    payload = _load_analyze_payload(json_output)
+    errors = payload.get("errors") if isinstance(payload, dict) else None
+    commands = payload.get("commands") if isinstance(payload, dict) else None
+    print(
+        json.dumps(
+            {
+                **build_result(
+                    ok=completed.returncode == 0 and json_output.is_file(),
+                    python_executable=python_executable,
+                    module_name="opentrons.cli",
+                    paths=paths,
+                    protocol=protocol_path,
+                    exit_code=completed.returncode,
+                    stdout=completed.stdout,
+                    stderr=completed.stderr,
+                    error=None,
+                ),
+                "json_output": str(json_output),
+                "errors": errors if isinstance(errors, list) else [],
+                "commands": commands if isinstance(commands, list) else [],
+            },
+            ensure_ascii=False,
+        )
+    )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Structured local Opentrons simulation helper"
@@ -364,6 +456,28 @@ def build_parser() -> argparse.ArgumentParser:
         help="Arguments passed through to simulate. Use '--' before them.",
     )
     simulate.set_defaults(handler=handle_simulate)
+
+    analyze = subparsers.add_parser(
+        "analyze",
+        help="Run python -m opentrons.cli analyze --json-output (SimPass errors[] + LogicPass commands[])",
+    )
+    analyze.add_argument("protocol", help="Path to a protocol file")
+    analyze.add_argument(
+        "--json-output",
+        required=True,
+        help="Path to write analyze --json-output (errors[] + commands[])",
+    )
+    analyze.add_argument("--workspace-root", help="Workspace root containing opentrons/")
+    analyze.add_argument("--api-root", help="Override path to opentrons/api")
+    analyze.add_argument("--shared-data-root", help="Override path to opentrons/shared-data")
+    analyze.add_argument("--python", help="Python interpreter to use")
+    analyze.add_argument(
+        "extra_args",
+        nargs="*",
+        default=[],
+        help="Arguments passed through to analyze after the protocol path.",
+    )
+    analyze.set_defaults(handler=handle_analyze)
 
     return parser
 

@@ -53,6 +53,9 @@ const CHANNEL_TOOLS = Object.freeze({
     "list_critical_probe_targets",
     "probe_wells",
     "apply_liquid_probe_results",
+    "run_pressure_trace",
+    "fetch_pressure_trace",
+    "analyze_pressure_trace",
     "get_liquid_source_map",
   ],
   tip: ["recover_tip_pickup", "suggest_next_tip_well", "list_tip_candidates"],
@@ -130,7 +133,7 @@ export function buildRecoveryRoutingGuidance({
           : channel === "reconcile"
             ? "会话/状态不一致时先 reconcile_state，不要先开相机或 VLM。"
             : channel === "probe"
-              ? "液体空/气泡等问题用 targeted probe_wells，不用 VLM。"
+              ? "液体空/气泡等问题用 targeted probe_wells；压力轨迹 fetch/analyze 仅作 advisory 旁证，不可替代 Gatekeeper。"
               : channel === "tip"
                 ? "缺 tip 走 tip 恢复分支。"
                 : channel === "slot_confirm"

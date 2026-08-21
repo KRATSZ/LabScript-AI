@@ -1,0 +1,86 @@
+{
+  "createdAt": "2026-08-17T00:00:00.000000+00:00",
+  "config": {
+    "apiLevel": "2.22",
+    "robotType": "OT-3 Standard"
+  },
+  "metadata": {
+    "protocolName": "logicpass leftover mix parent plus transfer leaves"
+  },
+  "commands": [
+    {
+      "id": "cmd-load-pipette",
+      "commandType": "loadPipette",
+      "status": "succeeded",
+      "params": {
+        "pipetteName": "flex_1channel_1000",
+        "mount": "left"
+      }
+    },
+    {
+      "id": "cmd-load-liquid",
+      "commandType": "loadLiquid",
+      "status": "succeeded",
+      "params": {
+        "liquidId": "liquid-water",
+        "labwareId": "labware-res",
+        "volumeByWell": {"A1": 3000.0}
+      }
+    },
+    {
+      "id": "cmd-pickup",
+      "commandType": "pickUpTip",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-tips",
+        "wellName": "A1"
+      }
+    },
+    {
+      "id": "cmd-mix",
+      "commandType": "mix",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-res",
+        "wellName": "A1",
+        "volume": 20.0,
+        "repetitions": 3
+      }
+    },
+    {
+      "id": "cmd-aspirate",
+      "commandType": "aspirate",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-res",
+        "wellName": "A1",
+        "volume": 50.0,
+        "flowRate": 716.0
+      }
+    },
+    {
+      "id": "cmd-dispense",
+      "commandType": "dispense",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-plate",
+        "wellName": "B1",
+        "volume": 50.0,
+        "flowRate": 716.0
+      }
+    },
+    {
+      "id": "cmd-drop",
+      "commandType": "dropTipInPlace",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left"
+      }
+    }
+  ],
+  "errors": []
+}

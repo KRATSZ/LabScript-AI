@@ -1,43 +1,5 @@
-# Authoring guide (skill)
+# Authoring (Flex)
 
-Lean checklist for writing / repairing Opentrons Python protocols (API 2.x, Flex-first).
+edit a `.py`. apiLevel only in `requirements` (robotType Flex, 2.20). `load_waste_chute()` occupies D3 (no labware there). `load_instrument(..., tip_racks=[tips])`. Pipettes: `flex_1channel_50` or `flex_1channel_1000` (no 200; >50 µL → 1000). Modules: `temperatureModuleV2`, `magneticBlockV1`.
 
-## Draft order
-
-1. Clarify only blockers: robot model, modules in use, tip strategy, critical volumes.
-2. Deck from truth — never invent slots; prefer reconciled / physical layout.
-3. Load only modules you will use.
-4. Tip budget: estimate before long transfer loops; leave spare tips for recovery.
-5. Trash / chute configured for the robot (Flex waste chute vs OT-2 trash).
-
-## Validate before live
-
-```
-doctor_local_runtime → simulate_protocol → parse_simulation_output
-```
-
-On failure: edit → re-simulate. Do not play until sim is clean (unless operator explicitly accepts a diagnostic-only path).
-
-Pre-sim helpers when useful: validate labware names, inspect geometry/dead volume, estimate tip budget.
-
-## Common failure classes → fix in protocol
-
-| Leaf | Typical fix |
-|------|-------------|
-| `SYNTAX_OR_IMPORT` / `API_MISUSE` | Fix imports / API calls |
-| `LABWARE_OR_MODULE_COMPAT` | Correct load names / module pairing |
-| `MISSING_TRASH_OR_SETUP` | Add trash/chute / required labware |
-| `VOLUME_OR_RANGE_VIOLATION` | Clamp volumes to pipette + tip limits |
-| `OUT_OF_TIPS` (sim) | Add tipracks or reduce tip uses |
-
-## Runtime vs edit
-
-If `suggest_recovery` says `protocol_edit_required`, stop live recovery and return to this loop. Hardware awaiting-recovery with `auto_executable` branches → use `recovery-playbooks`, not protocol rewrite.
-
-After **liquid source substitution validation** succeeds, prefer `generate_liquid_source_substitution_rerun_protocol` or `primary_well` run-time parameters before hand-editing the protocol.
-
-## Style
-
-- Prefer clear well iterators over magic indices.
-- Keep liquid classes / flow rates conservative unless SOP demands otherwise.
-- Record assumptions (deck map, stock volumes) in protocol comments or memory notes.
+checks.sim.ok false → keep editing. No play unless asked live. No invented HTTP.

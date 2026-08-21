@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from labscriptai.agent.gate import (
+    ASPIRATE_OR_PROBE_ACTIONS,
     RESUME_BLOCKED_RUN_STATUSES,
     ROBOT_ACT_ALIASES,
     SAFE_ACTION_TYPES,
@@ -636,4 +637,49 @@ def test_case08_after_sample_probe_blocks_stock() -> None:
         well_roles={"C2.A1": "common_stock", "D2.A1": "sample"},
     )
     assert d.status == "suspend"
+
+
+def test_pressure_trace_tools_are_safe_advisory_acts() -> None:
+    """fetch/analyze/run pressure are allowlisted read-only acts; they do not unlock resume."""
+    for action in ("run_pressure_trace", "fetch_pressure_trace", "analyze_pressure_trace"):
+        d = evaluate(
+            "robot",
+            {"op": "act", "action_type": action},
+            context="run",
+            interactive=True,
+        )
+        assert d.status == "allow", action
+        assert action in SAFE_ACTION_TYPES
+    # Pressure tools must not be treated as aspirate/probe contamination actions.
+    assert "fetch_pressure_trace" not in ASPIRATE_OR_PROBE_ACTIONS
+    assert "analyze_pressure_trace" not in ASPIRATE_OR_PROBE_ACTIONS
+    assert "run_pressure_trace" not in ASPIRATE_OR_PROBE_ACTIONS
+
+
+def test_analyze_pressure_trace_does_not_unlock_resume_on_awaiting_recovery() -> None:
+    """Advisory pressure allow in run context must not weaken resume/play suspend."""
+    d_pressure = evaluate(
+        "robot",
+        {"op": "act", "action_type": "analyze_pressure_trace"},
+        context="run",
+        interactive=True,
+        active_run_status="awaiting-recovery",
+    )
+    assert d_pressure.status == "allow"
+    d_resume = evaluate(
+        "robot",
+        {"op": "act", "action": "resume_run", "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="awaiting-recovery",
+    )
+    assert d_resume.status == "suspend"
+    d_play = evaluate(
+        "robot",
+        {"op": "act", "action": "control_run", "args": {"action": "play"}, "run_id": "abc"},
+        context="run",
+        interactive=True,
+        active_run_status="awaiting-recovery",
+    )
+    assert d_play.status == "suspend"
 

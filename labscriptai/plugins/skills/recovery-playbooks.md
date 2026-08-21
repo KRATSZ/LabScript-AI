@@ -122,3 +122,7 @@ Common: `run_id`, `robot_ip`, `recovery_branch`, `session_id`, `failed_source_ke
 
 Or set `action` to `recover_liquid_source_substitution` or `recover_tip_pickup`.
 
+## Pressure evidence (advisory)
+
+Clogged aspirate / need pressure: `robot(op=act, action_type=run_pressure_trace)` with `execute_on_robot` not true. Load the `pressure-trace` skill for presets. Never play/resume from pressure; live sampling needs `OPENTRONS_ENABLE_PRESSURE_TRACE=1`.
+

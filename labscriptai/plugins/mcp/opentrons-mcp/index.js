@@ -64,11 +64,18 @@ import {
 } from "./lib/execution.js";
 import {
   buildProtocolRunCreateBody,
+  fetchRobotLabwareOffsets,
   resolveRunLabwareOffsets,
 } from "./lib/labware-offsets.js";
 import { parseSimulationLog, runDoctorTool, runSimulationTool } from "./lib/simulation.js";
 import { buildProbeWellsProtocol, extractProbeResultsFromCommands } from "./lib/probe.js";
 import * as probeLib from "./lib/probe.js";
+import {
+  handleAnalyzePressureTrace,
+  handleFetchPressureTrace,
+  handleRunPressureTrace,
+} from "./lib/pressure-tools.js";
+import { listPublicTools, PUBLIC_LIST_TOOL_NAMES } from "./lib/tool-registry.js";
 import { applyLiquidProbeResults } from "./lib/liquid-probe-results.js";
 import {
   DEFAULT_SESSION_ID,
@@ -182,6 +189,7 @@ const __filename = fileURLToPath(import.meta.url);
 const DEFAULT_CAMERA_ARTIFACT_DIR = path.join(ARTIFACTS_DIR, "camera-captures");
 const DEFAULT_VISION_ANNOTATED_DIR = path.resolve(DEFAULT_CAMERA_ARTIFACT_DIR, "vision-annotated");
 const DEFAULT_PROBE_PROTOCOL_DIR = path.join(ARTIFACTS_DIR, "probe-protocols");
+const DEFAULT_LIQUID_SOURCE_IDENTITY_DIR = path.join(ARTIFACTS_DIR, "liquid-source-identity");
 const PROBE_STATE_WRITEBACK_MODES = new Set(["measure_height", "require_presence", "detect_presence"]);
 
 function resolvePendingProbeRunsDir() {
@@ -1471,7 +1479,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "analyze_image_with_ark",
     description:
-      "Analyze a local robot deck image with Volcengine Ark (Doubao VLM) using the Responses API. Observation-only; does not mutate session state. Default model endpoint from ARK_MODEL_ENDPOINT or ep-20260716144817-n6rgn; API key from ARK_API_KEY or automation/.env.",
+      "Analyze a local robot deck image with Volcengine Ark (Seed 2.0 Pro VLM) using the Responses API. Observation-only; does not mutate session state. Default model endpoint from ARK_MODEL_ENDPOINT or ep-20260716144817-n6rgn; API key from ARK_API_KEY or automation/.env.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1647,6 +1655,15 @@ const TOOL_DEFINITIONS = [
           type: "boolean",
           description: "If true, treat empty observed labware slots as errors during preflight.",
         },
+        offset_max_age_days: {
+          type: "number",
+          description: "Staleness threshold in days for stored labware offsets (default 30).",
+        },
+        strict_module_blockers: {
+          type: "boolean",
+          description:
+            "If true, module_blockers_present blocks play. Default false preserves published-number behaviour.",
+        },
         tiprack_slots: {
           type: "array",
           items: { type: "string" },
@@ -1702,6 +1719,14 @@ const TOOL_DEFINITIONS = [
           type: "array",
           items: { type: "string" },
         },
+        record_pressure: {
+          type: "boolean",
+          default: false,
+          description:
+            "When true, attach advisory PRESSURE_CSV_B64 samples after each well probe. Prefer run_pressure_trace for hover/z_trace.",
+        },
+        pressure_sample_count: { type: "integer", default: 3 },
+        pressure_sample_interval_ms: { type: "integer", default: 150 },
       },
       required: [
         "pipette_name",
@@ -1712,6 +1737,79 @@ const TOOL_DEFINITIONS = [
         "labware_slot",
         "wells",
       ],
+    },
+  },
+  {
+    name: "run_pressure_trace",
+    description:
+      "Advisory stem-pressure protocol (hover | z_trace | during_probe). Generates a protocol, simulates locally, and does not execute on the robot unless execute_on_robot=true and OPENTRONS_ENABLE_PRESSURE_TRACE=1. Observation-only; never authorizes resume/play.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL. Required only for live execution." },
+        preset: {
+          type: "string",
+          enum: ["hover", "z_trace", "during_probe"],
+          default: "hover",
+        },
+        pipette_name: { type: "string", default: "flex_1channel_1000" },
+        mount: { type: "string", enum: ["left", "right"], default: "left" },
+        tiprack_load_name: { type: "string", default: "opentrons_flex_96_tiprack_200ul" },
+        tiprack_slot: { type: "string", default: "C2" },
+        labware_load_name: { type: "string", default: "nest_96_wellplate_200ul_flat" },
+        labware_slot: { type: "string", default: "B3" },
+        trash_slot: { type: "string", default: "A3" },
+        well: { type: "string", default: "A1" },
+        starting_tip: { type: "string" },
+        hover_samples: { type: "integer", default: 5 },
+        hover_interval_s: { type: "number", default: 0.2 },
+        z_hover_mm: { type: "number", default: -2.0 },
+        z_step_mm: { type: "number", default: 0.4 },
+        z_max_mm: { type: "number", default: 8.0 },
+        execute_on_robot: { type: "boolean", default: false },
+        auto_fetch: { type: "boolean", default: false },
+        auto_analyze: { type: "boolean", default: false },
+        output_path: { type: "string" },
+        timeout_ms: { type: "integer", default: 1800000 },
+        poll_interval_ms: { type: "integer", default: 1000 },
+        session_id: { type: "string" },
+        workspace_root: { type: "string" },
+        python_executable: { type: "string" },
+      },
+    },
+  },
+  {
+    name: "fetch_pressure_trace",
+    description:
+      "Pull *pressure*.csv from /dataFiles and/or decode PRESSURE_CSV_B64 (last full CSV) from a run ledger. Observation-only; no resume authority.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        run_id: { type: "string" },
+        out_dir: { type: "string" },
+        limit: { type: "integer", default: 12 },
+        name_hint: { type: "string", default: "pressure" },
+        prefer: { type: "string", enum: ["both", "comments", "datafiles"], default: "both" },
+        python_executable: { type: "string" },
+      },
+      required: ["robot_ip"],
+    },
+  },
+  {
+    name: "analyze_pressure_trace",
+    description:
+      "Local advisory feature extraction on a pressure CSV (canonical columns or legacy t_ms,pressure_pa). Always observation_only; cannot authorize resume.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        csv_path: { type: "string" },
+        csv_text: { type: "string" },
+        samples: { type: "array", items: { type: "object" } },
+        moving_average_window: { type: "integer", default: 5 },
+        resample_ms: { type: "number" },
+        python_executable: { type: "string" },
+      },
     },
   },
   {
@@ -2404,6 +2502,16 @@ const TOOL_DEFINITIONS = [
           type: "string",
           description: "Optional current run id for context; forwarded to preflight when provided.",
         },
+        offset_max_age_days: {
+          type: "number",
+          description:
+            "Staleness threshold in days for stored labware offsets (default 30). Forwarded to preflight_run_setup.",
+        },
+        strict_module_blockers: {
+          type: "boolean",
+          description:
+            "If true, module_blockers_present becomes a blocking error. Default false preserves published-number behaviour.",
+        },
       },
       required: ["robot_ip"],
     },
@@ -2429,6 +2537,16 @@ const TOOL_DEFINITIONS = [
         strict_empty_labware_slots: {
           type: "boolean",
           description: "If true, treat empty observed slots as errors when the protocol declares labware there",
+        },
+        offset_max_age_days: {
+          type: "number",
+          description:
+            "Staleness threshold in days for stored labware offsets. Default 30 (DEFAULT_LABWARE_OFFSET_MAX_AGE_DAYS).",
+        },
+        strict_module_blockers: {
+          type: "boolean",
+          description:
+            "If true, promote module_blockers_present from warnings to errors (allowed_to_play=false). Default false: published runtime numbers used warning-only.",
         },
       },
       required: ["robot_ip", "file_path"],
@@ -3161,30 +3279,28 @@ function buildLiquidSourceMapGateCheck(sessionState = {}, requiredSources = [], 
 }
 
 function buildLiquidSourceIdentityOperatorGuidance(sessionId = DEFAULT_SESSION_ID) {
+  const draftMarkdownPath = path.join(DEFAULT_LIQUID_SOURCE_IDENTITY_DIR, "liquid-source-identity-draft.md");
+  const draftJsonPath = path.join(DEFAULT_LIQUID_SOURCE_IDENTITY_DIR, "liquid-source-identity-draft.json");
+  const draftTsvPath = path.join(DEFAULT_LIQUID_SOURCE_IDENTITY_DIR, "liquid-source-identity-draft.tsv");
+  const validationReportPath = path.join(
+    DEFAULT_LIQUID_SOURCE_IDENTITY_DIR,
+    "liquid-source-identity-md-validation-latest.json",
+  );
   return {
-    draft_markdown_path: "runs/self-recovery/artifacts/liquid-source-identity-draft.md",
-    draft_json_path: "runs/self-recovery/artifacts/liquid-source-identity-draft.json",
-    draft_tsv_path: "runs/self-recovery/artifacts/liquid-source-identity-draft.tsv",
-    validation_report_path: "runs/self-recovery/artifacts/liquid-source-identity-md-validation-latest.json",
-    generate_draft_command: [
-      "node scripts/summarize-liquid-source-map.mjs",
-      `--session-id ${sessionId}`,
-      "--out runs/self-recovery/artifacts/liquid-source-map-summary-with-md-latest.json",
-      "--template-json-out runs/self-recovery/artifacts/liquid-source-identity-draft.json",
-      "--template-tsv-out runs/self-recovery/artifacts/liquid-source-identity-draft.tsv",
-      "--template-md-out runs/self-recovery/artifacts/liquid-source-identity-draft.md",
-    ].join(" "),
-    validate_markdown_command: [
-      "node scripts/summarize-liquid-source-map.mjs",
-      `--session-id ${sessionId}`,
-      "--validate-template-md runs/self-recovery/artifacts/liquid-source-identity-draft.md",
-      "--report-out runs/self-recovery/artifacts/liquid-source-identity-md-validation-latest.json",
-    ].join(" "),
-    apply_markdown_command: [
-      "node scripts/summarize-liquid-source-map.mjs",
-      "--apply-template-md runs/self-recovery/artifacts/liquid-source-identity-draft.md",
-      "--report-out runs/self-recovery/artifacts/liquid-source-identity-md-apply-latest.json",
-    ].join(" "),
+    session_id: sessionId,
+    artifact_dir: DEFAULT_LIQUID_SOURCE_IDENTITY_DIR,
+    draft_markdown_path: draftMarkdownPath,
+    draft_json_path: draftJsonPath,
+    draft_tsv_path: draftTsvPath,
+    validation_report_path: validationReportPath,
+    next_tools: [
+      "record_liquid_source_map",
+      "get_liquid_source_map",
+      "live_liquid_recovery_gate",
+    ],
+    note:
+      "Use the MCP liquid-source tools to record and validate identity. " +
+      "No repository-local runs/ path or removed summarizer script is required.",
   };
 }
 
@@ -3869,7 +3985,7 @@ function buildLiveLiquidRecoveryGateResult({
         ? "Only targeted no-aspirate re-probe is allowed for source-map/live-observation mismatches."
         : null,
       warningCheckNames.includes("source_identity_metadata")
-        ? "Fill and validate runs/self-recovery/artifacts/liquid-source-identity-draft.md before semantic liquid recovery or source substitution."
+        ? "Fill and validate the liquid-source identity draft at operator_guidance.draft_markdown_path before semantic liquid recovery or source substitution."
         : null,
       failedCheckNames.includes("pending_probe_writeback")
         ? "Apply apply_liquid_probe_results for each pending probe well before repeating live liquid watcher/probe tests."
@@ -5419,6 +5535,15 @@ async function runPreflightRunSetup(args) {
     { includeCommands: false },
   );
 
+  let labwareOffsets = undefined;
+  let offsetFetchError = null;
+  try {
+    labwareOffsets = await fetchRobotLabwareOffsets(args.robot_ip);
+  } catch (error) {
+    offsetFetchError = error;
+    labwareOffsets = [];
+  }
+
   const preflight = buildPreflightRunSetupResult({
     filePath: args.file_path,
     sessionState,
@@ -5429,6 +5554,10 @@ async function runPreflightRunSetup(args) {
     runRecord: runContext.run || null,
     skipDeckDiff: Boolean(args.skip_deck_diff),
     strictEmptyLabwareSlots: Boolean(args.strict_empty_labware_slots),
+    labwareOffsets,
+    offsetMaxAgeDays: args.offset_max_age_days,
+    strictModuleBlockers: Boolean(args.strict_module_blockers),
+    offsetFetchError,
   });
 
   return {
@@ -5550,6 +5679,8 @@ async function executeLiveReadinessCheck(args) {
           file_path: args.file_path,
           session_id: sessionId,
           run_id: args.run_id,
+          offset_max_age_days: args.offset_max_age_days,
+          strict_module_blockers: args.strict_module_blockers,
         });
         preflight = preflightWrap.data;
       } catch (error) {
@@ -8062,6 +8193,8 @@ const TOOL_HANDLERS = {
           run_id: runId,
           skip_deck_diff: args.skip_preflight_deck_diff === true,
           strict_empty_labware_slots: args.strict_preflight_labware_slots === true,
+          offset_max_age_days: args.offset_max_age_days,
+          strict_module_blockers: args.strict_module_blockers,
         });
         preflightGate = preflightWrap.data;
         if (!preflightGate.ok) {
@@ -8197,6 +8330,9 @@ const TOOL_HANDLERS = {
       apiLevel: args.api_level || "2.24",
       liquidPresenceDetection: args.liquid_presence_detection ?? true,
       startingTip: args.starting_tip,
+      recordPressure: args.record_pressure === true,
+      pressureSampleCount: args.pressure_sample_count,
+      pressureSampleIntervalMs: args.pressure_sample_interval_ms,
     });
     fs.writeFileSync(outputPath, `${protocolText}\n`);
 
@@ -8351,6 +8487,20 @@ const TOOL_HANDLERS = {
       },
     });
     return result;
+  },
+
+  async run_pressure_trace(args) {
+    return handleRunPressureTrace(args, {
+      executeProtocol: payload => TOOL_HANDLERS.run_protocol(payload),
+    });
+  },
+
+  async fetch_pressure_trace(args) {
+    return handleFetchPressureTrace(args);
+  },
+
+  async analyze_pressure_trace(args) {
+    return handleAnalyzePressureTrace(args);
   },
 
   async create_run(args) {
@@ -9150,7 +9300,7 @@ class OpentronsLabMCP {
 
   setupTools() {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools: TOOL_DEFINITIONS,
+      tools: listPublicTools(TOOL_DEFINITIONS, TOOL_HANDLERS),
     }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async request => {
@@ -9178,7 +9328,7 @@ class OpentronsLabMCP {
 }
 
 const server = new OpentronsLabMCP();
-export { OpentronsLabMCP, TOOL_DEFINITIONS, TOOL_HANDLERS };
+export { OpentronsLabMCP, TOOL_DEFINITIONS, TOOL_HANDLERS, PUBLIC_LIST_TOOL_NAMES, listPublicTools };
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
   server.run().catch(error => {

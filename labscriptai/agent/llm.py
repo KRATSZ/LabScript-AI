@@ -34,19 +34,24 @@ class OpenAICompatibleConfig:
         default_model: str = "deepseek-v4-pro",
         default_max_tokens: int = 65536,
         require_key: bool = True,
+        fallback_prefix: str | None = None,
     ) -> OpenAICompatibleConfig:
         """Load config from env (default DeepSeek OpenAI-compatible).
 
         Loads ``cwd``, ``labscriptai/``, and repo-root ``.env`` without
-        overwriting existing env.
+        overwriting existing env. Author default remains ``deepseek-v4-pro``.
+        Reviewer: ``prefix=DEEPSEEK_REVIEW``, ``default_model=deepseek-v4-flash``.
         """
         _load_package_dotenv()
         api_key = os.environ.get(f"{prefix}_API_KEY", "")
+        if not api_key and fallback_prefix:
+            api_key = os.environ.get(f"{fallback_prefix}_API_KEY", "")
         if require_key and not api_key:
             raise RuntimeError(f"{prefix}_API_KEY is not set")
         max_tokens_raw = (
             os.environ.get("LABSCRIPTAI_MAX_TOKENS")
             or os.environ.get(f"{prefix}_MAX_TOKENS")
+            or (os.environ.get(f"{fallback_prefix}_MAX_TOKENS") if fallback_prefix else None)
             or str(default_max_tokens)
         )
         try:
@@ -55,13 +60,22 @@ class OpenAICompatibleConfig:
             max_tokens = default_max_tokens
         if max_tokens <= 0:
             max_tokens = default_max_tokens
+        base_url = os.environ.get(f"{prefix}_BASE_URL")
+        if not base_url and fallback_prefix:
+            base_url = os.environ.get(f"{fallback_prefix}_BASE_URL")
+        timeout_raw = os.environ.get(f"{prefix}_TIMEOUT_SEC")
+        if not timeout_raw and fallback_prefix:
+            timeout_raw = os.environ.get(f"{fallback_prefix}_TIMEOUT_SEC")
+        retries_raw = os.environ.get(f"{prefix}_TRANSPORT_RETRIES")
+        if not retries_raw and fallback_prefix:
+            retries_raw = os.environ.get(f"{fallback_prefix}_TRANSPORT_RETRIES")
         return cls(
-            base_url=os.environ.get(f"{prefix}_BASE_URL", default_base_url).rstrip("/"),
+            base_url=(base_url or default_base_url).rstrip("/"),
             api_key=api_key or "offline",
             model=os.environ.get(f"{prefix}_MODEL", default_model),
-            timeout_sec=int(os.environ.get(f"{prefix}_TIMEOUT_SEC", "90")),
+            timeout_sec=int(timeout_raw or "90"),
             max_tokens=max_tokens,
-            transport_retries=max(1, int(os.environ.get(f"{prefix}_TRANSPORT_RETRIES", "3"))),
+            transport_retries=max(1, int(retries_raw or "3")),
         )
 
 
@@ -282,7 +296,8 @@ def _parse_completion_message(response_payload: dict[str, Any]) -> dict[str, Any
         finish_reason = choices[0].get("finish_reason") if isinstance(choices[0], dict) else None
         raise ValueError(f"model response content is empty; finish_reason={finish_reason}")
 
-    # JSON-content / markdown-fence fallback → treat as structured final or plain text
+    # JSON in the reply is often a requirements dict or trailing blob — keep prose.
+    # Only honor structured envelopes: tool_calls, {final: ...}, or {message: str}.
     try:
         parsed = _load_first_json_object(content)
         if "tool_calls" in parsed and isinstance(parsed["tool_calls"], list):
@@ -292,9 +307,11 @@ def _parse_completion_message(response_payload: dict[str, Any]) -> dict[str, Any
             }
         if "final" in parsed:
             return parsed
-        return {"final": parsed}
+        if isinstance(parsed.get("message"), str) and parsed["message"].strip():
+            return {"final": parsed}
     except (JSONDecodeError, ValueError):
-        return {"final": {"message": content.strip(), "completed": False}}
+        pass
+    return {"final": {"message": content.strip(), "completed": False}}
 
 
 class OfflineClient:
@@ -341,11 +358,27 @@ def build_client(*, provider: str = "deepseek") -> OpenAICompatibleClient | Offl
     raise ValueError(f"unknown provider: {provider}")
 
 
+def build_review_client() -> OpenAICompatibleClient:
+    """Flash reviewer: ``DEEPSEEK_REVIEW_MODEL`` default ``deepseek-v4-flash``.
+
+    Key/base-url fall back to ``DEEPSEEK_API_KEY`` / ``DEEPSEEK_BASE_URL``.
+    Author default ``deepseek-v4-pro`` is unchanged.
+    """
+    config = OpenAICompatibleConfig.from_env(
+        prefix="DEEPSEEK_REVIEW",
+        default_model="deepseek-v4-flash",
+        fallback_prefix="DEEPSEEK",
+        require_key=True,
+    )
+    return OpenAICompatibleClient(config)
+
+
 __all__ = (
     "OfflineClient",
     "OpenAICompatibleClient",
     "OpenAICompatibleConfig",
     "build_client",
+    "build_review_client",
     "_load_dotenv_if_present",
     "_load_first_json_object",
     "_load_package_dotenv",

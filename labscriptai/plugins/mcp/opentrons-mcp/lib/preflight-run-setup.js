@@ -4,6 +4,10 @@ import path from "path";
 import { buildHomeSafetyResult, buildObservedDeckState } from "./decision.js";
 import { buildErrorTaxonomy, mapRobotBlockerToLeaf } from "./error-taxonomy.js";
 import {
+  checkDeclaredLabwareOffsetCoverage,
+  DEFAULT_LABWARE_OFFSET_MAX_AGE_DAYS,
+} from "./labware-offsets.js";
+import {
   compareDeclaredLoadsToObservedDeck,
   extractDeclaredProtocolLoads,
   extractRobotTypeFromProtocolSource,
@@ -24,6 +28,12 @@ function mapPreflightCodeToLeaf(code, item = {}) {
       return "SESSION_NEEDS_RECONCILIATION";
     case "module_blockers_present":
       return "MODULE_NOT_READY";
+    case "offset_missing":
+    case "offset_not_applied":
+    case "offset_slot_uncovered":
+    case "offset_stale":
+    case "offset_fetch_failed":
+      return "STALE_LABWARE_OFFSET";
     case "slot_not_addressable":
     case "slot_not_in_flex_model":
       return "SLOT_NOT_ADDRESSABLE";
@@ -85,6 +95,13 @@ function buildPreflightCheck(status, item = {}, { errorLeaf = null, evidenceSour
  * @param {object} [options.deckConfigurationPayload] - raw `/deck_configuration` JSON (same as `readRobotStatus().hardwareSnapshot.deck_configuration`)
  * @param {object} [options.modulesPayload] - raw `/modules` JSON (same as `readModuleStatus().hardwareSnapshot.modules`)
  * @param {object} [options.moduleStatusSnapshot] - `readModuleStatus().data` (module blockers / summaries)
+ * @param {Array|null} [options.labwareOffsets] - raw GET /labwareOffsets `data`. `undefined` skips the
+ *   offset-coverage check (unit tests / callers that do not have a snapshot). An array (even empty)
+ *   enables it. There is still no staleness check in `dedupeLabwareOffsets` itself.
+ * @param {number} [options.offsetMaxAgeDays=DEFAULT_LABWARE_OFFSET_MAX_AGE_DAYS]
+ * @param {boolean} [options.strictModuleBlockers=false] - opt-in: promote `module_blockers_present`
+ *   from warnings to errors so `allowed_to_play` becomes false. Default stays warning-only because
+ *   the already-published runtime numbers were produced under that behaviour.
  */
 export function buildPreflightRunSetupResult({
   filePath,
@@ -96,6 +113,10 @@ export function buildPreflightRunSetupResult({
   runRecord = null,
   skipDeckDiff = false,
   strictEmptyLabwareSlots = false,
+  labwareOffsets = undefined,
+  offsetMaxAgeDays = DEFAULT_LABWARE_OFFSET_MAX_AGE_DAYS,
+  strictModuleBlockers = false,
+  offsetFetchError = null,
 } = {}) {
   const warnings = [];
   const errors = [];
@@ -140,8 +161,15 @@ export function buildPreflightRunSetupResult({
       blockers: moduleBlockers,
       message: "One or more modules are not ready; verify this is acceptable for the protocol.",
     };
-    warnings.push(item);
-    warningChecks.push(buildPreflightCheck("warn", item, { evidenceSources: ["module_status"] }));
+    // Default: warning only so allowed_to_play stays true. Published runtime numbers
+    // were produced under this behaviour. strictModuleBlockers=true promotes to error.
+    if (strictModuleBlockers) {
+      errors.push(item);
+      blockingChecks.push(buildPreflightCheck("fail", item, { evidenceSources: ["module_status"] }));
+    } else {
+      warnings.push(item);
+      warningChecks.push(buildPreflightCheck("warn", item, { evidenceSources: ["module_status"] }));
+    }
   }
 
   const homeSafety = buildHomeSafetyResult({
@@ -209,6 +237,29 @@ export function buildPreflightRunSetupResult({
           blockingChecks.push(buildPreflightCheck("fail", e));
         }
       }
+    }
+  }
+
+  if (offsetFetchError) {
+    const item = {
+      code: "offset_fetch_failed",
+      message: `Could not fetch /labwareOffsets: ${offsetFetchError?.message || offsetFetchError}`,
+    };
+    errors.push(item);
+    blockingChecks.push(
+      buildPreflightCheck("fail", item, { evidenceSources: ["labware_offsets"] }),
+    );
+  } else if (Array.isArray(labwareOffsets) && declaredLoads.length > 0) {
+    const coverage = checkDeclaredLabwareOffsetCoverage({
+      declaredLoads,
+      storedOffsets: labwareOffsets,
+      maxAgeDays: offsetMaxAgeDays,
+    });
+    for (const e of coverage.errors || []) {
+      errors.push(e);
+      blockingChecks.push(
+        buildPreflightCheck("fail", e, { evidenceSources: ["protocol_source", "labware_offsets"] }),
+      );
     }
   }
 

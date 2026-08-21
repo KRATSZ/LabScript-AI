@@ -1,0 +1,131 @@
+{
+  "createdAt": "2026-07-21T00:00:00.000000+00:00",
+  "config": {
+    "apiLevel": "2.22",
+    "robotType": "OT-3 Standard"
+  },
+  "metadata": {
+    "protocolName": "logicpass static transfer min"
+  },
+  "commands": [
+    {
+      "id": "cmd-load-labware-tips",
+      "commandType": "loadLabware",
+      "status": "succeeded",
+      "params": {
+        "location": {"slotName": "A1"},
+        "loadName": "opentrons_flex_96_tiprack_1000ul",
+        "namespace": "opentrons",
+        "version": 1
+      }
+    },
+    {
+      "id": "cmd-load-labware-res",
+      "commandType": "loadLabware",
+      "status": "succeeded",
+      "params": {
+        "location": {"slotName": "D2"},
+        "loadName": "nest_1_reservoir_290ml",
+        "namespace": "opentrons",
+        "version": 1
+      }
+    },
+    {
+      "id": "cmd-load-pipette",
+      "commandType": "loadPipette",
+      "status": "succeeded",
+      "params": {
+        "pipetteName": "flex_1channel_1000",
+        "mount": "left"
+      }
+    },
+    {
+      "id": "cmd-home",
+      "commandType": "home",
+      "status": "succeeded",
+      "params": {}
+    },
+    {
+      "id": "cmd-load-liquid",
+      "commandType": "loadLiquid",
+      "status": "succeeded",
+      "params": {
+        "liquidId": "liquid-water",
+        "labwareId": "labware-res",
+        "volumeByWell": {"A1": 3000.0}
+      }
+    },
+    {
+      "id": "cmd-pickup",
+      "commandType": "pickUpTip",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-tips",
+        "wellName": "A1"
+      },
+      "result": {
+        "tipVolume": 1000.0,
+        "tipLength": 95.0,
+        "tipDiameter": 7.0
+      }
+    },
+    {
+      "id": "cmd-aspirate",
+      "commandType": "aspirate",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-res",
+        "wellName": "A1",
+        "volume": 50.0,
+        "flowRate": 716.0
+      }
+    },
+    {
+      "id": "cmd-dispense",
+      "commandType": "dispense",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "labwareId": "labware-plate",
+        "wellName": "B1",
+        "volume": 50.0,
+        "flowRate": 716.0
+      }
+    },
+    {
+      "id": "cmd-move-drop",
+      "commandType": "moveToAddressableAreaForDropTip",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left",
+        "addressableAreaName": "movableTrashA3"
+      }
+    },
+    {
+      "id": "cmd-drop",
+      "commandType": "dropTipInPlace",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-left"
+      }
+    }
+  ],
+  "liquids": [
+    {
+      "id": "liquid-water",
+      "displayName": "water",
+      "description": "",
+      "displayColor": "#0000FF"
+    }
+  ],
+  "labware": [
+    {"id": "labware-tips", "loadName": "opentrons_flex_96_tiprack_1000ul", "location": {"slotName": "A1"}},
+    {"id": "labware-res", "loadName": "nest_1_reservoir_290ml", "location": {"slotName": "D2"}},
+    {"id": "labware-plate", "loadName": "nest_96_wellplate_200ul_flat", "location": {"slotName": "C1"}}
+  ],
+  "pipettes": [
+    {"id": "pipette-left", "pipetteName": "flex_1channel_1000", "mount": "left"}
+  ]
+}

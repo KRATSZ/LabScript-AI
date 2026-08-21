@@ -640,6 +640,7 @@ async function runLiquidSensing(context) {
       tiprack_slot: tiprackSlot,
       well,
       mode: "measure_height",
+      record_pressure: true,
     },
   };
   context.runtimeState.action = selectedAction;
@@ -691,18 +692,33 @@ async function runLiquidSensing(context) {
       labware_slot: labwareSlot,
       wells: [well],
       mode: "measure_height",
+      record_pressure: true,
       execute_on_robot: true,
       session_id: context.sessionId || "lab-runtime-demo-liquid-sensing",
     });
   }
 
   const measured = probeResult.probe_results?.[0] || probeResult.data?.probe_results?.[0] || null;
+  const pressureArtifacts =
+    probeResult.data?.pressure_trace_artifacts ||
+    probeResult.pressure_trace_artifacts ||
+    [];
+  const pressureArtifactDir =
+    probeResult.data?.pressure_artifact_dir ||
+    probeResult.pressure_artifact_dir ||
+    null;
   if (measured) {
     const height = Number(measured.value);
+    const pressurePath =
+      pressureArtifacts[0]?.saved_to ||
+      (pressureArtifactDir ? `${pressureArtifactDir}/manifest.json` : null);
     context.runtimeState.observed_state.liquid_sensor[`${labwareSlot}.${well}`] = {
       status: measured.success ? "present" : "failed",
       height_mm: Number.isFinite(height) ? height : null,
       source: "pressure_sensor",
+      // Advisory artifact path when probe_wells also recorded PRESSURE_CSV_B64 comments.
+      pressure_trace_artifact: pressurePath,
+      pressure_observation_only: true,
     };
     context.runtimeState.committed_state.reagent_plan_adjustment = {
       well: `${labwareSlot}.${well}`,

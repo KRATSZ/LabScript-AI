@@ -1,4 +1,5 @@
 {
+  "_comment": "Optional Cursor/Claude Code MCP config. NOT the LabscriptAI product entrypoint — use `labscriptai chat`. index.js is the robot backend for mcp_adapter.call_tool (short-lived Node import of TOOL_HANDLERS), not a product CLI.",
   "mcpServers": {
     "opentrons-lab": {
       "command": "node",

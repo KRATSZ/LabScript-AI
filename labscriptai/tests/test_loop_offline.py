@@ -38,13 +38,29 @@ def test_system_prompt_length_and_no_mode(tmp_path: Path) -> None:
     session = SessionState(workspace=tmp_path, robot_ip=None, robot_connected=False)
     prompt = build_system_prompt(session)
     lines = [ln for ln in prompt.splitlines() if ln.strip()]
-    assert 8 <= len(lines) <= 12
+    # Discovery line for run_pressure_trace is required; cap raised from 12 to 16.
+    assert 8 <= len(lines) <= 16
     lowered = prompt.lower()
     # mode is gate-only — must not appear as a model-facing switch
     assert "mode=" not in lowered
     assert "author mode" not in lowered and "run mode" not in lowered
     assert "bash" in lowered and "robot" in lowered and "skill" in lowered
     assert "only through robot" in lowered
+    assert "run_pressure_trace" in prompt
+    assert "edit a .py" in prompt
+    assert "checks.sim.ok" in prompt
+    assert "robotType" in prompt and "Flex" in prompt
+    assert "load_waste_chute()" in prompt
+    assert "apiLevel" in prompt
+    assert "flex_1channel_50" in prompt
+    assert "flex_1channel_1000" in prompt
+    assert "no flex_1channel_200" in prompt or "no 200" in prompt
+    assert "temperatureModuleV2" in prompt
+    assert "magneticBlockV1" in prompt
+    assert "not metadata" in prompt
+    assert "tip_racks" in prompt
+    assert "D3" in prompt
+    assert ">50" in prompt
 
 
 def test_run_turn_final_message(tmp_path: Path) -> None:
@@ -84,6 +100,47 @@ def test_run_turn_allow_executes_tool(tmp_path: Path, monkeypatch: pytest.Monkey
     assert text == "loaded skill"
     assert calls == [("skill", {"name": "safety-brief"})]
     assert any(m.get("role") == "tool" for m in session.messages)
+
+
+def test_run_turn_emits_progress_before_final(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_execute(name: str, args: dict, **kwargs: Any) -> dict:
+        del name, args, kwargs
+        return {
+            "ok": True,
+            "checks": {
+                "sim": {"ok": False, "reason": "sim_failed", "errors": ["missing apiLevel"]},
+            },
+        }
+
+    monkeypatch.setattr("labscriptai.agent.loop.execute", fake_execute)
+    llm = _ScriptedLLM(
+        [
+            {
+                "tool_calls": [
+                    {
+                        "id": "1",
+                        "name": "edit",
+                        "arguments": {"op": "write", "path": "p.py"},
+                    }
+                ]
+            },
+            {"final": {"message": "drafted", "completed": True}},
+        ]
+    )
+    events: list[str] = []
+    session = SessionState(workspace=tmp_path, interactive=True)
+    text = run_turn(
+        "write protocol",
+        session=session,
+        llm=llm,
+        interactive=True,
+        on_event=events.append,
+    )
+    assert text == "drafted"
+    assert events[0] == "thinking"
+    assert "edit write p.py" in events
+    assert any(e.startswith("checks sim=red") for e in events)
+    assert events.count("thinking") >= 2
 
 
 def test_run_turn_ask_interactive_denied(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -179,6 +236,9 @@ def test_tools_schema_is_five() -> None:
         for t in TOOLS_SCHEMA
     }
     assert names == {"bash", "edit", "robot", "memory", "skill"}
+    robot = next(t for t in TOOLS_SCHEMA if (t.get("function") or {}).get("name") == "robot")
+    desc = str((robot.get("function") or {}).get("description") or "")
+    assert "run_pressure_trace" in desc
 
 
 def test_run_turn_tool_exception_becomes_observation(
@@ -405,3 +465,166 @@ def test_robot_status_attaches_protocol_path(
     status_args = calls[0][1]
     assert status_args.get("file_path") or status_args.get("protocol_path")
     assert calls[0][0] == "robot_status"
+
+
+def test_requirements_json_does_not_eat_prose() -> None:
+    from labscriptai.agent.llm import _parse_completion_message
+    from labscriptai.agent.loop import _final_text
+
+    blob = (
+        'The protocol is written and simulates cleanly.\n'
+        '{"robotType": "Flex", "apiLevel": "2.20"}'
+    )
+    parsed = _parse_completion_message(
+        {"choices": [{"message": {"content": blob}}]}
+    )
+    text = _final_text(parsed)
+    assert "simulates cleanly" in text
+    assert text != '{"robotType": "Flex", "apiLevel": "2.20"}'
+
+
+def test_bare_requirements_json_is_not_structured_final() -> None:
+    from labscriptai.agent.llm import _parse_completion_message
+    from labscriptai.agent.loop import _final_text
+
+    parsed = _parse_completion_message(
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": '{"robotType": "Flex", "apiLevel": "2.20"}'
+                    }
+                }
+            ]
+        }
+    )
+    assert parsed["final"].get("robotType") is None
+    assert parsed["final"]["message"].startswith("{")
+
+
+def test_second_green_edit_skips_review(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from labscriptai.tests.fixtures.protocols import PROTOCOL_VOLUME_MISMATCH
+
+    skip_flags: list[bool] = []
+
+    def fake_checks(*_a: Any, skip_review: bool = False, **_k: Any) -> dict[str, Any]:
+        skip_flags.append(skip_review)
+        out: dict[str, Any] = {
+            "sim": {"ok": True},
+            "logicpass": {"outcome": "pass", "logic_pass": True},
+        }
+        if not skip_review:
+            out["llmreview"] = {"match": True, "findings": []}
+        return out
+
+    def fake_execute(name: str, args: dict, **kwargs: Any) -> dict:
+        del name, kwargs
+        path = tmp_path / str(args.get("path") or "p.py")
+        path.write_text(PROTOCOL_VOLUME_MISMATCH, encoding="utf-8")
+        return {"ok": True, "op": args.get("op")}
+
+    monkeypatch.setattr("labscriptai.agent.loop.execute", fake_execute)
+    monkeypatch.setattr(
+        "labscriptai.agent.checks.run_authoring_checks", fake_checks
+    )
+    llm = _ScriptedLLM(
+        [
+            {
+                "tool_calls": [
+                    {
+                        "id": "1",
+                        "name": "edit",
+                        "arguments": {"op": "write", "path": "a.py"},
+                    }
+                ]
+            },
+            {
+                "tool_calls": [
+                    {
+                        "id": "2",
+                        "name": "edit",
+                        "arguments": {"op": "str_replace", "path": "a.py"},
+                    }
+                ]
+            },
+            {"final": {"message": "done", "completed": True}},
+        ]
+    )
+    session = SessionState(workspace=tmp_path, interactive=True)
+    text = run_turn("write", session=session, llm=llm, interactive=True)
+    assert text == "done"
+    assert skip_flags == [False, True]
+
+
+def test_same_sim_class_reviews_on_third_not_green_flag(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from labscriptai.tests.fixtures.protocols import PROTOCOL_VOLUME_MISMATCH
+
+    reds_left = {"n": 4}
+    stuck_calls: list[str] = []
+    skip_flags: list[bool] = []
+
+    def fake_checks(*_a: Any, skip_review: bool = False, **_k: Any) -> dict[str, Any]:
+        skip_flags.append(skip_review)
+        if reds_left["n"] > 0:
+            reds_left["n"] -= 1
+            return {
+                "sim": {
+                    "ok": False,
+                    "errors": [
+                        f"IncompatibleAddressableAreaError [line {reds_left['n']}]: Slot D3"
+                    ],
+                }
+            }
+        out: dict[str, Any] = {
+            "sim": {"ok": True},
+            "logicpass": {"outcome": "pass", "logic_pass": True},
+        }
+        if not skip_review:
+            out["llmreview"] = {"match": True, "findings": []}
+        return out
+
+    def fake_stuck(**kwargs: Any) -> dict[str, Any]:
+        stuck_calls.append(str(kwargs.get("sim_error") or kwargs.get("sim") or ""))
+        return {
+            "match": False,
+            "findings": [{"severity": "error", "claim": "move off D3", "evidence": "", "suggestion": ""}],
+        }
+
+    def fake_execute(name: str, args: dict, **kwargs: Any) -> dict:
+        del name, kwargs
+        path = tmp_path / str(args.get("path") or "a.py")
+        path.write_text(PROTOCOL_VOLUME_MISMATCH, encoding="utf-8")
+        return {"ok": True, "op": args.get("op")}
+
+    monkeypatch.setattr("labscriptai.agent.loop.execute", fake_execute)
+    monkeypatch.setattr("labscriptai.agent.checks.run_authoring_checks", fake_checks)
+    monkeypatch.setattr("labscriptai.agent.checks.stuck_llmreview", fake_stuck)
+
+    def _edit(n: str) -> dict[str, Any]:
+        return {
+            "tool_calls": [
+                {"id": n, "name": "edit", "arguments": {"op": "write", "path": "a.py"}}
+            ]
+        }
+
+    llm = _ScriptedLLM(
+        [_edit("1"), _edit("2"), _edit("3"), _edit("4"), _edit("5"), {"final": {"message": "done", "completed": True}}]
+    )
+    session = SessionState(workspace=tmp_path, interactive=True)
+    text = run_turn("write", session=session, llm=llm, interactive=True)
+    assert text == "done"
+    assert len(stuck_calls) == 1
+    assert session.llmreview_ran is True
+    assert skip_flags == [False, False, False, False, False]
+    reviews = []
+    for message in session.messages:
+        if message.get("role") != "tool":
+            continue
+        payload = json.loads(str(message.get("content") or ""))
+        if isinstance(payload, dict) and isinstance(payload.get("checks"), dict):
+            reviews.append("llmreview" in payload["checks"])
+    assert reviews == [False, False, True, False, True]

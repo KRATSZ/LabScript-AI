@@ -179,6 +179,15 @@ const ERROR_LEAF_DEFINITIONS = {
     default_next_step: "reconcile_state",
     evidence_sources: ["protocol_source", "deck_configuration", "session_state"],
   },
+  STALE_LABWARE_OFFSET: {
+    error_domain: "deck_state",
+    severity: "error",
+    recoverability: "manual_recovery",
+    requires_human_review: true,
+    auto_executable: false,
+    default_next_step: "preflight_run_setup",
+    evidence_sources: ["protocol_source", "labware_offsets"],
+  },
   SLOT_NOT_ADDRESSABLE: {
     error_domain: "deck_state",
     severity: "error",

@@ -1,0 +1,69 @@
+{
+  "robotType": "OT-3 Standard",
+  "commands": [
+    {
+      "id": "cmd-load-pipette",
+      "commandType": "loadPipette",
+      "status": "succeeded",
+      "params": {
+        "pipetteName": "p300_single_flex",
+        "mount": "left",
+        "pipetteId": "pipette-1"
+      }
+    },
+    {
+      "id": "cmd-load-plate",
+      "commandType": "loadLabware",
+      "status": "succeeded",
+      "params": {
+        "loadName": "nest_96_wellplate_200ul_flat",
+        "location": { "slotName": "D1" },
+        "labwareId": "plate-1"
+      }
+    },
+    {
+      "id": "cmd-load-tips",
+      "commandType": "loadLabware",
+      "status": "succeeded",
+      "params": {
+        "loadName": "opentrons_flex_96_tiprack_200ul",
+        "location": { "slotName": "B1" },
+        "labwareId": "tips-1"
+      }
+    },
+    {
+      "id": "cmd-load-liquid",
+      "commandType": "loadLiquid",
+      "status": "succeeded",
+      "params": {
+        "liquidId": "water",
+        "labwareId": "plate-1",
+        "volumeByWell": { "A1": 20 }
+      }
+    },
+    {
+      "id": "cmd-pickup",
+      "commandType": "pickUpTip",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-1",
+        "labwareId": "tips-1",
+        "wellName": "A1"
+      }
+    },
+    {
+      "id": "cmd-aspirate",
+      "commandType": "aspirate",
+      "status": "succeeded",
+      "params": {
+        "pipetteId": "pipette-1",
+        "labwareId": "plate-1",
+        "wellName": "A1",
+        "volume": 200
+      }
+    }
+  ],
+  "liquids": [{ "id": "water", "displayName": "water" }],
+  "labware": [],
+  "pipettes": []
+}

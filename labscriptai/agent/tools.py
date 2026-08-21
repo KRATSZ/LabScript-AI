@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .gate import RESUME_BLOCKED_RUN_STATUSES
+from .gate import RESUME_BLOCKED_RUN_STATUSES, resolve_robot_act_label
 from .mcp_adapter import (
     RUN_PROTOCOL_TIMEOUT_SEC,
     WATCH_TIMEOUT_SEC,
@@ -111,7 +111,9 @@ TOOLS_SCHEMA: list[dict] = [
             "name": "robot",
             "description": (
                 "Robot ops via short-lived MCP TOOL_HANDLERS. "
-                "op=status|watch|act. parse_error/suggest_recovery embed under status when run_id is set."
+                "op=status|watch|act. act action_type includes simulate_protocol, "
+                "run_pressure_trace, analyze_pressure_trace (advisory; execute_on_robot not true by default). "
+                "parse_error/suggest_recovery embed under status when run_id is set."
             ),
             "parameters": {
                 "type": "object",
@@ -431,6 +433,38 @@ def _resume_play_blocked(
     }
 
 
+_LOCAL_ROBOT_ACTS = frozenset(
+    {
+        "simulate_protocol",
+        "run_pressure_trace",
+        "analyze_pressure_trace",
+        "fetch_pressure_trace",
+    }
+)
+
+
+def _truthy_execute_on_robot(args: dict) -> bool:
+    extra = args.get("args") if isinstance(args.get("args"), dict) else {}
+    value = extra.get("execute_on_robot", args.get("execute_on_robot"))
+    if value is True:
+        return True
+    if isinstance(value, str) and value.strip().lower() in {"1", "true", "yes", "on"}:
+        return True
+    return False
+
+
+def _is_local_robot_act(args: dict) -> bool:
+    """Simulate-only pressure / local analyze / simulate_protocol need no robot_ip."""
+    if str(args.get("op") or "") != "act":
+        return False
+    action = resolve_robot_act_label(args)
+    if action not in _LOCAL_ROBOT_ACTS:
+        return False
+    if action in {"analyze_pressure_trace", "simulate_protocol"}:
+        return True
+    return not _truthy_execute_on_robot(args)
+
+
 def _robot(
     args: dict,
     *,
@@ -440,24 +474,36 @@ def _robot(
 ) -> dict:
     op = str(args.get("op") or "")
     host = robot_ip or session.get("robot_ip") or args.get("robot_ip")
+    local_act = _is_local_robot_act(args)
     if not host:
-        return {
-            "error": "robot_ip_missing",
-            "op": op,
-            "detail": "No robot_ip provided; set robot_ip or session['robot_ip'].",
-        }
-    try:
-        base = normalize_robot_base(str(host))
-    except ValueError as exc:
-        return {"error": "invalid_robot_ip", "detail": str(exc)}
+        if not local_act:
+            return {
+                "error": "robot_ip_missing",
+                "op": op,
+                "detail": "No robot_ip provided; set robot_ip or session['robot_ip'].",
+            }
+        base = "local"
+        host_str: str | None = None
+    else:
+        try:
+            base = normalize_robot_base(str(host))
+        except ValueError as exc:
+            return {"error": "invalid_robot_ip", "detail": str(exc)}
+        host_str = str(host)
 
     run_id = args.get("run_id") or session.get("run_id") or session.get("active_run_id")
     session_id = args.get("session_id") or session.get("session_id")
     extra = args.get("args") if isinstance(args.get("args"), dict) else {}
 
     if op == "status":
+        if not host_str:
+            return {
+                "error": "robot_ip_missing",
+                "op": op,
+                "detail": "No robot_ip provided; set robot_ip or session['robot_ip'].",
+            }
         return _robot_status(
-            host=str(host),
+            host=host_str,
             base=base,
             run_id=run_id,
             session_id=session_id,
@@ -465,8 +511,14 @@ def _robot(
             workspace=workspace,
         )
     if op == "watch":
+        if not host_str:
+            return {
+                "error": "robot_ip_missing",
+                "op": op,
+                "detail": "No robot_ip provided; set robot_ip or session['robot_ip'].",
+            }
         return _robot_watch(
-            host=str(host),
+            host=host_str,
             base=base,
             run_id=run_id,
             session_id=session_id,
@@ -475,8 +527,14 @@ def _robot(
             workspace=workspace,
         )
     if op == "act":
+        if _truthy_execute_on_robot(args) and not host_str:
+            return {
+                "error": "robot_ip_missing",
+                "op": op,
+                "detail": "execute_on_robot requires robot_ip.",
+            }
         return _robot_act(
-            host=str(host),
+            host=host_str,
             base=base,
             run_id=run_id,
             session_id=session_id,
@@ -731,7 +789,7 @@ def _maybe_attach_protocol_path(payload: dict[str, Any], workspace: Path) -> Non
 
 def _robot_act(
     *,
-    host: str,
+    host: str | None,
     base: str,
     run_id: Any,
     session_id: Any,
@@ -753,7 +811,9 @@ def _robot_act(
         "robot_ip",
     }
     passthrough = {k: v for k, v in raw_args.items() if k not in skip}
-    payload: dict[str, Any] = {"robot_ip": host, **passthrough, **extra}
+    payload: dict[str, Any] = {**passthrough, **extra}
+    if host:
+        payload["robot_ip"] = host
     if run_id and "run_id" not in payload:
         payload["run_id"] = run_id
     if session_id and "session_id" not in payload:
@@ -796,14 +856,15 @@ def _robot_act(
     if action_key:
         tool_name, injected = _ACT_ALIASES.get(action_key, (action_key, {}))
         call_payload = {**payload, **injected}
-        blocked = _resume_play_blocked(
-            host=host,
-            run_id=call_payload.get("run_id") or run_id,
-            action_key=action_key,
-            call_payload=call_payload,
-        )
-        if blocked is not None:
-            return blocked
+        if host:
+            blocked = _resume_play_blocked(
+                host=host,
+                run_id=call_payload.get("run_id") or run_id,
+                action_key=action_key,
+                call_payload=call_payload,
+            )
+            if blocked is not None:
+                return blocked
         if tool_name in {
             "execute_protocol_recovery",
             "recover_tip_pickup",

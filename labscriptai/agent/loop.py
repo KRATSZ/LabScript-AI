@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -157,13 +158,18 @@ class SessionState:
     interactive: bool = True
     preauthorized: set[str] = field(default_factory=set)
     max_steps: int = field(default_factory=resolve_max_steps)
+    llmreview_ran: bool = False
+    sim_fail_class: str | None = None
+    sim_fail_streak: int = 0
+    stuck_reviewed: set[str] = field(default_factory=set)
 
 
 ConfirmFn = Callable[[str], bool]
+ProgressFn = Callable[[str], None]
 
 
 def build_system_prompt(session: SessionState) -> str:
-    """8–12 line system prompt: identity, status, five tools, one safety line."""
+    """System prompt: identity, status, five tools, safety, pressure discovery."""
     ws = str(session.workspace.resolve())
     if session.robot_ip and session.robot_connected:
         robot_line = f"Robot: connected at {session.robot_ip}"
@@ -177,24 +183,24 @@ def build_system_prompt(session: SessionState) -> str:
         robot_line = "Robot: not configured"
 
     lines = [
-        "You are LabscriptAI, a Synbio automation agent.",
+        "You are LabscriptAI, a synbio automation agent.",
         f"Workspace: {ws}. {robot_line}.",
-        "Tools (always these five):",
-        "- bash: run local shell commands in the workspace.",
-        "- edit: read/write/str_replace files under the workspace.",
-        "- robot: status/watch (read) or act (gated recovery/control).",
-        "- memory: read/write case memory for reuse.",
-        "- skill: load domain markdown skills on demand.",
-        "Safety: robot actions only through robot; dangerous calls are gated and you will get feedback. "
-        "A tool result carrying an error is an observation — read it, adjust, continue; never end the session on one failed call.",
-        "Stop and escalate, with no play/resume/retry, on any of: tip_budget.enforced true with sufficient false; "
-        "time_window.expired true; a contact_class=sample tip about to touch a role=common_stock well. "
-        "Unknown (basis=none, window undeclared or unanchored) is not satisfied — load the recovery-playbooks skill.",
-        "Liquid source substitution after probe-only liquidNotFound (attached tip): "
-        "recover_liquid_source_substitution in one step (like recover_tip_pickup), keeping the attached tip, "
-        "but only once volume_check clears — substitute_volume_insufficient means refill or escalate. "
-        "Do not resume_run on an awaiting-recovery run.",
-        "Prefer short replies. Load skills when you need domain detail; do not invent robot HTTP calls.",
+        "Available tools:",
+        "- bash: local shell in the workspace.",
+        "- edit: read/write/str_replace under the workspace.",
+        "- robot: status/watch (read) or act (gated).",
+        "- memory: case memory for reuse.",
+        "- skill: load plugins/skills/{name}.md; empty name lists.",
+        "Guidelines:",
+        "- Robot actions only through robot. A tool error is an observation — adjust and continue.",
+        "- Escalate with no play/resume on: tip_budget.enforced+insufficient; time_window.expired; sample tip touching common_stock. Unknown (basis=none / window undeclared) → load recovery-playbooks.",
+        "- liquidNotFound (probe-only, attached tip): recover_liquid_source_substitution once volume_check clears; never resume_run while awaiting-recovery. Clogged aspirate: robot(op=act, action_type=run_pressure_trace) with execute_on_robot not true.",
+        "- Write: edit a .py first. Flex: robotType+apiLevel 2.20 only in requirements (not metadata), "
+        "load_waste_chute() (occupies D3 — no labware there), load_instrument(..., tip_racks=[tips]), "
+        "pipette flex_1channel_50 or flex_1channel_1000 (no 200; >50 µL needs 1000; not OT-2), "
+        "modules temperatureModuleV2 / magneticBlockV1. If checks.sim.ok is false keep editing. "
+        "No play unless asked live. English prose, not JSON. Do not invent HTTP.",
+        "Skills (load on demand): authoring-guide, error-taxonomy, pressure-trace, recovery-playbooks, safety-brief.",
     ]
     return "\n".join(lines)
 
@@ -213,6 +219,9 @@ def _final_text(response: dict[str, Any]) -> str:
         msg = final.get("message")
         if isinstance(msg, str) and msg.strip():
             return msg.strip()
+        keys = set(final)
+        if keys and keys <= {"robotType", "apiLevel", "protocolName", "metadata", "author"}:
+            return "Protocol updated."
         return json.dumps(final, ensure_ascii=False)
     if isinstance(final, str) and final.strip():
         return final.strip()
@@ -606,6 +615,186 @@ def _tool_error_payload(exc: BaseException, *, tool_name: str) -> dict[str, Any]
     }
 
 
+def _latest_user_text(session: SessionState) -> str:
+    for message in reversed(session.messages):
+        if message.get("role") == "user":
+            content = message.get("content")
+            if isinstance(content, str):
+                return content
+    return ""
+
+
+def _simulate_protocol_path(args: dict[str, Any], workspace: Path) -> Path | None:
+    extra = args.get("args") if isinstance(args.get("args"), dict) else {}
+    raw = (
+        extra.get("file_path")
+        or extra.get("protocol_path")
+        or extra.get("protocol")
+        or args.get("file_path")
+        or args.get("protocol_path")
+        or args.get("protocol")
+    )
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    candidate = Path(raw).expanduser()
+    if not candidate.is_absolute():
+        candidate = workspace / candidate
+    try:
+        resolved = candidate.resolve()
+    except OSError:
+        return None
+    return resolved if resolved.is_file() else None
+
+
+_PY_IN_CMD = re.compile(r"""(?<![A-Za-z0-9_])((?:\.?/|[A-Za-z0-9_.-])[^ \t'"\\;|&]*\.py)""")
+
+
+def _protocol_path_from_bash_command(command: str, workspace: Path) -> Path | None:
+    """If bash looks like it wrote a .py under workspace, return that path."""
+    if not any(mark in command for mark in (">", "tee", "<<")):
+        return None
+    workspace = workspace.resolve()
+    for match in _PY_IN_CMD.finditer(command):
+        raw = match.group(1)
+        candidate = Path(raw).expanduser()
+        if not candidate.is_absolute():
+            candidate = workspace / candidate
+        try:
+            resolved = candidate.resolve()
+            resolved.relative_to(workspace)
+        except (OSError, ValueError):
+            continue
+        if resolved.is_file() and resolved.suffix == ".py":
+            return resolved
+    return None
+
+
+def _simulate_succeeded(result: Any) -> bool:
+    if not isinstance(result, dict) or result.get("error"):
+        return False
+    inner = result.get("result")
+    if isinstance(inner, dict) and inner.get("error"):
+        return False
+    return True
+
+
+def _apply_sim_streak(
+    session: SessionState,
+    checks: dict[str, Any],
+    *,
+    protocol_source: str,
+) -> dict[str, Any]:
+    """Count consecutive sim-fail classes; flash once at streak 3. Not llmreview_ran."""
+    sim = checks.get("sim") if isinstance(checks.get("sim"), dict) else {}
+    if sim.get("ok"):
+        session.sim_fail_class = None
+        session.sim_fail_streak = 0
+        if isinstance(checks.get("llmreview"), dict):
+            session.llmreview_ran = True
+        return checks
+
+    from labscriptai.agent.checks import STUCK_REVIEW_STREAK, sim_error_class, stuck_llmreview
+
+    klass = sim_error_class(sim) or "sim_failed"
+    if klass == session.sim_fail_class:
+        session.sim_fail_streak += 1
+    else:
+        session.sim_fail_class = klass
+        session.sim_fail_streak = 1
+    if (
+        session.sim_fail_streak >= STUCK_REVIEW_STREAK
+        and klass not in session.stuck_reviewed
+    ):
+        checks = dict(checks)
+        checks["llmreview"] = stuck_llmreview(
+            user_intent=_latest_user_text(session),
+            protocol_source=protocol_source,
+            sim=sim,
+        )
+        session.stuck_reviewed.add(klass)
+    return checks
+
+
+def _maybe_attach_authoring_checks(
+    name: str,
+    args: dict[str, Any],
+    result: Any,
+    *,
+    session: SessionState,
+) -> Any:
+    """Stuff sim/logicpass/llmreview into edit, bash-written .py, or simulate_protocol."""
+    if not isinstance(result, dict) or result.get("error") or result.get("ok") is False:
+        return result
+    if infer_context is None:
+        return result
+    context = infer_context(
+        robot_connected=bool(session.robot_connected),
+        active_run=bool(session.active_run_id),
+    )
+    if context != "author":
+        return result
+
+    workspace = Path(session.workspace)
+    protocol_path: Path | None = None
+    if name == "edit" and str(args.get("op") or "") in {"write", "str_replace"}:
+        rel = args.get("path")
+        if isinstance(rel, str) and rel.strip():
+            protocol_path = (workspace / rel).resolve()
+            if not protocol_path.is_file():
+                return result
+    elif name == "robot":
+        action = str(args.get("action") or args.get("action_type") or "").strip()
+        extra = args.get("args") if isinstance(args.get("args"), dict) else {}
+        nested_action = str(extra.get("action") or extra.get("action_type") or "").strip()
+        if action != "simulate_protocol" and nested_action != "simulate_protocol":
+            return result
+        if not _simulate_succeeded(result):
+            return result
+        protocol_path = _simulate_protocol_path(args, workspace)
+        if protocol_path is None:
+            return result
+    elif name == "bash":
+        protocol_path = _protocol_path_from_bash_command(
+            str(args.get("command") or ""),
+            workspace,
+        )
+        if protocol_path is None:
+            return result
+    else:
+        return result
+
+    if protocol_path is None:
+        return result
+
+    try:
+        source = protocol_path.read_text(encoding="utf-8")
+    except OSError:
+        return result
+
+    try:
+        from labscriptai.agent.checks import looks_like_opentrons_protocol, run_authoring_checks
+
+        if not looks_like_opentrons_protocol(protocol_path, source):
+            return result
+        merged = dict(result)
+        checks = run_authoring_checks(
+            protocol_path,
+            user_intent=_latest_user_text(session),
+            protocol_source=source,
+            skip_review=bool(session.llmreview_ran),
+        )
+        merged["checks"] = _apply_sim_streak(
+            session, checks, protocol_source=source
+        )
+        return merged
+    except Exception as exc:  # noqa: BLE001 — checks must not kill the turn
+        merged = dict(result)
+        merged["checks"] = {
+            "sim": {"ok": False, "reason": "checks_exception", "detail": str(exc)},
+        }
+        return merged
+
+
 def _execute_allowed_tool(
     name: str,
     args: dict[str, Any],
@@ -614,7 +803,7 @@ def _execute_allowed_tool(
     interactive: bool,
 ) -> Any:
     try:
-        return execute(
+        result = execute(
             name,
             args,
             workspace=Path(session.workspace),
@@ -628,6 +817,7 @@ def _execute_allowed_tool(
         )
     except Exception as exc:  # noqa: BLE001 — observation feedback; keep turn alive
         return _tool_error_payload(exc, tool_name=name)
+    return _maybe_attach_authoring_checks(name, args, result, session=session)
 
 
 def _gate_or_raise(
@@ -664,6 +854,64 @@ def _gate_or_raise(
     )
 
 
+def _progress_tool_line(name: str, args: Mapping[str, Any]) -> str:
+    extra = args.get("args") if isinstance(args.get("args"), dict) else {}
+    if name == "edit":
+        return f"edit {args.get('op') or ''} {args.get('path') or ''}".strip()
+    if name == "skill":
+        return f"skill {str(args.get('name') or '').strip() or 'list'}"
+    if name == "bash":
+        cmd = " ".join(str(args.get("command") or "").split())
+        if len(cmd) > 72:
+            cmd = cmd[:72] + "…"
+        return f"bash {cmd}"
+    if name == "memory":
+        return f"memory {args.get('op') or ''}".strip()
+    if name == "robot":
+        action = str(
+            args.get("action")
+            or args.get("action_type")
+            or extra.get("action")
+            or extra.get("action_type")
+            or args.get("op")
+            or ""
+        ).strip()
+        return f"robot {action}" if action else "robot"
+    return name
+
+
+def _progress_checks_line(payload: Any) -> str | None:
+    if not isinstance(payload, dict):
+        return None
+    checks = payload.get("checks")
+    if not isinstance(checks, dict):
+        return None
+    bits: list[str] = []
+    sim = checks.get("sim") if isinstance(checks.get("sim"), dict) else {}
+    if sim.get("ok") is True:
+        bits.append("sim=ok")
+    elif sim.get("ok") is False:
+        errors = sim.get("errors") or []
+        detail = str(errors[0] if errors else sim.get("reason") or "failed")[:80]
+        bits.append(f"sim=red {detail}")
+    lp = checks.get("logicpass") if isinstance(checks.get("logicpass"), dict) else {}
+    if lp.get("outcome"):
+        bits.append(f"logicpass={lp['outcome']}")
+    review = checks.get("llmreview") if isinstance(checks.get("llmreview"), dict) else {}
+    if isinstance(review.get("match"), bool):
+        bits.append("review=match" if review["match"] else "review=mismatch")
+    return "checks " + " · ".join(bits) if bits else None
+
+
+def _emit(on_event: ProgressFn | None, line: str | None) -> None:
+    if on_event is None or not line:
+        return
+    try:
+        on_event(line)
+    except Exception:
+        return
+
+
 def run_turn(
     user_text: str,
     *,
@@ -672,6 +920,7 @@ def run_turn(
     interactive: bool | None = None,
     confirm: ConfirmFn | None = None,
     tools_schema: list[dict[str, Any]] | None = None,
+    on_event: ProgressFn | None = None,
 ) -> str:
     """Run one user turn until the model returns a final message or max_steps."""
     if interactive is None:
@@ -680,6 +929,10 @@ def run_turn(
     schema = tools_schema if tools_schema is not None else TOOLS_SCHEMA
 
     ensure_system_message(session)
+    session.llmreview_ran = False
+    session.sim_fail_class = None
+    session.sim_fail_streak = 0
+    session.stuck_reviewed = set()
     session.messages.append({"role": "user", "content": user_text})
 
     last_text = ""
@@ -688,6 +941,7 @@ def run_turn(
         step += 1
         if session.max_steps > 0 and step > session.max_steps:
             break
+        _emit(on_event, "thinking")
         response = llm.complete(session.messages, tools=schema)
         calls = _tool_calls_from(response)
         if not calls:
@@ -699,6 +953,7 @@ def run_turn(
         for call in calls:
             name = call["name"]
             args = dict(call["arguments"] or {})
+            _emit(on_event, _progress_tool_line(name, args))
             decision = _gate_or_raise(name, args, session=session, interactive=interactive)
             status = getattr(decision, "status", None) or (
                 decision.get("status") if isinstance(decision, dict) else None
@@ -714,6 +969,7 @@ def run_turn(
                     name, args, session=session, interactive=interactive
                 )
                 _sync_session_run_status(session, result)
+                _emit(on_event, _progress_checks_line(result))
                 _append_tool_result(session, call_id=call["id"], name=name, payload=result)
                 continue
 
@@ -725,8 +981,10 @@ def run_turn(
                         name, args, session=session, interactive=interactive
                     )
                     _sync_session_run_status(session, result)
+                    _emit(on_event, _progress_checks_line(result))
                     _append_tool_result(session, call_id=call["id"], name=name, payload=result)
                 else:
+                    _emit(on_event, f"denied {name}")
                     _append_tool_result(
                         session,
                         call_id=call["id"],
@@ -751,6 +1009,7 @@ def run_turn(
                 "ts": datetime.now(timezone.utc).isoformat(),
             }
             outbox_path = append_outbox(Path(session.workspace), event)
+            _emit(on_event, f"suspended {name}")
             _append_tool_result(
                 session,
                 call_id=call["id"],

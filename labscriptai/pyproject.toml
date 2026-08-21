@@ -20,18 +20,24 @@ dev = ["pytest>=7"]
 labscriptai = "labscriptai.agent.cli:main"
 
 [tool.setuptools]
-packages = ["labscriptai", "labscriptai.agent"]
+packages = [
+    "labscriptai",
+    "labscriptai.agent",
+    "labscriptai.benchmark",
+    "labscriptai.benchmark.logicpass",
+]
 include-package-data = true
 
 [tool.setuptools.package-dir]
 "labscriptai" = "."
 "labscriptai.agent" = "agent"
+"labscriptai.benchmark" = "benchmark"
+"labscriptai.benchmark.logicpass" = "benchmark/logicpass"
 
 # Ship skills + MCP sources with the wheel/sdist. node_modules stays out
 # (exclude-package-data + .gitignore); colleagues run `npm install` under plugins/mcp.
 [tool.setuptools.package-data]
 labscriptai = [
-  "plugins/SOURCE_MCP.md",
   "plugins/__init__.py",
   "plugins/skills/*.md",
   "plugins/mcp/__init__.py",
@@ -41,8 +47,11 @@ labscriptai = [
   "plugins/mcp/opentrons-mcp/README.md",
   "plugins/mcp/opentrons-mcp/.gitignore",
   "plugins/mcp/opentrons-mcp/lib/**/*.js",
-  "plugins/mcp/opentrons-mcp/scripts/**/*",
-  "plugins/mcp/opentrons-mcp/examples/**/*",
+  "plugins/mcp/opentrons-mcp/scripts/*.py",
+  "plugins/mcp/opentrons-mcp/scripts/*.mjs",
+  "plugins/mcp/opentrons-mcp/scripts/*.sh",
+  "plugins/mcp/opentrons-mcp/scripts/*.json",
+  "plugins/mcp/opentrons-mcp/examples/*",
 ]
 
 [tool.setuptools.exclude-package-data]
@@ -62,3 +71,4 @@ labscriptai = [
 testpaths = ["tests"]
 # Repo-root parent so `import labscriptai` resolves without editable install.
 pythonpath = [".."]
+markers = ["llm: live DeepSeek API tests (pytest -m llm)"]

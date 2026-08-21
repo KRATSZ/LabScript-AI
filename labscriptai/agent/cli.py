@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
 import time
 import traceback
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 W12_NOT_READY = "W1/W2 未就绪"
+MIN_NODE_MAJOR = 18
+NPM_INSTALL_HINT = "cd labscriptai/plugins/mcp/opentrons-mcp && npm install"
 
 
 def _import_deps(*, require_tools: bool = False) -> tuple[Any, ...]:
@@ -333,21 +339,201 @@ def _new_session(
     )
 
 
-def cmd_doctor(args: argparse.Namespace) -> int:
-    robot = args.robot or os.environ.get("ROBOT_IP") or os.environ.get("LABSCRIPTAI_ROBOT_IP")
-    if not robot:
-        print("FAIL: pass --robot IP (or set ROBOT_IP)", file=sys.stderr)
-        return 2
-    base = _normalize_robot_base(robot)
-    url = base.rstrip("/") + "/health"
-    print(f"probing {url} (no MCP)")
-    ok, detail = _probe_robot(robot, timeout=float(args.timeout))
-    print(("OK  " if ok else "FAIL") + f" {detail}")
-    # Explicitly surface the port so callers can assert :31950 even on failure
-    if ":31950" not in url and not url.rstrip("/").endswith(":31950"):
-        # only when user overrode port — still ok
+def _vendored_mcp_dir() -> Path:
+    try:
+        from labscriptai.agent.mcp_adapter import plugins_mcp_index
+
+        return plugins_mcp_index().parent
+    except ImportError:
+        return Path(__file__).resolve().parents[1] / "plugins" / "mcp" / "opentrons-mcp"
+
+
+def _load_dotenv_for_doctor() -> None:
+    try:
+        from labscriptai.agent.llm import _load_package_dotenv
+
+        _load_package_dotenv()
+    except ImportError:
         pass
-    return 0 if ok else 1
+
+
+def _parse_node_major(raw: str) -> int | None:
+    text = raw.strip()
+    if text[:1] in {"v", "V"}:
+        text = text[1:]
+    match = re.match(r"(\d+)", text)
+    return int(match.group(1)) if match else None
+
+
+def check_node(
+    *,
+    which: Callable[[str], str | None] = shutil.which,
+    run: Callable[..., Any] = subprocess.run,
+) -> tuple[str, str]:
+    """Return (OK|FAIL, detail) for Node >= 18."""
+    node_bin = which("node")
+    if not node_bin:
+        return "FAIL", "node not found on PATH (need Node >= 18)"
+    try:
+        completed = run(
+            [node_bin, "-v"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return "FAIL", f"node -v failed ({exc})"
+    version = (completed.stdout or completed.stderr or "").strip() or "unknown"
+    major = _parse_node_major(version)
+    if major is None:
+        return "FAIL", f"{version} (could not parse; need >= {MIN_NODE_MAJOR})"
+    if major < MIN_NODE_MAJOR:
+        return "FAIL", f"{version} (need Node >= {MIN_NODE_MAJOR})"
+    return "OK", f"{version} (>= {MIN_NODE_MAJOR})"
+
+
+def check_node_modules(mcp_dir: Path) -> tuple[str, str]:
+    path = mcp_dir / "node_modules"
+    if path.is_dir():
+        return "OK", str(path)
+    return "FAIL", f"missing {path}"
+
+
+def check_index_js(mcp_dir: Path) -> tuple[str, str]:
+    path = mcp_dir / "index.js"
+    if path.is_file():
+        return "OK", str(path)
+    return "FAIL", f"missing {path}"
+
+
+def check_deepseek_key(environ: dict[str, str] | None = None) -> tuple[str, str]:
+    """Present/absent only — never print the key value."""
+    env = os.environ if environ is None else environ
+    if str(env.get("DEEPSEEK_API_KEY") or "").strip():
+        return "OK", "set (default labscriptai chat uses DeepSeek)"
+    return (
+        "WARN",
+        "absent (default labscriptai chat needs DEEPSEEK_API_KEY; or use --provider offline)",
+    )
+
+
+def check_opentrons(
+    *,
+    import_module: Callable[[str], Any] = importlib.import_module,
+    run_helper: bool = False,
+) -> tuple[str, str]:
+    """Probe opentrons.cli / opentrons.simulate in the current interpreter."""
+    names = ("opentrons.cli", "opentrons.simulate")
+    found: list[str] = []
+    missing: list[str] = []
+    for name in names:
+        try:
+            import_module(name)
+            found.append(name)
+        except Exception as exc:
+            missing.append(f"{name} ({type(exc).__name__})")
+    helper_note = ""
+    if run_helper:
+        helper = _vendored_mcp_dir() / "scripts" / "local_simulation.py"
+        if helper.is_file():
+            try:
+                completed = subprocess.run(
+                    [sys.executable, str(helper), "doctor"],
+                    capture_output=True,
+                    text=True,
+                    timeout=8,
+                    check=False,
+                )
+                payload = (completed.stdout or "").strip()
+                if payload:
+                    try:
+                        data = json.loads(payload.splitlines()[-1])
+                        helper_note = f" (local_simulation.py doctor ok={data.get('ok')})"
+                    except json.JSONDecodeError:
+                        helper_note = " (local_simulation.py doctor ran)"
+            except (OSError, subprocess.TimeoutExpired):
+                helper_note = ""
+    if not missing:
+        return "OK", ", ".join(found) + helper_note
+    msg = (
+        "SimPass/LogicPass unavailable until opentrons is installed in this interpreter; "
+        "chat robot backend still needs Node+npm"
+    )
+    detail = msg if not found else f"found {', '.join(found)}; missing {', '.join(missing)}; {msg}"
+    return "WARN", detail + helper_note
+
+
+def check_robot(robot: str | None, *, timeout: float = 2.0) -> tuple[str, str]:
+    if not robot:
+        return "SKIP", "pass --robot IP to probe http://IP:31950/health"
+    ok, detail = _probe_robot(robot, timeout=timeout)
+    return ("OK" if ok else "FAIL"), detail
+
+
+def collect_doctor_checks(
+    *,
+    robot: str | None,
+    timeout: float = 2.0,
+    mcp_dir: Path | None = None,
+    environ: dict[str, str] | None = None,
+    check_node_fn: Callable[..., tuple[str, str]] | None = None,
+    check_opentrons_fn: Callable[..., tuple[str, str]] | None = None,
+    check_robot_fn: Callable[..., tuple[str, str]] | None = None,
+) -> list[tuple[str, str, str]]:
+    """Return rows of (status, name, detail). Toolchain always; /health only if robot set."""
+    mcp_dir = mcp_dir or _vendored_mcp_dir()
+    node_status, node_detail = (check_node_fn or check_node)()
+    nm_status, nm_detail = check_node_modules(mcp_dir)
+    idx_status, idx_detail = check_index_js(mcp_dir)
+    key_status, key_detail = check_deepseek_key(environ)
+    ot_status, ot_detail = (check_opentrons_fn or check_opentrons)()
+    robot_status, robot_detail = (check_robot_fn or check_robot)(robot, timeout=timeout)
+    return [
+        (node_status, "node", node_detail),
+        (nm_status, "node_modules", nm_detail),
+        (idx_status, "index.js", idx_detail),
+        (key_status, "DEEPSEEK_API_KEY", key_detail),
+        (ot_status, "opentrons", ot_detail),
+        (robot_status, "robot", robot_detail),
+    ]
+
+
+def format_doctor_report(rows: list[tuple[str, str, str]]) -> str:
+    lines = [
+        "LabscriptAI doctor  (health check for `labscriptai chat`; not a second workflow)",
+        "MCP is the robot backend for chat, not a Cursor plugin / not a second tool surface.",
+        "",
+    ]
+    for status, name, detail in rows:
+        lines.append(f"{status:<5} {name:<18} {detail}")
+    needs_npm = any(
+        status == "FAIL" and name in {"node", "node_modules"} for status, name, _ in rows
+    )
+    if needs_npm:
+        lines.append("")
+        lines.append("Node/npm not ready. Copy-paste:")
+        lines.append(f"  {NPM_INSTALL_HINT}")
+    failed = [name for status, name, _ in rows if status == "FAIL"]
+    lines.append("")
+    if failed:
+        lines.append("FAIL: " + ", ".join(failed))
+    else:
+        lines.append("Next: labscriptai chat   (default provider: deepseek)")
+    return "\n".join(lines) + "\n"
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    _load_dotenv_for_doctor()
+    robot = args.robot or os.environ.get("ROBOT_IP") or os.environ.get("LABSCRIPTAI_ROBOT_IP")
+    rows = collect_doctor_checks(
+        robot=robot,
+        timeout=float(args.timeout),
+        check_opentrons_fn=lambda: check_opentrons(run_helper=True),
+    )
+    report = format_doctor_report(rows)
+    print(report, end="")
+    return 1 if any(status == "FAIL" for status, _name, _detail in rows) else 0
 
 
 def cmd_chat(args: argparse.Namespace) -> int:
@@ -395,7 +581,7 @@ def cmd_chat(args: argparse.Namespace) -> int:
     )
     print(f"LabscriptAI chat  provider={provider}  workspace={session.workspace}")
     print(build_system_prompt(session).splitlines()[0])
-    print("Type /quit to exit. Tools are gated; robot actions only via robot.")
+    print("Type /quit to exit. … lines show work in progress; robot actions stay gated.")
 
     while True:
         try:
@@ -427,7 +613,13 @@ def cmd_chat(args: argparse.Namespace) -> int:
             )
             continue
         try:
-            reply = run_turn(line, session=session, llm=llm, interactive=True)
+            reply = run_turn(
+                line,
+                session=session,
+                llm=llm,
+                interactive=True,
+                on_event=lambda msg: print(f"… {msg}", flush=True),
+            )
         except Exception as exc:
             print(f"error: {exc}", file=sys.stderr)
             if args.verbose:
@@ -639,7 +831,7 @@ def _poll_wake_event(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="labscriptai",
-        description="LabscriptAI lean agent (chat / recover / daemon / doctor)",
+        description="LabscriptAI lean agent. User entry: chat. doctor is a health check.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -700,9 +892,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     daemon.set_defaults(func=cmd_daemon)
 
-    doctor = sub.add_parser("doctor", help="Probe http://IP:31950/health (no MCP)")
-    doctor.add_argument("--robot", default=None)
-    doctor.add_argument("--timeout", default=2.0)
+    doctor = sub.add_parser(
+        "doctor",
+        help="Health check for chat (Node/npm, API key, optional robot /health)",
+        description=(
+            "Health check for labscriptai chat (not a second workflow). "
+            "Always checks Node >= 18, opentrons-mcp node_modules, index.js, "
+            "DEEPSEEK_API_KEY (present/absent), and opentrons.cli / opentrons.simulate. "
+            "--robot is optional and only probes http://IP:31950/health."
+        ),
+    )
+    doctor.add_argument(
+        "--robot",
+        default=None,
+        help="Robot IP/host; probe http://IP:31950/health (optional — toolchain checks always run)",
+    )
+    doctor.add_argument("--timeout", default=2.0, help="Timeout seconds for robot /health")
     doctor.set_defaults(func=cmd_doctor)
 
     return parser
