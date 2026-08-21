@@ -1,10 +1,11 @@
 # External materials index
 
 The manuscript repository intentionally contains product code only. Research
-materials and evaluation outputs are preserved outside this Git worktree at:
+materials and evaluation outputs are preserved inside this project directory,
+but outside Git tracking, at:
 
 ```text
-../Opentrons-Lab-Agent-materials/
+Opentrons-Lab-Agent-materials/
 ```
 
 The archive keeps the original directory names where practical:
@@ -27,5 +28,5 @@ The archive keeps the original directory names where practical:
 - `legacy/` — other pre-manuscript local trees retained for reference.
 
 The archive has its own `README.md` with the move date and a complete mapping.
-It is deliberately not versioned in this repository; back it up separately
-when moving this worktree to another machine.
+It is deliberately ignored and not versioned in this repository; back it up
+separately when moving this worktree to another machine.

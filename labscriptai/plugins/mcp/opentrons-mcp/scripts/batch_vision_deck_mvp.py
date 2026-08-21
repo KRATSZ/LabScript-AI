@@ -50,7 +50,7 @@ def resolve_image_source(root: Path) -> tuple[Path | None, list[Path], list[Path
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parents[3]
+    root = Path(__file__).resolve().parents[5]
     os.chdir(root)
     img_dir, images, candidates = resolve_image_source(root)
     out = Path(

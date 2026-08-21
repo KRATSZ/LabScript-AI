@@ -3,7 +3,7 @@
 # Run from Opentrons-Lab-Agent/:  bash labscriptai/plugins/mcp/opentrons-mcp/scripts/batch_vision_check_mvp.sh [OUT_DIR]
 # Optional: OPENTRONS_VISION_CONF, OPENTRONS_YOLOE_PROMPTS_JSON, OPENTRONS_YOLOE_WEIGHTS
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/../../../.." && pwd)"
+ROOT="$(cd "$(dirname "$0")/../../../../.." && pwd)"
 cd "$ROOT"
 OUT="${1:-artifacts/camera-captures/vision-annotated/mvp-yoloe-deck-v2}"
 export OPENTRONS_VISION_BATCH_OUT="$OUT"

@@ -2,7 +2,7 @@
 
 Adapter schema: ``logicpass.analyze_adapter.v2`` (blowout state-holding
 semantics; see the preserved research evidence indexed in
-``../Opentrons-Lab-Agent-materials/docs/research/logicpass/29_LOGICPASS_P0_P3_RESULTS.md``).
+``Opentrons-Lab-Agent-materials/docs/research/logicpass/29_LOGICPASS_P0_P3_RESULTS.md``).
 
 This module owns:
 

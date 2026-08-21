@@ -11,6 +11,7 @@ from http.client import HTTPResponse
 
 import pytest
 
+from labscriptai.fake_robot.engine import FakeRobotEngine
 from labscriptai.fake_robot.server import create_app
 
 
@@ -90,6 +91,24 @@ def test_health_and_instruments_shapes(fake_robot):
     left = next(i for i in instruments["data"] if i["mount"] == "left")
     assert left["state"]["tipDetected"] is False
     assert left["instrumentName"] == "p1000_single_flex"
+
+
+def test_fake_command_history_honors_offset_cursor():
+    engine = FakeRobotEngine()
+    run_id = engine.create_run({})["data"]["id"]
+    engine.commands[run_id] = [
+        {"id": "command-1", "commandType": "comment", "status": "succeeded"},
+        {"id": "command-2", "commandType": "comment", "status": "succeeded"},
+        {"id": "command-3", "commandType": "comment", "status": "succeeded"},
+    ]
+
+    first = engine.list_commands(run_id, page_length=2, cursor=0)
+    second = engine.list_commands(run_id, page_length=2, cursor=2)
+
+    assert [command["id"] for command in first["data"]] == ["command-1", "command-2"]
+    assert [command["id"] for command in second["data"]] == ["command-3"]
+    assert first["meta"] == {"cursor": 0, "totalLength": 3}
+    assert second["meta"] == {"cursor": 2, "totalLength": 3}
 
 
 def test_tip_missing_budget_block_awaiting_recovery(fake_robot):

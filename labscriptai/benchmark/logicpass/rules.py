@@ -1,9 +1,9 @@
 """LP-L1–L6 rule evaluation over ledger step events.
 
 Binary contributions follow the preserved
-``../Opentrons-Lab-Agent-materials/docs/research/logicpass/02_phase0_rules_v0.json``.
+``Opentrons-Lab-Agent-materials/docs/research/logicpass/02_phase0_rules_v0.json``.
 Phase-2 hardening notes:
-``../Opentrons-Lab-Agent-materials/docs/research/logicpass/14_PHASE2_HARDENING.md``.
+``Opentrons-Lab-Agent-materials/docs/research/logicpass/14_PHASE2_HARDENING.md``.
 Contamination roles come only from evaluator ``well_roles`` (no name regex).
 """
 

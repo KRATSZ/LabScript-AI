@@ -558,6 +558,46 @@ def test_second_green_edit_skips_review(
     assert skip_flags == [False, True]
 
 
+def test_connected_robot_still_runs_authoring_checks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from labscriptai.agent.loop import _maybe_attach_authoring_checks
+
+    protocol = tmp_path / "protocol.py"
+    protocol.write_text(
+        "from opentrons import protocol_api\n\n"
+        "def run(protocol: protocol_api.ProtocolContext) -> None:\n"
+        "    pass\n",
+        encoding="utf-8",
+    )
+    calls: list[bool] = []
+
+    def fake_checks(*_args: Any, skip_review: bool = False, **_kwargs: Any) -> dict[str, Any]:
+        calls.append(skip_review)
+        return {
+            "sim": {"ok": True},
+            "logicpass": {"outcome": "pass", "logic_pass": True},
+            "llmreview": {"match": True, "findings": []},
+        }
+
+    monkeypatch.setattr("labscriptai.agent.checks.run_authoring_checks", fake_checks)
+    session = SessionState(
+        workspace=tmp_path,
+        robot_connected=True,
+        active_run_id=None,
+        interactive=True,
+    )
+    result = _maybe_attach_authoring_checks(
+        "edit",
+        {"op": "write", "path": "protocol.py"},
+        {"ok": True},
+        session=session,
+    )
+
+    assert result["checks"]["logicpass"]["outcome"] == "pass"
+    assert calls == [False]
+
+
 def test_same_sim_class_reviews_on_third_not_green_flag(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

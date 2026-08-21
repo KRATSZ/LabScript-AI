@@ -372,14 +372,21 @@ class FakeRobotEngine:
             run = self._require_run(run_id)
             return {"data": self._public_run(run)}
 
-    def list_commands(self, run_id: str, page_length: int = 20) -> dict[str, Any]:
+    def list_commands(
+        self,
+        run_id: str,
+        page_length: int = 20,
+        cursor: int = 0,
+    ) -> dict[str, Any]:
         with self._lock:
             self._require_run(run_id)
             cmds = self.commands.get(run_id, [])
-            page = cmds[-page_length:] if page_length else cmds
+            start = max(0, int(cursor))
+            limit = max(1, int(page_length))
+            page = cmds[start : start + limit]
             return {
                 "data": [self._public_command(c) for c in page],
-                "meta": {"cursor": 0, "totalLength": len(cmds)},
+                "meta": {"cursor": start, "totalLength": len(cmds)},
             }
 
     def get_command(self, run_id: str, command_id: str) -> dict[str, Any]:
@@ -526,12 +533,19 @@ class FakeRobotEngine:
             self.maintenance_commands.setdefault(run_id, []).append(cmd)
             return {"data": self._public_command(cmd)}
 
-    def list_maintenance_commands(self, run_id: str, page_length: int = 20) -> dict[str, Any]:
+    def list_maintenance_commands(
+        self,
+        run_id: str,
+        page_length: int = 20,
+        cursor: int = 0,
+    ) -> dict[str, Any]:
         with self._lock:
             cmds = self.maintenance_commands.get(run_id, [])
+            start = max(0, int(cursor))
+            limit = max(1, int(page_length))
             return {
-                "data": [self._public_command(c) for c in cmds[-page_length:]],
-                "meta": {"cursor": 0, "totalLength": len(cmds)},
+                "data": [self._public_command(c) for c in cmds[start : start + limit]],
+                "meta": {"cursor": start, "totalLength": len(cmds)},
             }
 
     def _bind_run_script(self, run: dict[str, Any]) -> None:

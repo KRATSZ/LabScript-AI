@@ -743,7 +743,7 @@ def _maybe_attach_authoring_checks(
         robot_connected=bool(session.robot_connected),
         active_run=bool(session.active_run_id),
     )
-    if context != "author":
+    if context != "author" and session.active_run_id:
         return result
 
     workspace = Path(session.workspace)

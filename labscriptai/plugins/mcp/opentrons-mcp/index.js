@@ -70,10 +70,12 @@ import {
 import { parseSimulationLog, runDoctorTool, runSimulationTool } from "./lib/simulation.js";
 import { buildProbeWellsProtocol, extractProbeResultsFromCommands } from "./lib/probe.js";
 import * as probeLib from "./lib/probe.js";
+import { fetchAllCommands } from "./lib/run-commands.js";
 import {
   handleAnalyzePressureTrace,
   handleFetchPressureTrace,
   handleRunPressureTrace,
+  PRESSURE_TRACE_ENV_FLAG,
 } from "./lib/pressure-tools.js";
 import { listPublicTools, PUBLIC_LIST_TOOL_NAMES } from "./lib/tool-registry.js";
 import { applyLiquidProbeResults } from "./lib/liquid-probe-results.js";
@@ -1702,7 +1704,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "probe_wells",
     description:
-      "Experimental liquid probing helper that generates a temporary protocol, simulates it locally, and can be explicitly enabled for live robot execution later.",
+      "Experimental liquid probing helper that generates a temporary protocol, simulates it locally, and can be explicitly enabled for live robot execution later. Live pressure sampling additionally requires OPENTRONS_ENABLE_PRESSURE_TRACE=1.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1750,7 +1752,7 @@ const TOOL_DEFINITIONS = [
           type: "boolean",
           default: false,
           description:
-            "When true, attach advisory PRESSURE_CSV_B64 samples after each well probe. Prefer run_pressure_trace for hover/z_trace.",
+            "When true, attach advisory PRESSURE_CSV_B64 samples after each well probe. Live use additionally requires OPENTRONS_ENABLE_PRESSURE_TRACE=1. Prefer run_pressure_trace for hover/z_trace.",
         },
         pressure_sample_count: { type: "integer", default: 3 },
         pressure_sample_interval_ms: { type: "integer", default: 150 },
@@ -1872,7 +1874,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "control_run",
     description:
-      "Play, pause, stop, or resume-from-recovery for a run. Play/resume are blocked when a declared protocol TIME WINDOW has expired unless allow_expired_time_window=true.",
+      "Play, pause, stop, or resume-from-recovery for a run. Play/resume are blocked when a declared protocol TIME WINDOW has expired; missing protocol or command-history evidence also blocks play/resume.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1889,10 +1891,14 @@ const TOOL_DEFINITIONS = [
           description: "Optional protocol .py for TIME WINDOW assessment on play/resume",
         },
         file_path: { type: "string", description: "Alias for protocol_path" },
+        protocol_source: {
+          type: "string",
+          description: "Optional inline protocol source for TIME WINDOW assessment when no local file is available",
+        },
         allow_expired_time_window: {
           type: "boolean",
           description:
-            "Operator override: allow play/resume even when protocol TIME WINDOW has expired",
+            "Operator override: allow play/resume when a known protocol TIME WINDOW has expired; does not bypass missing evidence",
           default: false,
         },
         tiprack_slots: {
@@ -2674,13 +2680,24 @@ async function readCameraStatus(args) {
   };
 }
 
+async function readAllCommandHistory(robotIp, commandsPath, pageLength = 100) {
+  const commands = await fetchAllCommands(requestRobotJson, robotIp, commandsPath, {
+    pageLength,
+  });
+  return {
+    data: commands,
+    meta: {
+      cursor: 0,
+      totalLength: commands.length,
+    },
+  };
+}
+
 async function readRunHistory(args) {
   const pageLength = args.page_length ?? 10;
   const [run, commands] = await Promise.all([
     requestRobotJson("GET", args.robot_ip, `/runs/${args.run_id}`),
-    requestRobotJson("GET", args.robot_ip, `/runs/${args.run_id}/commands`, {
-      searchParams: { pageLength },
-    }),
+    readAllCommandHistory(args.robot_ip, `/runs/${args.run_id}/commands`, pageLength),
   ]);
 
   const snapshot = buildRunHistorySnapshot(run, commands);
@@ -4302,9 +4319,11 @@ async function readRunContext(args, { includeCommands = false, pageLength = 20 }
   if (args.run_id) {
     const run = await requestRobotJson("GET", args.robot_ip, `/runs/${args.run_id}`);
     const commands = includeCommands
-      ? await requestRobotJson("GET", args.robot_ip, `/runs/${args.run_id}/commands`, {
-          searchParams: { pageLength },
-        })
+      ? await readAllCommandHistory(
+          args.robot_ip,
+          `/runs/${args.run_id}/commands`,
+          pageLength,
+        )
       : null;
     return {
       run,
@@ -4326,9 +4345,11 @@ async function readRunContext(args, { includeCommands = false, pageLength = 20 }
     };
   }
 
-  const commands = await requestRobotJson("GET", args.robot_ip, `/runs/${runId}/commands`, {
-    searchParams: { pageLength },
-  });
+  const commands = await readAllCommandHistory(
+    args.robot_ip,
+    `/runs/${runId}/commands`,
+    pageLength,
+  );
 
   return {
     runs,
@@ -4367,9 +4388,7 @@ async function readExecutionContext(robotIp, contextType, contextId, { includeCo
   const paths = buildContextPaths(contextType, contextId);
   const detail = await requestRobotJson("GET", robotIp, paths.detailPath);
   const commands = includeCommands
-    ? await requestRobotJson("GET", robotIp, paths.commandsPath, {
-        searchParams: { pageLength },
-      })
+    ? await readAllCommandHistory(robotIp, paths.commandsPath, pageLength)
     : null;
 
   return {
@@ -4711,18 +4730,91 @@ function enrichRecoveryArgsWithProtocolPath(args = {}) {
   return enrichRecoveryArgsWithProtocolPathImpl(args, protocolPathResolverDeps());
 }
 
+function markTimeWindowEvidenceUnknown(timeWindow, reason, detail = null) {
+  return {
+    ...timeWindow,
+    time_window_unknown: true,
+    evidence_status: "unknown",
+    unknown_reason: reason,
+    ...(detail ? { unknown_detail: String(detail).slice(0, 500) } : {}),
+    expired: false,
+  };
+}
+
+function markTimeWindowEvidenceKnown(timeWindow, evidenceStatus) {
+  return {
+    ...timeWindow,
+    time_window_unknown: false,
+    evidence_status: evidenceStatus,
+    unknown_reason: null,
+  };
+}
+
+function assessTimeWindowEvidence({
+  protocolSource = "",
+  protocolSourceAvailable = false,
+  commands = null,
+  commandHistoryAvailable = false,
+  protocolSourceError = null,
+  commandHistoryError = null,
+} = {}) {
+  if (!protocolSourceAvailable) {
+    return markTimeWindowEvidenceUnknown(
+      assessTimeWindow({ protocolSource: "", commands: [] }),
+      "protocol_source_unavailable",
+      protocolSourceError,
+    );
+  }
+
+  // A known protocol without a TIME WINDOW declaration does not need command
+  // history in order to allow play.
+  const preliminary = assessTimeWindow({ protocolSource, commands: [] });
+  if (!preliminary.declared) {
+    return markTimeWindowEvidenceKnown(preliminary, "not_declared");
+  }
+
+  if (!commandHistoryAvailable) {
+    return markTimeWindowEvidenceUnknown(
+      preliminary,
+      "command_history_unavailable",
+      commandHistoryError || "run_id and robot_ip are required",
+    );
+  }
+
+  return markTimeWindowEvidenceKnown(
+    assessTimeWindow({ protocolSource, commands }),
+    "assessed",
+  );
+}
+
 /**
  * Assess protocol TIME WINDOW for a live run (used by robot_status + play gates).
  */
 async function readRunTimeWindow(args = {}) {
   const enriched = enrichRecoveryArgsWithProtocolPath(args);
   let protocolSource = "";
+  let protocolSourceAvailable = false;
+  let protocolSourceError = null;
   try {
-    protocolSource = readProtocolSourceForTipBinding(enriched)?.source || "";
-  } catch {
-    protocolSource = "";
+    const resolved = readProtocolSourceForTipBinding(enriched);
+    if (resolved && typeof resolved.source === "string") {
+      protocolSource = resolved.source;
+      protocolSourceAvailable = true;
+    }
+  } catch (error) {
+    protocolSourceError = error instanceof Error ? error.message : String(error);
   }
+
+  if (!protocolSourceAvailable) {
+    return assessTimeWindowEvidence({
+      protocolSource,
+      protocolSourceAvailable,
+      protocolSourceError,
+    });
+  }
+
   let commands = null;
+  let commandHistoryError = null;
   if (enriched.run_id && enriched.robot_ip) {
     try {
       const history = await readRunHistory({
@@ -4730,23 +4822,36 @@ async function readRunTimeWindow(args = {}) {
         run_id: enriched.run_id,
         page_length: enriched.page_length ?? 80,
       });
-      commands = history.hardwareSnapshot?.commands || null;
-    } catch {
-      commands = null;
+      commands = history.hardwareSnapshot?.commands ?? null;
+    } catch (error) {
+      commandHistoryError = error instanceof Error ? error.message : String(error);
     }
   }
-  return assessTimeWindow({ protocolSource, commands });
+
+  return assessTimeWindowEvidence({
+    protocolSource,
+    protocolSourceAvailable,
+    commands,
+    commandHistoryAvailable: commands !== null,
+    protocolSourceError,
+    commandHistoryError,
+  });
 }
 
 function buildTimeWindowPlayBlockResult(args, timeWindow, actionRequested) {
+  const evidenceUnknown = timeWindow?.time_window_unknown === true;
+  const blockedReason = evidenceUnknown
+    ? "time_window_evidence_unavailable"
+    : "time_window_expired";
   return {
     data: {
       blocked: true,
-      blocked_reason: "time_window_expired",
+      blocked_reason: blockedReason,
       action_requested: actionRequested,
       time_window: timeWindow,
-      override:
-        "Pass allow_expired_time_window=true only after an explicit human decision to continue or discard the run.",
+      override: evidenceUnknown
+        ? "Protocol source and command history must be available before play or resume; the expired-window override does not bypass unknown evidence."
+        : "Pass allow_expired_time_window=true only after an explicit human decision to continue or discard the run.",
     },
     hardwareSnapshot: {},
     stateRevision: 0,
@@ -5109,28 +5214,28 @@ async function finalizeProtocolRecovery({
   executionResult = {},
   waitForTerminal = true,
 } = {}) {
-  if (args.allow_expired_time_window !== true) {
-    const timeWindow = await readRunTimeWindow(args);
-    if (isPlayBlockedByTimeWindow(timeWindow)) {
-      return {
-        data: {
-          blocked: true,
-          blocked_reason: "time_window_expired",
-          time_window: timeWindow,
-          executed_action: executionResult.executedAction || null,
-          executed_params: executionResult.executedParams || {},
-          fixit_commands: executionResult.fixitCommands || [],
-          resume_action: null,
-          final_status: null,
-          override:
-            "Pass allow_expired_time_window=true only after an explicit human decision.",
-        },
-        hardwareSnapshot: {},
-        stateRevision: 0,
-        sessionId,
-        runId: args.run_id,
-      };
-    }
+  const timeWindow = await readRunTimeWindow(args);
+  if (
+    isPlayBlockedByTimeWindow(timeWindow, {
+      allowExpired: args.allow_expired_time_window === true,
+    })
+  ) {
+    const blocked = buildTimeWindowPlayBlockResult(
+      args,
+      timeWindow,
+      "resume-from-recovery",
+    );
+    return {
+      ...blocked,
+      data: {
+        ...blocked.data,
+        executed_action: executionResult.executedAction || null,
+        executed_params: executionResult.executedParams || {},
+        fixit_commands: executionResult.fixitCommands || [],
+        resume_action: null,
+        final_status: null,
+      },
+    };
   }
 
   const resumeAction = await requestRobotJson("POST", args.robot_ip, `/runs/${args.run_id}/actions`, {
@@ -6134,15 +6239,21 @@ const TOOL_HANDLERS = {
     args = enrichRecoveryArgsWithProtocolPath(args);
     const result = await readRobotStatus(args);
     let protocolSource = "";
+    let protocolSourceAvailable = false;
+    let protocolSourceError = null;
     try {
       const resolved = readProtocolSourceForTipBinding(args);
-      protocolSource = resolved?.source || "";
-    } catch {
-      protocolSource = "";
+      if (resolved && typeof resolved.source === "string") {
+        protocolSource = resolved.source;
+        protocolSourceAvailable = true;
+      }
+    } catch (error) {
+      protocolSourceError = error instanceof Error ? error.message : String(error);
     }
 
     let commands = null;
     let run = null;
+    let commandHistoryError = null;
     if (args.run_id && args.robot_ip) {
       try {
         const history = await readRunHistory({
@@ -6152,17 +6263,20 @@ const TOOL_HANDLERS = {
         });
         commands = history.hardwareSnapshot?.commands || null;
         run = history.hardwareSnapshot?.run || null;
-      } catch {
-        commands = null;
-        run = null;
+      } catch (error) {
+        commandHistoryError = error instanceof Error ? error.message : String(error);
       }
     }
 
     const sessionId = args.session_id || args.run_id || null;
     const sessionState = sessionId ? readSessionState(sessionId) : null;
-    const timeWindow = assessTimeWindow({
+    const timeWindow = assessTimeWindowEvidence({
       protocolSource,
       commands,
+      protocolSourceAvailable,
+      commandHistoryAvailable: commands !== null,
+      protocolSourceError,
+      commandHistoryError,
     });
 
     if (commands) {
@@ -8723,6 +8837,16 @@ const TOOL_HANDLERS = {
       return result;
     }
 
+    const pressureRequested =
+      args.record_pressure === true || args.mode === "record_pressure_trace";
+    if (
+      pressureRequested &&
+      process.env[PRESSURE_TRACE_ENV_FLAG] !== "1"
+    ) {
+      throw new Error(
+        `Live probe_wells pressure sampling is disabled. Set ${PRESSURE_TRACE_ENV_FLAG}=1 after operator sign-off; pressure evidence remains advisory and never authorizes play/resume.`,
+      );
+    }
     if (process.env.OPENTRONS_ENABLE_PROBE_WELLS !== "1") {
       throw new Error(
         "Live probe_wells execution is disabled by default. Before real robot probing, confirm with the operator and set OPENTRONS_ENABLE_PROBE_WELLS=1 explicitly.",
@@ -8748,11 +8872,11 @@ const TOOL_HANDLERS = {
       python_executable: args.python_executable,
       extra_args: args.extra_args,
     });
-    const rawCommands = await requestRobotJson("GET", args.robot_ip, `/runs/${runResult.runId}/commands`, {
-      searchParams: {
-        pageLength: args.page_length ?? 50,
-      },
-    });
+    const rawCommands = await readAllCommandHistory(
+      args.robot_ip,
+      `/runs/${runResult.runId}/commands`,
+      args.page_length ?? 50,
+    );
     const probeResults = extractProbeResultsFromCommands(rawCommands);
     const mode = args.mode || "detect_presence";
     const sessionId = args.session_id || runResult.sessionId || DEFAULT_SESSION_ID;
@@ -8907,12 +9031,13 @@ const TOOL_HANDLERS = {
 
   async control_run(args) {
     const action = args.action;
-    if (
-      (action === "play" || action === "resume-from-recovery") &&
-      args.allow_expired_time_window !== true
-    ) {
+    if (action === "play" || action === "resume-from-recovery") {
       const timeWindow = await readRunTimeWindow(args);
-      if (isPlayBlockedByTimeWindow(timeWindow)) {
+      if (
+        isPlayBlockedByTimeWindow(timeWindow, {
+          allowExpired: args.allow_expired_time_window === true,
+        })
+      ) {
         const blocked = buildTimeWindowPlayBlockResult(args, timeWindow, action);
         recordToolResultLog({
           toolName: "control_run",
@@ -8920,10 +9045,13 @@ const TOOL_HANDLERS = {
           args,
           result: blocked,
           fallbackSessionId: args.session_id || args.run_id,
-          summary: `Blocked ${action}: protocol TIME WINDOW expired (${timeWindow.elapsed_minutes} > ${timeWindow.window_minutes} min).`,
+          summary:
+            timeWindow.time_window_unknown === true
+              ? `Blocked ${action}: protocol TIME WINDOW evidence is unavailable.`
+              : `Blocked ${action}: protocol TIME WINDOW expired (${timeWindow.elapsed_minutes} > ${timeWindow.window_minutes} min).`,
           data: {
             action_type: action,
-            blocked_reason: "time_window_expired",
+            blocked_reason: blocked.data.blocked_reason,
             time_window: timeWindow,
           },
         });
@@ -9098,14 +9226,20 @@ const TOOL_HANDLERS = {
       : [];
 
     let protocolSource = "";
+    let protocolSourceAvailable = false;
+    let protocolSourceError = null;
     try {
       const resolved = readProtocolSourceForTipBinding(args);
-      protocolSource = resolved?.source || "";
-    } catch {
-      protocolSource = "";
+      if (resolved && typeof resolved.source === "string") {
+        protocolSource = resolved.source;
+        protocolSourceAvailable = true;
+      }
+    } catch (error) {
+      protocolSourceError = error instanceof Error ? error.message : String(error);
     }
 
     let commands = result.data?.commands || result.data?.recent_commands || null;
+    let commandHistoryError = null;
     if (!commands && args.robot_ip && args.run_id) {
       try {
         const history = await readRunHistory({
@@ -9114,14 +9248,18 @@ const TOOL_HANDLERS = {
           page_length: args.page_length ?? 50,
         });
         commands = history.hardwareSnapshot?.commands || null;
-      } catch {
-        commands = null;
+      } catch (error) {
+        commandHistoryError = error instanceof Error ? error.message : String(error);
       }
     }
 
-    const timeWindow = assessTimeWindow({
+    const timeWindow = assessTimeWindowEvidence({
       protocolSource,
       commands,
+      protocolSourceAvailable,
+      commandHistoryAvailable: commands !== null,
+      protocolSourceError,
+      commandHistoryError,
     });
 
     const payload = {

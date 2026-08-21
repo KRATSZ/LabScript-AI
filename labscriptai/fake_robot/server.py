@@ -151,6 +151,7 @@ class FakeRobotHandler(BaseHTTPRequestHandler):
             path = parsed.path
             qs = parse_qs(parsed.query)
             page_length = int((qs.get("pageLength") or ["20"])[0])
+            cursor = int((qs.get("cursor") or ["0"])[0])
 
             if path == "/health":
                 return self._json(200, self.engine.health())
@@ -184,7 +185,7 @@ class FakeRobotHandler(BaseHTTPRequestHandler):
                 return self._json(200, self.engine.get_run(m.group(1)))
             m = re.fullmatch(r"/runs/([^/]+)/commands", path)
             if m:
-                return self._json(200, self.engine.list_commands(m.group(1), page_length))
+                return self._json(200, self.engine.list_commands(m.group(1), page_length, cursor))
             m = re.fullmatch(r"/runs/([^/]+)/commands/([^/]+)", path)
             if m:
                 return self._json(200, self.engine.get_command(m.group(1), m.group(2)))
@@ -193,7 +194,10 @@ class FakeRobotHandler(BaseHTTPRequestHandler):
                 return self._json(200, self.engine.get_maintenance_run(m.group(1)))
             m = re.fullmatch(r"/maintenance_runs/([^/]+)/commands", path)
             if m:
-                return self._json(200, self.engine.list_maintenance_commands(m.group(1), page_length))
+                return self._json(
+                    200,
+                    self.engine.list_maintenance_commands(m.group(1), page_length, cursor),
+                )
             m = re.fullmatch(r"/protocols/([^/]+)/analyses", path)
             if m:
                 return self._json(

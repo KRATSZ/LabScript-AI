@@ -22,7 +22,7 @@ from pathlib import Path
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parents[3]
+    root = Path(__file__).resolve().parents[5]
     ap = argparse.ArgumentParser(description="YOLOE deck preview for fast prompt iteration.")
     ap.add_argument(
         "source",

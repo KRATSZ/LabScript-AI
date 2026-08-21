@@ -6,7 +6,7 @@ Node backend for **`labscriptai chat`** (`mcp_adapter.call_tool` → `TOOL_HANDL
 cd labscriptai/plugins/mcp/opentrons-mcp && npm install
 ```
 
-User entry and health check: repo-root [`README.md`](../../../../README.md). Safety / recovery: [`../skills/`](../../skills/) (`safety-brief`, `error-taxonomy`, `recovery-playbooks`, `pressure-trace`).
+User entry and health check: repo-root [`README.md`](../../../../README.md). Safety / recovery: [`../../skills/`](../../skills/) (`safety-brief`, `error-taxonomy`, `recovery-playbooks`, `pressure-trace`).
 
 Override the entry with `LABSCRIPTAI_MCP_INDEX=/abs/path/to/index.js` if needed. Live pressure sampling is opt-in (`OPENTRONS_ENABLE_PRESSURE_TRACE=1`) and never authorizes play/resume.
 
@@ -31,7 +31,7 @@ Pressure evidence is advisory and cannot override controller state. Tools: `run_
 
 ## Operator guidance
 
-- Load `../skills/recovery-playbooks.md` before any live recovery action.
+- Load `../../skills/recovery-playbooks.md` before any live recovery action.
 - Pressure traces are evidence only; they never authorize play, resume, or
   liquid-state writeback.
 - Run `npm test` from this directory after changing the backend.
@@ -44,7 +44,7 @@ Pressure evidence is advisory and cannot override controller state. Tools: `run_
 - Live-state tools return a common envelope: `success`, `data`, `error`, `hardware_snapshot`, `state_revision`, `run_id`, `session_id`, `timestamp`.
 - `run_protocol` gates real **play** with (1) the simulation chain above and (2) `preflight_run_setup` after run creation unless skipped via explicit flags.
 - `health_check` remains an environment/developer probe. Use `live_readiness_check` for operator-facing live gating before `create_run` or `play`.
-- Session `DeckState` lives under `data/session-state/` (override: `OPENTRONS_SESSION_STATE_DIR`). Append-only result logs under `data/result-logs/` (`OPENTRONS_RESULT_LOG_DIR`).
+- Session `DeckState` lives under `.plugin-data/session-state/` (override: `OPENTRONS_SESSION_STATE_DIR`). Append-only result logs under `.plugin-data/result-logs/` (`OPENTRONS_RESULT_LOG_DIR`).
 - `experiment_history` filters: `session_id`, `run_id`, `tool_name`, `status`, `limit`, optional `event_kind`. **Logs are historical evidence**; committed deck truth is session state + live `reconcile_state` / `robot_status`.
 - Tests may set `OPENTRONS_RESULT_LOG_DIR` and `OPENTRONS_SESSION_STATE_DIR` (see the runtime-watch tests under `lib/`).
 - `capture_preview_image` writes a local file and returns the path (no binary in MCP payloads). `capture_run_image` uses the robot queue; some builds may not return a downloadable `fileId` immediately — use `list_data_files` / `download_data_file` when needed.

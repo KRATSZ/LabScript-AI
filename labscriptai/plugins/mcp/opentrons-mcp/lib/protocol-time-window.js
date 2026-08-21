@@ -165,8 +165,17 @@ export function assessTimeWindow({
 
 /**
  * Whether MCP play / resume-from-recovery should hard-block on this assessment.
- * Override only via explicit operator opt-in (allow_expired_time_window).
+ * An explicitly expired window may be overridden by an operator. Unknown
+ * evidence is always blocking and cannot be bypassed by the expired-window
+ * override.
  */
-export function isPlayBlockedByTimeWindow(timeWindow = null) {
-  return Boolean(timeWindow?.declared && timeWindow?.expired === true);
+export function isPlayBlockedByTimeWindow(timeWindow = null, { allowExpired = false } = {}) {
+  if (timeWindow?.time_window_unknown === true) {
+    return true;
+  }
+  return Boolean(
+    !allowExpired &&
+      timeWindow?.declared &&
+      timeWindow?.expired === true,
+  );
 }

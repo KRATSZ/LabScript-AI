@@ -631,9 +631,13 @@ async function runLiquidSensing(context) {
     summary: "Runtime marks liquid state unknown and selects pressure-based probe.",
   });
 
+  const probeEnabled = process.env.OPENTRONS_ENABLE_PROBE_WELLS === "1";
+  const pressureTraceEnabled = process.env.OPENTRONS_ENABLE_PRESSURE_TRACE === "1";
   const selectedAction = {
     name: "probe_wells_measure_height",
-    auto_executable: context.mode === "mock" || Boolean(context.confirmLive && process.env.OPENTRONS_ENABLE_PROBE_WELLS === "1"),
+    auto_executable:
+      context.mode === "mock" ||
+      Boolean(context.confirmLive && probeEnabled && pressureTraceEnabled),
     requires_confirmation: context.mode === "live",
     params: {
       labware_slot: labwareSlot,
@@ -654,13 +658,15 @@ async function runLiquidSensing(context) {
     auto_recovery_allowed: gatePass,
     requires_human_confirmation: context.mode === "live" && !context.confirmLive,
     hard_stop: false,
-    reason: gatePass ? null : "live_probe_requires_confirm_live_and_OPENTRONS_ENABLE_PROBE_WELLS",
+    reason: gatePass
+      ? null
+      : "live_probe_requires_confirm_live_and_OPENTRONS_ENABLE_PROBE_WELLS_and_OPENTRONS_ENABLE_PRESSURE_TRACE",
   };
   context.emit("verify_gate", {
     status: gatePass ? "pass" : "blocked",
     summary: gatePass
       ? "Liquid probe is allowed."
-      : "Live probe is blocked until confirmation and OPENTRONS_ENABLE_PROBE_WELLS=1.",
+      : "Live probe is blocked until confirmation, OPENTRONS_ENABLE_PROBE_WELLS=1, and OPENTRONS_ENABLE_PRESSURE_TRACE=1.",
   });
 
   let probeResult = {

@@ -77,7 +77,12 @@ def _upload_and_play(base: str, robot_ip: str, protocol_text: str = "print('ok')
 
     play = call_tool(
         "control_run",
-        {"robot_ip": robot_ip, "run_id": run_id, "action": "play"},
+        {
+            "robot_ip": robot_ip,
+            "run_id": run_id,
+            "action": "play",
+            "protocol_source": protocol_text,
+        },
         timeout_sec=60,
     )
     assert "error" not in (play or {}) or play.get("ok") is not False, play

@@ -97,3 +97,17 @@ test("isPlayBlockedByTimeWindow only when declared and expired", () => {
   assert.equal(isPlayBlockedByTimeWindow({ declared: false, expired: true }), false);
   assert.equal(isPlayBlockedByTimeWindow(null), false);
 });
+
+test("unknown time-window evidence always blocks play", () => {
+  const unknown = {
+    declared: true,
+    expired: false,
+    time_window_unknown: true,
+  };
+  assert.equal(isPlayBlockedByTimeWindow(unknown), true);
+  assert.equal(isPlayBlockedByTimeWindow(unknown, { allowExpired: true }), true);
+  assert.equal(
+    isPlayBlockedByTimeWindow({ declared: true, expired: true }, { allowExpired: true }),
+    false,
+  );
+});

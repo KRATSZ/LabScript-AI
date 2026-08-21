@@ -9,6 +9,7 @@ __pycache__/
 .DS_Store
 .codegraph/
 *.rar
+/Opentrons-Lab-Agent-materials/
 
 # Local bulk / eval leftovers (stripped from manuscript; do not re-add)
 /src/

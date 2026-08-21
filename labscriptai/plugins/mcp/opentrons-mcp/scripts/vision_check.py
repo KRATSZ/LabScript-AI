@@ -32,7 +32,7 @@ SLOT_HEIGHT = 1.0 / 4.0
 SLOT_AREA = SLOT_WIDTH * SLOT_HEIGHT
 BOUNDARY_EPS = 0.02
 
-_REPO_ROOT = Path(os.environ.get("OPENTRONS_PLUGIN_ROOT", Path(__file__).resolve().parents[3])).expanduser().resolve()
+_REPO_ROOT = Path(os.environ.get("OPENTRONS_PLUGIN_ROOT", Path(__file__).resolve().parents[5])).expanduser().resolve()
 _VISION_ROOT = _REPO_ROOT / "vision"
 _VISION_WEIGHTS_DIR = _VISION_ROOT / "models" / "weights"
 _VISION_RUNS_DIR = _VISION_ROOT / "runs" / "detect"
