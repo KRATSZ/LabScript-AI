@@ -79,3 +79,4 @@ labscriptai/build/
 /backup_*.json
 /error_log_*.csv
 /summary_report_*.csv
+/local

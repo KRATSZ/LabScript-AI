@@ -3,10 +3,12 @@ import assert from "node:assert/strict";
 
 import {
   applyLiquidSourceSubstitutionPatchToProtocol,
+  assessReserveProbeVolume,
   buildLiquidSourceSubstitutionContinuationGuide,
   buildLiquidSourceSubstitutionPlan,
   commandHasLiquidNotFoundError,
   evaluateReuseAttachedTipEligibility,
+  isSubstituteVolumeUnverified,
   generateLiquidSourceSubstitutionValidationProtocol,
   isProbeOnlyLiquidNotFoundFailure,
   renderLiquidSourceSubstitutionAttachedTipContinuationProtocol,
@@ -319,4 +321,102 @@ test("volume_check uses insufficient_data without inventing a new auto-allow pat
   assert.equal(plan.volume_check.sufficient, false);
   assert.equal(plan.same_liquid_source_substitution_allowed, true);
   assert.notEqual(plan.blocked_reason, "substitute_volume_insufficient");
+});
+
+test("isSubstituteVolumeUnverified when demand known but usable volume unknown", () => {
+  const plan = buildLiquidSourceSubstitutionPlan({
+    sessionState,
+    failedSourceKey: "C2.A1",
+    preferredSourceKey: "C2.A2",
+    transferHints: {
+      destination_wells: ["A1", "A2", "A3"],
+      transfer_volume: 200,
+    },
+  });
+  assert.equal(plan.volume_check.basis, "insufficient_data");
+  assert.equal(plan.volume_check.required_ul, 600);
+  assert.equal(isSubstituteVolumeUnverified(plan.volume_check), true);
+});
+
+test("isSubstituteVolumeUnverified is false for conclusive declared shortfall", () => {
+  assert.equal(
+    isSubstituteVolumeUnverified({
+      basis: "declared_source_map",
+      sufficient: false,
+      required_ul: 600,
+      usable_ul: 100,
+    }),
+    false,
+  );
+  assert.equal(
+    isSubstituteVolumeUnverified({
+      basis: "insufficient_data",
+      sufficient: false,
+      required_ul: null,
+    }),
+    false,
+  );
+});
+
+test("assessReserveProbeVolume passes for tall nest_12 fill vs 3x100 uL", () => {
+  const check = assessReserveProbeVolume({
+    height_mm: 16.11,
+    labware_load_name: "nest_12_reservoir_15ml",
+    candidateKey: "C2.A2",
+    transferHints: {
+      transfer_volume: 100,
+      destination_wells: ["A1", "A2", "A3"],
+    },
+  });
+  assert.equal(check.basis, "approximate_lpd_height");
+  assert.equal(check.sufficient, true);
+  assert.equal(check.blocked_reason, null);
+  assert.ok(check.estimated_ul > 9000);
+  assert.equal(check.required_ul, 100 * 3 * 1.2);
+});
+
+test("assessReserveProbeVolume fails for shallow nest_12 fill", () => {
+  const check = assessReserveProbeVolume({
+    height_mm: 1.0,
+    labware_load_name: "nest_12_reservoir_15ml",
+    candidateKey: "C2.A2",
+    transferHints: {
+      transfer_volume: 100,
+      destination_wells: ["A1", "A2", "A3"],
+    },
+  });
+  assert.equal(check.basis, "approximate_lpd_height");
+  assert.equal(check.sufficient, false);
+  assert.equal(check.blocked_reason, "substitute_reserve_volume_insufficient");
+  // estimated ≈ 584, dead 1900 → usable 0
+  assert.equal(check.usable_ul, 0);
+});
+
+test("assessReserveProbeVolume fails closed when height is missing", () => {
+  const check = assessReserveProbeVolume({
+    height_mm: null,
+    labware_load_name: "nest_12_reservoir_15ml",
+    candidateKey: "C2.A2",
+    transferHints: {
+      transfer_volume: 100,
+      destination_wells: ["A1", "A2", "A3"],
+    },
+  });
+  assert.equal(check.sufficient, false);
+  assert.equal(check.blocked_reason, "substitute_reserve_volume_insufficient");
+});
+
+test("assessReserveProbeVolume fails closed for unknown labware geometry", () => {
+  const check = assessReserveProbeVolume({
+    height_mm: 10,
+    labware_load_name: "unknown_reservoir",
+    candidateKey: "C2.A2",
+    transferHints: {
+      transfer_volume: 100,
+      destination_wells: ["A1"],
+    },
+  });
+  assert.equal(check.sufficient, false);
+  assert.equal(check.estimated_ul, null);
+  assert.equal(check.blocked_reason, "substitute_reserve_volume_insufficient");
 });

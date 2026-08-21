@@ -138,15 +138,36 @@ export function evaluateAutonomy({
 
   const volumeCheck = recovery?.volume_check || recovery?.recovery?.volume_check || null;
   if (
-    recovery?.blocked_reason === "substitute_volume_insufficient" ||
-    (volumeCheck?.basis === "declared_source_map" && volumeCheck?.sufficient === false)
+    recovery?.volume_unverified === true ||
+    recovery?.rationale === "same_liquid_reserve_volume_unverified" ||
+    (volumeCheck?.basis === "insufficient_data" &&
+      volumeCheck?.sufficient === false &&
+      Number(volumeCheck?.required_ul) > 0)
   ) {
     return {
       level: "L3",
       status: "needs_user",
       can_execute: false,
       action,
-      reason: "substitute_volume_insufficient",
+      reason: "substitute_volume_unverified",
+    };
+  }
+  if (
+    recovery?.blocked_reason === "substitute_volume_insufficient" ||
+    recovery?.blocked_reason === "substitute_reserve_lpd_failed" ||
+    recovery?.blocked_reason === "substitute_reserve_volume_insufficient" ||
+    (volumeCheck?.basis === "declared_source_map" && volumeCheck?.sufficient === false) ||
+    (volumeCheck?.basis === "approximate_lpd_height" && volumeCheck?.sufficient === false)
+  ) {
+    return {
+      level: "L3",
+      status: "needs_user",
+      can_execute: false,
+      action,
+      reason:
+        recovery?.blocked_reason ||
+        volumeCheck?.blocked_reason ||
+        "substitute_volume_insufficient",
     };
   }
 

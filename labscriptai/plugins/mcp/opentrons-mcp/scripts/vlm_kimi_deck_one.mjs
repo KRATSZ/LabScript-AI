@@ -3,7 +3,7 @@
  * Run MCP-equivalent Kimi K2.5 deck photo analysis (SiliconFlow) on one local image.
  *
  *   export SILICONFLOW_API_KEY=...
- *   node mcp-servers/opentrons-mcp/scripts/vlm_kimi_deck_one.mjs path/to/image.jpeg
+ *   node labscriptai/plugins/mcp/opentrons-mcp/scripts/vlm_kimi_deck_one.mjs path/to/image.jpeg
  *
  * Optional: pass custom prompt as second arg (quoted).
  */
@@ -12,15 +12,14 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const mcpRoot = path.resolve(__dirname, "..");
-const repoRoot = path.resolve(__dirname, "../../..");
 
 const imageArg = process.argv[2];
 if (!imageArg) {
-  console.error("Usage: SILICONFLOW_API_KEY=... node mcp-servers/opentrons-mcp/scripts/vlm_kimi_deck_one.mjs <image.jpeg> [optional prompt]");
+  console.error("Usage: SILICONFLOW_API_KEY=... node labscriptai/plugins/mcp/opentrons-mcp/scripts/vlm_kimi_deck_one.mjs <image.jpeg> [optional prompt]");
   process.exit(1);
 }
 
-const imagePath = path.isAbsolute(imageArg) ? imageArg : path.join(repoRoot, imageArg);
+const imagePath = path.isAbsolute(imageArg) ? imageArg : path.resolve(process.cwd(), imageArg);
 const optionalPrompt = process.argv[3] || null;
 
 process.chdir(mcpRoot);

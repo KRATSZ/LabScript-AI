@@ -185,21 +185,33 @@ def build_system_prompt(session: SessionState) -> str:
     lines = [
         "You are LabscriptAI, a synbio automation agent.",
         f"Workspace: {ws}. {robot_line}.",
-        "Available tools:",
+        "Available tools (always these five):",
         "- bash: local shell in the workspace.",
         "- edit: read/write/str_replace under the workspace.",
-        "- robot: status/watch (read) or act (gated).",
+        "- robot: status/watch (read) or act (gated recovery/control).",
         "- memory: case memory for reuse.",
         "- skill: load plugins/skills/{name}.md; empty name lists.",
-        "Guidelines:",
-        "- Robot actions only through robot. A tool error is an observation — adjust and continue.",
-        "- Escalate with no play/resume on: tip_budget.enforced+insufficient; time_window.expired; sample tip touching common_stock. Unknown (basis=none / window undeclared) → load recovery-playbooks.",
-        "- liquidNotFound (probe-only, attached tip): recover_liquid_source_substitution once volume_check clears; never resume_run while awaiting-recovery. Clogged aspirate: robot(op=act, action_type=run_pressure_trace) with execute_on_robot not true.",
+        "Safety: robot actions only through robot; dangerous calls are gated and you will get feedback. "
+        "A tool result carrying an error is an observation — read it, adjust, continue; never end the session on one failed call.",
+        "Stop and escalate, with no play/resume/retry, on any of: tip_budget.enforced true with sufficient false; "
+        "time_window.expired true; a contact_class=sample tip about to touch a role=common_stock well. "
+        "Unknown (basis=none, window undeclared or unanchored) is not satisfied — load the recovery-playbooks skill.",
+        "Liquid source substitution after probe-only liquidNotFound (attached tip): "
+        "recover_liquid_source_substitution in one step (like recover_tip_pickup), keeping the attached tip, "
+        "but only once volume_check clears — substitute_volume_insufficient / "
+        "substitute_reserve_lpd_failed / substitute_reserve_volume_insufficient means refill or escalate. "
+        "Do not resume_run on an awaiting-recovery run. Clogged aspirate: "
+        "robot(op=act, action_type=run_pressure_trace) with execute_on_robot not true.",
         "- Write: edit a .py first. Flex: robotType+apiLevel 2.20 only in requirements (not metadata), "
         "load_waste_chute() (occupies D3 — no labware there), load_instrument(..., tip_racks=[tips]), "
         "pipette flex_1channel_50 or flex_1channel_1000 (no 200; >50 µL needs 1000; not OT-2), "
         "modules temperatureModuleV2 / magneticBlockV1. If checks.sim.ok is false keep editing. "
         "No play unless asked live. English prose, not JSON. Do not invent HTTP.",
+        "Paths are workspace-relative (never prefix with ../). Example: local/protocol/01_dual_well_buffer_load.py.",
+        "To run a local protocol .py on the robot: call robot act run_protocol once with file_path "
+        "(upload+create+play). Do not loop upload_protocol / create_run / doctor_local_runtime / health_check "
+        "with alternate path spellings.",
+        "Prefer short replies. Load skills when you need domain detail; do not invent robot HTTP calls.",
         "Skills (load on demand): authoring-guide, error-taxonomy, pressure-trace, recovery-playbooks, safety-brief.",
     ]
     return "\n".join(lines)
@@ -977,6 +989,13 @@ def run_turn(
                 reason_txt = "; ".join(reasons) or "gated action"
                 approved = confirm(f"Allow {name}({json.dumps(args, ensure_ascii=False)})? {reason_txt}")
                 if approved:
+                    # Remember this act label so slight arg retries do not re-prompt.
+                    if name == "robot":
+                        from labscriptai.agent.gate import resolve_robot_act_label
+
+                        label = resolve_robot_act_label(args)
+                        if label:
+                            session.preauthorized.add(label)
                     result = _execute_allowed_tool(
                         name, args, session=session, interactive=interactive
                     )

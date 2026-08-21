@@ -5,7 +5,7 @@ Quick HTTP probe for Flex deck camera endpoints (no Opentrons Python dep).
 Requires header `Opentrons-Version` (same as MCP; default "4").
 
 Example:
-  uv run python mcp-servers/opentrons-mcp/scripts/probe_robot_camera_http.py --robot 10.31.2.149:31950
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/probe_robot_camera_http.py --robot 10.31.2.149:31950
 """
 from __future__ import annotations
 

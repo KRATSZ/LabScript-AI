@@ -2,12 +2,12 @@
 """
 Quick YOLOE visual feedback for prompt tuning (single image or webcam).
 
-Default prompts match mcp-servers/opentrons-mcp/scripts/vision_check.py (Flex-tuned list).
+Default prompts match the bundled `vision_check.py` (Flex-tuned list).
 
 Examples (from Opentrons-Lab-Agent/):
-  uv run python mcp-servers/opentrons-mcp/scripts/yoloe_deck_preview.py artifacts/camera-captures/mvp-annotation-batch/00_....jpeg
-  uv run python mcp-servers/opentrons-mcp/scripts/yoloe_deck_preview.py 0 --conf 0.2
-  uv run python mcp-servers/opentrons-mcp/scripts/yoloe_deck_preview.py path/to.jpg --no-show --out /tmp/p.jpg
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/yoloe_deck_preview.py artifacts/camera-captures/mvp-annotation-batch/00_....jpeg
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/yoloe_deck_preview.py 0 --conf 0.2
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/yoloe_deck_preview.py path/to.jpg --no-show --out /tmp/p.jpg
 
 Requires: uv sync --extra vision
 """

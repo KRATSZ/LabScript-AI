@@ -14,3 +14,5 @@ labscriptai chat                  # default provider: deepseek (DEEPSEEK_API_KEY
 ```
 
 `--robot` is optional on `doctor` (toolchain always; `/health` only with `--robot`). Details: [`README.md`](README.md). Safety / recovery: `labscriptai/plugins/skills/` (`safety-brief`, `error-taxonomy`, `recovery-playbooks`).
+
+Fake Flex HTTP backend (reproduce tip/liquid recovery failures without a robot): `python -m labscriptai.fake_robot --scenario tip_missing_budget_block` then `labscriptai doctor --robot 127.0.0.1`. See [`labscriptai/fake_robot/README.md`](labscriptai/fake_robot/README.md).

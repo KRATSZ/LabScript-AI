@@ -14,6 +14,7 @@ import {
   buildLiquidSourceSubstitutionPlan,
   evaluateReuseAttachedTipEligibility,
   findSameLiquidSourceCandidates,
+  isSubstituteVolumeUnverified,
 } from "./liquid-source-substitution.js";
 import { readPendingInRunLiquidSubstitutionConfirm } from "./liquid-source-fixit-recovery.js";
 
@@ -603,8 +604,13 @@ function buildLiquidManualRecoveryContext({
       })
     : null;
   const volumeCheck = substitutionPlan?.volume_check || null;
+  // Conclusive shortfall only. Missing volume data stays on the human / live-LPD
+  // path (recover probes reserve height) so 03 FIX still suggests substitution.
   const volumeInsufficient =
-    volumeCheck?.basis === "declared_source_map" && volumeCheck?.sufficient === false;
+    volumeCheck?.sufficient === false &&
+    (volumeCheck?.basis === "declared_source_map" ||
+      volumeCheck?.basis === "approximate_lpd_height" ||
+      substitutionPlan?.blocked_reason === "substitute_volume_insufficient");
   const hasSameLiquidSourceCandidates =
     sameLiquidSourceCandidates.length > 0 &&
     !volumeInsufficient &&
@@ -889,7 +895,13 @@ export function classifyRecoveryError({ run, commands, moduleStatusSnapshot, rob
     };
   }
 
-  if (lowerError.includes("clog")) {
+  if (
+    lowerError.includes("clog") ||
+    lowerError.includes("overpressure") ||
+    lowerError.includes("over pressure") ||
+    lowerError.includes("pressureoutsidelimits") ||
+    lowerError.includes("pipetteoverpressure")
+  ) {
     return {
       error_category: "TIP_CLOG",
       error_leaf: "TIP_CLOG",
@@ -1526,6 +1538,35 @@ export function buildRecoverySuggestion({
       if (awaitingRecovery && liquidContext.same_liquid_source_substitution_allowed) {
         const preferredCandidate = liquidContext.same_liquid_source_candidates[0] || null;
         if (liquidContext.reuse_attached_tip_eligible) {
+          const volumeUnverified = isSubstituteVolumeUnverified(liquidContext.volume_check);
+          // Known demand but no usable volume yet: do not auto-execute (04 STOP).
+          // recover_liquid_source_substitution still probes reserve and applies the height gate.
+          if (volumeUnverified) {
+            return {
+              ...buildErrorTaxonomy({
+                phase: "recovery",
+                errorLeaf: resolvedErrorLeaf,
+                overrides: {
+                  actionability: "manual_confirmation_required",
+                  auto_executable: false,
+                  required_inputs: ["reserve_volume_verification"],
+                  requires_confirmation: true,
+                  evidence_sources: ["run_history", "commands", "session_state"],
+                },
+              }),
+              error_category: errorCategory,
+              action: "substitute_liquid_source_with_attached_tip",
+              hard_stop: false,
+              escalate_to_human: true,
+              rationale: "same_liquid_reserve_volume_unverified",
+              recommended_manual_action: "probe_reserve_volume_via_recover_before_continuing",
+              recommended_next_tools: ["recover_liquid_source_substitution"],
+              volume_unverified: true,
+              failed_source_key: liquidContext.source_map_key,
+              preferred_source_key: preferredCandidate?.source_map_key || null,
+              ...liquidContext,
+            };
+          }
           return {
             ...buildErrorTaxonomy({
               phase: "recovery",
@@ -1544,6 +1585,7 @@ export function buildRecoverySuggestion({
             escalate_to_human: false,
             rationale: "same_liquid_reserve_substitution_with_attached_tip",
             recommended_next_tools: ["recover_liquid_source_substitution", "execute_protocol_recovery"],
+            volume_unverified: false,
             failed_source_key: liquidContext.source_map_key,
             preferred_source_key: preferredCandidate?.source_map_key || null,
             ...liquidContext,
@@ -1729,13 +1771,16 @@ export function buildActionSummary({
           null,
         reuse_attached_tip: true,
         reuse_attached_tip_eligible: recoverySuggestion?.reuse_attached_tip_eligible === true,
+        volume_unverified: recoverySuggestion?.volume_unverified === true,
+        volume_check: recoverySuggestion?.volume_check || null,
       };
       summary.then_resume = false;
-      summary.recommended_next_tools = [
-        "recover_liquid_source_substitution",
-        "execute_protocol_recovery",
-      ];
-      summary.if_fails = "manual_intervention";
+      summary.recommended_next_tools = recoverySuggestion?.volume_unverified
+        ? ["recover_liquid_source_substitution"]
+        : ["recover_liquid_source_substitution", "execute_protocol_recovery"];
+      summary.if_fails = recoverySuggestion?.volume_unverified
+        ? "stop_if_reserve_volume_insufficient"
+        : "manual_intervention";
       break;
 
     case "manual_only":

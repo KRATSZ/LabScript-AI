@@ -3,7 +3,7 @@
 Download recent robot-generated camera images (dataFiles) for offline labeling / MVP checkslot.
 
 Usage:
-  uv run python mcp-servers/opentrons-mcp/scripts/fetch_robot_camera_samples.py --robot 10.31.2.149:31950 --out artifacts/camera-captures/mvp-annotation-batch --limit 12
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/fetch_robot_camera_samples.py --robot 10.31.2.149:31950 --out artifacts/camera-captures/mvp-annotation-batch --limit 12
 
 Requires LAN access to the Flex/OT-2 HTTP API. Does not use preview endpoints (often 404 on some Flex builds).
 """

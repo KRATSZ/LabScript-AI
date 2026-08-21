@@ -3,7 +3,7 @@
 Emit empty per-image JSON templates for MVP CHECKSLOT labeling (12 Flex slots).
 
 Usage (from repo root):
-  uv run python mcp-servers/opentrons-mcp/scripts/generate_slot_label_templates.py \\
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/generate_slot_label_templates.py \\
     --images-dir artifacts/camera-captures/mvp-annotation-batch \\
     --out-dir artifacts/camera-captures/mvp-annotation-batch/labels
 

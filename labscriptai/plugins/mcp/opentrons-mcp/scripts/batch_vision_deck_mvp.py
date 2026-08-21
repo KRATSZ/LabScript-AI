@@ -3,7 +3,7 @@
 Batch-run vision_check on MVP camera JPEGs (auto deck weights, labels sidecar for homography).
 
 Run from Opentrons-Lab-Agent/:
-  uv run python mcp-servers/opentrons-mcp/scripts/batch_vision_deck_mvp.py
+  uv run python labscriptai/plugins/mcp/opentrons-mcp/scripts/batch_vision_deck_mvp.py
 
 Env:
   OPENTRONS_VISION_BATCH_OUT — output dir (default artifacts/.../mvp-deck-auto-v1)

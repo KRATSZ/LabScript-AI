@@ -2,6 +2,7 @@
 
 Statuses: allow | ask | suspend.
 Context author|run is system-inferred and never sent to the model.
+Run context requires a reachable robot; an active run id is optional.
 Daemon (interactive=False) upgrades every ask → suspend.
 """
 
@@ -72,6 +73,16 @@ SAFE_ACTION_TYPES: frozenset[str] = frozenset(
         "validate_continuation_patch",
         "record_liquid_source_map",
         "run_protocol",
+        "upload_protocol",
+        "create_run",
+        "get_protocols",
+        "get_runs",
+        "run_history",
+        "parse_error",
+        "suggest_recovery_action",
+        "runtime_watch_poll",
+        "health_check",
+        "doctor_local_runtime",
         "recover_tip_pickup",
         "recover_liquid_source_substitution",
         "drop_attached_tip",
@@ -143,9 +154,16 @@ class GateDecision:
     context: ContextName = "author"
 
 
-def infer_context(*, robot_connected: bool, active_run: bool) -> ContextName:
-    """System-only context bit: no robot or no active run → author."""
-    if robot_connected and active_run:
+def infer_context(*, robot_connected: bool, active_run: bool = False) -> ContextName:
+    """System-only context bit: robot reachable → run; otherwise author.
+
+    ``active_run`` is retained for call-site compatibility / session tracking but
+    no longer required to enter run context. Requiring an existing run made
+    protocol start impossible from chat (robot act needs run context; run
+    context needed an already-started run).
+    """
+    del active_run  # kept in signature for callers; not used for inference
+    if robot_connected:
         return "run"
     return "author"
 
@@ -465,12 +483,17 @@ def is_substitute_volume_insufficient(
     *,
     blocked_reason: str | None = None,
 ) -> bool:
-    """Hard-block substitute recovery on known short declared volume.
+    """Hard-block substitute recovery on known short declared/estimated volume.
 
     ``basis == "insufficient_data"`` with sufficient=False is NOT a hard stop.
+    Runtime LPD failures / approximate height shortfalls are hard stops.
     """
     reason = str(blocked_reason or "").strip()
-    if reason == "substitute_volume_insufficient":
+    if reason in {
+        "substitute_volume_insufficient",
+        "substitute_reserve_lpd_failed",
+        "substitute_reserve_volume_insufficient",
+    }:
         return True
     if not isinstance(volume_check, Mapping):
         return False
@@ -478,6 +501,8 @@ def is_substitute_volume_insufficient(
     if basis == "insufficient_data":
         return False
     if basis == "declared_source_map" and volume_check.get("sufficient") is False:
+        return True
+    if basis == "approximate_lpd_height" and volume_check.get("sufficient") is False:
         return True
     return False
 
@@ -566,21 +591,66 @@ def _workspace_root() -> Path:
     return Path(raw).expanduser().resolve()
 
 
+def coerce_path_into_workspace(path: str, workspace: Path | None = None) -> str:
+    """Rewrite mistaken ``../local/...`` paths into workspace-relative paths.
+
+    Models often prepend ``../`` when cwd is ``labscriptai/`` even though chat
+    ``--workspace`` is already the repo root. If stripping leading ``..``
+    segments lands on an existing path inside the workspace, use that; otherwise
+    return the original string unchanged.
+    """
+    raw = str(path or "").strip()
+    if not raw:
+        return raw
+    root = (workspace or _workspace_root()).expanduser().resolve()
+
+    def _inside(rel_or_abs: str, *, require_existing: bool) -> Path | None:
+        candidate = Path(rel_or_abs).expanduser()
+        try:
+            resolved = (
+                candidate.resolve()
+                if candidate.is_absolute()
+                else (root / candidate).resolve()
+            )
+            resolved.relative_to(root)
+        except (OSError, ValueError):
+            return None
+        if require_existing and not resolved.exists():
+            return None
+        return resolved
+
+    hit = _inside(raw, require_existing=False)
+    if hit is not None:
+        try:
+            return str(hit.relative_to(root)).replace("\\", "/")
+        except ValueError:
+            return raw.replace("\\", "/")
+
+    # Strip leading ../ or ..\ segments (and lone "..").
+    parts = list(Path(raw.replace("\\", "/")).parts)
+    while parts and parts[0] == "..":
+        parts = parts[1:]
+        if not parts:
+            break
+        candidate = "/".join(parts)
+        hit = _inside(candidate, require_existing=True)
+        if hit is not None:
+            return str(hit.relative_to(root)).replace("\\", "/")
+
+    return raw
+
+
 def _path_in_workspace(path: str) -> bool:
     if not path or not str(path).strip():
         return False
     workspace = _workspace_root()
-    candidate = Path(str(path)).expanduser()
+    coerced = coerce_path_into_workspace(path, workspace)
+    candidate = Path(str(coerced)).expanduser()
     try:
         resolved = candidate.resolve() if candidate.is_absolute() else (workspace / candidate).resolve()
         resolved.relative_to(workspace)
     except (OSError, ValueError):
         return False
-    # Also reject obvious escape tokens before resolve edge cases
-    parts = Path(str(path)).parts
-    if ".." in parts:
-        # still ok if resolve stays inside; re-check relative_to already did
-        pass
     return True
 
 
@@ -588,6 +658,14 @@ def _eval_edit(args: dict[str, Any], *, context: ContextName) -> GateDecision:
     path = str(args.get("path") or args.get("file") or "")
     if not path.strip():
         return GateDecision(status="ask", reasons=["edit requires path"], context=context)
+    # Mutate args so execute sees the coerced path (avoids re-escape at tool layer).
+    coerced = coerce_path_into_workspace(path)
+    if coerced != path:
+        if "path" in args or "file" not in args:
+            args["path"] = coerced
+        if "file" in args:
+            args["file"] = coerced
+        path = coerced
     if _path_in_workspace(path):
         return GateDecision(
             status="allow",
@@ -719,7 +797,7 @@ def _eval_robot(
             )
         return GateDecision(
             status="suspend",
-            reasons=["robot act suspended in author context (no robot / no active run)"],
+            reasons=["robot act suspended in author context (robot not connected)"],
             context=context,
         )
 
@@ -771,9 +849,9 @@ def _eval_robot(
         return GateDecision(
             status="suspend",
             reasons=[
-                "liquid source substitution blocked: reserve usable volume is "
-                "insufficient for the remaining transfer; refill or escalate — "
-                "do not substitute",
+                "liquid source substitution blocked: reserve LPD failed or usable "
+                "volume is insufficient for the remaining transfer; refill or "
+                "escalate — do not substitute",
             ],
             context=context,
         )
@@ -819,6 +897,7 @@ __all__ = (
     "ROBOT_ACT_ALIASES",
     "SAFE_ACTION_TYPES",
     "GateDecision",
+    "coerce_path_into_workspace",
     "evaluate",
     "infer_context",
     "is_aspirate_or_probe_request",

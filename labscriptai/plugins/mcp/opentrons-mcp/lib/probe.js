@@ -217,6 +217,14 @@ const APPROXIMATE_LABWARE_GEOMETRY = {
     top_diameter_mm: 5.49,
     approximate: true,
   },
+  // Opentrons nest_12_reservoir_15ml v1: rectangular trough, V-bottom.
+  // Prism cross-section is approximate and overestimates low fills.
+  nest_12_reservoir_15ml: {
+    well_depth_mm: 26.85,
+    capacity_ul: 15000,
+    cross_section_area_mm2: 8.2 * 71.2,
+    approximate: true,
+  },
 };
 
 function hasUsableGeometry(geometry) {
@@ -375,6 +383,29 @@ export function lookupLabwareGeometry(labware_load_name) {
     return null;
   }
   return { ...geometry };
+}
+
+/**
+ * Default liquid_tracking role for known bench labware.
+ * Destination plates are writeback-only (no volume stop-gate).
+ */
+export function defaultLiquidRoleForLabware(labware_load_name) {
+  const key = String(labware_load_name || "")
+    .trim()
+    .toLowerCase();
+  if (!key) {
+    return null;
+  }
+  if (key.includes("tiprack") || key.includes("tip_rack")) {
+    return null;
+  }
+  if (key.includes("wellplate") || key.includes("well_plate")) {
+    return "destination";
+  }
+  if (key.includes("reservoir")) {
+    return "source";
+  }
+  return null;
 }
 
 export function heightMmToVolumeUl({ height_mm, labware_load_name, well_name, geometry }) {

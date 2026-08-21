@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 
 import {
   buildInRunLiquidSubstitutionRecord,
+  extractLiquidProbeHeightMm,
   findLastSucceededProtocolPickUpTipWell,
   findRunLabwareIdBySlot,
   planConfirmProbeFixitSteps,
   planInRunLiquidSourceSubstitutionFixitSteps,
   readPendingInRunLiquidSubstitutionConfirm,
+  selectDropTipCleanupSteps,
   splitLiquidSubstitutionFixitSteps,
+  splitReplacementProbeStep,
 } from "./liquid-source-fixit-recovery.js";
 
 const protocolSource = `
@@ -126,6 +129,27 @@ test("splitLiquidSubstitutionFixitSteps separates transfer and confirm phases", 
     confirmSteps.find(step => step.name === "confirm_pick_up_tip").payload.data.params.wellName,
     "B1",
   );
+
+  const { probeStep, postProbeSteps } = splitReplacementProbeStep(transferSteps);
+  assert.equal(probeStep.name, "replacement_liquid_probe");
+  assert.ok(!postProbeSteps.some(step => step.name === "replacement_liquid_probe"));
+  assert.ok(postProbeSteps.some(step => step.name === "transfer_aspirate_A1"));
+  assert.deepEqual(
+    selectDropTipCleanupSteps(postProbeSteps).map(step => step.name),
+    ["move_to_trash_for_drop", "drop_attached_tip"],
+  );
+});
+
+test("extractLiquidProbeHeightMm reads z_position aliases", () => {
+  assert.equal(
+    extractLiquidProbeHeightMm({ terminal: { data: { status: "succeeded", result: { z_position: 16.11 } } } }),
+    16.11,
+  );
+  assert.equal(
+    extractLiquidProbeHeightMm({ status: "succeeded", result: { zPosition: 4.8 } }),
+    4.8,
+  );
+  assert.equal(extractLiquidProbeHeightMm({ status: "succeeded", result: {} }), null);
 });
 
 test("readPendingInRunLiquidSubstitutionConfirm detects unfinished confirm after transfers", () => {

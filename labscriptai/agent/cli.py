@@ -15,7 +15,7 @@ import traceback
 from pathlib import Path
 from typing import Any, Callable
 from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 W12_NOT_READY = "W1/W2 未就绪"
 MIN_NODE_MAJOR = 18
@@ -97,7 +97,8 @@ def _probe_robot(robot_ip: str | None, *, timeout: float = 2.0) -> tuple[bool, s
     base = _normalize_robot_base(robot_ip)
     url = base.rstrip("/") + "/health"
     try:
-        with urlopen(url, timeout=timeout) as resp:
+        req = Request(url, headers={"Opentrons-Version": os.environ.get("OPENTRONS_VERSION", "4")})
+        with urlopen(req, timeout=timeout) as resp:
             body = resp.read(512).decode("utf-8", errors="replace")
             return True, f"{url} → HTTP {getattr(resp, 'status', '?')} {body[:120]}"
     except HTTPError as exc:

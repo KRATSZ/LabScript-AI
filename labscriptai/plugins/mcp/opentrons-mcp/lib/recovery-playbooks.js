@@ -18,6 +18,8 @@ const PLAYBOOKS = Object.freeze({
     ],
     blocked_reason_routes: Object.freeze({
       substitute_volume_insufficient: "refill_source_or_escalate",
+      substitute_reserve_lpd_failed: "refill_source_or_escalate",
+      substitute_reserve_volume_insufficient: "refill_source_or_escalate",
     }),
     semantic_invariants: [
       "liquid_name_unchanged",

@@ -55,11 +55,20 @@ export function resolvePythonCandidates(preferredPython = null) {
   const candidates = [
     preferredPython,
     process.env.OPENTRONS_PYTHON,
+    // labscriptai/.venv (PLUGIN_ROOT is usually …/labscriptai/plugins/mcp)
+    path.resolve(PLUGIN_ROOT, "../../.venv/Scripts/python.exe"),
+    path.resolve(PLUGIN_ROOT, "../../.venv/bin/python"),
+    path.resolve(PLUGIN_ROOT, "../.venv/Scripts/python.exe"),
+    path.resolve(PLUGIN_ROOT, "../.venv/bin/python"),
+    path.join(PLUGIN_ROOT, ".venv/Scripts/python.exe"),
     path.join(PLUGIN_ROOT, ".venv/bin/python"),
     // Vendored: PLUGIN_ROOT=…/Opentrons-Lab-Agent/core/mcp
-    path.resolve(PLUGIN_ROOT, "../../.venv/bin/python"), // repo root
+    path.resolve(PLUGIN_ROOT, "../../.venv/bin/python"), // repo root (unix)
     path.resolve(PLUGIN_ROOT, "../../../labscriptai-ot/.venv/bin/python"), // sibling plugin
+    path.join(DEV_REPO_ROOT, ".venv/Scripts/python.exe"),
     path.join(DEV_REPO_ROOT, ".venv/bin/python"),
+    path.resolve(DEV_REPO_ROOT, "../.venv/Scripts/python.exe"),
+    path.resolve(DEV_REPO_ROOT, "../.venv/bin/python"),
     "python3",
     "python",
   ];
