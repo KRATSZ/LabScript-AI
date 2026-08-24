@@ -36,3 +36,11 @@ When refusing an unsafe request, always offer a compliant alternative (sim-first
 | `robot act` | Recovery or explicit control — never invent branches |
 | `memory` | Operator notes under `.labscriptai/memory/` |
 | `skill` | Load this brief and sibling playbooks on demand |
+
+## Consumable offsets
+
+- Record confirmed labware XYZ via MCP `record_labware_offset` (not freeform `memory write`).
+- After App LPC: `import_robot_labware_offsets` dry-run, then `confirm=true` to write ledger.
+- Inspect: `list_labware_offsets` (ledger + robot + merge preview).
+- Auto-applied on create/run when `labware_offsets` is omitted; preflight/live_readiness warn when declared labware lacks offsets.
+- See repo `consumable-offsets.md`.

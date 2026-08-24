@@ -65,6 +65,10 @@ import {
 import {
   buildProtocolRunCreateBody,
   fetchRobotLabwareOffsets,
+  assessOffsetCoverageForRobot,
+  importRobotLabwareOffsets,
+  listLabwareOffsets,
+  recordLabwareOffset,
   resolveRunLabwareOffsets,
 } from "./lib/labware-offsets.js";
 import { parseSimulationLog, runDoctorTool, runSimulationTool } from "./lib/simulation.js";
@@ -127,7 +131,10 @@ import {
   summarizeResultLogEntries,
 } from "./lib/result-log.js";
 import { buildRestartReview, buildSafeNextAction } from "./lib/restart-review.js";
-import { buildPreflightRunSetupResult } from "./lib/preflight-run-setup.js";
+import {
+  applyOffsetCoverageToPreflight,
+  buildPreflightRunSetupResult,
+} from "./lib/preflight-run-setup.js";
 import {
   estimateTipBudget,
   inspectLabwareDefinition,
@@ -161,7 +168,7 @@ import { evaluateSuffixSufficiency } from "./lib/suffix-monitor.js";
 import { listRecoveryPlaybooks } from "./lib/recovery-playbooks.js";
 import { runVisionCheck } from "./lib/vision-check.js";
 import { buildErrorTaxonomy, buildTaxonomyIssue } from "./lib/error-taxonomy.js";
-import { buildLiveReadinessReport } from "./lib/live-readiness.js";
+import { buildLiveReadinessReport, buildOffsetCoverageCheck } from "./lib/live-readiness.js";
 import { runRuntimeRecoveryMonitor } from "./lib/runtime-monitor.js";
 import { runtimeWatchPoll } from "./lib/runtime-watch/sentry-step.js";
 import { runtimeWatchLoop } from "./lib/runtime-watch/watch-loop.js";
@@ -713,6 +720,107 @@ const TOOL_DEFINITIONS = [
     },
   },
   {
+    name: "record_labware_offset",
+    description:
+      "Upsert/disable/revert a consumable labware offset in workspace ledger .labscriptai/offsets/{health serial}.json (true source). Default upsert also POSTs to robot /labwareOffsets and appends memory changelog. Requires operator-confirmed values. locationSequence must be an array (slot stack), not anyLocation.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL (used to read health serial and sync)" },
+        op: {
+          type: "string",
+          enum: ["upsert", "disable", "revert"],
+          description: "Default upsert. disable soft-disables (tombstone). revert restores last history entry.",
+        },
+        definitionUri: {
+          type: "string",
+          description: "Labware definition URI, e.g. opentrons/opentrons_flex_96_tiprack_200ul/1",
+        },
+        locationSequence: {
+          type: "array",
+          description:
+            "Opentrons locationSequence array, e.g. [{kind:onAddressableArea,addressableAreaName:C2}]",
+          items: { type: "object" },
+        },
+        vector: {
+          type: "object",
+          description: "Offset mm {x,y,z}. Required for upsert.",
+          properties: {
+            x: { type: "number" },
+            y: { type: "number" },
+            z: { type: "number" },
+          },
+        },
+        source: { type: "string", description: "Audit source tag (default operator_confirmed)" },
+        note: { type: "string" },
+        force: {
+          type: "boolean",
+          description: "Allow |x|/|y|>5mm or |z|>3mm. Default false.",
+        },
+        write_changelog: {
+          type: "boolean",
+          description: "Append .labscriptai/memory/offset_changelog__{serial}.md (default true)",
+        },
+        sync_robot: {
+          type: "boolean",
+          description: "POST to robot /labwareOffsets on upsert/revert (default true)",
+        },
+        workspace_root: {
+          type: "string",
+          description: "Optional workspace root; defaults to LABSCRIPTAI_WORKSPACE or cwd",
+        },
+      },
+      required: ["definitionUri", "locationSequence"],
+    },
+  },
+  {
+    name: "list_labware_offsets",
+    description:
+      "Read-only inspect of consumable offsets: workspace ledger, robot /labwareOffsets store, merge preview for create_run, and ledger↔robot diff. Uses health serial for ledger path.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        workspace_root: {
+          type: "string",
+          description: "Optional workspace root; defaults to LABSCRIPTAI_WORKSPACE or cwd",
+        },
+      },
+      required: ["robot_ip"],
+    },
+  },
+  {
+    name: "import_robot_labware_offsets",
+    description:
+      "Import slot-scoped offsets from robot GET /labwareOffsets into workspace ledger (post-LPC workflow). Default dry_run lists candidates; set confirm=true to upsert with source=lpc_import. Skips anyLocation. Does not re-POST to robot.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        robot_ip: { type: "string", description: "Robot IP or full base URL" },
+        confirm: {
+          type: "boolean",
+          description: "When false/omitted: dry-run only. When true: write ledger.",
+        },
+        force: {
+          type: "boolean",
+          description: "Allow importing vectors beyond default magnitude limits.",
+        },
+        definitionUri: {
+          type: "string",
+          description: "Optional filter: only this definitionUri",
+        },
+        slot: {
+          type: "string",
+          description: "Optional filter: Flex slot e.g. B2",
+        },
+        note: { type: "string" },
+        write_changelog: { type: "boolean" },
+        workspace_root: { type: "string" },
+      },
+      required: ["robot_ip"],
+    },
+  },
+  {
     name: "apply_liquid_probe_results",
     description:
       "Write live probe observations into session liquid container state with trust_level=observed. Supports single-well writeback or batch apply from probe_wells artifacts. Bookkeeping only; does not move the robot. Call after probe_wells when pending_state_writeback is true.",
@@ -1091,7 +1199,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "create_run_context",
     description:
-      "Create either a protocol run context or a maintenance-run context before enqueueing commands. Automatically attaches stored labware offsets unless labware_offsets is provided.",
+      "Create either a protocol run context or a maintenance-run context before enqueueing commands. When labware_offsets is omitted (undefined), merges workspace ledger (.labscriptai/offsets/{serial}.json from health serial) over robot GET /labwareOffsets. When labware_offsets is provided (including []), uses that list only — full replace, no merge.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1105,6 +1213,8 @@ const TOOL_DEFINITIONS = [
         labware_offsets: {
           type: "array",
           items: { type: "object" },
+          description:
+            "Optional explicit offsets (full replace). Omit for auto-merge of workspace ledger + robot store. Pass [] for no offsets.",
         },
         session_id: { type: "string" },
       },
@@ -1649,7 +1759,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "run_protocol",
     description:
-      "Upload a protocol, create a run (auto-attaching stored labware offsets), optionally play it, then poll until the run reaches a terminal or intervention-required state.",
+      "Upload a protocol, create a run, optionally play it, then poll until terminal or intervention-required. When labware_offsets is omitted, merges workspace ledger over robot stored offsets; when provided (including []), uses that list only (full replace).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1665,7 +1775,7 @@ const TOOL_DEFINITIONS = [
           type: "array",
           items: { type: "object" },
           description:
-            "Optional explicit offsets. When omitted, fetches and dedupes stored robot offsets.",
+            "Optional explicit offsets (full replace). Omit to auto-merge workspace ledger (.labscriptai/offsets/{health serial}.json) over robot GET /labwareOffsets. Pass [] for no offsets.",
         },
         auto_play: { type: "boolean", default: true },
         timeout_ms: { type: "integer", default: 1800000 },
@@ -1844,7 +1954,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "create_run",
     description:
-      "Create a run for a protocol already on the robot. Automatically attaches stored labware offsets from the robot unless labware_offsets is provided.",
+      "Create a run for a protocol already on the robot. When labware_offsets is omitted, merges workspace ledger over robot stored offsets. When provided (including []), uses that list only (full replace).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1864,7 +1974,7 @@ const TOOL_DEFINITIONS = [
           type: "array",
           items: { type: "object" },
           description:
-            "Optional explicit offsets. When omitted, fetches and dedupes stored robot offsets.",
+            "Optional explicit offsets (full replace). Omit to auto-merge workspace ledger over robot store. Pass [] for no offsets.",
         },
         page_length: { type: "integer", default: 10 },
       },
@@ -2529,7 +2639,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "live_readiness_check",
     description:
-      "Read-only live readiness gate for Flex: combines local runtime health, restart/session guidance, robot/module status, home safety, and optional preflight into pass/warn/fail checks before create_run or play.",
+      "Read-only live readiness gate for Flex: combines local runtime health, restart/session guidance, robot/module status, home safety, and optional preflight (including labware offset coverage) into pass/warn/fail checks before create_run or play.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2537,7 +2647,8 @@ const TOOL_DEFINITIONS = [
         session_id: { type: "string" },
         file_path: {
           type: "string",
-          description: "Optional protocol file path; when set, also runs preflight_run_setup read-only checks.",
+          description:
+            "Optional protocol file path; when set, also runs preflight_run_setup and labware offset coverage.",
         },
         python_executable: {
           type: "string",
@@ -2557,6 +2668,12 @@ const TOOL_DEFINITIONS = [
           description:
             "If true, module_blockers_present becomes a blocking error. Default false preserves published-number behaviour.",
         },
+        workspace_root: { type: "string" },
+        strict_offset_coverage: {
+          type: "boolean",
+          description: "When true with file_path, missing offsets fail readiness instead of warn.",
+        },
+        skip_offset_coverage: { type: "boolean" },
       },
       required: ["robot_ip"],
     },
@@ -2564,7 +2681,7 @@ const TOOL_DEFINITIONS = [
   {
     name: "preflight_run_setup",
     description:
-      "Before play: verify session reconciliation, robot readiness, and (Flex) declared protocol loads vs live deck snapshot. Callable standalone or invoked automatically inside run_protocol after run creation.",
+      "Before play: verify session reconciliation, robot readiness, (Flex) declared protocol loads vs live deck snapshot, and labware offset coverage vs workspace/robot stores. Callable standalone or invoked automatically inside run_protocol after run creation.",
     inputSchema: {
       type: "object",
       properties: {
@@ -2592,6 +2709,15 @@ const TOOL_DEFINITIONS = [
           type: "boolean",
           description:
             "If true, promote module_blockers_present from warnings to errors (allowed_to_play=false). Default false: published runtime numbers used warning-only.",
+        },
+        workspace_root: { type: "string" },
+        strict_offset_coverage: {
+          type: "boolean",
+          description: "When true, missing consumable offsets block play instead of warn.",
+        },
+        skip_offset_coverage: {
+          type: "boolean",
+          description: "If true, skip labware offset coverage check.",
         },
       },
       required: ["robot_ip", "file_path"],
@@ -5973,7 +6099,7 @@ async function runPreflightRunSetup(args) {
     labwareOffsets = [];
   }
 
-  const preflight = buildPreflightRunSetupResult({
+  let preflight = buildPreflightRunSetupResult({
     filePath: args.file_path,
     sessionState,
     robotStatusSnapshot: robotStatusResult.data,
@@ -5988,6 +6114,37 @@ async function runPreflightRunSetup(args) {
     strictModuleBlockers: Boolean(args.strict_module_blockers),
     offsetFetchError,
   });
+
+  if (!args.skip_offset_coverage && preflight.declared_loads?.length) {
+    try {
+      const offsetCoverage = await assessOffsetCoverageForRobot({
+        robotIp: args.robot_ip,
+        declaredLoads: preflight.declared_loads,
+        workspaceRoot: args.workspace_root || null,
+        strict: Boolean(args.strict_offset_coverage),
+      });
+      preflight = applyOffsetCoverageToPreflight(preflight, offsetCoverage);
+    } catch (error) {
+      preflight = applyOffsetCoverageToPreflight(preflight, {
+        ok: true,
+        status: "warn",
+        missing_count: 0,
+        covered_count: 0,
+        covered: [],
+        missing: [],
+        summary: `Offset coverage check skipped: ${error?.message || error}`,
+        error: error?.message || String(error),
+      });
+      // Still surface a soft warning when the check itself failed.
+      preflight.warnings = [
+        ...(preflight.warnings || []),
+        {
+          code: "labware_offset_coverage_unavailable",
+          message: `Offset coverage check skipped: ${error?.message || error}`,
+        },
+      ];
+    }
+  }
 
   return {
     data: preflight,
@@ -6110,8 +6267,14 @@ async function executeLiveReadinessCheck(args) {
           run_id: args.run_id,
           offset_max_age_days: args.offset_max_age_days,
           strict_module_blockers: args.strict_module_blockers,
+          workspace_root: args.workspace_root,
+          strict_offset_coverage: args.strict_offset_coverage,
+          skip_offset_coverage: args.skip_offset_coverage,
         });
         preflight = preflightWrap.data;
+        if (preflight?.offset_coverage) {
+          extraChecks.push(buildOffsetCoverageCheck(preflight.offset_coverage));
+        }
       } catch (error) {
         preflight = {
           ok: false,
@@ -6477,6 +6640,56 @@ const TOOL_HANDLERS = {
       stateRevision: state.state_revision,
       sessionId,
     };
+  },
+
+  async record_labware_offset(args) {
+    const definitionUri = args.definitionUri || args.definition_uri;
+    const locationSequence = args.locationSequence || args.location_sequence;
+    const result = await recordLabwareOffset({
+      robotIp: args.robot_ip,
+      op: args.op || "upsert",
+      definitionUri,
+      locationSequence,
+      vector: args.vector,
+      source: args.source || "operator_confirmed",
+      note: args.note || null,
+      force: Boolean(args.force),
+      writeChangelog: args.write_changelog !== false,
+      syncRobot: args.sync_robot !== false,
+      workspaceRoot: args.workspace_root || null,
+    });
+    if (!result.ok) {
+      return {
+        data: result,
+        ok: false,
+      };
+    }
+    return {
+      data: result,
+      ok: true,
+    };
+  },
+
+  async list_labware_offsets(args) {
+    const result = await listLabwareOffsets({
+      robotIp: args.robot_ip,
+      workspaceRoot: args.workspace_root || null,
+    });
+    return { data: result, ok: true };
+  },
+
+  async import_robot_labware_offsets(args) {
+    const result = await importRobotLabwareOffsets({
+      robotIp: args.robot_ip,
+      workspaceRoot: args.workspace_root || null,
+      confirm: Boolean(args.confirm),
+      force: Boolean(args.force),
+      writeChangelog: args.write_changelog !== false,
+      definitionUri: args.definitionUri || args.definition_uri || null,
+      slot: args.slot || null,
+      note: args.note || null,
+    });
+    return { data: result, ok: result.ok !== false };
   },
 
   async apply_liquid_probe_results(args) {

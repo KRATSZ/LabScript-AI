@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import threading
 import time
 import uuid
@@ -67,6 +68,7 @@ class FakeRobotEngine:
             self.commands.clear()
             self.maintenance_runs.clear()
             self.maintenance_commands.clear()
+            self._labware_offsets = None
             self._worker = None
             return {
                 "scenario_id": self.scenario_id,
@@ -133,6 +135,7 @@ class FakeRobotEngine:
             "maximum_protocol_api_version": [2, 28],
             "minimum_protocol_api_version": [2, 15],
             "robot_serial": "FAKEFLEX0001",
+            "serialNumber": "FAKEFLEX0001",
             "disk_details": {"systemAvailableMb": 8000.0, "imagesDirectorySizeMb": 1.0},
             "links": {"apiLog": "/logs/api.log", "apiSpec": "/openapi.json"},
             "fake_robot": True,
@@ -223,25 +226,72 @@ class FakeRobotEngine:
             return {"data": mods, "meta": {"cursor": 0, "totalLength": len(mods)}}
 
     def labware_offsets(self) -> dict[str, Any]:
-        return {
-            "data": [
-                {
+        with self._lock:
+            stored = list(getattr(self, "_labware_offsets", None) or [])
+            if not stored:
+                stored = [
+                    {
+                        "id": _uid(),
+                        "createdAt": _now(),
+                        "definitionUri": "opentrons/opentrons_flex_96_tiprack_1000ul/1",
+                        "locationSequence": "anyLocation",
+                        "vector": {"x": 0.0, "y": 0.0, "z": 0.0},
+                    },
+                    {
+                        "id": _uid(),
+                        "createdAt": _now(),
+                        "definitionUri": "opentrons/nest_12_reservoir_15ml/1",
+                        "locationSequence": "anyLocation",
+                        "vector": {"x": 0.0, "y": 0.0, "z": 0.0},
+                    },
+                ]
+                self._labware_offsets = stored
+            return {
+                "data": deepcopy(stored),
+                "meta": {"cursor": 0, "totalLength": len(stored)},
+            }
+
+    def store_labware_offset(self, body: dict[str, Any]) -> dict[str, Any]:
+        data = body.get("data") if isinstance(body, dict) else None
+        items = data if isinstance(data, list) else [data]
+        created: list[dict[str, Any]] = []
+        with self._lock:
+            stored = list(getattr(self, "_labware_offsets", None) or [])
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                definition_uri = item.get("definitionUri")
+                location_sequence = item.get("locationSequence")
+                vector = item.get("vector") or {"x": 0.0, "y": 0.0, "z": 0.0}
+                if not definition_uri:
+                    continue
+                entry = {
                     "id": _uid(),
                     "createdAt": _now(),
-                    "definitionUri": "opentrons/opentrons_flex_96_tiprack_1000ul/1",
-                    "locationSequence": "anyLocation",
-                    "vector": {"x": 0.0, "y": 0.0, "z": 0.0},
-                },
-                {
-                    "id": _uid(),
-                    "createdAt": _now(),
-                    "definitionUri": "opentrons/nest_12_reservoir_15ml/1",
-                    "locationSequence": "anyLocation",
-                    "vector": {"x": 0.0, "y": 0.0, "z": 0.0},
-                },
-            ],
-            "meta": {"cursor": 0, "totalLength": 2},
-        }
+                    "definitionUri": definition_uri,
+                    "locationSequence": location_sequence,
+                    "vector": {
+                        "x": float(vector.get("x", 0.0)),
+                        "y": float(vector.get("y", 0.0)),
+                        "z": float(vector.get("z", 0.0)),
+                    },
+                }
+                # Newest wins for same definitionUri + locationSequence key.
+                key = (definition_uri, json.dumps(location_sequence, sort_keys=True, default=str))
+                stored = [
+                    old
+                    for old in stored
+                    if (
+                        old.get("definitionUri"),
+                        json.dumps(old.get("locationSequence"), sort_keys=True, default=str),
+                    )
+                    != key
+                ]
+                stored.append(entry)
+                created.append(entry)
+            self._labware_offsets = stored
+        payload = created[0] if len(created) == 1 else created
+        return {"data": deepcopy(payload)}
 
     def camera(self) -> dict[str, Any]:
         return {"data": {"cameraEnabled": False, "liveStreamEnabled": False}}

@@ -286,3 +286,45 @@ export function buildPreflightRunSetupResult({
       : `Preflight blocked: ${errors.map(e => e.code || e.message).join("; ")}`,
   };
 }
+
+/**
+ * Attach offset coverage result onto an existing preflight payload.
+ * Default severity is warn; set coverage.status=fail (strict) to block play.
+ */
+export function applyOffsetCoverageToPreflight(preflight, coverage) {
+  if (!preflight || !coverage) {
+    return preflight;
+  }
+  const next = { ...preflight, offset_coverage: coverage };
+  if (!coverage.missing_count) {
+    return next;
+  }
+  const item = {
+    code: "labware_offset_coverage_missing",
+    message: coverage.summary,
+    missing: coverage.missing,
+  };
+  if (coverage.status === "fail") {
+    next.errors = [...(next.errors || []), item];
+    next.blocking_checks = [
+      ...(next.blocking_checks || []),
+      buildPreflightCheck("fail", item, {
+        errorLeaf: "LABWARE_MISMATCH",
+        evidenceSources: ["protocol_source", "workspace_offsets", "robot_labware_offsets"],
+      }),
+    ];
+    next.ok = false;
+    next.allowed_to_play = false;
+    next.summary = `Preflight blocked: ${next.errors.map(e => e.code || e.message).join("; ")}`;
+  } else {
+    next.warnings = [...(next.warnings || []), item];
+    next.warning_checks = [
+      ...(next.warning_checks || []),
+      buildPreflightCheck("warn", item, {
+        errorLeaf: "LABWARE_MISMATCH",
+        evidenceSources: ["protocol_source", "workspace_offsets", "robot_labware_offsets"],
+      }),
+    ];
+  }
+  return next;
+}

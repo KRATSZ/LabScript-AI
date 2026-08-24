@@ -749,6 +749,9 @@ _ACT_ALIASES: dict[str, tuple[str, dict[str, Any]]] = {
     "simulate_protocol": ("simulate_protocol", {}),
     "capture_deck_image": ("capture_preview_image", {}),
     "record_liquid_source_map": ("record_liquid_source_map", {}),
+    "record_labware_offset": ("record_labware_offset", {}),
+    "list_labware_offsets": ("list_labware_offsets", {}),
+    "import_robot_labware_offsets": ("import_robot_labware_offsets", {}),
     "recover_liquid_source_substitution": ("recover_liquid_source_substitution", {}),
     "run_protocol": ("run_protocol", {}),
 }

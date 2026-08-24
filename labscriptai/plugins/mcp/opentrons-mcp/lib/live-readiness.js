@@ -270,6 +270,30 @@ function buildPreflightGateCheck(preflight = null) {
   });
 }
 
+export function buildOffsetCoverageCheck(coverage = null) {
+  if (!coverage) {
+    return null;
+  }
+  const status = coverage.status === "fail" ? "fail" : coverage.missing_count > 0 ? "warn" : "pass";
+  return buildReadinessCheck({
+    name: "labware_offset_coverage",
+    status,
+    summary: coverage.summary || "Offset coverage checked.",
+    errorLeaf: status === "pass" ? null : "LABWARE_MISMATCH",
+    evidenceSources: ["protocol_source", "workspace_offsets", "robot_labware_offsets"],
+    extra: {
+      device_id: coverage.device_id || null,
+      covered_count: coverage.covered_count ?? null,
+      missing_count: coverage.missing_count ?? null,
+      missing: coverage.missing || [],
+      recommended_next_tools:
+        coverage.missing_count > 0
+          ? ["list_labware_offsets", "import_robot_labware_offsets", "record_labware_offset"]
+          : ["list_labware_offsets"],
+    },
+  });
+}
+
 function resolveRecommendedNextTools({
   checks,
   safeNextAction = null,

@@ -231,6 +231,8 @@ class FakeRobotHandler(BaseHTTPRequestHandler):
                 return self._json(201, self.engine.upload_protocol(filename=filename, content=content))
             if path == "/runs":
                 return self._json(201, self.engine.create_run(self._read_json()))
+            if path == "/labwareOffsets":
+                return self._json(201, self.engine.store_labware_offset(self._read_json()))
             if path == "/maintenance_runs":
                 return self._json(201, self.engine.create_maintenance_run(self._read_json()))
             if path == "/camera":
