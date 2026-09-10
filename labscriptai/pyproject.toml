@@ -26,6 +26,7 @@ packages = [
     "labscriptai.benchmark",
     "labscriptai.benchmark.logicpass",
     "labscriptai.fake_robot",
+    "labscriptai.planir",
 ]
 include-package-data = true
 
@@ -35,6 +36,7 @@ include-package-data = true
 "labscriptai.benchmark" = "benchmark"
 "labscriptai.benchmark.logicpass" = "benchmark/logicpass"
 "labscriptai.fake_robot" = "fake_robot"
+"labscriptai.planir" = "planir"
 
 # Ship skills + MCP sources with the wheel/sdist. node_modules stays out
 # (exclude-package-data + .gitignore); colleagues run `npm install` under plugins/mcp.
