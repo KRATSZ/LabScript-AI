@@ -1,5 +1,9 @@
 # LabscriptAI
 
+**This branch (`pi-agent`):** local Pi-agent chat — [labscriptai/webdemo/README.md](labscriptai/webdemo/README.md). Plan IR + PyLabRobot checks; no live Flex.
+
+**Paper CLI (`manuscript`):** `labscriptai chat` below.
+
 **Execution-aware agent for liquid-handling laboratory automation**
 
 Natural-language lab intent → verifiable Opentrons scripts, with policy-constrained recovery on live Flex.
@@ -93,7 +97,7 @@ Hard stops (`HARDWARE_FAULT`, `DECK_COLLISION`, `UNKNOWN`) always escalate to a 
 
 ## What this branch is (and is not)
 
-This `manuscript` tree is the **runnable 5-tool CLI agent** for colleagues and live Flex. The runtime LogicPass / FinalPass_v2 engine is included because the product loop depends on it. The 90-question evaluation harness and reports, paper drafts, Commec/iGEM data, run histories, and binary archives are external research materials; their local archive location is recorded in [`MATERIALS_INDEX.md`](MATERIALS_INDEX.md).
+This `manuscript` tree is the **runnable 5-tool CLI agent** for colleagues and live Flex. The runtime LogicPass / FinalPass_v2 engine is included because the product loop depends on it. The 90-question evaluation harness and reports, paper drafts, Commec/iGEM data, run histories, and binary archives are external research materials.
 
 ---
 

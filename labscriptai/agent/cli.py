@@ -7,6 +7,7 @@ import importlib
 import json
 import os
 import re
+import select
 import shutil
 import subprocess
 import sys
@@ -586,7 +587,10 @@ def cmd_chat(args: argparse.Namespace) -> int:
 
     while True:
         try:
-            line = input("you> ").strip()
+            line = input("you> ")
+            while select.select([sys.stdin], [], [], 0)[0] and (more := sys.stdin.readline()):
+                line += "\n" + more.rstrip("\n")
+            line = line.strip()
         except (EOFError, KeyboardInterrupt):
             print("\nBye.")
             return 0
