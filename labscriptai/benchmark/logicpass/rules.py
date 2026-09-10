@@ -575,58 +575,72 @@ def _eval_l4(result: RulesResult, ledger: LedgerRunState) -> None:
         )
         return
 
-    evaluable = [
-        e
-        for e in dispenses
-        if not e.volume_unknown
-        and e.well_projected_ul is not None
-        and e.well_max_ul is not None
-    ]
-    if not evaluable:
-        reason = (
-            "destination_volume_unknown"
-            if any(e.volume_unknown for e in dispenses)
-            else "capacity_unknown"
-        )
+    # ``volume_ul`` is the commanded dispense amount; ``volume_unknown`` only
+    # marks an unknown destination baseline, not an unknown dispense volume.
+    known_volume = [e for e in dispenses if e.volume_ul is not None]
+    if not known_volume:
         _record_coverage(
             result,
             RuleCoverage(
                 code="LP-L4",
                 applicable=True,
                 evaluated=False,
-                skipped_reason=reason,
+                skipped_reason="destination_volume_unknown",
+                outcome="skip",
+            ),
+        )
+        return
+
+    has_known_max = any(e.well_max_ul is not None for e in known_volume)
+    if not has_known_max:
+        result.terminal_unevaluable = True
+        _record_coverage(
+            result,
+            RuleCoverage(
+                code="LP-L4",
+                applicable=True,
+                evaluated=False,
+                skipped_reason="capacity_unknown",
                 outcome="skip",
             ),
         )
         return
 
     failed = False
-    for event in evaluable:
+    for event in known_volume:
         assert event.volume_ul is not None
         assert event.labware_id is not None and event.well_name is not None
-        assert event.well_projected_ul is not None and event.well_max_ul is not None
-        if event.well_projected_ul > event.well_max_ul:
-            failed = True
-            result.issues.append(
-                LogicIssue(
-                    code="LP-L4",
+        if event.well_max_ul is None:
+            continue
+        max_ul = float(event.well_max_ul)
+        add_ul = float(event.volume_ul)
+        projected = event.well_projected_ul
+        overflow = add_ul > max_ul or (
+            projected is not None and projected > max_ul
+        )
+        if not overflow:
+            continue
+        failed = True
+        result.issues.append(
+            LogicIssue(
+                code="LP-L4",
+                step_index=event.step_index,
+                well=well_key(event.labware_id, event.well_name),
+                detail_text=format_l4_detail(
                     step_index=event.step_index,
-                    well=well_key(event.labware_id, event.well_name),
-                    detail_text=format_l4_detail(
-                        step_index=event.step_index,
-                        add_ul=float(event.volume_ul),
-                        labware=event.labware_id,
-                        well=event.well_name,
-                        projected_ul=float(event.well_projected_ul),
-                        max_ul=float(event.well_max_ul),
-                    ),
-                    severity="error",
+                    add_ul=add_ul,
                     labware=event.labware_id,
-                    command_id=event.command_id,
-                    provenance="ledger",
-                )
+                    well=event.well_name,
+                    projected_ul=None if projected is None else float(projected),
+                    max_ul=max_ul,
+                ),
+                severity="error",
+                labware=event.labware_id,
+                command_id=event.command_id,
+                provenance="ledger",
             )
-            _add_hard(result, "LP-L4")
+        )
+        _add_hard(result, "LP-L4")
 
     _record_coverage(
         result,

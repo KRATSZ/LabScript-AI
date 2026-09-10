@@ -16,6 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
+from .labware_capacity import labware_max_ul_from_analyze_labware
 from .ledger import run_ledger
 from .report import CoverageCounts, LogicIssue, issues_to_dicts
 from .rules import (
@@ -123,6 +124,34 @@ def _first_lp_l5_disposition(
     return None
 
 
+def _physical_setup_for_adapter(
+    adapter: AnalyzeAdapterResult,
+    physical_setup: PhysicalSetup | None,
+) -> PhysicalSetup:
+    """Attach analyze labware capacity hints when the caller did not supply them."""
+
+    inferred = labware_max_ul_from_analyze_labware(adapter.labware)
+    if not inferred:
+        return physical_setup or PhysicalSetup()
+    if physical_setup is None:
+        return PhysicalSetup(labware_max_ul=dict(inferred))
+    merged = dict(physical_setup.labware_max_ul)
+    for labware_id, max_ul in inferred.items():
+        merged.setdefault(labware_id, max_ul)
+    if merged == physical_setup.labware_max_ul:
+        return physical_setup
+    return PhysicalSetup(
+        initial_volumes=dict(physical_setup.initial_volumes),
+        well_roles=dict(physical_setup.well_roles),
+        dead_volumes=dict(physical_setup.dead_volumes),
+        max_volumes=dict(physical_setup.max_volumes),
+        labware_max_ul=merged,
+        reagent_demands=dict(physical_setup.reagent_demands),
+        liquid_display_names=dict(physical_setup.liquid_display_names),
+        setup_basis=physical_setup.setup_basis,
+    )
+
+
 def _result_from_rules(
     *,
     sim_pass: bool,
@@ -219,11 +248,13 @@ def evaluate_logicpass(
         if first_l5.reason == "missing_analyze_artifact":
             lp_l5_locus = "analyze_artifact"
 
+    resolved_setup = _physical_setup_for_adapter(adapter, physical_setup)
+
     if adapter_unevaluable:
         # Fail-closed: do not vacuous-pass on an incomplete trace.
         built_ledger = LedgerRunState()
     else:
-        built_ledger = run_ledger(adapter.commands, physical_setup)
+        built_ledger = run_ledger(adapter.commands, resolved_setup)
 
     rules = evaluate_rules(
         built_ledger,

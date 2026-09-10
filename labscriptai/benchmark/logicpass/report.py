@@ -103,13 +103,18 @@ def format_l4_detail(
     add_ul: float,
     labware: str,
     well: str,
-    projected_ul: float,
+    projected_ul: float | None,
     max_ul: float,
 ) -> str:
+    if projected_ul is not None:
+        return (
+            f"Step {step_index}: dispense {_fmt_ul(add_ul)} µL into "
+            f"{labware}:{well} → projected={_fmt_ul(projected_ul)} µL > "
+            f"max={_fmt_ul(max_ul)} µL."
+        )
     return (
         f"Step {step_index}: dispense {_fmt_ul(add_ul)} µL into "
-        f"{labware}:{well} → projected={_fmt_ul(projected_ul)} µL > "
-        f"max={_fmt_ul(max_ul)} µL."
+        f"{labware}:{well} > max={_fmt_ul(max_ul)} µL."
     )
 
 

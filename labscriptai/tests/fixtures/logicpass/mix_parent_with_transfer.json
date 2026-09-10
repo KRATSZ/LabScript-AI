@@ -82,5 +82,21 @@
       }
     }
   ],
+  "liquids": [
+    {
+      "id": "liquid-water",
+      "displayName": "water",
+      "description": "",
+      "displayColor": "#0000FF"
+    }
+  ],
+  "labware": [
+    {"id": "labware-tips", "loadName": "opentrons_flex_96_tiprack_1000ul"},
+    {"id": "labware-res", "loadName": "nest_1_reservoir_290ml"},
+    {"id": "labware-plate", "loadName": "nest_96_wellplate_200ul_flat"}
+  ],
+  "pipettes": [
+    {"id": "pipette-left", "pipetteName": "flex_1channel_1000", "mount": "left"}
+  ],
   "errors": []
 }

@@ -187,17 +187,19 @@ class StateLedger:
     def _well(self, labware_id: str, well_name: str) -> WellState:
         key = well_key(labware_id, well_name)
         if key not in self.wells:
+            if key in self.physical_setup.max_volumes:
+                max_v: float | None = float(self.physical_setup.max_volumes[key])
+            elif labware_id in self.physical_setup.labware_max_ul:
+                max_v = float(self.physical_setup.labware_max_ul[labware_id])
+            else:
+                max_v = None
             # Unknown init: never invent volume; stay tracking=unknown.
             self.wells[key] = WellState(
                 labware_id=labware_id,
                 well_name=well_name,
                 tracking="unknown",
                 well_role=_role_or_none(self.physical_setup.well_roles.get(key)),
-                max_volume_ul=(
-                    float(self.physical_setup.max_volumes[key])
-                    if key in self.physical_setup.max_volumes
-                    else None
-                ),
+                max_volume_ul=max_v,
                 dead_volume_ul=(
                     None
                     if key not in self.physical_setup.dead_volumes
@@ -208,7 +210,13 @@ class StateLedger:
                     )
                 ),
             )
-        return self.wells[key]
+        well = self.wells[key]
+        if (
+            well.max_volume_ul is None
+            and labware_id in self.physical_setup.labware_max_ul
+        ):
+            well.max_volume_ul = float(self.physical_setup.labware_max_ul[labware_id])
+        return well
 
     # ------------------------------------------------------------------ run
     def run(self, commands: Iterable[ExpectedCommand]) -> LedgerRunState:

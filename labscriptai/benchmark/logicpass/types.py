@@ -432,6 +432,7 @@ class PhysicalSetup:
     well_roles: dict[str, WellRole | str] = field(default_factory=dict)
     dead_volumes: dict[str, float | None] = field(default_factory=dict)
     max_volumes: dict[str, float] = field(default_factory=dict)
+    labware_max_ul: dict[str, float] = field(default_factory=dict)
     reagent_demands: dict[str, float] = field(default_factory=dict)
     liquid_display_names: dict[str, str] = field(default_factory=dict)
     setup_basis: SetupBasis | str = "evaluator"
