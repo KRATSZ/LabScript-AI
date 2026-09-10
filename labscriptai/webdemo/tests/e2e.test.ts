@@ -193,6 +193,7 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
   it("loop guard lives in tools.test.ts one-patch budget (not duplicated)", () => {
     const src = read("tests/tools.test.ts");
     assert.match(src, /describe\("one-patch budget"/);
-    assert.match(src, /fail → patch → fail → refuse/);
+    assert.match(src, /replace after first pass consumes the patch/);
+    assert.match(src, /assertRefused\(refused\)/);
   });
 });

@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = Path(__file__).resolve().parent / "compile_hamilton.py"
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "igem_fluorescein_plan.json"
 PYTHONPATH = str(ROOT)
 
 DEMO = {
@@ -172,6 +173,21 @@ class CompileHamiltonTests(unittest.TestCase):
         self.assertEqual(out["stage"], "mapping")
         self.assertIn("missing", out["error"])
         self.assertIn("resources", out["error"].lower())
+
+    def test_igem_fluorescein_gold_fixture(self) -> None:
+        plan = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        out, _ = run_cli(plan)
+        self.assertTrue(out["ok"], out)
+        script = out["script"]
+        self.assertEqual(script.count("for _ in range(3):"), 10)
+        self.assertEqual(script.count("await lh.pick_up_tips("), 12)
+        self.assertIn("waste['A1']", script)
+        self.assertIn("plate['A11']", script)
+        self.assertIn("plate['A12']", script)  # PBS fill
+        aspirates = [line for line in script.splitlines() if "await lh.aspirate(" in line]
+        self.assertFalse(
+            any(f"plate['{row}12']" in line for line in aspirates for row in "ABCD")
+        )
 
 
 if __name__ == "__main__":

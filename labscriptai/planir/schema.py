@@ -42,6 +42,35 @@ def _loc(value: Any, *, field: str) -> str:
     return f"{plate}:{well.upper()}"
 
 
+def _locs(value: Any, *, field: str) -> str | None:
+    """One well, a comma-separated string, or a list of plate:A1 tokens."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, (list, tuple)):
+        parts = [_loc(item, field=field) for item in value if item not in (None, "")]
+        return ",".join(parts) if parts else None
+    text = _as_str(value)
+    if not text:
+        return None
+    if "," in text:
+        parts = [_loc(part.strip(), field=field) for part in text.split(",") if part.strip()]
+        return ",".join(parts) if parts else None
+    return _loc(text, field=field)
+
+
+def split_locs(value: str | None) -> tuple[str, ...]:
+    if not value:
+        return ()
+    return tuple(part.strip() for part in value.split(",") if part.strip())
+
+
+def _public_loc(value: str | None) -> str | list[str] | None:
+    parts = list(split_locs(value))
+    if not parts:
+        return None
+    return parts if len(parts) > 1 else parts[0]
+
+
 @dataclass(frozen=True)
 class PlanResource:
     id: str
@@ -71,12 +100,15 @@ class PlanStep:
             "primitive_type": self.primitive_type,
             "dependencies": list(self.dependencies),
         }
-        if self.source:
-            payload["source"] = self.source
-        if self.destination:
-            payload["destination"] = self.destination
-        if self.location:
-            payload["location"] = self.location
+        source = _public_loc(self.source)
+        if source:
+            payload["source"] = source
+        destination = _public_loc(self.destination)
+        if destination:
+            payload["destination"] = destination
+        location = _public_loc(self.location)
+        if location:
+            payload["location"] = location
         if self.volume_ul is not None:
             payload["volume_ul"] = self.volume_ul
         if self.primitive_type == "MIX":
@@ -169,11 +201,9 @@ def _parse_step(raw: Mapping[str, Any], *, seen: set[str]) -> PlanStep:
     if not isinstance(deps_raw, Iterable) or isinstance(deps_raw, (str, bytes)):
         raise PlanError(f"{step_id}: dependencies must be a list")
     deps = tuple(_as_str(item) for item in deps_raw if _as_str(item))
-    source = _loc(raw.get("source"), field="source") if raw.get("source") else None
-    destination = (
-        _loc(raw.get("destination"), field="destination") if raw.get("destination") else None
-    )
-    location = _loc(raw.get("location"), field="location") if raw.get("location") else None
+    source = _locs(raw.get("source"), field="source")
+    destination = _locs(raw.get("destination"), field="destination")
+    location = _locs(raw.get("location"), field="location")
     volume = None
     if "volume_ul" in raw and raw.get("volume_ul") is not None:
         volume = _as_float(raw.get("volume_ul"), field="volume_ul")

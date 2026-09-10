@@ -183,4 +183,41 @@ describe("attachFluentCompile", () => {
     assert.equal(leaked.artifacts, undefined);
     assert.equal(leaked.checks.compile?.ok, true);
   });
+
+  it("withholds artifacts on review mismatch but not reviewer unavailability", async () => {
+    const compile = async (): Promise<FluentCompileResult> => ({
+      ok: true,
+      worklist_gwl: "C; Plan IR\nB;\n",
+      script_xml: "B;<ScriptGroup>",
+      command_count: 2,
+      warnings: [],
+    });
+    const mismatch = wrapChecks(
+      { ok: true },
+      { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      emptyStatepass(),
+      {
+        match: false,
+        findings: [{ claim: "serial dilution transfers are missing" }],
+      }
+    );
+    const blocked = await attachFluentCompile(mismatch, PLAN, "Tecan", compile);
+    assert.notEqual(blocked.checks.status, "pass");
+    assert.equal(blocked.checks.fab.lit, false);
+    assert.equal(blocked.artifacts, undefined);
+
+    const unavailable = wrapChecks(
+      { ok: true },
+      { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      emptyStatepass(),
+      {
+        match: false,
+        reason: "llmreview_cli_bad_json",
+        findings: [{ claim: "reviewer_exception" }],
+      }
+    );
+    const allowed = await attachFluentCompile(unavailable, PLAN, "Tecan", compile);
+    assert.equal(allowed.checks.status, "pass");
+    assert.match(allowed.artifacts?.worklistGwl || "", /^C;/);
+  });
 });

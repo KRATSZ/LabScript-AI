@@ -268,9 +268,10 @@ describe("compactChecks", () => {
 
     const withReview = wrapChecks(simOk, lpPass, { issues: [] }, {
       match: false,
-      findings: [{ claim: "volume", suggestion: "use 50 uL" }],
+      findings: [{ claim: "destination volume differs", suggestion: "use 50 uL" }],
     });
-    assert.equal(withReview.fab.lit, true);
+    assert.equal(withReview.status, "fail");
+    assert.equal(withReview.fab.lit, false);
     assert.equal(needsPatch(withReview), false);
     assert.equal(isReviewMismatch(withReview.llmreview), true);
     const compactReview = compactChecks(withReview);
@@ -278,7 +279,9 @@ describe("compactChecks", () => {
     assert.equal(compactReview.review.match, false);
     assert.equal(Object.keys(compactReview)[0], "review");
     assert.ok(compactReview.review.findings.length >= 1);
-    assert.match(compactReview.consequences[0] || "", /volume/i);
+    assert.match(compactReview.consequences[0] || "", /destination volume/i);
+    assert.match(compactReview.hint || "", /review mismatch.*destination volume/i);
+    assert.match(compactReview.hint || "", /artifacts and animation are blocked/i);
     assert.equal(compactChecks(withReview, 1).next, "done");
     assert.equal(animationAllowed(withReview, 1), false);
   });
@@ -296,6 +299,7 @@ describe("compactChecks", () => {
       ],
     });
     assert.equal(exception.fab.lit, true);
+    assert.equal(exception.status, "pass");
     assert.equal(isReviewerUnavailable(exception.llmreview), true);
     assert.equal(isReviewMismatch(exception.llmreview), false);
     assert.equal(needsPatch(exception), false);
@@ -303,7 +307,10 @@ describe("compactChecks", () => {
     assert.equal(compact.next, "done");
     assert.equal(compact.review.status, "unavailable");
     assert.equal(compact.review.match, undefined);
-    assert.match(compact.review.findings[0] || "", /Cannot verify/);
+    assert.match(compact.review.findings[0] || "", /semantic review is unverified/i);
+    assert.match(compact.hint || "", /semantic review is unverified/i);
+    assert.match(compact.hint || "", /not a mismatch/i);
+    assert.match(compact.hint || "", /does not block/i);
     assert.equal(compact.consequences.some((line) => /reviewer_exception/i.test(line)), false);
     assert.ok(compact.consequences.some((line) => /Cannot verify/.test(line)));
     assert.doesNotMatch(patchInstruction(exception), /patch even if simulation passed/);

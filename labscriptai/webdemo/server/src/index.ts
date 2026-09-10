@@ -1,11 +1,13 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   applyForm,
   createSession,
   getSession,
-  isRobotModel,
   snapshot,
 } from "./session.ts";
+import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import { createSseWriter } from "./sse.ts";
 import { runChatTurn } from "./agent.ts";
 import { checkCodeService } from "./backend.ts";
@@ -29,7 +31,10 @@ function notFound(res: ServerResponse): void {
   json(res, 404, { error: "not_found" });
 }
 
-const server = createServer(async (req, res) => {
+export async function handleRequest(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
   const url = new URL(req.url || "/", `http://${HOST}:${PORT}`);
   const path = url.pathname;
 
@@ -52,6 +57,25 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && path === "/api/devices") {
+    json(
+      res,
+      200,
+      DEVICE_REGISTRY.map((device) => ({
+        id: device.id,
+        label: device.label,
+        capabilities: {
+          codegen: device.codegen,
+          planBackend: device.planBackend,
+          checks: [...device.checks],
+          animation: device.animation,
+          artifactExt: device.artifactExt,
+        },
+      }))
+    );
+    return;
+  }
+
   if (req.method === "POST" && path === "/api/session") {
     const raw = await readBody(req);
     const body = raw ? (JSON.parse(raw) as { goal?: string; doc?: string; robot?: string }) : {};
@@ -60,7 +84,11 @@ const server = createServer(async (req, res) => {
       json(res, 400, { error: "goal is required" });
       return;
     }
-    if (body.robot != null && String(body.robot).trim() !== "" && !isRobotModel(body.robot)) {
+    if (
+      body.robot != null &&
+      String(body.robot).trim() !== "" &&
+      !deviceFor(String(body.robot).trim())
+    ) {
       json(res, 400, { error: "invalid robot" });
       return;
     }
@@ -94,8 +122,8 @@ const server = createServer(async (req, res) => {
     }
     const sse = createSseWriter(res);
     try {
-      await runChatTurn(session, body.message || "", sse);
-      sse.write("done", { ok: true });
+      const ok = await runChatTurn(session, body.message || "", sse);
+      sse.write("done", { ok });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       sse.write("error", { message });
@@ -107,23 +135,34 @@ const server = createServer(async (req, res) => {
   }
 
   notFound(res);
-});
-
-server.on("error", (error: NodeJS.ErrnoException) => {
-  if (error.code === "EADDRINUSE" || error.code === "EADDRNOTAVAIL") {
-    console.error(`Cannot bind ${HOST}:${PORT}. Do not start.`);
-    process.exit(1);
-  }
-  throw error;
-});
-
-try {
-  loadDemoEnv();
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
 }
 
-server.listen(PORT, HOST, () => {
-  console.log(`webdemo server http://${HOST}:${PORT}`);
-});
+export function createWebdemoServer() {
+  return createServer(handleRequest);
+}
+
+const isMain =
+  Boolean(process.argv[1]) &&
+  path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+
+if (isMain) {
+  const server = createWebdemoServer();
+  server.on("error", (error: NodeJS.ErrnoException) => {
+    if (error.code === "EADDRINUSE" || error.code === "EADDRNOTAVAIL") {
+      console.error(`Cannot bind ${HOST}:${PORT}. Do not start.`);
+      process.exit(1);
+    }
+    throw error;
+  });
+
+  try {
+    loadDemoEnv();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+
+  server.listen(PORT, HOST, () => {
+    console.log(`webdemo server http://${HOST}:${PORT}`);
+  });
+}

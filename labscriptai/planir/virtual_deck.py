@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from labscriptai.planir.schema import PlanDocument, PlanStep
+from labscriptai.planir.schema import PlanDocument, PlanStep, split_locs
 
 
 @dataclass
@@ -110,47 +110,56 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
             return fail("LP-NO-TIP", f"{kind} without a tip", step)
         volume = float(step.volume_ul or 0)
         if kind == "ASPIRATE":
-            loc = step.source or ""
-            touch(loc, step)
-            have = wells.get(loc, 0.0)
-            if have + 1e-9 < volume:
-                return fail(
-                    "LP-EMPTY",
-                    f"aspirate {volume} µL from {loc} but only {have} µL",
-                    step,
-                )
-            wells[loc] = have - volume
-            pipette += volume
+            locs = split_locs(step.source)
+            if not locs:
+                return fail("LP-EMPTY", "aspirate with no source", step)
+            for loc in locs:
+                touch(loc, step)
+                have = wells.get(loc, 0.0)
+                if have + 1e-9 < volume:
+                    return fail(
+                        "LP-EMPTY",
+                        f"aspirate {volume} µL from {loc} but only {have} µL",
+                        step,
+                    )
+                wells[loc] = have - volume
+                pipette += volume
             continue
         if kind == "DISPENSE":
-            loc = step.destination or ""
-            if pipette + 1e-9 < volume:
-                return fail(
-                    "LP-PIPETTE-EMPTY",
-                    f"dispense {volume} µL but pipette holds {pipette:.1f} µL",
-                    step,
-                )
-            cap = touch(loc, step)
-            have = wells.get(loc, 0.0)
-            if cap is not None and have + volume > cap + 1e-9:
-                return fail(
-                    "LP-OVERFLOW",
-                    f"dispense {volume} µL into {loc} would exceed {cap} µL",
-                    step,
-                )
-            wells[loc] = have + volume
-            pipette -= volume
+            locs = split_locs(step.destination)
+            if not locs:
+                return fail("LP-PIPETTE-EMPTY", "dispense with no destination", step)
+            for loc in locs:
+                if pipette + 1e-9 < volume:
+                    return fail(
+                        "LP-PIPETTE-EMPTY",
+                        f"dispense {volume} µL but pipette holds {pipette:.1f} µL",
+                        step,
+                    )
+                cap = touch(loc, step)
+                have = wells.get(loc, 0.0)
+                if cap is not None and have + volume > cap + 1e-9:
+                    return fail(
+                        "LP-OVERFLOW",
+                        f"dispense {volume} µL into {loc} would exceed {cap} µL",
+                        step,
+                    )
+                wells[loc] = have + volume
+                pipette -= volume
             continue
         if kind == "MIX":
-            loc = step.location or step.source or step.destination or ""
-            touch(loc, step)
-            have = wells.get(loc, 0.0)
-            if have + 1e-9 < volume:
-                return fail(
-                    "LP-EMPTY",
-                    f"mix {volume} µL at {loc} but only {have} µL",
-                    step,
-                )
+            locs = split_locs(step.location or step.source or step.destination)
+            if not locs:
+                return fail("LP-EMPTY", "mix with no location", step)
+            for loc in locs:
+                touch(loc, step)
+                have = wells.get(loc, 0.0)
+                if have + 1e-9 < volume:
+                    return fail(
+                        "LP-EMPTY",
+                        f"mix {volume} µL at {loc} but only {have} µL",
+                        step,
+                    )
             continue
     if unknown_locs:
         return VirtualDeckResult(

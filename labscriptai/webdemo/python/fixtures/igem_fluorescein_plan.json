@@ -1,0 +1,1070 @@
+{
+  "schema": "bpl.plan_ir.lh.v0",
+  "plan_id": "igem-fluorescein-calibration",
+  "protocol_name": "iGEM fluorescein calibration",
+  "target": "pylabrobot",
+  "backend": "auto",
+  "resources": [
+    {
+      "id": "tips",
+      "type": "tiprack",
+      "slot": "1",
+      "max_volume_ul": 300
+    },
+    {
+      "id": "plate",
+      "type": "plate",
+      "slot": "2",
+      "max_volume_ul": 360
+    },
+    {
+      "id": "reservoir",
+      "type": "reservoir",
+      "slot": "3",
+      "max_volume_ul": 15000
+    },
+    {
+      "id": "waste",
+      "type": "reservoir",
+      "slot": "4",
+      "max_volume_ul": 15000
+    }
+  ],
+  "initial_volumes_ul": {
+    "plate:A1": 200,
+    "plate:B1": 200,
+    "plate:C1": 200,
+    "plate:D1": 200,
+    "reservoir:A1": 15000
+  },
+  "steps": [
+    {
+      "step_id": "01",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A1",
+        "B1",
+        "C1",
+        "D1"
+      ],
+      "dependencies": []
+    },
+    {
+      "step_id": "02",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "01"
+      ]
+    },
+    {
+      "step_id": "03",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A2",
+        "plate:B2",
+        "plate:C2",
+        "plate:D2"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "02"
+      ]
+    },
+    {
+      "step_id": "04",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "03"
+      ]
+    },
+    {
+      "step_id": "05",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A3",
+        "plate:B3",
+        "plate:C3",
+        "plate:D3"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "04"
+      ]
+    },
+    {
+      "step_id": "06",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "05"
+      ]
+    },
+    {
+      "step_id": "07",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A4",
+        "plate:B4",
+        "plate:C4",
+        "plate:D4"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "06"
+      ]
+    },
+    {
+      "step_id": "08",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "07"
+      ]
+    },
+    {
+      "step_id": "09",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A5",
+        "plate:B5",
+        "plate:C5",
+        "plate:D5"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "08"
+      ]
+    },
+    {
+      "step_id": "10",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "09"
+      ]
+    },
+    {
+      "step_id": "11",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A6",
+        "plate:B6",
+        "plate:C6",
+        "plate:D6"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "10"
+      ]
+    },
+    {
+      "step_id": "12",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "11"
+      ]
+    },
+    {
+      "step_id": "13",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A7",
+        "plate:B7",
+        "plate:C7",
+        "plate:D7"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "12"
+      ]
+    },
+    {
+      "step_id": "14",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "13"
+      ]
+    },
+    {
+      "step_id": "15",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A8",
+        "plate:B8",
+        "plate:C8",
+        "plate:D8"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "14"
+      ]
+    },
+    {
+      "step_id": "16",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "15"
+      ]
+    },
+    {
+      "step_id": "17",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A9",
+        "plate:B9",
+        "plate:C9",
+        "plate:D9"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "16"
+      ]
+    },
+    {
+      "step_id": "18",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "17"
+      ]
+    },
+    {
+      "step_id": "19",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A10",
+        "plate:B10",
+        "plate:C10",
+        "plate:D10"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "18"
+      ]
+    },
+    {
+      "step_id": "20",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "19"
+      ]
+    },
+    {
+      "step_id": "21",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A11",
+        "plate:B11",
+        "plate:C11",
+        "plate:D11"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "20"
+      ]
+    },
+    {
+      "step_id": "22",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1",
+        "reservoir:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "21"
+      ]
+    },
+    {
+      "step_id": "23",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A12",
+        "plate:B12",
+        "plate:C12",
+        "plate:D12"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "22"
+      ]
+    },
+    {
+      "step_id": "24",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "23"
+      ]
+    },
+    {
+      "step_id": "25",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A2",
+        "B2",
+        "C2",
+        "D2"
+      ],
+      "dependencies": [
+        "24"
+      ]
+    },
+    {
+      "step_id": "26",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A1",
+        "plate:B1",
+        "plate:C1",
+        "plate:D1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "25"
+      ]
+    },
+    {
+      "step_id": "27",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A2",
+        "plate:B2",
+        "plate:C2",
+        "plate:D2"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "26"
+      ]
+    },
+    {
+      "step_id": "28",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A2",
+        "plate:B2",
+        "plate:C2",
+        "plate:D2"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "27"
+      ]
+    },
+    {
+      "step_id": "29",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "28"
+      ]
+    },
+    {
+      "step_id": "30",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A3",
+        "B3",
+        "C3",
+        "D3"
+      ],
+      "dependencies": [
+        "29"
+      ]
+    },
+    {
+      "step_id": "31",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A2",
+        "plate:B2",
+        "plate:C2",
+        "plate:D2"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "30"
+      ]
+    },
+    {
+      "step_id": "32",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A3",
+        "plate:B3",
+        "plate:C3",
+        "plate:D3"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "31"
+      ]
+    },
+    {
+      "step_id": "33",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A3",
+        "plate:B3",
+        "plate:C3",
+        "plate:D3"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "32"
+      ]
+    },
+    {
+      "step_id": "34",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "33"
+      ]
+    },
+    {
+      "step_id": "35",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A4",
+        "B4",
+        "C4",
+        "D4"
+      ],
+      "dependencies": [
+        "34"
+      ]
+    },
+    {
+      "step_id": "36",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A3",
+        "plate:B3",
+        "plate:C3",
+        "plate:D3"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "35"
+      ]
+    },
+    {
+      "step_id": "37",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A4",
+        "plate:B4",
+        "plate:C4",
+        "plate:D4"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "36"
+      ]
+    },
+    {
+      "step_id": "38",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A4",
+        "plate:B4",
+        "plate:C4",
+        "plate:D4"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "37"
+      ]
+    },
+    {
+      "step_id": "39",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "38"
+      ]
+    },
+    {
+      "step_id": "40",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A5",
+        "B5",
+        "C5",
+        "D5"
+      ],
+      "dependencies": [
+        "39"
+      ]
+    },
+    {
+      "step_id": "41",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A4",
+        "plate:B4",
+        "plate:C4",
+        "plate:D4"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "40"
+      ]
+    },
+    {
+      "step_id": "42",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A5",
+        "plate:B5",
+        "plate:C5",
+        "plate:D5"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "41"
+      ]
+    },
+    {
+      "step_id": "43",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A5",
+        "plate:B5",
+        "plate:C5",
+        "plate:D5"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "42"
+      ]
+    },
+    {
+      "step_id": "44",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "43"
+      ]
+    },
+    {
+      "step_id": "45",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A6",
+        "B6",
+        "C6",
+        "D6"
+      ],
+      "dependencies": [
+        "44"
+      ]
+    },
+    {
+      "step_id": "46",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A5",
+        "plate:B5",
+        "plate:C5",
+        "plate:D5"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "45"
+      ]
+    },
+    {
+      "step_id": "47",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A6",
+        "plate:B6",
+        "plate:C6",
+        "plate:D6"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "46"
+      ]
+    },
+    {
+      "step_id": "48",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A6",
+        "plate:B6",
+        "plate:C6",
+        "plate:D6"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "47"
+      ]
+    },
+    {
+      "step_id": "49",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "48"
+      ]
+    },
+    {
+      "step_id": "50",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A7",
+        "B7",
+        "C7",
+        "D7"
+      ],
+      "dependencies": [
+        "49"
+      ]
+    },
+    {
+      "step_id": "51",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A6",
+        "plate:B6",
+        "plate:C6",
+        "plate:D6"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "50"
+      ]
+    },
+    {
+      "step_id": "52",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A7",
+        "plate:B7",
+        "plate:C7",
+        "plate:D7"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "51"
+      ]
+    },
+    {
+      "step_id": "53",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A7",
+        "plate:B7",
+        "plate:C7",
+        "plate:D7"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "52"
+      ]
+    },
+    {
+      "step_id": "54",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "53"
+      ]
+    },
+    {
+      "step_id": "55",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A8",
+        "B8",
+        "C8",
+        "D8"
+      ],
+      "dependencies": [
+        "54"
+      ]
+    },
+    {
+      "step_id": "56",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A7",
+        "plate:B7",
+        "plate:C7",
+        "plate:D7"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "55"
+      ]
+    },
+    {
+      "step_id": "57",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A8",
+        "plate:B8",
+        "plate:C8",
+        "plate:D8"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "56"
+      ]
+    },
+    {
+      "step_id": "58",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A8",
+        "plate:B8",
+        "plate:C8",
+        "plate:D8"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "57"
+      ]
+    },
+    {
+      "step_id": "59",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "58"
+      ]
+    },
+    {
+      "step_id": "60",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A9",
+        "B9",
+        "C9",
+        "D9"
+      ],
+      "dependencies": [
+        "59"
+      ]
+    },
+    {
+      "step_id": "61",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A8",
+        "plate:B8",
+        "plate:C8",
+        "plate:D8"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "60"
+      ]
+    },
+    {
+      "step_id": "62",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A9",
+        "plate:B9",
+        "plate:C9",
+        "plate:D9"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "61"
+      ]
+    },
+    {
+      "step_id": "63",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A9",
+        "plate:B9",
+        "plate:C9",
+        "plate:D9"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "62"
+      ]
+    },
+    {
+      "step_id": "64",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "63"
+      ]
+    },
+    {
+      "step_id": "65",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A10",
+        "B10",
+        "C10",
+        "D10"
+      ],
+      "dependencies": [
+        "64"
+      ]
+    },
+    {
+      "step_id": "66",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A9",
+        "plate:B9",
+        "plate:C9",
+        "plate:D9"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "65"
+      ]
+    },
+    {
+      "step_id": "67",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A10",
+        "plate:B10",
+        "plate:C10",
+        "plate:D10"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "66"
+      ]
+    },
+    {
+      "step_id": "68",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A10",
+        "plate:B10",
+        "plate:C10",
+        "plate:D10"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "67"
+      ]
+    },
+    {
+      "step_id": "69",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "68"
+      ]
+    },
+    {
+      "step_id": "70",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A11",
+        "B11",
+        "C11",
+        "D11"
+      ],
+      "dependencies": [
+        "69"
+      ]
+    },
+    {
+      "step_id": "71",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A10",
+        "plate:B10",
+        "plate:C10",
+        "plate:D10"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "70"
+      ]
+    },
+    {
+      "step_id": "72",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "plate:A11",
+        "plate:B11",
+        "plate:C11",
+        "plate:D11"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "71"
+      ]
+    },
+    {
+      "step_id": "73",
+      "primitive_type": "MIX",
+      "location": [
+        "plate:A11",
+        "plate:B11",
+        "plate:C11",
+        "plate:D11"
+      ],
+      "volume_ul": 100,
+      "cycles": 3,
+      "dependencies": [
+        "72"
+      ]
+    },
+    {
+      "step_id": "74",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "73"
+      ]
+    },
+    {
+      "step_id": "75",
+      "primitive_type": "PICK_TIPS",
+      "tip_rack": "tips",
+      "tip_positions": [
+        "A12",
+        "B12",
+        "C12",
+        "D12"
+      ],
+      "dependencies": [
+        "74"
+      ]
+    },
+    {
+      "step_id": "76",
+      "primitive_type": "ASPIRATE",
+      "source": [
+        "plate:A11",
+        "plate:B11",
+        "plate:C11",
+        "plate:D11"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "75"
+      ]
+    },
+    {
+      "step_id": "77",
+      "primitive_type": "DISPENSE",
+      "destination": [
+        "waste:A1",
+        "waste:A1",
+        "waste:A1",
+        "waste:A1"
+      ],
+      "volume_ul": 100,
+      "dependencies": [
+        "76"
+      ]
+    },
+    {
+      "step_id": "78",
+      "primitive_type": "DROP_TIPS",
+      "to_waste": true,
+      "dependencies": [
+        "77"
+      ]
+    }
+  ]
+}

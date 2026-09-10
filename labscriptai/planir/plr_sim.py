@@ -6,7 +6,7 @@ import asyncio
 import importlib.util
 from typing import Any, Callable
 
-from labscriptai.planir.schema import PlanDocument
+from labscriptai.planir.schema import PlanDocument, split_locs
 
 SimFn = Callable[[PlanDocument], dict[str, Any]]
 
@@ -77,18 +77,39 @@ async def _run_serializing(plan: PlanDocument, backend_name: str) -> dict[str, A
             return {"ok": True}
 
     tip_factory, plate_factory = _resource_factories(backend_name)
+    try:
+        from pylabrobot.resources import nest_12_troughplate_15000uL_Vb as trough_factory
+    except ImportError:
+        trough_factory = plate_factory
     deck = Deck(size_x=1200, size_y=800, size_z=200)
-    tips = tip_factory(name="tips")
-    plate = plate_factory(name="plate")
+    by_type = {"tiprack": tip_factory, "plate": plate_factory, "reservoir": trough_factory}
+    placed: dict[str, Any] = {}
+    x = 80.0
+    for resource in plan.resources:
+        factory = by_type.get(resource.type, plate_factory)
+        item = factory(name=resource.id)
+        deck.assign_child_resource(item, location=Coordinate(x, 80, 0))
+        placed[resource.id] = item
+        x += 180.0
+    tips = next((placed[r.id] for r in plan.resources if r.type == "tiprack"), None)
+    plate = next((placed[r.id] for r in plan.resources if r.type == "plate"), None)
+    if tips is None:
+        tips = tip_factory(name="tips")
+        deck.assign_child_resource(tips, location=Coordinate(x, 80, 0))
+        placed["tips"] = tips
+        x += 180.0
+    if plate is None:
+        plate = plate_factory(name="plate")
+        deck.assign_child_resource(plate, location=Coordinate(x, 80, 0))
+        placed["plate"] = plate
+        x += 180.0
     trash = Trash(name="trash", size_x=80, size_y=80, size_z=80)
-    deck.assign_child_resource(tips, location=Coordinate(100, 100, 0))
-    deck.assign_child_resource(plate, location=Coordinate(300, 100, 0))
-    deck.assign_child_resource(trash, location=Coordinate(900, 100, 0))
+    deck.assign_child_resource(trash, location=Coordinate(max(x, 900), 80, 0))
     backend = LoggingBackend()
     lh = LiquidHandler(backend=backend, deck=deck)
     await lh.setup()
     backend.commands.clear()
-    await _execute(lh, plan, tips, plate, trash)
+    await _execute(lh, plan, tips, plate, trash, placed)
     return _success(
         backend=f"pylabrobot:{backend_name}",
         commands=len(backend.commands),
@@ -104,17 +125,27 @@ def _as_seq(value: Any) -> list[Any]:
     return [value]
 
 
-async def _execute(lh: Any, plan: PlanDocument, tips: Any, plate: Any, trash: Any) -> None:
-    resources = {"tips": tips, "plate": plate}
+async def _execute(
+    lh: Any,
+    plan: PlanDocument,
+    tips: Any,
+    plate: Any,
+    trash: Any,
+    placed: dict[str, Any] | None = None,
+) -> None:
+    resources = {"tips": tips, "plate": plate, **(placed or {})}
     for resource in plan.resources:
         if resource.id not in resources:
             resources[resource.id] = plate if resource.type != "tiprack" else tips
     held: list[Any] = []
 
-    def well_container(loc: str) -> Any:
-        plate_id, well = loc.split(":", 1)
-        item = resources.get(plate_id, plate)
-        return item[well]
+    def well_spots(loc: str | None) -> list[Any]:
+        spots: list[Any] = []
+        for item in split_locs(loc):
+            plate_id, well = item.split(":", 1)
+            container = resources.get(plate_id, plate)
+            spots.extend(_as_seq(container[well]))
+        return spots
 
     for step in plan.ordered_steps():
         kind = step.primitive_type
@@ -129,24 +160,30 @@ async def _execute(lh: Any, plan: PlanDocument, tips: Any, plate: Any, trash: An
             held = spots
             continue
         if kind == "DROP_TIPS":
-            target = _as_seq(trash) if step.to_waste else held
-            if not target:
-                target = _as_seq(tips["A1"])
+            n_held = len(held)
+            if step.to_waste:
+                target = [trash] * (n_held or 1)
+            else:
+                target = held or _as_seq(tips["A1"])
             await lh.drop_tips(target, allow_nonzero_volume=True)
             held = []
             continue
         volume = float(step.volume_ul or 0)
         if kind == "ASPIRATE":
-            await lh.aspirate(_as_seq(well_container(step.source or "")), vols=[volume])
+            spots = well_spots(step.source)
+            await lh.aspirate(spots, vols=[volume] * len(spots))
             continue
         if kind == "DISPENSE":
-            await lh.dispense(_as_seq(well_container(step.destination or "")), vols=[volume])
+            spots = well_spots(step.destination)
+            await lh.dispense(spots, vols=[volume] * len(spots))
             continue
         if kind == "MIX":
             loc = step.location or step.source or step.destination or ""
-            wells = _as_seq(well_container(loc))
-            await lh.aspirate(wells, vols=[volume])
-            await lh.dispense(wells, vols=[volume])
+            spots = well_spots(loc)
+            vols = [volume] * len(spots)
+            for _ in range(max(1, int(step.cycles or 3))):
+                await lh.aspirate(spots, vols=vols)
+                await lh.dispense(spots, vols=vols)
 
 
 def _chosen_backend(plan: PlanDocument) -> str:

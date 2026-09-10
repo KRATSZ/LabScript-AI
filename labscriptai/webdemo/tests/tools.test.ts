@@ -228,7 +228,7 @@ function assertRefused(result: AgentToolResult<unknown>) {
 }
 
 describe("one-patch budget", () => {
-  it("emit_plan: fail → patch → fail → refuse, and a new turn allows one more", async () => {
+  it("emit_plan authoring is free; replace after first pass consumes the patch", async () => {
     const session = createSession();
     applyForm(session, { goal: "transfer 50uL A1 to B1", doc: "# SOP\n1. A" });
     applyAskUser(session, { preset: "hamilton_star_standard" });
@@ -240,23 +240,48 @@ describe("one-patch budget", () => {
     assert.equal(session.patchesUsed ?? 0, 0);
 
     session.lastChecks = failChecks();
-    assert.equal(compactChecks(session.lastChecks, session.patchesUsed ?? 0).next, "patch");
+    const authoringReplace = await emit.execute("2", {
+      plan: { ...DEMO_PLAN, plan_id: "still-authoring" },
+    });
+    assert.equal(JSON.parse(toolText(authoringReplace)).ok, true);
+    assert.equal(session.patchesUsed ?? 0, 0);
 
-    const patch = await emit.execute("2", { plan: { ...DEMO_PLAN, plan_id: "demo-transfer-v2" } });
+    const authoringAppend = await emit.execute("3", {
+      mode: "append",
+      plan: {
+        steps: [{ step_id: "5", primitive_type: "WAIT", duration_s: 2, dependencies: ["4"] }],
+      },
+    });
+    assert.equal(JSON.parse(toolText(authoringAppend)).ok, true);
+    assert.equal(session.patchesUsed ?? 0, 0);
+
+    session.lastChecks = passChecks();
+    session.hasPassedChecks = true;
+    const patch = await emit.execute("4", {
+      plan: { ...DEMO_PLAN, plan_id: "post-pass-patch" },
+    });
     assert.equal(JSON.parse(toolText(patch)).ok, true);
     assert.equal(session.patchesUsed, 1);
-
-    session.lastChecks = failChecks();
-    assert.equal(compactChecks(session.lastChecks, session.patchesUsed ?? 0).next, "done");
     const planAfterPatch = session.plan;
 
-    const refused = await emit.execute("3", { plan: { ...DEMO_PLAN, plan_id: "start-over" } });
+    const freeAppend = await emit.execute("5", {
+      mode: "append",
+      plan: {
+        steps: [{ step_id: "5", primitive_type: "WAIT", duration_s: 2, dependencies: ["4"] }],
+      },
+    });
+    assert.equal(JSON.parse(toolText(freeAppend)).ok, true);
+    assert.equal(session.patchesUsed, 1);
+    const planBeforeRefusal = session.plan;
+
+    const refused = await emit.execute("6", { plan: { ...DEMO_PLAN, plan_id: "start-over" } });
     assertRefused(refused);
     assert.equal(session.patchesUsed, 1);
-    assert.equal(session.plan, planAfterPatch);
+    assert.notEqual(planBeforeRefusal, planAfterPatch);
+    assert.equal(session.plan, planBeforeRefusal);
 
     session.patchesUsed = 0;
-    const retry = await emit.execute("4", { plan: { ...DEMO_PLAN, plan_id: "after-user" } });
+    const retry = await emit.execute("7", { plan: { ...DEMO_PLAN, plan_id: "after-user" } });
     assert.equal(JSON.parse(toolText(retry)).ok, true);
     assert.equal(session.patchesUsed, 1);
     assert.equal(retry.terminate, undefined);
@@ -324,6 +349,93 @@ describe("one-patch budget", () => {
     assert.equal(stored.steps[1].volume_ul, 50);
     assert.equal(stored.steps[2].destination, "plate:B1");
     assert.equal("type" in stored.steps[0], false);
+  });
+
+  it("emit_plan append concatenates steps and validates the merged plan", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Hamilton transfer then wait", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    session.sop = "# SOP\n1. A";
+    const emit = tool(session, "emit_plan");
+
+    assert.equal(JSON.parse(toolText(await emit.execute("1", { plan: DEMO_PLAN }))).ok, true);
+    const result = await emit.execute("2", {
+      mode: "append",
+      plan: {
+        steps: [
+          {
+            step_id: "5",
+            primitive_type: "WAIT",
+            duration_s: 2,
+            dependencies: ["4"],
+          },
+        ],
+      },
+    });
+
+    assert.equal(JSON.parse(toolText(result)).ok, true);
+    const stored = session.plan as { steps: Array<{ step_id: string }> };
+    assert.deepEqual(stored.steps.map((step) => step.step_id), ["1", "2", "3", "4", "5"]);
+  });
+
+  it("emit_plan append rejects duplicate step ids without changing the plan", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Hamilton transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    session.sop = "# SOP\n1. A";
+    const emit = tool(session, "emit_plan");
+    await emit.execute("1", { plan: DEMO_PLAN });
+    const before = JSON.stringify(session.plan);
+
+    const result = await emit.execute("2", {
+      mode: "append",
+      plan: {
+        steps: [
+          {
+            step_id: "4",
+            primitive_type: "WAIT",
+            duration_s: 2,
+            dependencies: ["4"],
+          },
+        ],
+      },
+    });
+    const parsed = JSON.parse(toolText(result));
+
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error, "duplicate_step_id");
+    assert.match(parsed.errors[0], /duplicate step_id\(s\): 4/i);
+    assert.equal(JSON.stringify(session.plan), before);
+  });
+
+  it("emit_plan replace remains the default and overwrites prior appended steps", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Hamilton transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    session.sop = "# SOP\n1. A";
+    const emit = tool(session, "emit_plan");
+    await emit.execute("1", { plan: DEMO_PLAN });
+    await emit.execute("2", {
+      mode: "append",
+      plan: {
+        steps: [
+          {
+            step_id: "5",
+            primitive_type: "WAIT",
+            duration_s: 2,
+            dependencies: ["4"],
+          },
+        ],
+      },
+    });
+
+    const replacement = { ...DEMO_PLAN, plan_id: "replacement" };
+    const result = await emit.execute("3", { plan: replacement });
+
+    assert.equal(JSON.parse(toolText(result)).steps, 4);
+    const stored = session.plan as { plan_id: string; steps: unknown[] };
+    assert.equal(stored.plan_id, "replacement");
+    assert.equal(stored.steps.length, 4);
   });
 
   it("generate_code: fail → patch used → fail → refuse, reset allows one more", async () => {

@@ -50,6 +50,8 @@ export interface SessionState {
   analyze?: Record<string, unknown>;
   artifacts?: SessionArtifacts;
   lastChecks?: ChecksResult;
+  /** Sticky within one protocol/device: true after checks have passed at least once. */
+  hasPassedChecks?: boolean;
   /** Auto-patches used this user turn. Reset at the start of each chat turn. */
   patchesUsed?: number;
   /** True when deck/pipettes came from a standard preset, not a custom layout. */
@@ -148,13 +150,16 @@ export function applyForm(
   input: { goal: string; doc?: string; robot?: string }
 ): SessionState {
   const explicit = input.robot != null && String(input.robot).trim() !== "";
-  if (explicit && !isRobotModel(input.robot)) throw new Error("invalid robot");
+  const selectedRobot = explicit
+    ? deviceFor(String(input.robot).trim())?.legacyRobot
+    : undefined;
+  if (explicit && !selectedRobot) throw new Error("invalid robot");
   session.goal = input.goal.trim();
   const doc = (input.doc ?? "").trim();
   session.doc = doc ? doc : "none";
   session.sop = session.doc !== "none" ? session.doc : undefined;
-  if (explicit && isRobotModel(input.robot)) {
-    session.robot = input.robot;
+  if (selectedRobot) {
+    session.robot = selectedRobot;
   } else {
     const inferred = inferRobotFromText(session.goal);
     if (inferred) session.robot = inferred;
@@ -207,6 +212,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
     session.analyze = undefined;
     session.artifacts = undefined;
     session.lastChecks = undefined;
+    session.hasPassedChecks = undefined;
   }
   refreshPhase(session);
   return session;
@@ -251,6 +257,7 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.analyze = undefined;
   session.artifacts = undefined;
   session.lastChecks = undefined;
+  session.hasPassedChecks = undefined;
 }
 
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {

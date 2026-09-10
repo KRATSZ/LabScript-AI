@@ -83,9 +83,11 @@ export function checkStatus(checks: {
   sim: SimResult;
   logicpass: LogicPassResult;
   fab: { lit: boolean };
+  llmreview?: LlmReviewResult;
   compile?: Pick<CompileResult, "ok"> | null;
 }): CheckStatus {
   if (checks.compile && checks.compile.ok === false) return "fail";
+  if (isReviewMismatch(checks.llmreview)) return "fail";
   if (checks.fab.lit) return "pass";
   if (checks.logicpass.outcome === "unevaluable") return "unevaluable";
   if (
@@ -232,7 +234,14 @@ export function attachConsequences(
     consequences?: string[];
   }
 ): ChecksResult {
-  return { ...checks, status: checkStatus(checks), consequences: collectConsequences(checks) };
+  const gated = isReviewMismatch(checks.llmreview)
+    ? { ...checks, fab: { lit: false } }
+    : checks;
+  return {
+    ...gated,
+    status: checkStatus(gated),
+    consequences: collectConsequences(gated),
+  };
 }
 
 /** Recompute FAB/status/consequences after a Tecan compile result is attached. */
@@ -256,6 +265,9 @@ export const PATCH_CAP = 1;
 export const PATCH_BUDGET_REFUSAL =
   "One patch per reply already used. Stop calling tools. Tell the user what fails, what that means for their experiment, and ask how to proceed.";
 
+export const REVIEWER_UNAVAILABLE_DISCLOSURE =
+  "The reviewer did not finish, so semantic review is unverified; this is not a mismatch and does not block the passed checks.";
+
 export function isReviewerUnavailable(review?: LlmReviewResult | null): boolean {
   if (!review) return false;
   const reason = (review.reason ?? "").toLowerCase();
@@ -277,9 +289,10 @@ export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
   return review?.match === false && !isReviewerUnavailable(review);
 }
 
-/** Iterate when FAB is dark (sim/logic/compile). Review-only mismatch does not burn a patch. */
+/** Iterate when sim/logic/compile fails. Review-only mismatch is reported without auto-patching. */
 export function needsPatch(checks: ChecksResult | null | undefined): boolean {
   if (!checks) return false;
+  if (isReviewMismatch(checks.llmreview)) return false;
   return !checks.fab.lit;
 }
 
@@ -318,6 +331,7 @@ export function compactChecks(
   fab: { lit: boolean };
   next: "patch" | "done";
   consequences: string[];
+  hint?: string;
 } {
   const uneval = checks.logicpass.outcome === "unevaluable";
   const issues = (checks.logicpass.issues ?? [])
@@ -327,7 +341,7 @@ export function compactChecks(
   const unavailable = isReviewerUnavailable(checks.llmreview);
   const mismatch = isReviewMismatch(checks.llmreview);
   const findings = unavailable
-    ? ["Cannot verify: the reviewer did not finish, so this is not a mismatch."]
+    ? [REVIEWER_UNAVAILABLE_DISCLOSURE]
     : (checks.llmreview?.findings ?? [])
         .slice(0, mismatch ? 4 : 2)
         .map((item) => issueLine(item))
@@ -369,6 +383,15 @@ export function compactChecks(
     fab: { lit: checks.fab.lit },
     next: (iterate ? "patch" : "done") as "patch" | "done",
     consequences: consequences.slice(0, 5),
+    ...(mismatch
+      ? {
+          hint: `Review mismatch: ${
+            findings.join(" ") || "the generated protocol differs from the requested procedure."
+          } Artifacts and animation are blocked.`,
+        }
+      : unavailable && checks.status === "pass"
+        ? { hint: REVIEWER_UNAVAILABLE_DISCLOSURE }
+      : {}),
   };
   if (!mismatch) return payload;
   const { review: reviewFirst, ...rest } = payload;

@@ -87,6 +87,7 @@ class HamiltonCompiler:
         self.tipracks: dict[str, dict[str, Any]] = {}
         self.var_of: dict[str, str] = {}
         self.command_count = 0
+        self.tips_on = 0
 
     def compile(self) -> dict[str, Any]:
         self._parse_resources()
@@ -162,7 +163,9 @@ class HamiltonCompiler:
             if raw.get("to_waste") is False:
                 self.warnings.append(f"Step {n} DROP_TIPS to_waste=false; script still drops to Vantage trash.")
             self.command_count += 1
-            return ["    await lh.drop_tips([deck.get_trash_area()], allow_nonzero_volume=True)"]
+            n_tips = max(1, self.tips_on)
+            self.tips_on = 0
+            return [f"    await lh.drop_tips([deck.get_trash_area()] * {n_tips}, allow_nonzero_volume=True)"]
         if p == "WAIT":
             if raw.get("duration_s") is None:
                 raise CompileError("mapping", f"Step {n} WAIT needs duration_s.", 'Example: "duration_s": 2.')
@@ -221,6 +224,7 @@ class HamiltonCompiler:
         else:
             raise CompileError("mapping", f"Step {n} PICK_TIPS does not say which tip_rack to use.", "Set tip_rack to one of: " + ", ".join(sorted(self.tipracks)) + ".")
         self.command_count += 1
+        self.tips_on = len(wells)
         return ["    await lh.pick_up_tips(" + " + ".join(f"{self.var_of[rid]}[{w!r}]" for w in wells) + ")"]
 
     def _render(self, body: list[str]) -> str:

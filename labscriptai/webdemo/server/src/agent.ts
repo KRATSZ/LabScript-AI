@@ -1,12 +1,26 @@
-import { Agent } from "@earendil-works/pi-agent-core";
-import type { AssistantMessageEvent, Model } from "@earendil-works/pi-ai";
+import {
+  Agent,
+  type AfterToolCallContext,
+  type AfterToolCallResult,
+  type AgentMessage,
+  type AgentTool,
+} from "@earendil-works/pi-agent-core";
+import type { AssistantMessage, AssistantMessageEvent, Model } from "@earendil-works/pi-ai";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
 import { loadDemoEnv } from "./env.ts";
-import { isPatchBudgetRefusal } from "./gate.ts";
+import {
+  isPatchBudgetRefusal,
+  REVIEWER_UNAVAILABLE_DISCLOSURE,
+} from "./gate.ts";
 import { snapshot, type SessionState } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
+
+/** DeepSeek reasoning and visible output share this pool, so leave ample room for both. */
+export const DEEPSEEK_MAX_TOKENS = 32768;
+export const MAX_EXHAUSTED_MODEL_TURNS = 3;
+export const MODEL_CONTINUE_MESSAGE = "Continue.";
 
 function deepseekModel(): Model<"openai-completions"> {
   const { model, baseUrl } = loadDemoEnv();
@@ -20,7 +34,7 @@ function deepseekModel(): Model<"openai-completions"> {
     input: ["text"],
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 128000,
-    maxTokens: 8192,
+    maxTokens: DEEPSEEK_MAX_TOKENS,
     compat: {
       thinkingFormat: "deepseek",
       supportsDeveloperRole: false,
@@ -38,38 +52,106 @@ function textFromEvent(event: AssistantMessageEvent | undefined): string {
   return "";
 }
 
-export async function runChatTurn(
-  session: SessionState,
-  userText: string,
-  sse: SseWriter
-): Promise<void> {
-  const env = loadDemoEnv();
-  if (!env.apiKey) {
-    sse.write("error", { message: "Missing LABSCRIPTAI_DEEPSEEK_API_KEY (env or cloud .env)." });
-    return;
+export const POST_EMIT_PLAN_HINT =
+  "SYSTEM HINT: emit_plan succeeded. Call run_checks now before any further planning or patching.";
+export const POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT =
+  `SYSTEM HINT: ${REVIEWER_UNAVAILABLE_DISCLOSURE} Disclose this in the final user-facing message.`;
+
+export function afterWebdemoToolCall(
+  context: {
+    toolCall: { name: string };
+    result: AfterToolCallContext["result"];
   }
+): AfterToolCallResult | undefined {
+  if (isPatchBudgetRefusal(context.result.details)) {
+    return { isError: true, terminate: true };
+  }
+  const details = context.result.details as {
+    payload?: {
+      ok?: unknown;
+      fab?: { lit?: unknown };
+      review?: { status?: unknown };
+    };
+  } | undefined;
+  if (context.toolCall.name === "emit_plan" && details?.payload?.ok === true) {
+    return {
+      content: [
+        ...context.result.content,
+        { type: "text", text: POST_EMIT_PLAN_HINT },
+      ],
+    };
+  }
+  if (
+    context.toolCall.name === "run_checks" &&
+    details?.payload?.fab?.lit === true &&
+    details.payload.review?.status === "unavailable"
+  ) {
+    return {
+      content: [
+        ...context.result.content,
+        { type: "text", text: POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT },
+      ],
+    };
+  }
+  return undefined;
+}
 
-  session.patchesUsed = 0;
-  const tools = buildTools(session, sse);
-  const prior = Array.isArray(session.messages) ? session.messages : [];
-  const agent = new Agent({
-    initialState: {
-      systemPrompt: composeSystemPrompt(session),
-      model: deepseekModel(),
-      thinkingLevel: "medium",
-      tools,
-      messages: prior as never[],
+export function withToolEvents(
+  tools: AgentTool[],
+  sse: SseWriter,
+  now: () => number = Date.now
+): AgentTool[] {
+  return tools.map((tool) => ({
+    ...tool,
+    execute: async (...args: Parameters<AgentTool["execute"]>) => {
+      const startedAt = now();
+      sse.write("tool", { name: tool.name, status: "start" });
+      try {
+        return await tool.execute(...args);
+      } finally {
+        sse.write("tool", {
+          name: tool.name,
+          status: "done",
+          duration_ms: Math.max(0, now() - startedAt),
+        });
+      }
     },
-    streamFn: streamSimple,
-    getApiKey: async () => env.apiKey,
-    toolExecution: "sequential",
-    sessionId: session.id,
-    afterToolCall: async ({ result }) =>
-      isPatchBudgetRefusal(result.details) ? { isError: true, terminate: true } : undefined,
-    shouldStopAfterTurn: ({ toolResults }) =>
-      toolResults.some((r) => isPatchBudgetRefusal(r.details)),
-  });
+  }));
+}
 
+type ChatTurnAgent = Pick<Agent, "state" | "subscribe" | "prompt" | "followUp">;
+
+export interface AutoContinueState {
+  exhaustedTurns: number;
+  error?: string;
+}
+
+export function createAutoContinueState(): AutoContinueState {
+  return { exhaustedTurns: 0 };
+}
+
+export function isExhaustedAssistantTurn(message: unknown): boolean {
+  if (!message || typeof message !== "object") return false;
+  const turn = message as Partial<AssistantMessage>;
+  if (turn.role !== "assistant" || !Array.isArray(turn.content)) return false;
+  if (turn.stopReason === "length") return true;
+  if (turn.stopReason === "error" || turn.stopReason === "aborted") return false;
+  const hasText = turn.content.some(
+    (item) => item.type === "text" && item.text.trim().length > 0
+  );
+  const hasToolCall = turn.content.some((item) => item.type === "toolCall");
+  const hasThinking = turn.content.some((item) => item.type === "thinking");
+  return hasThinking && !hasText && !hasToolCall;
+}
+
+export async function promptWithAutoContinue(
+  agent: ChatTurnAgent,
+  initialMessage: string,
+  session: SessionState,
+  sse: SseWriter,
+  autoContinue: AutoContinueState = createAutoContinueState(),
+  now: () => number = Date.now
+): Promise<boolean> {
   agent.subscribe((event) => {
     if (event.type === "message_update") {
       const think = thinkingFromEvent(event.assistantMessageEvent);
@@ -77,11 +159,23 @@ export async function runChatTurn(
       const text = textFromEvent(event.assistantMessageEvent);
       if (text) sse.write("text", { token: text });
     }
-    if (event.type === "tool_execution_start") {
-      sse.write("tool", { name: event.toolName, status: "start" });
-    }
-    if (event.type === "tool_execution_end") {
-      sse.write("tool", { name: event.toolName, status: "done" });
+    if (
+      event.type === "turn_end" &&
+      !autoContinue.error &&
+      isExhaustedAssistantTurn(event.message)
+    ) {
+      autoContinue.exhaustedTurns += 1;
+      if (autoContinue.exhaustedTurns < MAX_EXHAUSTED_MODEL_TURNS) {
+        const continuation: AgentMessage = {
+          role: "user",
+          content: MODEL_CONTINUE_MESSAGE,
+          timestamp: now(),
+        };
+        agent.followUp(continuation);
+      } else {
+        autoContinue.error =
+          `Model exhausted its budget ${autoContinue.exhaustedTurns} times. Please retry.`;
+      }
     }
     if (event.type === "agent_end") {
       session.messages = agent.state.messages as unknown[];
@@ -90,10 +184,62 @@ export async function runChatTurn(
   });
 
   try {
-    await agent.prompt(nextUserMessage(session, userText));
+    await agent.prompt(initialMessage);
     session.messages = agent.state.messages as unknown[];
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     sse.write("error", { message });
+    return false;
   }
+  if (autoContinue.error) {
+    sse.write("error", { message: autoContinue.error });
+    return false;
+  }
+  if (agent.state.errorMessage) {
+    sse.write("error", { message: agent.state.errorMessage });
+    return false;
+  }
+  return true;
+}
+
+export async function runChatTurn(
+  session: SessionState,
+  userText: string,
+  sse: SseWriter
+): Promise<boolean> {
+  const env = loadDemoEnv();
+  if (!env.apiKey) {
+    sse.write("error", { message: "Missing LABSCRIPTAI_DEEPSEEK_API_KEY (env or cloud .env)." });
+    return false;
+  }
+
+  session.patchesUsed = 0;
+  const tools = withToolEvents(buildTools(session, sse), sse);
+  const prior = Array.isArray(session.messages) ? session.messages : [];
+  const autoContinue = createAutoContinueState();
+  const agent = new Agent({
+    initialState: {
+      systemPrompt: composeSystemPrompt(session),
+      model: deepseekModel(),
+      thinkingLevel: "low",
+      tools,
+      messages: prior as never[],
+    },
+    streamFn: streamSimple,
+    getApiKey: async () => env.apiKey,
+    toolExecution: "sequential",
+    sessionId: session.id,
+    afterToolCall: async (context) => afterWebdemoToolCall(context),
+    shouldStopAfterTurn: ({ toolResults }) =>
+      Boolean(autoContinue.error) ||
+      toolResults.some((r) => isPatchBudgetRefusal(r.details)),
+  });
+
+  return promptWithAutoContinue(
+    agent,
+    nextUserMessage(session, userText),
+    session,
+    sse,
+    autoContinue
+  );
 }

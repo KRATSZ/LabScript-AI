@@ -14,6 +14,7 @@ import { loadDemoEnv } from "./env.ts";
 import {
   animationAllowed,
   compactChecks,
+  isReviewMismatch,
   needsPatch,
   PATCH_BUDGET_REFUSAL,
   PATCH_CAP,
@@ -251,9 +252,10 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "emit_plan",
     label: "Emit Plan IR",
     description:
-      'Preferred for Hamilton and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Minimal valid plan: {"schema":"bpl.plan_ir.lh.v0","resources":[{"id":"tips","type":"tiprack","slot":"1"},{"id":"plate","type":"plate","slot":"2","max_volume_ul":360}],"initial_volumes_ul":{"plate:A1":100,"plate:B1":0},"steps":[{"step_id":"1","primitive_type":"PICK_TIPS","tip_rack":"tips","tip_positions":["A1"],"dependencies":[]},{"step_id":"2","primitive_type":"ASPIRATE","source":"plate:A1","volume_ul":50,"dependencies":["1"]},{"step_id":"3","primitive_type":"DISPENSE","destination":"plate:B1","volume_ul":50,"dependencies":["2"]},{"step_id":"4","primitive_type":"DROP_TIPS","to_waste":true,"dependencies":["3"]}]}. tip_positions are bare wells ("A1"), never "TIPS:A1". tip_rack is the tiprack resource id. dependencies may be []. Common rejects: (1) tip_positions "TIPS:A1" — write "A1"; (2) PICK_TIPS missing tip_rack matching resources[].id; (3) dependencies not a list — use []. Hamilton standard wells: Corning 96-well 360 µL, 15 mL reservoir 15000 µL. Tecan standard wells: 96-well plate 360 µL, 1000 µL DiTi, 15 mL reservoir 15000 µL. Omit max_volume_ul only when capacity is unknown (cannot-verify, never a silent pass). Hamilton deliverable is step JSON + a runnable PyLabRobot script (.py). Tecan also compiles a .gwl. Does not generate Python; Watch/animation unavailable without 8010 analyze.',
+      'Preferred for Hamilton and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. mode defaults to "replace"; for large protocols, compress parallel channels with multi-well lists (for example source ["plate:A1","plate:B1","plate:C1","plate:D1"]) or send later chunks with mode:"append". Append concatenates steps and rejects duplicate step_id values. There is no small character limit; about 78 compressed steps fit one call. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. A PICK_TIPS step requires empty channels; if tips are held, DROP_TIPS must come first. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Minimal valid plan: {"schema":"bpl.plan_ir.lh.v0","resources":[{"id":"tips","type":"tiprack","slot":"1"},{"id":"plate","type":"plate","slot":"2","max_volume_ul":360}],"initial_volumes_ul":{"plate:A1":100,"plate:B1":0},"steps":[{"step_id":"1","primitive_type":"PICK_TIPS","tip_rack":"tips","tip_positions":["A1"],"dependencies":[]},{"step_id":"2","primitive_type":"ASPIRATE","source":"plate:A1","volume_ul":50,"dependencies":["1"]},{"step_id":"3","primitive_type":"DISPENSE","destination":"plate:B1","volume_ul":50,"dependencies":["2"]},{"step_id":"4","primitive_type":"DROP_TIPS","to_waste":true,"dependencies":["3"]}]}. tip_positions are bare wells ("A1"), never "TIPS:A1". tip_rack is the tiprack resource id. dependencies may be []. Common rejects: (1) tip_positions "TIPS:A1" — write "A1"; (2) PICK_TIPS missing tip_rack matching resources[].id; (3) dependencies not a list — use []. Hamilton standard wells: Corning 96-well 360 µL, 15 mL reservoir 15000 µL. Tecan standard wells: 96-well plate 360 µL, 1000 µL DiTi, 15 mL reservoir 15000 µL. Omit max_volume_ul only when capacity is unknown (cannot-verify, never a silent pass). Hamilton deliverable is step JSON + a runnable PyLabRobot script (.py). Tecan also compiles a .gwl. Does not generate Python; Watch/animation unavailable without 8010 analyze.',
     parameters: Type.Object({
       plan: Type.Record(Type.String(), Type.Unknown()),
+      mode: Type.Optional(Type.Union([Type.Literal("replace"), Type.Literal("append")])),
     }),
     executionMode: "sequential",
     execute: async (_id, args) => {
@@ -262,19 +264,49 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         if (!session.sop?.trim()) missing.push("sop");
         return ok({ blocked: true, missing });
       }
-      if (patchCapHit(session.patchesUsed ?? 0, session.lastChecks)) {
+      const input = args as {
+        plan?: Record<string, unknown>;
+        mode?: "replace" | "append";
+      };
+      const mode = input.mode ?? "replace";
+      // Appends and all plan construction before the first pass are authoring, not patches.
+      const isPatch = mode === "replace" && session.hasPassedChecks === true;
+      if (isPatch && (session.patchesUsed ?? 0) >= PATCH_CAP) {
         return refusePatchBudget();
       }
-      const raw = { ...((args as { plan?: Record<string, unknown> }).plan ?? {}) };
+      const raw = { ...(input.plan ?? {}) };
       if (!raw.backend) raw.backend = planBackendFor(session.robot);
-      const replacing = Boolean(session.plan && session.lastChecks);
-      const { plan: normalized, notes } = normalizePlanInput(raw);
+      const existing = session.plan;
+      const incomingSteps = Array.isArray(raw.steps) ? raw.steps : [];
+      let candidate = raw;
+      if (mode === "append") {
+        const existingSteps = Array.isArray(existing?.steps) ? existing.steps : [];
+        const ids = [...existingSteps, ...incomingSteps]
+          .map((step) =>
+            step && typeof step === "object" && !Array.isArray(step)
+              ? String((step as Record<string, unknown>).step_id ?? "")
+              : ""
+          )
+          .filter(Boolean);
+        const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+        if (duplicates.length) {
+          return ok({
+            ok: false,
+            error: "duplicate_step_id",
+            errors: [`Append rejected: duplicate step_id(s): ${duplicates.join(", ")}`],
+          });
+        }
+        if (existing) {
+          candidate = { ...existing, ...raw, steps: [...existingSteps, ...incomingSteps] };
+        }
+      }
+      const { plan: normalized, notes } = normalizePlanInput(candidate);
       const checked = await validatePlan(normalized);
       if (!checked.ok || !checked.plan) {
         return ok({ ok: false, errors: explainPlanErrors(checked.errors ?? ["invalid_plan"]) });
       }
       session.plan = checked.plan;
-      if (replacing) session.patchesUsed = (session.patchesUsed ?? 0) + 1;
+      if (isPatch) session.patchesUsed = (session.patchesUsed ?? 0) + 1;
       session.lastChecks = undefined;
       session.analyze = undefined;
       session.artifacts = undefined;
@@ -314,6 +346,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           { robot: session.robot }
         );
         session.lastChecks = checks;
+        if (checks.status === "pass") session.hasPassedChecks = true;
         if (plan) session.plan = plan;
         session.artifacts = checks.status === "pass" ? artifacts : undefined;
         sse.write("checks", checks);
@@ -322,6 +355,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       }
       const { checks, analyze } = await runChecks(session.code as string, session.goal ?? "");
       session.lastChecks = checks;
+      if (checks.status === "pass") session.hasPassedChecks = true;
       session.analyze = analyze ?? undefined;
       sse.write("checks", checks);
       sse.write("snapshot", snapshot(session));
@@ -371,6 +405,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     execute: async () => {
       const commands = Array.isArray(session.analyze?.commands) ? session.analyze.commands : [];
       if (!animationAllowed(session.lastChecks, commands.length)) {
+        if (isReviewMismatch(session.lastChecks?.llmreview)) {
+          return ok({ blocked: true, allowed: false, missing: ["review_match"] });
+        }
         if (!session.lastChecks?.fab.lit) {
           return ok({ blocked: true, allowed: false, missing: ["final_pass_v2"] });
         }

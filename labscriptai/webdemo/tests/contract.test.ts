@@ -65,6 +65,16 @@ describe("demo contract lock", () => {
     assert.match(SYSTEM_PROMPT, /do not ask permission/);
     assert.match(SYSTEM_PROMPT, /refuses to adjust/);
     assert.match(SYSTEM_PROMPT, /do not keep asking/);
+    assert.match(SYSTEM_PROMPT, /compress by column with multi-well lists/i);
+    assert.match(SYSTEM_PROMPT, /no small character limit/i);
+    assert.match(SYSTEM_PROMPT, /mode:"append"/);
+    assert.match(SYSTEM_PROMPT, /DROP_TIPS must come before PICK_TIPS/);
+    assert.match(
+      SYSTEM_PROMPT,
+      /DROP_TIPS \(if tips held\) → PICK_TIPS → ASPIRATE → DISPENSE → optional MIX/
+    );
+    assert.match(SYSTEM_PROMPT, /PICK_TIPS count must equal the number of transfer rounds/);
+    assert.match(SYSTEM_PROMPT, /never aspirate without a just-picked tip/);
     assert.match(prompt, /Do not skip generate_code/);
     assert.match(prompt, /emit_plan → run_checks/);
     assert.match(prompt, /Watch\/animation is unavailable/);
@@ -83,6 +93,9 @@ describe("demo contract lock", () => {
     assert.match(tools, /never "TIPS:A1"/);
     assert.match(tools, /tip_rack is the tiprack resource id/);
     assert.match(tools, /dependencies may be \[\]/);
+    assert.match(tools, /mode defaults to "replace"/);
+    assert.match(tools, /mode:"append"/);
+    assert.match(tools, /DROP_TIPS must come first/);
     assert.match(tools, /Tecan standard wells: 96-well plate 360/);
     assert.match(tools, /1000 µL DiTi/);
     assert.match(tools, /must_call: "emit_plan"/);

@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = Path(__file__).resolve().parent / "compile_fluent.py"
+FIXTURE = Path(__file__).resolve().parent / "fixtures" / "igem_fluorescein_plan.json"
 PYTHONPATH = str(ROOT)
 
 DEMO = {
@@ -384,6 +385,24 @@ class CompileFluentTests(unittest.TestCase):
         out, _ = run_cli(plan)
         self.assertTrue(out["ok"])
         self.assertTrue(any("max_volume" in w for w in out["warnings"]))
+
+    def test_igem_fluorescein_gold_fixture(self) -> None:
+        plan = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        out, _ = run_cli(plan)
+        self.assertTrue(out["ok"], out)
+        gwl = out["worklist_gwl"]
+        for row in "ABCD":
+            self.assertNotIn(f"A;plate;;;{row}12;;", gwl)
+            self.assertIn(f"D;plate;;;{row}12;;100;", gwl)
+        self.assertIn("D;waste;;;A1;;100;", gwl)
+        ops = gwl_ops(gwl)
+        mix_a2 = [
+            line
+            for line in ops
+            if line.startswith(("A;plate;;;A2;;100;", "D;plate;;;A2;;100;"))
+        ]
+        # MIX col2 = 3 cycles × 2 lines; plus 1 PBS D and 1 transfer D and 1 later A.
+        self.assertGreaterEqual(len(mix_a2), 6)
 
 
 if __name__ == "__main__":

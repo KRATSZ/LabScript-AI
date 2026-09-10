@@ -27,6 +27,7 @@ import {
 import { capSop } from "./session.ts";
 import { parseSseBuffer } from "./sse.ts";
 import { codeThinkingToken } from "./think.ts";
+import { DEEPSEEK_MAX_TOKENS } from "./agent.ts";
 
 export type ThinkFn = (token: string, source: "sop" | "code") => void;
 
@@ -363,12 +364,29 @@ function runLogicpassCli(
   });
 }
 
-function runLlmreviewCli(userIntent: string, protocolSource: string): Promise<LlmReviewResult> {
+export { DEEPSEEK_MAX_TOKENS as WEBDEMO_REVIEW_MAX_TOKENS } from "./agent.ts";
+
+export function reviewerProcessEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  const configured = [base.LABSCRIPTAI_MAX_TOKENS, base.DEEPSEEK_REVIEW_MAX_TOKENS]
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const maxTokens = Math.max(DEEPSEEK_MAX_TOKENS, ...configured);
+  return {
+    ...base,
+    LABSCRIPTAI_MAX_TOKENS: String(maxTokens),
+    DEEPSEEK_REVIEW_MAX_TOKENS: String(maxTokens),
+  };
+}
+
+export function runLlmreviewCli(
+  userIntent: string,
+  protocolSource: string
+): Promise<LlmReviewResult> {
   const env = loadDemoEnv();
   const script = path.join(env.webdemoRoot, "python", "eval_llmreview.py");
   return new Promise((resolve) => {
     const child = spawn(env.python, [script], {
-      env: { ...process.env, PYTHONPATH: env.repoRoot },
+      env: { ...reviewerProcessEnv(), PYTHONPATH: env.repoRoot },
       stdio: ["pipe", "pipe", "pipe"],
     });
     let stdout = "";
