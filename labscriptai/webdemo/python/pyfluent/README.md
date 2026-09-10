@@ -18,3 +18,7 @@ This copy is **not** a live git submodule. Prefer fixing upstream and re-copying
 4. **`Protocol.get_script()`**: in-memory dump. `save()` still prints to stdout, which would break the compiler’s JSON-on-stdout contract, so the CLI never calls `save()`.
 
 MCA’s mutable/default-parameter pitfalls are left as-is; the compiler only uses FCA (LIHA).
+
+## Slimmed (2026-09-10, R12)
+
+Removed files unused by `compile_fluent.py`: `MCA384Commond.py`, `RGACommond.py`, `FluentAPI_Demo.py`, `Migration_Guide.py` (~1400 lines). `Protocol.mca()` / `Protocol.rga()` keep lazy imports and will raise ImportError if called — the compiler only uses FCA (LIHA) + worktable. Re-vendor from upstream if MCA384/RGA is ever needed.

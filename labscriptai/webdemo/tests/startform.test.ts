@@ -47,7 +47,7 @@ describe("StartForm device cards", () => {
     }
     assert.equal(DEVICE_CARDS[0].blurb, "Python script + simulation + animation");
     assert.equal(DEVICE_CARDS[1].blurb, "Python script + simulation + animation");
-    assert.equal(DEVICE_CARDS[2].blurb, "Step table today — STAR script later");
+    assert.equal(DEVICE_CARDS[2].blurb, "Step JSON + runnable PyLabRobot script");
     assert.equal(DEVICE_CARDS[3].blurb, "Tecan Fluent .gwl worklist");
   });
 

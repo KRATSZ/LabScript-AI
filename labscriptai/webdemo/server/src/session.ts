@@ -12,7 +12,7 @@ import {
 } from "./devices.ts";
 
 export type { HardwarePresetId, PlanBackend, RobotModel };
-export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile } from "./devices.ts";
+export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile } from "./devices.ts";
 export type { DeviceProfile } from "./devices.ts";
 
 export type Phase =
@@ -33,6 +33,7 @@ export interface HardwareState {
 export interface SessionArtifacts {
   worklistGwl?: string;
   scriptXml?: string;
+  hamiltonScript?: string;
 }
 
 export interface SessionState {

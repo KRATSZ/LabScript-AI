@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { assertLocalBackend, loadDemoEnv } from "./env.ts";
-import { usesFluentCompile } from "./devices.ts";
+import { usesFluentCompile, usesHamiltonCompile } from "./devices.ts";
 import {
   emptyStatepass,
   inspectAnalyze,
@@ -460,8 +460,9 @@ export async function validatePlan(
 const FLUENT_COMPILE_MS = 30_000;
 
 export interface SessionArtifacts {
-  worklistGwl: string;
-  scriptXml: string;
+  worklistGwl?: string;
+  scriptXml?: string;
+  hamiltonScript?: string;
 }
 
 export type FluentCompileOk = {
@@ -652,12 +653,116 @@ export async function attachFluentCompile(
   return { checks: next };
 }
 
+export type HamiltonCompileOk = {
+  ok: true;
+  script: string;
+  command_count: number;
+  warnings: string[];
+};
+
+export type HamiltonCompileFail = {
+  ok: false;
+  stage: string;
+  error: string;
+  hint: string;
+};
+
+export type HamiltonCompileResult = HamiltonCompileOk | HamiltonCompileFail;
+
+function hamiltonFail(stage: string, error: string, hint: string): HamiltonCompileFail {
+  return { ok: false, stage, error, hint };
+}
+
+export function parseHamiltonCompileStdout(
+  stdout: string,
+  failReason?: { timedOut?: boolean; spawnError?: string }
+): HamiltonCompileResult {
+  if (failReason?.timedOut) {
+    return hamiltonFail("internal", "Hamilton compiler timed out.", "Retry, or shorten the plan.");
+  }
+  if (failReason?.spawnError) {
+    return hamiltonFail(
+      "internal",
+      "Hamilton compiler did not start.",
+      "Confirm python3 can run python/compile_hamilton.py."
+    );
+  }
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(stdout) as Record<string, unknown>;
+  } catch {
+    return hamiltonFail("internal", "Hamilton compiler returned invalid JSON.", "Retry the check.");
+  }
+  if (!parsed || typeof parsed !== "object") {
+    return hamiltonFail("internal", "Hamilton compiler returned invalid JSON.", "Retry the check.");
+  }
+  if (parsed.ok === true) {
+    const script = typeof parsed.script === "string" ? parsed.script : "";
+    if (!script.trim()) {
+      return hamiltonFail("internal", "Hamilton compiler returned no script.", "Retry the check.");
+    }
+    const count =
+      typeof parsed.command_count === "number" && Number.isFinite(parsed.command_count)
+        ? parsed.command_count
+        : 0;
+    return { ok: true, script, command_count: count, warnings: asStringList(parsed.warnings) };
+  }
+  const stage = typeof parsed.stage === "string" && parsed.stage.trim() ? parsed.stage : "internal";
+  const error =
+    typeof parsed.error === "string" && parsed.error.trim()
+      ? parsed.error
+      : "Hamilton compiler rejected the plan.";
+  const hint =
+    typeof parsed.hint === "string" && parsed.hint.trim()
+      ? parsed.hint
+      : "Fix the plan and run checks again.";
+  return hamiltonFail(stage, error, hint);
+}
+
+export async function runHamiltonCompile(
+  plan: Record<string, unknown>,
+  spawnFn: StdinJsonSpawn = spawnStdinJson
+): Promise<HamiltonCompileResult> {
+  const env = loadDemoEnv();
+  const script = path.join(env.webdemoRoot, "python", "compile_hamilton.py");
+  try {
+    const result = await spawnFn({
+      argv: [env.python, script],
+      stdin: JSON.stringify(plan),
+      timeoutMs: FLUENT_COMPILE_MS,
+      env: { ...process.env, PYTHONPATH: env.repoRoot },
+    });
+    return parseHamiltonCompileStdout(result.stdout, result);
+  } catch {
+    return hamiltonFail("internal", "Hamilton compiler did not start.", "Retry the check.");
+  }
+}
+
+/** Gift translator: never changes FAB/status. Script is stored only when checks already passed. */
+export async function attachHamiltonCompile(
+  checks: ChecksResult,
+  plan: Record<string, unknown>,
+  robot?: string,
+  compileFn: (plan: Record<string, unknown>) => Promise<HamiltonCompileResult> = runHamiltonCompile
+): Promise<{ checks: ChecksResult; artifacts?: SessionArtifacts }> {
+  if (!usesHamiltonCompile(robot) || checks.status !== "pass") return { checks };
+  let compiled: HamiltonCompileResult;
+  try {
+    compiled = await compileFn(plan);
+  } catch {
+    return { checks };
+  }
+  if (compiled.ok) return { checks, artifacts: { hamiltonScript: compiled.script } };
+  return { checks };
+}
+
 export async function runPlanChecks(
   plan: Record<string, unknown>,
   userIntent = "",
   opts?: {
     robot?: string;
     compileFn?: (plan: Record<string, unknown>) => Promise<FluentCompileResult>;
+    hamiltonCompileFn?: (plan: Record<string, unknown>) => Promise<HamiltonCompileResult>;
   }
 ): Promise<{
   checks: ChecksResult;
@@ -680,8 +785,11 @@ export async function runPlanChecks(
     JSON.stringify(plan),
     userIntent
   );
+  const fluent = await attachFluentCompile(checks, outPlan, opts?.robot, opts?.compileFn);
+  const ham = await attachHamiltonCompile(fluent.checks, outPlan, opts?.robot, opts?.hamiltonCompileFn);
   return {
-    ...(await attachFluentCompile(checks, outPlan, opts?.robot, opts?.compileFn)),
+    checks: ham.checks,
+    artifacts: ham.artifacts ?? fluent.artifacts,
     plan: outPlan,
   };
 }

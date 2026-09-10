@@ -1,13 +1,14 @@
 import { isPlanCodegen, isPythonCodegen } from "./devices";
 import type { RobotModel, SessionSnapshot } from "./types";
 
-export type DownloadKind = "sop" | "python" | "plan" | "gwl";
+export type DownloadKind = "sop" | "python" | "plan" | "gwl" | "plr";
 
 export const DOWNLOAD_LABELS: Record<DownloadKind, string> = {
   sop: "SOP",
   python: "Python",
   plan: "Step JSON",
   gwl: ".gwl worklist",
+  plr: "PyLabRobot script",
 };
 
 export interface PlanStepLike {
@@ -58,7 +59,8 @@ export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): str
   if (kind === "sop") return "Human-readable protocol write-up";
   if (kind === "python") return "Run with opentrons_simulate or upload to OT App";
   if (kind === "gwl") return "Import into FluentControl via Load Worklist";
-  if (robot === "Hamilton") return "Step table for STAR (runnable script later)";
+  if (kind === "plr") return "Runnable PyLabRobot script — run on the Vantage-connected PC";
+  if (robot === "Hamilton") return "Step table alongside the PyLabRobot script";
   if (robot === "Tecan") return "Step table alongside the Fluent worklist";
   return "Step table as JSON";
 }
@@ -74,12 +76,14 @@ export function downloadable(session: DownloadSource): DownloadKind[] {
   const allowPython = !robot || pythonDevice;
   const allowPlan = !robot || planDevice || (pythonDevice && !session.code?.trim());
   const allowGwl = !robot || robot === "Tecan";
+  const allowPlr = !robot || robot === "Hamilton";
 
   const out: DownloadKind[] = [];
   if (session.sop?.trim()) out.push("sop");
   if (allowPython && session.code?.trim()) out.push("python");
   if (allowPlan && session.plan && typeof session.plan === "object") out.push("plan");
   if (allowGwl && session.artifacts?.worklistGwl?.trim()) out.push("gwl");
+  if (allowPlr && session.artifacts?.hamiltonScript?.trim()) out.push("plr");
   return out;
 }
 

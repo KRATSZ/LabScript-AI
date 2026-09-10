@@ -68,9 +68,10 @@ export interface SessionSnapshot {
   code: string;
   plan: Record<string, unknown> | null;
   analyze: Record<string, unknown> | null;
-  artifacts?: {
+    artifacts?: {
     worklistGwl?: string;
     scriptXml?: string;
+    hamiltonScript?: string;
   } | null;
   checks: ChecksResult | null;
   fab: { lit: boolean };

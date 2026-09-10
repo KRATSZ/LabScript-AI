@@ -54,6 +54,31 @@ DEMO = {
 }
 
 
+def gwl_ops(gwl: str) -> list[str]:
+    return [line for line in gwl.splitlines() if line.startswith(("A;", "D;", "B;"))]
+
+
+def pick_mix_drop(*, cycles: int | None = 3, volume_ul: float | None = 40) -> dict:
+    mix: dict = {
+        "step_id": "2",
+        "primitive_type": "MIX",
+        "location": "plate:A1",
+        "dependencies": ["1"],
+    }
+    if volume_ul is not None:
+        mix["volume_ul"] = volume_ul
+    if cycles is not None:
+        mix["cycles"] = cycles
+    return {
+        **DEMO,
+        "steps": [
+            DEMO["steps"][0],
+            mix,
+            DEMO["steps"][3] | {"step_id": "3", "dependencies": ["2"]},
+        ],
+    }
+
+
 def run_cli(payload: dict | str) -> tuple[dict, subprocess.CompletedProcess[str]]:
     raw = payload if isinstance(payload, str) else json.dumps(payload)
     completed = subprocess.run(
@@ -188,11 +213,128 @@ class CompileFluentTests(unittest.TestCase):
         out, _ = run_cli(plan)
         self.assertTrue(out["ok"], out)
         self.assertIn("LihaMixScriptCommandDataV4", out["script_xml"])
-        self.assertTrue(any(line.startswith("C; MIX") for line in out["worklist_gwl"].splitlines()))
-        self.assertTrue(any("WAIT" in line for line in out["worklist_gwl"].splitlines()))
+        gwl = out["worklist_gwl"]
+        self.assertIn("MIX steps are expanded to aspirate/dispense cycles", gwl)
+        mix_pair = [
+            "A;plate;;;A1;;40;Water Free Single;;1;",
+            "D;plate;;;A1;;40;Water Free Single;;1;",
+        ]
+        ops = gwl_ops(gwl)
+        self.assertEqual(ops[:1], ["A;plate;;;A1;;40;Water Free Single;;1;"])
+        self.assertEqual(ops[1:11], mix_pair * 5)
+        self.assertEqual(ops[11:], ["D;plate;;;B1;;40;Water Free Single;;1;", "B;"])
+        self.assertNotIn("B;", "".join(ops[1:11]))
+        self.assertTrue(any("WAIT" in line for line in gwl.splitlines()))
         joined = " ".join(out["warnings"]).lower()
-        self.assertIn("mix", joined)
+        self.assertNotIn("mix not supported", joined)
+        self.assertFalse(any("mix" in w.lower() and "worklist" in w.lower() for w in out["warnings"]))
         self.assertIn("wait", joined)
+        # XML already includes AddLabware; MIX's 1 LihaMix is replaced by 10 A/D.
+        self.assertEqual(out["command_count"], 6 + 9)
+
+    def test_mix_cycle_bounds(self) -> None:
+        out1, _ = run_cli(pick_mix_drop(cycles=1, volume_ul=25))
+        self.assertTrue(out1["ok"], out1)
+        ops1 = gwl_ops(out1["worklist_gwl"])
+        self.assertEqual(
+            ops1,
+            [
+                "A;plate;;;A1;;25;Water Free Single;;1;",
+                "D;plate;;;A1;;25;Water Free Single;;1;",
+                "B;",
+            ],
+        )
+        self.assertEqual(out1["command_count"], 1 + 1 + 2 + 1)  # AddLabware + pick + A/D + drop
+        self.assertIn("LihaMixScriptCommandDataV4", out1["script_xml"])
+
+        out5, _ = run_cli(pick_mix_drop(cycles=5, volume_ul=25))
+        self.assertTrue(out5["ok"], out5)
+        ops5 = gwl_ops(out5["worklist_gwl"])
+        pair = [
+            "A;plate;;;A1;;25;Water Free Single;;1;",
+            "D;plate;;;A1;;25;Water Free Single;;1;",
+        ]
+        self.assertEqual(ops5, pair * 5 + ["B;"])
+        self.assertEqual(out5["command_count"], 1 + 1 + 10 + 1)
+
+        out_default, _ = run_cli(pick_mix_drop(cycles=None, volume_ul=25))
+        self.assertTrue(out_default["ok"], out_default)
+        self.assertEqual(len(gwl_ops(out_default["worklist_gwl"])), 6 + 1)  # 3 cycles + B;
+
+    def test_mix_b_stays_on_drop(self) -> None:
+        plan = {
+            **DEMO,
+            "steps": [
+                DEMO["steps"][0],
+                {
+                    "step_id": "2",
+                    "primitive_type": "ASPIRATE",
+                    "source": "plate:A1",
+                    "volume_ul": 50,
+                    "dependencies": ["1"],
+                },
+                {
+                    "step_id": "3",
+                    "primitive_type": "DISPENSE",
+                    "destination": "plate:B1",
+                    "volume_ul": 50,
+                    "dependencies": ["2"],
+                },
+                {
+                    "step_id": "4",
+                    "primitive_type": "MIX",
+                    "location": "plate:B1",
+                    "volume_ul": 50,
+                    "cycles": 2,
+                    "dependencies": ["3"],
+                },
+                {
+                    "step_id": "5",
+                    "primitive_type": "ASPIRATE",
+                    "source": "plate:B1",
+                    "volume_ul": 50,
+                    "dependencies": ["4"],
+                },
+                {
+                    "step_id": "6",
+                    "primitive_type": "DISPENSE",
+                    "destination": "plate:B2",
+                    "volume_ul": 50,
+                    "dependencies": ["5"],
+                },
+                DEMO["steps"][3] | {"step_id": "7", "dependencies": ["6"]},
+            ],
+        }
+        out, _ = run_cli(plan)
+        self.assertTrue(out["ok"], out)
+        ops = gwl_ops(out["worklist_gwl"])
+        self.assertEqual(
+            ops,
+            [
+                "A;plate;;;A1;;50;Water Free Single;;1;",
+                "D;plate;;;B1;;50;Water Free Single;;1;",
+                "A;plate;;;B1;;50;Water Free Single;;1;",
+                "D;plate;;;B1;;50;Water Free Single;;1;",
+                "A;plate;;;B1;;50;Water Free Single;;1;",
+                "D;plate;;;B1;;50;Water Free Single;;1;",
+                "A;plate;;;B1;;50;Water Free Single;;1;",
+                "D;plate;;;B2;;50;Water Free Single;;1;",
+                "B;",
+            ],
+        )
+        self.assertEqual(ops.count("B;"), 1)
+        self.assertEqual(ops[-1], "B;")
+        self.assertFalse(any("mix" in w.lower() for w in out["warnings"]))
+
+    def test_mix_missing_volume(self) -> None:
+        out, completed = run_cli(pick_mix_drop(cycles=3, volume_ul=None))
+        self.assertFalse(out["ok"])
+        self.assertEqual(out["stage"], "mapping")
+        self.assertIn("volume_ul", out["error"])
+        self.assertIn("MIX", out["error"])
+        self.assertTrue(out.get("hint"))
+        self.assertNotIn("Traceback", completed.stdout)
+        self.assertNotIn("Traceback", completed.stderr)
 
     def test_multiwell_expands(self) -> None:
         plan = {

@@ -24,7 +24,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Hamilton",
     codegen: "plan_ir",
     animation: false,
-    blurb: "Step table today — STAR script later",
+    blurb: "Step JSON + runnable PyLabRobot script",
   },
   {
     id: "tecan_fluent",

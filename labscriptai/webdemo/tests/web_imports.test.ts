@@ -72,7 +72,9 @@ describe("AnimationOverlay code-split", () => {
     assert.match(artifacts, /export function downloadable/);
     assert.match(artifacts, /export function downloadText/);
     assert.match(artifacts, /"gwl"/);
+    assert.match(artifacts, /"plr"/);
     assert.match(artifacts, /\.gwl worklist/);
+    assert.match(artifacts, /PyLabRobot script/);
     const panel = readFileSync(path.join(webSrc, "ExportsPanel.tsx"), "utf8");
     assert.match(panel, /from ["']\.\/artifacts["']/);
     assert.match(panel, /DOWNLOAD_LABELS/);

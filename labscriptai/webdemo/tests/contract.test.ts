@@ -38,6 +38,8 @@ describe("demo contract lock", () => {
     assert.match(backend, /runPlanChecks/);
     assert.match(backend, /runFluentCompile/);
     assert.match(backend, /compile_fluent\.py/);
+    assert.match(backend, /runHamiltonCompile/);
+    assert.match(backend, /compile_hamilton\.py/);
     assert.match(backend, /eval_plan\.py/);
 
     const types = read("web/src/types.ts");
@@ -48,7 +50,7 @@ describe("demo contract lock", () => {
     assert.doesNotMatch(SYSTEM_PROMPT, /If robot is unset/);
     assert.match(SYSTEM_PROMPT, /Never ask which machine/);
     assert.match(SYSTEM_PROMPT, /volumes, wells, sample counts/);
-    assert.match(SYSTEM_PROMPT, /Hamilton: step-table JSON today \(STAR script later\)/);
+    assert.match(SYSTEM_PROMPT, /Hamilton: step JSON \+ runnable PyLabRobot script \(\.py\)/);
     assert.match(SYSTEM_PROMPT, /Deliverables:/);
     assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
     assert.match(SYSTEM_PROMPT, /Tecan: \.gwl worklist \+ step JSON, no Watch/);
@@ -76,7 +78,7 @@ describe("demo contract lock", () => {
     assert.match(tools, /generateCode, emitPlan, runChecksTool/);
     assert.match(tools, /Hamilton/);
     assert.match(tools, /Tecan/);
-    assert.match(tools, /runnable STAR script is not produced yet/);
+    assert.match(tools, /runnable PyLabRobot script/);
     assert.match(tools, /"tip_positions":\["A1"\]/);
     assert.match(tools, /never "TIPS:A1"/);
     assert.match(tools, /tip_rack is the tiprack resource id/);

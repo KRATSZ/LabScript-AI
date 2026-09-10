@@ -204,7 +204,7 @@ export const DEVICE_REGISTRY: DeviceProfile[] = [
     planBackend: "hamilton",
     checks: ["virtual_deck", "plr_sim"],
     animation: false,
-    artifactExt: ".json",
+    artifactExt: ".py",
     hardwarePreset: { id: "hamilton_star_standard", ...HAMILTON_HW },
   },
   {
@@ -232,6 +232,10 @@ export function deviceFor(robotOrId: string | undefined): DeviceProfile | undefi
 
 export function usesFluentCompile(robotOrId: string | undefined): boolean {
   return deviceFor(robotOrId)?.id === "tecan_fluent";
+}
+
+export function usesHamiltonCompile(robotOrId: string | undefined): boolean {
+  return deviceFor(robotOrId)?.id === "hamilton_star";
 }
 
 export const ROBOT_PRESET = Object.fromEntries(

@@ -182,6 +182,7 @@ class FluentCompiler:
         self.plan = plan
         self.warnings: list[str] = []
         self.worklist: list[str] = []
+        self._mix_count_adjust = 0  # worklist A/D for MIX replace the single XML LihaMix
         self.resources: dict[str, dict[str, Any]] = {}
         self.tipracks: dict[str, dict[str, Any]] = {}
         self.loaded_channels: list[int] = []
@@ -204,6 +205,7 @@ class FluentCompiler:
         self.worklist.append(f"C; Plan IR {plan_id} compiled for Tecan FluentControl Load Worklist")
         self.worklist.append("C; WellPos uses alphanumeric form (A1, B1, …). Column-major 96-well: A1=1, B1=2, H1=8, A2=9")
         self.worklist.append(f"C; LiquidClass default: {DEFAULT_LIQUID_CLASS}; TipMask is an 8-channel bitmask (ch0=1, all eight=255)")
+        self.worklist.append("C; MIX steps are expanded to aspirate/dispense cycles")
 
         fca = self.protocol.fca()
         for index, raw in enumerate(steps, start=1):
@@ -237,7 +239,7 @@ class FluentCompiler:
             "ok": True,
             "worklist_gwl": worklist_gwl,
             "script_xml": script_xml,
-            "command_count": self.protocol.get_command_count(),
+            "command_count": self.protocol.get_command_count() + self._mix_count_adjust,
             "warnings": self.warnings,
         }
 
@@ -542,14 +544,14 @@ class FluentCompiler:
             liquid_class=MIX_LIQUID_CLASS,
             channels=channels,
         )
-        well_label = ",".join(wells)
-        self.worklist.append(
-            f"C; MIX {resource_id} wells={well_label} volume={fmt_volume(volume)} cycles={cycles} "
-            f"(XML Mix only; no A;/D; worklist mix)"
-        )
-        self.warnings.append(
-            f"Step {step_no} MIX is in the XML script only; worklist has a C; comment."
-        )
+        liquid = str(raw.get("liquid_class") or self.liquid_class)
+        for _ in range(cycles):
+            for well_index, (_rid, well) in enumerate(locs):
+                well_channels = [channels[well_index]] if well_index < len(channels) else channels
+                self.worklist.append(worklist_line("A", resource_id, well, volume, liquid, well_channels))
+                self.worklist.append(worklist_line("D", resource_id, well, volume, liquid, well_channels))
+        # XML counted 1 LihaMix; worklist counts each A and D (one cycle = 2).
+        self._mix_count_adjust += 2 * cycles * len(locs) - 1
 
 
 def load_plan_object(raw_text: str) -> dict[str, Any]:

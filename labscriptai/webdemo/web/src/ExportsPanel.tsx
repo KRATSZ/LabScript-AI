@@ -15,6 +15,7 @@ function downloadFor(session: SessionSnapshot, kind: ReturnType<typeof downloada
   if (kind === "sop") downloadText("sop.md", session.sop, "text/markdown");
   else if (kind === "python") downloadText("protocol.py", session.code, "text/x-python");
   else if (kind === "gwl") downloadText("worklist.gwl", session.artifacts?.worklistGwl ?? "", "text/plain");
+  else if (kind === "plr") downloadText("vantage.py", session.artifacts?.hamiltonScript ?? "", "text/x-python");
   else downloadText("plan.json", JSON.stringify(session.plan, null, 2), "application/json");
 }
 

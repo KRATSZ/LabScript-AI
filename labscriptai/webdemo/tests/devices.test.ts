@@ -89,7 +89,7 @@ describe("device registry", () => {
     assert.equal(ham.codegen, "plan_ir");
     assert.equal(ham.planBackend, "hamilton");
     assert.equal(ham.animation, false);
-    assert.equal(ham.artifactExt, ".json");
+    assert.equal(ham.artifactExt, ".py");
     assert.deepEqual(ham.checks, ["virtual_deck", "plr_sim"]);
     assert.equal(fluent.codegen, "plan_ir");
     assert.equal(fluent.planBackend, "tecan_evo");
