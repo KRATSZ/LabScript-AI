@@ -193,6 +193,16 @@ class Protocol:
             int: 指令数量
         """
         return len(self._commands)
+
+    def get_script(self) -> str:
+        """Return accumulated GWL/XML lines in memory (no file, no stdout).
+
+        vendored: Protocol.save() prints a success line, which would break the
+        compile_fluent.py JSON-on-stdout contract. Collect here instead.
+        """
+        if not self._commands:
+            return ""
+        return "\n".join(self._commands) + "\n"
     
     def clear_commands(self) -> None:
         """

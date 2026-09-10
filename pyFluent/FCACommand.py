@@ -449,9 +449,29 @@ class TecanFCAScriptGenerator:
         """
         return self.Dispense(volume, labware, channels, liquid_class, wells, fluent_sn)
 
-    def Mix(self, cycles, volume, labwarelabel, use_channels, liquid_class, selected_well, fluent_sn):
-        """Generate XML script for mixing."""
-        return self._create_pipetting_command(
+    def Mix(self, cycles, volume, labwarelabel, use_channels=None, liquid_class=None, selected_well=None, fluent_sn=None):
+        """
+        混匀操作 (支持链式调用和状态管理)
+
+        vendored fix: upstream Mix() skipped the FCA state machine and did not
+        call _execute_command, so mix XML never landed in Protocol._commands.
+        """
+        self._validate_state(FCAState.TIPS_LOADED, "Mix")
+        self._validate_labware_exists(labwarelabel)
+
+        if use_channels is None:
+            use_channels = self.current_channels
+        if fluent_sn is None and self.protocol:
+            fluent_sn = self.protocol.fluent_sn
+        elif fluent_sn is None:
+            raise ValueError("必须提供 fluent_sn 参数或在 Protocol 中设置")
+        if use_channels is None:
+            raise ValueError("Mix 需要通道列表：先 get_tips() 或传入 use_channels")
+
+        if isinstance(volume, (int, float)):
+            volume = [volume] * len(use_channels)
+
+        xml_command = self._create_pipetting_command(
             command_type="Tecan.Core.Instrument.Devices.LiHa.Scripting.LihaMixScriptCommandDataV4",
             volumes=volume,
             labware_name=labwarelabel,
@@ -465,6 +485,11 @@ class TecanFCAScriptGenerator:
                 "OffsetY": self.DEFAULT_OFFSET
             }
         )
+        return self._execute_command(xml_command)
+
+    def mix(self, cycles, volume, labware, wells=None, liquid_class="Water Mix", channels=None, fluent_sn=None):
+        """混匀操作 (链式调用友好的方法名)"""
+        return self.Mix(cycles, volume, labware, channels, liquid_class, wells, fluent_sn)
 
     def DropTips(self, use_channels=None, fluent_sn=None):
         """
@@ -539,6 +564,9 @@ class TecanFCAScriptGenerator:
 
     def wells_string_to_indexes(self, wells_string):
         """Convert wells string like 'A1, B2, C3' to index string like '10;11;19;20;28;29;37;45;'"""
+        # vendored fix: None/empty wells used to raise AttributeError on .split
+        if not wells_string:
+            return ";"
         indexes = []
         for well in wells_string.split(','):
             well = well.strip()

@@ -58,7 +58,7 @@ def main():
         location=Nest_position.Nest61mm_Pos,
         position=2
     ).add_labware(
-        labware_type=LabwareType.TIP_1000ul,
+        labware_type=LabwareType.FCA_1000ul,
         labware_label="TipRack[001]",
         location=Nest_position.Nest61mm_Pos,
         position=3
