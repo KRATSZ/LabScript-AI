@@ -62,7 +62,7 @@ export function StartForm({ busy, onSubmit }: Props) {
         <span className="file">{fileName || "No file selected"}</span>
       </div>
 
-      <p className="hint">Robot is asked in chat: OT-2 or Flex. Unsure? Click an example.</p>
+      <p className="hint">Robot is asked in chat: OT-2, Flex, Hamilton, or Tecan. Unsure? Click an example.</p>
       <div className="chips">
         {EXAMPLES.map((item) => (
           <button

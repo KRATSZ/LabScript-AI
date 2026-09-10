@@ -16,6 +16,7 @@ function snap(over: Partial<SessionSnapshot> = {}): SessionSnapshot {
     hardware_config: "",
     sop: "",
     code: "",
+    plan: null,
     analyze: null,
     checks: null,
     fab: { lit: false },
@@ -33,6 +34,11 @@ describe("pipelineStates", () => {
     assert.equal(pipelineStates(snap({}), null)[2], "wait");
     assert.equal(pipelineStates(snap({ robot: "OT-2" }), null)[2], "wait");
     assert.equal(pipelineStates(snap({ code: "def run():\n  pass\n" }), null)[2], "ok");
+    assert.equal(pipelineStates(snap({ robot: "Hamilton" }), "emit_plan")[2], "run");
+    assert.equal(
+      pipelineStates(snap({ robot: "Hamilton", plan: { steps: [{ step_id: "1" }] } }), null)[2],
+      "ok"
+    );
   });
 
   it("marks unevaluable checks as fail, not wait", () => {

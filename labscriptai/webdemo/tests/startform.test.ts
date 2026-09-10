@@ -15,7 +15,7 @@ describe("StartForm examples", () => {
     assert.match(EXAMPLES[2].goal, /common deck/);
     const blob = EXAMPLES.map((item) => `${item.label}\n${item.goal}\n${item.doc}`).join("\n");
     assert.doesNotMatch(blob, /standard3|standard 3-slot/i);
-    assert.doesNotMatch(blob, /Hamilton/);
-    assert.doesNotMatch(blob, /Tecan/);
+    assert.match(EXAMPLES[2].goal, /Hamilton/);
+    assert.match(EXAMPLES[2].goal, /Tecan/);
   });
 });

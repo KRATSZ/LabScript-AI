@@ -5,12 +5,12 @@ import { buildTools } from "../server/src/tools.ts";
 import { wrapChecks } from "../server/src/gate.ts";
 
 describe("tools harness", () => {
-  it("exposes the six demo tools", () => {
+  it("exposes the seven demo tools", () => {
     const session = createSession();
     const tools = buildTools(session, { write() {}, close() {} });
     assert.deepEqual(
       tools.map((t) => t.name),
-      ["ask_user", "generate_sop", "generate_code", "run_checks", "skill", "open_animation"]
+      ["ask_user", "generate_sop", "generate_code", "emit_plan", "run_checks", "skill", "open_animation"]
     );
   });
 
@@ -94,7 +94,9 @@ describe("tools harness", () => {
     const result = await checks.execute("1", {});
     const parsed = JSON.parse(result.content[0].text);
     assert.equal(parsed.blocked, true);
-    assert.deepEqual(parsed.missing, ["generate_code — OT-2/Flex need 8010 Python"]);
+    assert.deepEqual(parsed.missing, [
+      "generate_code — OT-2/Flex need 8010 Python, or emit_plan if 8010 is down",
+    ]);
   });
 
   it("open_animation blocked without FinalPass returns JSON", async () => {

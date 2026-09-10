@@ -296,6 +296,32 @@ body {
   color: var(--muted);
 }
 
+.artifacts { margin-top: 8px; }
+.exports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0;
+}
+.export-btn {
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  padding: 2px 0;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.export-btn:hover { color: var(--text); border-color: var(--muted); }
+.plan-heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 8px 0 4px;
+}
+.plan-steps p { margin: 2px 0; }
+
 .fab {
   position: fixed;
   right: 20px;

@@ -4,6 +4,7 @@ import {
   applyAskUser,
   applyForm,
   applyPreset,
+  canEmitPlan,
   canGenerateCode,
   canGenerateSop,
   canRunPipeline,
@@ -73,9 +74,9 @@ describe("session machine", () => {
     assert.equal(enoughHardware(session), false);
     session.hardware.deck["2"] = "nest_96_wellplate_200ul_flat";
     assert.equal(enoughHardware(session), true);
-    session.hardware.deck["1"] = "diti";
+    session.hardware.deck["1"] = "custom_labware";
     assert.equal(enoughHardware(session), false);
-    assert.equal("plan" in snapshot(session), false);
+    assert.equal(snapshot(session).plan, null);
   });
 
   it("OT-2 standard3 preset sets robot and makes session ready", () => {
@@ -176,16 +177,68 @@ describe("session machine", () => {
     assert.equal(canGenerateCode(session), false);
   });
 
-  it("checksRoute is opentrons when Python exists, else blocked", () => {
+  it("OT-2 with Python and a stored plan still routes checks to opentrons", () => {
     assert.equal(
       checksRoute({
+        robot: "OT-2",
         code: "from opentrons import protocol_api\ndef run(protocol):\n    protocol.home()\n",
+        plan: { steps: [{ step_id: "1" }] },
       }),
       "opentrons"
     );
-    assert.equal(checksRoute({ code: "def run(p):\n  p.home()\n" }), "opentrons");
-    assert.equal(checksRoute({ code: "" }), "blocked");
-    assert.equal(checksRoute({ code: undefined }), "blocked");
+    assert.equal(checksRoute({ robot: "Flex", code: "def run(p):\n  p.home()\n", plan: {} }), "opentrons");
+    assert.equal(checksRoute({ robot: "Hamilton", code: "", plan: { steps: [] } }), "plan");
+    assert.equal(checksRoute({ robot: "OT-2", code: "", plan: { steps: [{ step_id: "1" }] } }), "plan");
+    assert.equal(checksRoute({ robot: "OT-2", code: "", plan: undefined }), "blocked");
+  });
+
+  it("OT-2 ready with SOP can emit_plan", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "ot2_p300_standard3" });
+    session.sop = "# SOP\n1. A";
+    assert.equal(canGenerateCode(session), true);
+    assert.equal(canEmitPlan(session), true);
+  });
+
+  it("applyAskUser with Hamilton assumes deck and enables emit_plan", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { robot: "Hamilton" });
+    assert.equal(session.robot, "Hamilton");
+    assert.equal(session.phase, "ready");
+    assert.equal(session.deckAssumed, true);
+    assert.equal(canEmitPlan(session), true);
+    assert.equal(canGenerateCode(session), false);
+    assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
+  });
+
+  it("Hamilton preset is ready for Plan IR, not Opentrons Python", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    assert.equal(session.robot, "Hamilton");
+    assert.equal(session.phase, "ready");
+    assert.equal(canEmitPlan(session), true);
+    assert.equal(canGenerateCode(session), false);
+    assert.match(formatHardwareConfig(session), /Plan backend: hamilton/);
+  });
+
+  it("Tecan DiTi preset counts as tips", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "tecan_evo_standard" });
+    assert.equal(session.robot, "Tecan");
+    assert.equal(enoughHardware(session), true);
+    assert.equal(canEmitPlan(session), true);
+    assert.equal(canGenerateCode(session), false);
+    assert.match(formatHardwareConfig(session), /Plan backend: tecan_evo/);
+  });
+
+  it("non-Opentrons Plan IR still routes checks to plan", () => {
+    assert.equal(checksRoute({ robot: "Hamilton", code: "", plan: { steps: [] } }), "plan");
+    assert.equal(checksRoute({ robot: "Tecan", code: "def run(p):\n  pass\n", plan: { steps: [] } }), "plan");
+    assert.equal(checksRoute({ robot: "Hamilton", code: "", plan: undefined }), "blocked");
   });
 
   it("applyAskUser robot Flex assumes standard deck and becomes ready", () => {
@@ -273,6 +326,7 @@ describe("session machine", () => {
     });
     session.sop = "# Flex SOP";
     session.code = "def run(protocol):\n    protocol.home()\n";
+    session.plan = { steps: [{ step_id: "1" }] };
     session.analyze = { commands: [{ commandType: "home" }] };
     session.lastChecks = { fab: { lit: true } } as never;
     applyAskUser(session, {
@@ -285,6 +339,7 @@ describe("session machine", () => {
     assert.equal(session.hardware.deck["2"], "corning_96_wellplate_360ul_flat");
     assert.equal(session.deckAssumed, false);
     assert.equal(session.code, undefined);
+    assert.equal(session.plan, undefined);
     assert.equal(session.analyze, undefined);
     assert.equal(session.lastChecks, undefined);
     assert.equal(session.sop, undefined);

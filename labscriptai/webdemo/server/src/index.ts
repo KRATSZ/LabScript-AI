@@ -3,8 +3,8 @@ import {
   applyForm,
   createSession,
   getSession,
+  isRobotModel,
   snapshot,
-  type RobotModel,
 } from "./session.ts";
 import { createSseWriter } from "./sse.ts";
 import { runChatTurn } from "./agent.ts";
@@ -56,7 +56,7 @@ const server = createServer(async (req, res) => {
     const raw = await readBody(req);
     const body = raw ? (JSON.parse(raw) as { goal?: string; doc?: string; robot?: string }) : {};
     const goal = (body.goal || "").trim();
-    const robot = body.robot === "OT-2" || body.robot === "Flex" ? (body.robot as RobotModel) : undefined;
+    const robot = isRobotModel(body.robot) ? body.robot : undefined;
     if (!goal) {
       json(res, 400, { error: "goal is required" });
       return;

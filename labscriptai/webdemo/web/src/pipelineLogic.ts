@@ -8,6 +8,7 @@ export const PIPELINE_HINTS: Record<string, string> = {
   ask_user: "Recording hardware…",
   generate_sop: "Writing SOP…",
   generate_code: "Writing script…",
+  emit_plan: "Writing plan…",
   run_checks: "Checking…",
   open_animation: "Opening animation…",
 };
@@ -30,9 +31,19 @@ function sopState(sop: string, running: string | null): StepState {
   return "wait";
 }
 
-function codeState(code: string, running: string | null): StepState {
-  if (running === "generate_code") return "run";
-  return code.trim() ? "ok" : "wait";
+function codeState(
+  code: string,
+  plan: Record<string, unknown> | null,
+  robot: string | null,
+  running: string | null
+): StepState {
+  if (running === "generate_code" || running === "emit_plan") return "run";
+  if (robot === "OT-2" || robot === "Flex") {
+    return code.trim() ? "ok" : "wait";
+  }
+  if (plan && Array.isArray(plan.steps) && plan.steps.length) return "ok";
+  if (code.trim()) return "ok";
+  return "wait";
 }
 
 function checkState(checks: ChecksResult | null, running: string | null): StepState {
@@ -65,7 +76,7 @@ export function pipelineStates(
   return [
     hwState(session.phase, runningTool),
     sopState(session.sop, runningTool),
-    codeState(session.code, runningTool),
+    codeState(session.code, session.plan, session.robot, runningTool),
     checkState(session.checks, runningTool),
     reviewState(session.checks, runningTool),
   ];

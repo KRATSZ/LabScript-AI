@@ -45,26 +45,34 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(start, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
   });
 
-  it("scientist-facing copy is OT-2 or Flex, and the prompt prefers 8010 Python", () => {
+  it("scientist-facing copy names four robots and prompt supports emit_plan", () => {
     const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts"];
     const blob = files.map((name) => readFileSync(path.join(webSrc, name), "utf8")).join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);
-    assert.doesNotMatch(blob, /Hamilton/);
-    assert.doesNotMatch(blob, /Tecan/);
+    assert.match(blob, /Hamilton/);
+    assert.match(blob, /Tecan/);
     const prompt = readFileSync(path.resolve(webSrc, "../../server/src/prompt.ts"), "utf8");
-    assert.match(prompt, /Which robot — OT-2 or Flex\?/);
-    assert.match(prompt, /I'll assume a standard deck/);
-    assert.match(prompt, /assumed_deck=true/);
+    assert.match(prompt, /Which robot — OT-2, Flex, Hamilton, or Tecan\?/);
+    assert.match(prompt, /Hamilton/);
+    assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
     assert.match(prompt, /Do not change volumes, wells, or counts the user gave/);
-    assert.match(prompt, /No bash\. No robot\. No live Flex\./);
-    assert.match(prompt, /Replies stay short/);
     assert.match(prompt, /Do not skip generate_code/);
-    assert.doesNotMatch(prompt, /emit_plan/);
-    assert.doesNotMatch(prompt, /Hamilton/);
-    assert.doesNotMatch(prompt, /Tecan/);
     assert.doesNotMatch(prompt, /Plan IR/);
+  });
+
+  it("artifacts helpers and Artifacts panel exist", () => {
+    const artifacts = readFileSync(path.join(webSrc, "artifacts.ts"), "utf8");
+    assert.match(artifacts, /export function planStepLine/);
+    assert.match(artifacts, /export function downloadable/);
+    assert.match(artifacts, /export function downloadText/);
+    const panel = readFileSync(path.join(webSrc, "ExportsPanel.tsx"), "utf8");
+    assert.match(panel, /from ["']\.\/artifacts["']/);
+    const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
+    assert.match(app, /from ["']\.\/ExportsPanel["']/);
+    assert.match(app, /<ExportsPanel session=\{session\} \/>/);
+    assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
   });
 
   it("overlay smoke uses simpleAnalysisFile and AnimatorGuard exposes errors", () => {

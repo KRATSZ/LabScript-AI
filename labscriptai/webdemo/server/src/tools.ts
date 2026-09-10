@@ -2,17 +2,27 @@ import { Type } from "typebox";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { generateCodeStream, generateCompactSop, patchCodeViaConverse, runChecks } from "./backend.ts";
+import {
+  generateCodeStream,
+  generateCompactSop,
+  patchCodeViaConverse,
+  runChecks,
+  runPlanChecks,
+  validatePlan,
+} from "./backend.ts";
 import { loadDemoEnv } from "./env.ts";
 import { compactChecks, needsPatch, PATCH_CAP, patchInstruction, refuseEmptySop } from "./gate.ts";
 import {
   applyAskUser,
+  canEmitPlan,
   canGenerateCode,
   canRunPipeline,
   checksRoute,
   capSop,
   formatHardwareConfig,
+  isOpentrons,
   missingList,
+  planBackendFor,
   presetMismatchWarning,
   shouldCallCompactSop,
   shouldReuseSop,
@@ -47,14 +57,26 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "ask_user",
     label: "Ask user / session",
     description:
-      "Persist collected answers and read the session machine. Use after the user gives goal, doc=none/draft, robot, pipettes, or deck slots. Naming OT-2 or Flex with no custom deck assumes a standard layout (assumed_deck=true). Pass deck only when the user names specific labware. Does not generate code. No deck UI.",
+      "Persist collected answers and read the session machine. Use after the user gives goal, doc=none/draft, robot, pipettes, or deck slots. Naming any supported robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the user names specific labware. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
-          robot: Type.Optional(Type.Union([Type.Literal("OT-2"), Type.Literal("Flex")])),
-          preset: Type.Optional(
-            Type.Union([Type.Literal("ot2_p300_standard3"), Type.Literal("flex_1000_standard3")])
-          ),
+      robot: Type.Optional(
+        Type.Union([
+          Type.Literal("OT-2"),
+          Type.Literal("Flex"),
+          Type.Literal("Hamilton"),
+          Type.Literal("Tecan"),
+        ])
+      ),
+      preset: Type.Optional(
+        Type.Union([
+          Type.Literal("ot2_p300_standard3"),
+          Type.Literal("flex_1000_standard3"),
+          Type.Literal("hamilton_star_standard"),
+          Type.Literal("tecan_evo_standard"),
+        ])
+      ),
       left_pipette: Type.Optional(Type.String()),
       right_pipette: Type.Optional(Type.String()),
       use_gripper: Type.Optional(Type.Boolean()),
@@ -134,6 +156,12 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (!canRunPipeline(session)) {
         return ok({ blocked: true, missing: missingList(session) });
       }
+      if (!isOpentrons(session)) {
+        return ok({
+          blocked: true,
+          missing: ["emit_plan — Hamilton/Tecan use Plan IR, not Opentrons Python"],
+        });
+      }
       const refused = refuseEmptySop(session.sop);
       if (refused || !canGenerateCode(session)) {
         const missing = missingList(session);
@@ -180,7 +208,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           return ok({
             blocked: true,
             error: message,
-            hint: "8010 unavailable. Tell the user.",
+            must_call: "emit_plan",
+            hint:
+              "8010 unavailable. Tell the user Watch/animation will be unavailable. Call emit_plan then run_checks.",
           });
         }
       }
@@ -188,7 +218,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         return ok({
           blocked: true,
           error: "empty_code",
-          hint: "8010 returned no Python. Tell the user.",
+          must_call: "emit_plan",
+          hint:
+            "8010 returned no Python. Tell the user Watch/animation will be unavailable. Call emit_plan then run_checks.",
         });
       }
       session.code = code;
@@ -200,11 +232,46 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     },
   };
 
+  const emitPlan: AgentTool = {
+    name: "emit_plan",
+    label: "Emit Plan IR",
+    description:
+      "Preferred for Hamilton and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Does not generate Python; Watch/animation unavailable without 8010 analyze.",
+    parameters: Type.Object({
+      plan: Type.Record(Type.String(), Type.Unknown()),
+    }),
+    executionMode: "sequential",
+    execute: async (_id, args) => {
+      if (!canEmitPlan(session)) {
+        const missing = missingList(session);
+        if (!session.sop?.trim()) missing.push("sop");
+        return ok({ blocked: true, missing });
+      }
+      const raw = { ...((args as { plan?: Record<string, unknown> }).plan ?? {}) };
+      if (!raw.backend) raw.backend = planBackendFor(session.robot);
+      const replacing = Boolean(session.plan && session.lastChecks);
+      const checked = await validatePlan(raw);
+      if (!checked.ok || !checked.plan) {
+        return ok({ ok: false, errors: checked.errors ?? ["invalid_plan"] });
+      }
+      session.plan = checked.plan;
+      if (replacing) session.patchesUsed = (session.patchesUsed ?? 0) + 1;
+      session.lastChecks = undefined;
+      session.analyze = undefined;
+      sse.write("snapshot", snapshot(session));
+      return ok({
+        ok: true,
+        steps: Array.isArray(checked.plan.steps) ? checked.plan.steps.length : 0,
+        backend: checked.plan.backend,
+      });
+    },
+  };
+
   const runChecksTool: AgentTool = {
     name: "run_checks",
     label: "Run checks",
     description:
-      "Simulate → analyze → LogicPass via 8010 so session.analyze commands exist for FAB/animation. FAB lights only on FinalPass_v2.",
+      "Simulate → analyze → LogicPass. For OT-2 or Flex with Python, use 8010 simulate+analyze so session.analyze commands exist for FAB/animation. Do not prefer a stored plan over Python when the robot is OT-2 or Flex. FAB lights only on FinalPass_v2.",
     parameters: Type.Object({}),
     executionMode: "sequential",
     execute: async () => {
@@ -212,8 +279,20 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (route === "blocked") {
         return ok({
           blocked: true,
-          missing: ["generate_code — OT-2/Flex need 8010 Python"],
+          missing: isOpentrons(session)
+            ? session.codeService === "down"
+              ? ["emit_plan — 8010 down; use Plan IR fallback"]
+              : ["generate_code — OT-2/Flex need 8010 Python, or emit_plan if 8010 is down"]
+            : ["emit_plan — Hamilton/Tecan need a plan"],
         });
+      }
+      if (route === "plan") {
+        const { checks, plan } = await runPlanChecks(session.plan as Record<string, unknown>, session.goal ?? "");
+        session.lastChecks = checks;
+        if (plan) session.plan = plan;
+        sse.write("checks", checks);
+        sse.write("snapshot", snapshot(session));
+        return ok(compactChecks(checks, session.patchesUsed ?? 0));
       }
       const { checks, analyze } = await runChecks(session.code as string, session.goal ?? "");
       session.lastChecks = checks;
@@ -281,5 +360,5 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     },
   };
 
-  return [askUser, generateSop, generateCode, runChecksTool, skillTool, openAnimation];
+  return [askUser, generateSop, generateCode, emitPlan, runChecksTool, skillTool, openAnimation];
 }

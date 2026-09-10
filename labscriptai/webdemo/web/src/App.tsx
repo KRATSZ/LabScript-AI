@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useState } from "react";
 import { isPlayableAnalyze } from "./analysis";
 import { createSession, streamChat } from "./api";
 import { ChatPane } from "./ChatPane";
+import { ExportsPanel } from "./ExportsPanel";
 import { IssuesPanel } from "./IssuesPanel";
 import { OverlayChrome } from "./OverlayChrome";
 import { Pipeline } from "./Pipeline.tsx";
@@ -15,7 +16,7 @@ function phaseLabel(phase: string, lit: boolean, canWatch: boolean): string {
   if (lit) return "No animation yet";
   if (phase === "need_hw_slots") return "Missing deck details";
   if (phase === "ready") return "In progress";
-  return "Which robot — OT-2 or Flex?";
+  return "Which robot — OT-2, Flex, Hamilton, or Tecan?";
 }
 
 export function App() {
@@ -141,6 +142,7 @@ export function App() {
               onSend={(text) => runTurn(session.id, text, false)}
             />
             <IssuesPanel checks={session.checks} />
+            <ExportsPanel session={session} />
             {error ? <p className="file" style={{ color: "var(--error)" }}>{error}</p> : null}
           </>
         )}

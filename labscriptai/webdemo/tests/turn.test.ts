@@ -55,9 +55,11 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.match(block, /sop_chars:/);
     assert.match(block, /deck_assumed: true/);
     assert.match(block, /code_service:/);
-    assert.doesNotMatch(block, /plan_steps/);
+    assert.match(block, /plan_steps: 0/);
     assert.match(block, /analyze_commands: 1/);
     assert.match(block, /review.match=false/);
+    session.plan = { steps: [{ step_id: "1" }, { step_id: "2" }] };
+    assert.match(liveSessionBlock(session), /plan_steps: 2/);
     assert.match(block, /next=patch/);
     assert.doesNotMatch(block, /# long draft/);
     assert.doesNotMatch(block, /aspirate/);
@@ -68,8 +70,43 @@ describe("nextUserMessage / LIVE SESSION", () => {
     applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
     applyAskUser(session, { preset: "ot2_p300_standard3" });
     session.sop = "# SOP\n1. A";
+    session.codeService = "up";
     assert.equal(nextToolHint(session), "generate_code");
     assert.match(liveSessionBlock(session), /next_tool: generate_code/);
   });
 
+  it("next_tool is emit_plan for ready Hamilton with SOP", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    session.sop = "# SOP\n1. A";
+    assert.equal(nextToolHint(session), "emit_plan");
+  });
+
+  it("next_tool is emit_plan for Flex when code_service is down and no Python", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { robot: "Flex" });
+    session.sop = "# SOP\n1. A";
+    session.codeService = "down";
+    assert.equal(nextToolHint(session), "emit_plan");
+    assert.match(liveSessionBlock(session), /next_tool: emit_plan/);
+  });
+
+  it("next_tool is emit_plan for OT-2 patch when checks fail and no Python", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "ot2_p300_standard3" });
+    session.sop = "# SOP\n1. A";
+    session.codeService = "up";
+    session.plan = { steps: [{ step_id: "1", primitive_type: "ASPIRATE" }] };
+    session.lastChecks = wrapChecks(
+      { ok: true },
+      { outcome: "fail", logic_pass: false },
+      { issues: [] },
+      { match: true, findings: [] }
+    );
+    assert.equal(nextToolHint(session), "emit_plan");
+    assert.match(liveSessionBlock(session), /next_tool: emit_plan/);
+  });
 });
