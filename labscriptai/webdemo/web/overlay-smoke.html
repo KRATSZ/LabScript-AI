@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LabscriptAI overlay smoke</title>
+    <style>
+      html, body, #root { height: 100%; margin: 0; }
+      body { font-family: ui-sans-serif, system-ui, sans-serif; background: #f9fafb; }
+      .boot { padding: 24px; color: #6b7280; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"><p class="boot">Opening overlay smoke…</p></div>
+    <script type="module" src="/src/overlaySmoke.tsx"></script>
+    <script>
+      window.addEventListener("error", function (ev) {
+        var el = document.getElementById("root");
+        if (el && el.querySelector(".boot")) {
+          el.innerHTML = "<p class=\"boot\">Page script error: " + String(ev.message || "unknown") + "</p>";
+        }
+      });
+    </script>
+  </body>
+</html>

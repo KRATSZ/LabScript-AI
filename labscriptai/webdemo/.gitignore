@@ -1,0 +1,10 @@
+node_modules/
+dist/
+web/dist/
+*.log
+.env
+.env.*
+.DS_Store
+.pytest_cache/
+__pycache__/
+*.pyc
