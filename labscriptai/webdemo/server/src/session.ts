@@ -1,5 +1,19 @@
 import { randomUUID } from "node:crypto";
 import type { ChecksResult } from "./gate.ts";
+import {
+  DEVICE_REGISTRY,
+  HARDWARE_PRESETS,
+  PRESET_ROBOT,
+  ROBOT_PRESET,
+  deviceFor,
+  type HardwarePresetId,
+  type PlanBackend,
+  type RobotModel,
+} from "./devices.ts";
+
+export type { HardwarePresetId, PlanBackend, RobotModel };
+export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile } from "./devices.ts";
+export type { DeviceProfile } from "./devices.ts";
 
 export type Phase =
   | "need_goal"
@@ -8,15 +22,17 @@ export type Phase =
   | "need_hw_slots"
   | "ready";
 
-export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
-export type PlanBackend = "serializing" | "hamilton" | "ot2" | "tecan_evo" | "auto";
-
 export interface HardwareState {
   leftPipette?: string;
   rightPipette?: string;
   useGripper?: boolean;
   apiVersion?: string;
   deck: Record<string, string>;
+}
+
+export interface SessionArtifacts {
+  worklistGwl?: string;
+  scriptXml?: string;
 }
 
 export interface SessionState {
@@ -31,6 +47,7 @@ export interface SessionState {
   code?: string;
   plan?: Record<string, unknown>;
   analyze?: Record<string, unknown>;
+  artifacts?: SessionArtifacts;
   lastChecks?: ChecksResult;
   /** Auto-patches used this user turn. Reset at the start of each chat turn. */
   patchesUsed?: number;
@@ -81,13 +98,9 @@ export function refreshPhase(session: SessionState): Phase {
 }
 
 export function inferRobotFromText(text: string): RobotModel | undefined {
-  const found: RobotModel[] = [];
   const src = text.toLowerCase();
-  if (/\bot-?2\b/.test(src)) found.push("OT-2");
-  if (/\bflex\b/.test(src)) found.push("Flex");
-  if (/\bhamilton\b/.test(src)) found.push("Hamilton");
-  if (/\btecan\b/.test(src)) found.push("Tecan");
-  return found.length === 1 ? found[0] : undefined;
+  const found = DEVICE_REGISTRY.filter((d) => d.aliases.some((re) => re.test(src)));
+  return found.length === 1 ? found[0].legacyRobot : undefined;
 }
 
 export function missingList(session: SessionState): string[] {
@@ -115,13 +128,6 @@ function pipetteUnset(value: string | undefined): boolean {
   return !value || value === "None";
 }
 
-const ROBOT_PRESET: Record<RobotModel, HardwarePresetId> = {
-  "OT-2": "ot2_p300_standard3",
-  Flex: "flex_1000_standard3",
-  Hamilton: "hamilton_star_standard",
-  Tecan: "tecan_evo_standard",
-};
-
 export function assumeStandardDeck(session: SessionState): void {
   if (!session.robot) return;
   if (Object.keys(session.hardware.deck).length > 0) return;
@@ -138,17 +144,24 @@ export function assumeStandardDeck(session: SessionState): void {
 
 export function applyForm(
   session: SessionState,
-  input: { goal: string; doc?: string; robot?: RobotModel }
+  input: { goal: string; doc?: string; robot?: string }
 ): SessionState {
+  const explicit = input.robot != null && String(input.robot).trim() !== "";
+  if (explicit && !isRobotModel(input.robot)) throw new Error("invalid robot");
   session.goal = input.goal.trim();
   const doc = (input.doc ?? "").trim();
   session.doc = doc ? doc : "none";
   session.sop = session.doc !== "none" ? session.doc : undefined;
-  const robot = isRobotModel(input.robot) ? input.robot : inferRobotFromText(session.goal);
-  if (robot) {
-    session.robot = robot;
-    if (!session.hardware.apiVersion && (robot === "OT-2" || robot === "Flex")) {
-      session.hardware.apiVersion = robot === "OT-2" ? "2.15" : "2.22";
+  if (explicit && isRobotModel(input.robot)) {
+    session.robot = input.robot;
+  } else {
+    const inferred = inferRobotFromText(session.goal);
+    if (inferred) session.robot = inferred;
+  }
+  if (session.robot) {
+    const device = deviceFor(session.robot);
+    if (!session.hardware.apiVersion && device?.codegen === "opentrons_python") {
+      session.hardware.apiVersion = device.hardwarePreset.apiVersion;
     }
   }
   assumeStandardDeck(session);
@@ -156,68 +169,12 @@ export function applyForm(
   return session;
 }
 
-export const HARDWARE_PRESETS = {
-  ot2_p300_standard3: {
-    leftPipette: "p300_single_gen2",
-    rightPipette: "None",
-    apiVersion: "2.15",
-    deck: {
-      "1": "opentrons_96_tiprack_300ul",
-      "2": "nest_96_wellplate_200ul_flat",
-      "3": "nest_12_reservoir_15ml",
-    },
-  },
-  flex_1000_standard3: {
-    leftPipette: "flex_1channel_1000",
-    rightPipette: "None",
-    apiVersion: "2.22",
-    deck: {
-      A1: "opentrons_flex_96_tiprack_1000ul",
-      D2: "nest_96_wellplate_200ul_flat",
-      C1: "nest_12_reservoir_15ml",
-      A3: "trash_bin",
-    },
-  },
-  hamilton_star_standard: {
-    leftPipette: "star_1000",
-    rightPipette: "None",
-    apiVersion: "",
-    deck: {
-      "1": "hamilton_96_tiprack_300ul",
-      "2": "corning_96_wellplate_360ul_flat",
-      "3": "nest_12_reservoir_15ml",
-    },
-  },
-  tecan_evo_standard: {
-    leftPipette: "liha_1000",
-    rightPipette: "None",
-    apiVersion: "",
-    deck: {
-      "1": "tecan_diti_200ul_tiprack",
-      "2": "tecan_96_wellplate",
-      "3": "nest_12_reservoir_15ml",
-    },
-  },
-} as const;
-
-export type HardwarePresetId = keyof typeof HARDWARE_PRESETS;
-
-const PRESET_ROBOT: Record<HardwarePresetId, RobotModel> = {
-  ot2_p300_standard3: "OT-2",
-  flex_1000_standard3: "Flex",
-  hamilton_star_standard: "Hamilton",
-  tecan_evo_standard: "Tecan",
-};
-
 export function isRobotModel(value: string | undefined): value is RobotModel {
-  return value === "OT-2" || value === "Flex" || value === "Hamilton" || value === "Tecan";
+  return Boolean(value && DEVICE_REGISTRY.some((d) => d.legacyRobot === value));
 }
 
 export function planBackendFor(robot: RobotModel | undefined): PlanBackend {
-  if (robot === "Hamilton") return "hamilton";
-  if (robot === "Tecan") return "tecan_evo";
-  if (robot === "OT-2" || robot === "Flex") return "serializing";
-  return "auto";
+  return deviceFor(robot)?.planBackend ?? "auto";
 }
 
 export function presetMismatchWarning(
@@ -247,6 +204,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
     session.code = undefined;
     session.plan = undefined;
     session.analyze = undefined;
+    session.artifacts = undefined;
     session.lastChecks = undefined;
   }
   refreshPhase(session);
@@ -284,14 +242,13 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.hardware.leftPipette = undefined;
   session.hardware.rightPipette = undefined;
   session.hardware.useGripper = undefined;
-  if (robot === "OT-2") session.hardware.apiVersion = "2.15";
-  else if (robot === "Flex") session.hardware.apiVersion = "2.22";
-  else session.hardware.apiVersion = "";
+  session.hardware.apiVersion = deviceFor(robot)?.hardwarePreset.apiVersion ?? "";
   session.deckAssumed = undefined;
   session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
   session.code = undefined;
   session.plan = undefined;
   session.analyze = undefined;
+  session.artifacts = undefined;
   session.lastChecks = undefined;
 }
 
@@ -325,8 +282,10 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
     if (switching) {
       resetForRobotSwitch(session, named);
     } else if (!session.hardware.apiVersion) {
-      if (named === "OT-2") session.hardware.apiVersion = "2.15";
-      else if (named === "Flex") session.hardware.apiVersion = "2.22";
+      const device = deviceFor(named);
+      if (device?.codegen === "opentrons_python") {
+        session.hardware.apiVersion = device.hardwarePreset.apiVersion;
+      }
     }
   }
   if (typeof input.left_pipette === "string") {
@@ -363,7 +322,7 @@ export function canGenerateSop(session: SessionState): boolean {
 }
 
 export function isOpentrons(session: Pick<SessionState, "robot">): boolean {
-  return session.robot === "OT-2" || session.robot === "Flex";
+  return deviceFor(session.robot)?.codegen === "opentrons_python";
 }
 
 export function checksRoute(
@@ -399,9 +358,10 @@ export function capSop(text: string, max = SOP_CHAR_CAP): string {
 
 export function formatHardwareConfig(session: SessionState): string {
   const robot = session.robot ?? "unset";
+  const device = deviceFor(session.robot);
   const api =
     session.hardware.apiVersion ??
-    (session.robot === "OT-2" ? "2.15" : session.robot === "Flex" ? "2.22" : "unset");
+    (device?.codegen === "opentrons_python" ? device.hardwarePreset.apiVersion : "unset");
   const deckEntries = Object.entries(session.hardware.deck);
   const deck = deckEntries.length
     ? deckEntries.map(([slot, labware]) => `  ${slot}: ${labware}`).join("\n")
@@ -433,9 +393,111 @@ export function snapshot(session: SessionState) {
     code: session.code ?? "",
     plan: session.plan ?? null,
     analyze: session.analyze ?? null,
+    artifacts: session.artifacts ?? null,
     checks: checks ?? null,
     fab: { lit: Boolean(checks?.fab.lit) },
     deck_assumed: Boolean(session.deckAssumed),
     code_service: session.codeService ?? "down",
   };
+}
+
+/** Bare well after an optional resource prefix, e.g. TIPS:A1 → A1. */
+const TIP_POSITION_PREFIX = /^([A-Za-z][A-Za-z0-9_]*):([A-Ha-h][0-9]{1,2})$/;
+
+/** Step-field aliases applied before Plan IR validate. resources[].type is not aliased. */
+export const PLAN_STEP_ALIASES: Record<string, string> = {
+  type: "primitive_type",
+  well: "location",
+  vol: "volume_ul",
+  volume: "volume_ul",
+  tiprack: "tip_rack",
+  dest: "destination",
+  dst: "destination",
+  src: "source",
+};
+
+function flattenLocation(value: unknown): { value: unknown; note?: string } {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    return { value };
+  }
+  const rec = value as Record<string, unknown>;
+  const resource = String(rec.labware ?? rec.resource ?? rec.plate ?? "").trim();
+  const well = String(rec.well ?? rec.location ?? rec.position ?? "").trim();
+  if (resource && well) {
+    const loc = well.includes(":") ? well : `${resource}:${well}`;
+    return { value: loc, note: `You wrote a location object, normalized to ${loc}` };
+  }
+  return { value };
+}
+
+/** Alias step fields, flatten location objects, then strip tip_positions prefixes. */
+export function normalizePlanInput(plan: Record<string, unknown>): {
+  plan: Record<string, unknown>;
+  notes: string[];
+} {
+  if (!Array.isArray(plan.steps)) return { plan, notes: [] };
+  const notes: string[] = [];
+  const steps = plan.steps.map((step) => {
+    if (!step || typeof step !== "object" || Array.isArray(step)) return step;
+    const rec = { ...(step as Record<string, unknown>) };
+    for (const [alias, canonical] of Object.entries(PLAN_STEP_ALIASES)) {
+      if (!Object.prototype.hasOwnProperty.call(rec, alias)) continue;
+      const empty = rec[canonical] == null || rec[canonical] === "";
+      if (empty) {
+        rec[canonical] = rec[alias];
+        notes.push(`You wrote ${alias}, normalized to ${canonical}`);
+      }
+      delete rec[alias];
+    }
+    for (const field of ["source", "destination", "location"] as const) {
+      if (rec[field] == null) continue;
+      const flat = flattenLocation(rec[field]);
+      rec[field] = flat.value;
+      if (flat.note) notes.push(flat.note);
+    }
+    if (!Array.isArray(rec.tip_positions)) return rec;
+    rec.tip_positions = rec.tip_positions.map((item) => {
+      const wrote = String(item).trim();
+      const match = wrote.match(TIP_POSITION_PREFIX);
+      if (!match) return typeof item === "string" ? item : wrote;
+      const well = match[2].toUpperCase();
+      notes.push(`You wrote ${wrote}, normalized to ${well}`);
+      return well;
+    });
+    return rec;
+  });
+  return { plan: { ...plan, steps }, notes: [...new Set(notes)] };
+}
+
+export const normalizePlanTipPositions = normalizePlanInput;
+
+/** Point the model at a fix. Schema messages are already English; append the usual traps. */
+export function explainPlanErrors(errors: string[]): string[] {
+  return errors.map((err) => {
+    const text = err.trim();
+    if (!text) return text;
+    const lower = text.toLowerCase();
+    if (lower.includes("tip_positions") && !/TIPS:/i.test(text)) {
+      return `${text} Use bare well names like "A1", not "TIPS:A1".`;
+    }
+    if (lower.includes("dependencies must be a list")) {
+      return `${text} Use a JSON array; [] is valid when there are no dependencies.`;
+    }
+    if (lower.includes("pick_tips") && lower.includes("tip")) {
+      return `${text} Set tip_rack to the tiprack id in resources[] (example: "tips") and tip_positions to ["A1"].`;
+    }
+    if (lower.includes("must look like")) {
+      return `${text} source/destination/location must be a string like plate:A1, not {well:"A1"}. Only tip_positions are bare wells.`;
+    }
+    if (lower.includes("needs volume_ul") || (lower.includes("volume_ul") && !lower.includes("max_volume"))) {
+      return `${text} Write "volume_ul": 50, not vol or volume.`;
+    }
+    if (lower.includes("unsupported primitive") || lower.includes("(missing)")) {
+      return `${text} Write "primitive_type" (not "type"): ASPIRATE, DISPENSE, MIX, PICK_TIPS, DROP_TIPS, or WAIT.`;
+    }
+    if (lower.includes("needs source") || lower.includes("needs destination") || lower.includes("needs location")) {
+      return `${text} Use a string like plate:A1, not {well:"A1"}.`;
+    }
+    return text;
+  });
 }

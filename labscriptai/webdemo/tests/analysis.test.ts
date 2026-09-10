@@ -5,6 +5,7 @@ import {
   isPlayableAnalyze,
   padAnalysisForAnimator,
   safeNormalizeAnalysis,
+  sessionCanWatch,
 } from "../web/src/analysis.ts";
 
 describe("isPlayableAnalyze", () => {
@@ -16,6 +17,20 @@ describe("isPlayableAnalyze", () => {
 
   it("accepts analysis that already has commands", () => {
     assert.equal(isPlayableAnalyze({ commands: [{ commandType: "home" }] }), true);
+  });
+});
+
+describe("sessionCanWatch", () => {
+  const cmds = { commands: [{ commandType: "home" }] };
+
+  it("lights only OT-2/Flex with pass and commands", () => {
+    assert.equal(sessionCanWatch("OT-2", "pass", cmds), true);
+    assert.equal(sessionCanWatch("Flex", "pass", cmds), true);
+    assert.equal(sessionCanWatch("Hamilton", "pass", cmds), false);
+    assert.equal(sessionCanWatch("Tecan", "pass", cmds), false);
+    assert.equal(sessionCanWatch("OT-2", "fail", cmds), false);
+    assert.equal(sessionCanWatch("OT-2", "unevaluable", cmds), false);
+    assert.equal(sessionCanWatch("OT-2", "pass", null), false);
   });
 });
 

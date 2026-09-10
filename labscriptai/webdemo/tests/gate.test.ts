@@ -6,17 +6,22 @@ import {
   forceRaiseOnlySim,
   inspectAnalyze,
   looksLikeRaiseOnly,
+  logicpassFromPlanCli,
   refuseEmptySop,
   sanitizeLogicpass,
   shouldRunLlmreview,
   skippedLogic,
   unevaluableLogic,
   wrapChecks,
+  animationAllowed,
   compactChecks,
   isPatchBudgetRefusal,
+  isReviewMismatch,
+  isReviewerUnavailable,
   needsPatch,
   patchCapHit,
   patchInstruction,
+  withCompile,
   type LogicPassResult,
   type SimResult,
 } from "../server/src/gate.ts";
@@ -81,6 +86,24 @@ describe("FAB gate", () => {
     assert.equal(checks.logicpass.outcome, "skipped");
     assert.notEqual(checks.logicpass.outcome, "unevaluable");
     assert.equal(fabLit(simFail, lpPass), false);
+  });
+
+  it("logicpassFromPlanCli keeps skipped on sim fail unless deck failed", () => {
+    const skipped = logicpassFromPlanCli(simFail, { outcome: "skipped", reason: "sim_failed" });
+    assert.equal(skipped.outcome, "skipped");
+    const overflow = logicpassFromPlanCli(simFail, {
+      outcome: "fail",
+      logic_pass: false,
+      issues: [{ code: "LP-OVERFLOW" }],
+    });
+    assert.equal(overflow.outcome, "fail");
+    assert.equal((overflow.issues as Array<{ code: string }>)[0]?.code, "LP-OVERFLOW");
+    const pass = logicpassFromPlanCli(simOk, {
+      outcome: "pass",
+      logic_pass: true,
+      final_pass_v2: true,
+    });
+    assert.equal(pass.outcome, "pass");
   });
 
   it("stays gray on LogicPass fail", () => {
@@ -195,7 +218,7 @@ describe("llmreview skip helpers", () => {
 });
 
 describe("compactChecks", () => {
-  it("next=patch when FAB is dark or llmreview.match is false", () => {
+  it("next=patch when FAB is dark; review-only mismatch does not patch", () => {
     const done = wrapChecks(simOk, lpPass, { issues: [] });
     assert.equal(done.fab.lit, true);
     assert.equal(compactChecks(done).next, "done");
@@ -248,11 +271,45 @@ describe("compactChecks", () => {
       findings: [{ claim: "volume", suggestion: "use 50 uL" }],
     });
     assert.equal(withReview.fab.lit, true);
-    assert.equal(needsPatch(withReview), true);
-    assert.equal(compactChecks(withReview).next, "patch");
-    assert.equal(compactChecks(withReview).review.match, false);
-    assert.ok(compactChecks(withReview).review.findings.length >= 1);
+    assert.equal(needsPatch(withReview), false);
+    assert.equal(isReviewMismatch(withReview.llmreview), true);
+    const compactReview = compactChecks(withReview);
+    assert.equal(compactReview.next, "done");
+    assert.equal(compactReview.review.match, false);
+    assert.equal(Object.keys(compactReview)[0], "review");
+    assert.ok(compactReview.review.findings.length >= 1);
+    assert.match(compactReview.consequences[0] || "", /volume/i);
     assert.equal(compactChecks(withReview, 1).next, "done");
+    assert.equal(animationAllowed(withReview, 1), false);
+  });
+
+  it("reviewer_exception is unavailable: no patch, no mismatch, does not block animation", () => {
+    const exception = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      reason: "llmreview_cli_bad_json",
+      findings: [
+        {
+          claim: "reviewer_exception",
+          evidence: "boom",
+          suggestion: "Return JSON {match, findings}.",
+        },
+      ],
+    });
+    assert.equal(exception.fab.lit, true);
+    assert.equal(isReviewerUnavailable(exception.llmreview), true);
+    assert.equal(isReviewMismatch(exception.llmreview), false);
+    assert.equal(needsPatch(exception), false);
+    const compact = compactChecks(exception);
+    assert.equal(compact.next, "done");
+    assert.equal(compact.review.status, "unavailable");
+    assert.equal(compact.review.match, undefined);
+    assert.match(compact.review.findings[0] || "", /Cannot verify/);
+    assert.equal(compact.consequences.some((line) => /reviewer_exception/i.test(line)), false);
+    assert.ok(compact.consequences.some((line) => /Cannot verify/.test(line)));
+    assert.doesNotMatch(patchInstruction(exception), /patch even if simulation passed/);
+    assert.doesNotMatch(patchInstruction(exception), /reviewer_exception/);
+    assert.equal(animationAllowed(exception, 1), true);
+    assert.equal(animationAllowed(exception, 0), false);
   });
 
   it("patchCapHit after the one allowed patch while checks still fail", () => {
@@ -299,5 +356,51 @@ describe("checkStatus", () => {
       { issues: [] }
     );
     assert.equal(invalid.status, "fail");
+  });
+
+  it("Tecan compile fail dims FAB and is fail; compile ok does not change Hamilton-style pass", () => {
+    const basePass = wrapChecks(simOk, lpPass, { issues: [] });
+    assert.equal("compile" in compactChecks(basePass), false);
+
+    const compileFail = withCompile(basePass, {
+      ok: false,
+      stage: "state_machine",
+      error: "Step 2 aspirates before any PICK_TIPS — the head has no tips on.",
+      hint: "Add a PICK_TIPS step before ASPIRATE.",
+    });
+    assert.equal(compileFail.fab.lit, false);
+    assert.equal(compileFail.status, "fail");
+    assert.equal(needsPatch(compileFail), true);
+    const compactFail = compactChecks(compileFail);
+    assert.equal(compactFail.next, "patch");
+    assert.equal(compactFail.compile?.ok, false);
+    assert.equal(compactFail.compile?.stage, "state_machine");
+    assert.match(compactFail.compile?.hint || "", /PICK_TIPS/);
+    assert.match(patchInstruction(compileFail), /Fluent compile/);
+    assert.match(patchInstruction(compileFail), /PICK_TIPS/);
+
+    const compileOk = withCompile(basePass, { ok: true, command_count: 4, warnings: [] });
+    assert.equal(compileOk.fab.lit, true);
+    assert.equal(compileOk.status, "pass");
+    assert.equal(compactChecks(compileOk).compile?.ok, true);
+    assert.equal(compactChecks(compileOk).next, "done");
+
+    const plr = wrapChecks(
+      { ok: false, reason: "plr_unavailable" },
+      skippedLogic("plr_unavailable"),
+      { issues: [] }
+    );
+    const plrCompileOk = withCompile(plr, { ok: true, command_count: 2 });
+    assert.equal(plrCompileOk.status, "unevaluable");
+    assert.equal(plrCompileOk.fab.lit, false);
+
+    const plrCompileFail = withCompile(plr, {
+      ok: false,
+      stage: "mapping",
+      error: "plate:Z9 is not on the worktable.",
+      hint: "Declare the labware in resources[].",
+    });
+    assert.equal(plrCompileFail.status, "fail");
+    assert.equal(plrCompileFail.fab.lit, false);
   });
 });

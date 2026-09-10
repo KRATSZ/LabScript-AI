@@ -8,20 +8,11 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "resolveJsonModule": true,
-    "types": ["vite/client"],
-    "paths": {
-      "@opentrons/components": [
-        "../../../../LabscriptAI_cloud/web/opentrons-protocol-visualizer-web-slim/components/src/index.ts"
-      ],
-      "@opentrons/shared-data": [
-        "../../../../LabscriptAI_cloud/web/opentrons-protocol-visualizer-web-slim/shared-data/js/index.ts"
-      ],
-      "@opentrons/step-generation": [
-        "../../../../LabscriptAI_cloud/web/opentrons-protocol-visualizer-web-slim/step-generation/src/index.ts"
-      ]
-    }
+    "types": ["vite/client"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/overlaySmoke.tsx", "../../../../LabscriptAI_cloud"]
 }

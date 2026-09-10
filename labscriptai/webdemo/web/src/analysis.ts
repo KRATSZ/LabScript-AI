@@ -1,5 +1,17 @@
+import { robotSupportsWatch } from "./devices";
+import type { CheckStatus, RobotModel } from "./types";
+
 export function isPlayableAnalyze(analyze: Record<string, unknown> | null): boolean {
   return Boolean(analyze && Array.isArray(analyze.commands) && analyze.commands.length > 0);
+}
+
+/** Watch FAB/overlay: OT-2/Flex only, checks passed, and analyze has commands. */
+export function sessionCanWatch(
+  robot: RobotModel | null | undefined,
+  status: CheckStatus | null | undefined,
+  analyze: Record<string, unknown> | null
+): boolean {
+  return robotSupportsWatch(robot) && status === "pass" && isPlayableAnalyze(analyze);
 }
 
 function firstCommandCreatedAt(analyze: Record<string, unknown>): string | undefined {

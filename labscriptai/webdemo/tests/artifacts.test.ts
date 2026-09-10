@@ -1,6 +1,13 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { downloadable, downloadSuffix, planStepLine, planSteps } from "../web/src/artifacts.ts";
+import {
+  DOWNLOAD_LABELS,
+  downloadHint,
+  downloadable,
+  downloadSuffix,
+  planStepLine,
+  planSteps,
+} from "../web/src/artifacts.ts";
 
 describe("planStepLine", () => {
   it("formats aspirate with volume and route", () => {
@@ -40,6 +47,77 @@ describe("downloadable", () => {
       downloadable({ sop: "x", code: "y", plan: { steps: [{ step_id: "1" }] } }),
       ["sop", "python", "plan"]
     );
+    assert.deepEqual(
+      downloadable({
+        sop: "# Tecan SOP",
+        code: "",
+        plan: { steps: [{ step_id: "1" }] },
+        artifacts: { worklistGwl: "C; plan\nA;plate;;;A1;;50;Water Free Single;;1;\nB;\n" },
+      }),
+      ["sop", "plan", "gwl"]
+    );
+    assert.deepEqual(
+      downloadable({ sop: "", code: "", plan: null, artifacts: { worklistGwl: "  " } }),
+      []
+    );
+  });
+
+  it("lists OT-2 / Flex / Hamilton / Tecan deliverables by device", () => {
+    assert.deepEqual(
+      downloadable({ robot: "OT-2", sop: "# SOP", code: "def run(): pass", plan: null }),
+      ["sop", "python"]
+    );
+    assert.deepEqual(
+      downloadable({ robot: "Flex", sop: "# SOP", code: "def run(): pass", plan: null }),
+      ["sop", "python"]
+    );
+    assert.deepEqual(
+      downloadable({
+        robot: "OT-2",
+        sop: "# SOP",
+        code: "def run(): pass",
+        plan: { steps: [{ step_id: "1" }] },
+      }),
+      ["sop", "python"]
+    );
+    assert.deepEqual(
+      downloadable({
+        robot: "Hamilton",
+        sop: "# SOP",
+        code: "def leftover(): pass",
+        plan: { steps: [{ step_id: "1" }] },
+      }),
+      ["sop", "plan"]
+    );
+    assert.deepEqual(
+      downloadable({
+        robot: "Tecan",
+        sop: "# SOP",
+        code: "",
+        plan: { steps: [{ step_id: "1" }] },
+        artifacts: { worklistGwl: "C;A;\nB;\n" },
+      }),
+      ["sop", "plan", "gwl"]
+    );
+    assert.deepEqual(
+      downloadable({
+        robot: "Tecan",
+        sop: "# SOP",
+        code: "",
+        plan: { steps: [{ step_id: "1" }] },
+        artifacts: { worklistGwl: "" },
+      }),
+      ["sop", "plan"]
+    );
+    assert.deepEqual(
+      downloadable({
+        robot: "OT-2",
+        sop: "# SOP",
+        code: "",
+        plan: { steps: [{ step_id: "1" }] },
+      }),
+      ["sop", "plan"]
+    );
   });
 });
 
@@ -49,6 +127,16 @@ describe("downloadSuffix", () => {
     assert.equal(downloadSuffix(undefined), "");
     assert.equal(downloadSuffix("fail"), " (checks failed)");
     assert.equal(downloadSuffix("unevaluable"), " (cannot verify)");
+  });
+});
+
+describe("downloadHint", () => {
+  it("explains each file next to the download", () => {
+    assert.match(downloadHint("python", "OT-2"), /opentrons_simulate/);
+    assert.match(downloadHint("gwl", "Tecan"), /FluentControl/);
+    assert.match(downloadHint("plan", "Hamilton"), /STAR/);
+    assert.equal(DOWNLOAD_LABELS.plan, "Step JSON");
+    assert.equal(DOWNLOAD_LABELS.gwl, ".gwl worklist");
   });
 });
 
@@ -63,11 +151,11 @@ describe("planSteps", () => {
 describe("robot switch downloads", () => {
   it("lists only the new snapshot files", () => {
     assert.deepEqual(
-      downloadable({ sop: "# OT SOP", code: "def run(): pass", plan: null }),
+      downloadable({ robot: "OT-2", sop: "# OT SOP", code: "def run(): pass", plan: null }),
       ["sop", "python"]
     );
     assert.deepEqual(
-      downloadable({ sop: "# HAM SOP", code: "", plan: { steps: [{ step_id: "1" }] } }),
+      downloadable({ robot: "Hamilton", sop: "# HAM SOP", code: "", plan: { steps: [{ step_id: "1" }] } }),
       ["sop", "plan"]
     );
   });

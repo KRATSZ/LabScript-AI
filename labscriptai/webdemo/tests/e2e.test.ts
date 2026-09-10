@@ -117,7 +117,9 @@ function virtualDeckChecks(plan: Record<string, unknown>): ChecksResult {
 describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", () => {
   it("ask_user with robot already in args is not a chat question bubble", () => {
     assert.doesNotMatch(read("web/src/ChatPane.tsx"), /ask_user/);
-    assert.match(read("server/src/prompt.ts"), /do not write a question/);
+    assert.doesNotMatch(read("server/src/prompt.ts"), /Which robot/);
+    assert.match(read("server/src/tools.ts"), /state-setting, not a question/);
+    assert.match(read("server/src/tools.ts"), /Do not ask which robot/);
   });
 
   it("Hamilton happy path: SOP → plan → pass → download-ready, zero asks", async () => {

@@ -4,22 +4,34 @@ Single-page local demo. Browser talks to a small pi-agent-core server; that serv
 
 Binds **127.0.0.1 only**. Do not start if localhost cannot bind. Do not listen on `0.0.0.0`.
 
-## Behavior
+## Devices
 
-Four robots: **OT-2, Flex, Hamilton, Tecan**. Name one in the goal and generation starts; otherwise the agent asks once which robot, then assumes a standard deck (tip rack, 96-well plate, reservoir).
+Pick a **device card** on the start form (required, with a goal). Four cards:
 
-- **OT-2 / Flex:** Python via **8010** when that service is up; otherwise a step table. Watch/animation is Opentrons-only and needs 8010 analyze commands.
-- **Hamilton / Tecan:** step table only. Never Python, never Watch.
+| Card | Deliverable | Animation |
+| --- | --- | --- |
+| **OT-2** | Python + simulation | Yes (needs 8010 analyze) |
+| **Flex** | Python + simulation | Yes (needs 8010 analyze) |
+| **Hamilton STAR** | Step JSON | No |
+| **Tecan Fluent** | Step JSON + `.gwl` worklist | No |
 
-Checks are **pass / fail / cannot-verify**. cannot-verify never lights Watch. One automatic patch, then the agent stops and talks. Downloads are always available; they are marked when checks did not pass.
+If 8010 is down, OT-2/Flex fall back to the same step table as Hamilton. Downloads stay available; they are marked when checks did not pass. One automatic patch, then the agent stops and talks.
 
-No live robot, no `bash`. No deck UI.
+No live robot, no `bash`. No deck UI — a standard deck is assumed (tip rack, 96-well plate, reservoir).
+
+## Checks
+
+Three states, never a silent pass:
+
+- **pass** — simulation + LogicPass both good (Tecan also needs Fluent compile). Watch only lights on OT-2/Flex pass with analyze commands.
+- **fail** — a check found a real problem (spill, no tips, compile error, …).
+- **cannot verify** — the checker could not run or lacked data (missing PyLabRobot, unknown well capacity, 8010 down, …). Not a pass. Watch stays off.
 
 ## Run
 
-Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`. **8010** is required for OT-2/Flex Python and Watch; Hamilton/Tecan and the OT step-table fallback do not need it.
+Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`. **8010** is required for OT-2/Flex Python and Watch.
 
-Optional: `pip install pylabrobot` for Hamilton/Tecan and OT step-table simulation. Missing PyLabRobot is not a pass — checks report cannot-verify.
+Optional: `pip install pylabrobot` for Hamilton/Tecan and OT step-table simulation. Missing PyLabRobot reports cannot-verify, not pass.
 
 ```bash
 cd labscriptai/webdemo
@@ -36,3 +48,5 @@ Open http://127.0.0.1:5173
 ```bash
 cd labscriptai/webdemo && npm test
 ```
+
+No `build` script. Frontend-only: `npx vite build --config web/vite.config.ts`. Server-only: `npm run dev:server`.

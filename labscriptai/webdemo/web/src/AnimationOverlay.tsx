@@ -1,8 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode, useMemo } from "react";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import type { ProtocolAnalysisOutput } from "@opentrons/shared-data";
-import { normalizeAnalysisOutput } from "../../../../../LabscriptAI_cloud/web/opentrons-protocol-visualizer-web-slim/protocol-visualizer-web/client/src/normalizeAnalysisOutput";
-import ProtocolOperationAnimator from "../../../../../LabscriptAI_cloud/labscriptAI-frontend/src/components/ProtocolOperationAnimator";
+import { normalizeAnalysisOutput } from "@visualizer/normalize-analysis";
+import ProtocolOperationAnimator from "@visualizer/animator";
 import { analysisResetKey, safeNormalizeAnalysis } from "./analysis";
 import { OverlayChrome } from "./OverlayChrome";
 

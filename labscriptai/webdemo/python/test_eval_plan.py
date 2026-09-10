@@ -101,8 +101,34 @@ class EvalPlanTests(unittest.TestCase):
         self.assertIn("logicpass", out)
         self.assertFalse(out["fab"]["lit"] and not out["sim"]["ok"])
         if not out["sim"]["ok"]:
-            self.assertEqual(out["logicpass"]["outcome"], "skipped")
             self.assertIn(out["sim"].get("reason"), {"plr_unavailable", "sim_failed", "invalid_plan"})
+            # Valid DEMO does not overflow, so skipped LogicPass is kept (cannot-verify, not a fail).
+            self.assertEqual(out["logicpass"]["outcome"], "skipped")
+
+    def test_virtual_deck_overflow_still_runs_when_plr_fails(self) -> None:
+        payload = {
+            **DEMO,
+            "backend": "tecan_evo",
+            "resources": [
+                {"id": "tips", "type": "tiprack", "slot": "1"},
+                {"id": "plate", "type": "plate", "slot": "2", "max_volume_ul": 360},
+            ],
+            "initial_volumes_ul": {"plate:A1": 500, "plate:B1": 0},
+            "steps": [
+                {**DEMO["steps"][0], "tip_positions": ["TIPS:A1"]},
+                {**DEMO["steps"][1], "volume_ul": 500},
+                {**DEMO["steps"][2], "volume_ul": 500},
+                DEMO["steps"][3],
+            ],
+        }
+        out = run_cli({"plan": payload})
+        self.assertFalse(out["fab"]["lit"])
+        self.assertEqual(out["logicpass"]["outcome"], "fail")
+        codes = [issue.get("code") for issue in out["logicpass"].get("issues") or []]
+        self.assertIn("LP-OVERFLOW", codes)
+        if not out["sim"]["ok"]:
+            blob = " ".join(str(err) for err in (out["sim"].get("errors") or []))
+            self.assertTrue("IPS" in blob or out["sim"].get("reason") in {"plr_unavailable", "sim_failed"})
 
     def test_import_failure_is_not_a_pass(self) -> None:
         out = run_cli({"plan": DEMO}, extra_env={"PYTHONPATH": "/tmp/webdemo-empty-path"})

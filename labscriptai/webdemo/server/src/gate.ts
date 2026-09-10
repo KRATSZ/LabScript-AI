@@ -44,17 +44,32 @@ export interface LlmReviewResult {
 
 export type CheckStatus = "pass" | "fail" | "unevaluable";
 
+export interface CompileResult {
+  ok: boolean;
+  stage?: string;
+  error?: string;
+  hint?: string;
+  warnings?: string[];
+  command_count?: number;
+}
+
 export interface ChecksResult {
   sim: SimResult;
   logicpass: LogicPassResult;
   statepass: StatePassResult;
   llmreview?: LlmReviewResult;
+  compile?: CompileResult;
   fab: { lit: boolean };
   status: CheckStatus;
   consequences?: string[];
 }
 
-export function fabLit(sim: SimResult, logicpass: LogicPassResult): boolean {
+export function fabLit(
+  sim: SimResult,
+  logicpass: LogicPassResult,
+  compile?: Pick<CompileResult, "ok"> | null
+): boolean {
+  if (compile && compile.ok === false) return false;
   return Boolean(
     sim.ok &&
       logicpass.outcome === "pass" &&
@@ -63,12 +78,14 @@ export function fabLit(sim: SimResult, logicpass: LogicPassResult): boolean {
   );
 }
 
-/** Pass iff FAB is lit. Unevaluable is never pass. */
+/** Pass iff FAB is lit. Unevaluable is never pass. Compile fail is always fail. */
 export function checkStatus(checks: {
   sim: SimResult;
   logicpass: LogicPassResult;
   fab: { lit: boolean };
+  compile?: Pick<CompileResult, "ok"> | null;
 }): CheckStatus {
+  if (checks.compile && checks.compile.ok === false) return "fail";
   if (checks.fab.lit) return "pass";
   if (checks.logicpass.outcome === "unevaluable") return "unevaluable";
   if (
@@ -99,6 +116,18 @@ export function skippedLogic(reason: string): LogicPassResult {
     issues: [],
     reason,
   };
+}
+
+/** Use LogicPass from eval_plan even when sim failed (overflow overlay). Keep skipped otherwise. */
+export function logicpassFromPlanCli(
+  sim: SimResult,
+  rawLogic: Record<string, unknown> | null | undefined
+): LogicPassResult {
+  const outcome = typeof rawLogic?.outcome === "string" ? rawLogic.outcome : "";
+  if (sim.ok || outcome === "fail" || outcome === "unevaluable") {
+    return sanitizeLogicpass(rawLogic);
+  }
+  return skippedLogic(String(sim.reason || "sim_failed"));
 }
 
 export function forceRaiseOnlySim(httpSim?: SimResult): SimResult {
@@ -206,6 +235,18 @@ export function attachConsequences(
   return { ...checks, status: checkStatus(checks), consequences: collectConsequences(checks) };
 }
 
+/** Recompute FAB/status/consequences after a Tecan compile result is attached. */
+export function withCompile(checks: ChecksResult, compile: CompileResult): ChecksResult {
+  return attachConsequences({
+    sim: checks.sim,
+    logicpass: checks.logicpass,
+    statepass: checks.statepass,
+    ...(checks.llmreview ? { llmreview: checks.llmreview } : {}),
+    compile,
+    fab: { lit: fabLit(checks.sim, checks.logicpass, compile) },
+  });
+}
+
 export function issueLine(item: unknown, unevaluable = false): string {
   return formatIssue(item, unevaluable);
 }
@@ -213,13 +254,42 @@ export function issueLine(item: unknown, unevaluable = false): string {
 export const PATCH_CAP = 1;
 
 export const PATCH_BUDGET_REFUSAL =
-  "Patch budget used. Stop calling tools. Tell the user what fails, what that means for their experiment, and ask how to proceed.";
+  "One patch per reply already used. Stop calling tools. Tell the user what fails, what that means for their experiment, and ask how to proceed.";
 
-/** Iterate when FAB is dark, or when llmreview explicitly disagrees. */
+export function isReviewerUnavailable(review?: LlmReviewResult | null): boolean {
+  if (!review) return false;
+  const reason = (review.reason ?? "").toLowerCase();
+  if (
+    reason.includes("llmreview_") ||
+    reason.includes("reviewer_exception") ||
+    reason.startsWith("invalid_review")
+  ) {
+    return true;
+  }
+  return (review.findings ?? []).some((item) => {
+    if (!item || typeof item !== "object") return false;
+    return String((item as LlmReviewFinding).claim ?? "") === "reviewer_exception";
+  });
+}
+
+/** True mismatch only. Reviewer crashes are unavailable, not false. */
+export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
+  return review?.match === false && !isReviewerUnavailable(review);
+}
+
+/** Iterate when FAB is dark (sim/logic/compile). Review-only mismatch does not burn a patch. */
 export function needsPatch(checks: ChecksResult | null | undefined): boolean {
   if (!checks) return false;
-  if (!checks.fab.lit) return true;
-  return checks.llmreview?.match === false;
+  return !checks.fab.lit;
+}
+
+/** Watch/open_animation: FinalPass plus commands. True review mismatch blocks; reviewer unavailable does not. */
+export function animationAllowed(
+  checks: ChecksResult | null | undefined,
+  commandCount: number
+): boolean {
+  if (!checks?.fab.lit || commandCount <= 0) return false;
+  return !isReviewMismatch(checks.llmreview);
 }
 
 /** One patch per turn. Further generate_code/emit_plan calls must be refused. */
@@ -243,7 +313,8 @@ export function compactChecks(
 ): {
   sim: { ok: boolean; consequence?: string };
   logicpass: { outcome: string; issues: string[] };
-  review: { match?: boolean; findings: string[] };
+  review: { match?: boolean; status?: "unavailable"; findings: string[] };
+  compile?: { ok: boolean; stage?: string; error?: string; hint?: string; command_count?: number };
   fab: { lit: boolean };
   next: "patch" | "done";
   consequences: string[];
@@ -253,10 +324,39 @@ export function compactChecks(
     .slice(0, 3)
     .map((item) => issueLine(item, uneval))
     .filter(Boolean);
-  const findings = (checks.llmreview?.findings ?? []).slice(0, 2).map(issueLine).filter(Boolean);
+  const unavailable = isReviewerUnavailable(checks.llmreview);
+  const mismatch = isReviewMismatch(checks.llmreview);
+  const findings = unavailable
+    ? ["Cannot verify: the reviewer did not finish, so this is not a mismatch."]
+    : (checks.llmreview?.findings ?? [])
+        .slice(0, mismatch ? 4 : 2)
+        .map((item) => issueLine(item))
+        .filter(Boolean);
   const iterate = needsPatch(checks) && patchesUsed < PATCH_CAP;
-  const consequences = checks.consequences ?? collectConsequences(checks);
-  return {
+  let consequences = checks.consequences ?? collectConsequences(checks);
+  if (mismatch) {
+    const rest = consequences.filter((line) => !findings.includes(line));
+    consequences = [...findings, ...rest];
+  }
+  const compile = checks.compile
+    ? checks.compile.ok
+      ? { ok: true as const, command_count: checks.compile.command_count }
+      : {
+          ok: false as const,
+          stage: checks.compile.stage,
+          error: checks.compile.error,
+          hint: checks.compile.hint,
+        }
+    : undefined;
+  const review = {
+    findings,
+    ...(unavailable
+      ? { status: "unavailable" as const }
+      : typeof checks.llmreview?.match === "boolean"
+        ? { match: checks.llmreview.match }
+        : {}),
+  };
+  const payload = {
     sim: {
       ok: checks.sim.ok,
       ...(!checks.sim.ok
@@ -264,14 +364,15 @@ export function compactChecks(
         : {}),
     },
     logicpass: { outcome: String(checks.logicpass.outcome), issues },
-    review: {
-      ...(typeof checks.llmreview?.match === "boolean" ? { match: checks.llmreview.match } : {}),
-      findings,
-    },
+    review,
+    ...(compile ? { compile } : {}),
     fab: { lit: checks.fab.lit },
-    next: iterate ? "patch" : "done",
+    next: (iterate ? "patch" : "done") as "patch" | "done",
     consequences: consequences.slice(0, 5),
   };
+  if (!mismatch) return payload;
+  const { review: reviewFirst, ...rest } = payload;
+  return { review: reviewFirst, ...rest };
 }
 
 export function patchInstruction(checks: ChecksResult): string {
@@ -294,23 +395,27 @@ export function patchInstruction(checks: ChecksResult): string {
     lines.push("Logic check:");
     for (const item of issues) lines.push(`- ${item}`);
   }
-  const findings = (checks.llmreview?.findings ?? []).slice(0, 3);
-  if (findings.length) {
-    lines.push("Review:");
-    for (const item of findings) {
-      if (item && typeof item === "object") {
-        const rec = item as LlmReviewFinding;
-        const claim = (rec.claim || "").trim();
-        const suggestion = (rec.suggestion || "").trim();
-        lines.push(`- ${claim}${suggestion ? ` → ${suggestion}` : ""}`.trim());
-      } else {
-        const text = issueLine(item);
-        if (text) lines.push(`- ${text}`);
+  if (!isReviewerUnavailable(checks.llmreview)) {
+    const findings = (checks.llmreview?.findings ?? []).slice(0, 3);
+    if (findings.length) {
+      lines.push("Review:");
+      for (const item of findings) {
+        if (item && typeof item === "object") {
+          const rec = item as LlmReviewFinding;
+          const claim = (rec.claim || "").trim();
+          const suggestion = (rec.suggestion || "").trim();
+          lines.push(`- ${claim}${suggestion ? ` → ${suggestion}` : ""}`.trim());
+        } else {
+          const text = issueLine(item);
+          if (text) lines.push(`- ${text}`);
+        }
       }
     }
   }
-  if (checks.llmreview?.match === false) {
-    lines.push("Review does not match the goal; patch even if simulation passed.");
+  if (checks.compile && checks.compile.ok === false) {
+    lines.push("Fluent compile:");
+    if (checks.compile.error) lines.push(`- ${checks.compile.error}`);
+    if (checks.compile.hint) lines.push(`- ${checks.compile.hint}`);
   }
   return lines.join("\n");
 }

@@ -13,8 +13,11 @@ import {
   createSession,
   enoughHardware,
   formatHardwareConfig,
+  explainPlanErrors,
   inferRobotFromText,
   missingList,
+  normalizePlanInput,
+  normalizePlanTipPositions,
   presetMismatchWarning,
   shouldCallCompactSop,
   shouldReuseSop,
@@ -45,6 +48,17 @@ describe("session machine", () => {
     assert.match(formatHardwareConfig(session), /Robot Model: unset/);
     assert.doesNotMatch(formatHardwareConfig(session), /Robot Model: Flex/);
     assert.equal(canGenerateCode(session), false);
+  });
+
+  it("explicit robot with empty SOP is ready and can generate_sop", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer 50 µL A1 to B1", doc: "", robot: "Tecan" });
+    assert.equal(session.robot, "Tecan");
+    assert.equal(session.phase, "ready");
+    assert.equal(session.deckAssumed, true);
+    assert.deepEqual(missingList(session), []);
+    assert.equal(canGenerateSop(session), true);
+    assert.equal(shouldCallCompactSop(session), true);
   });
 
   it("form draft becomes session sop so code can run after hardware", () => {
@@ -80,6 +94,20 @@ describe("session machine", () => {
     session.hardware.deck["1"] = "custom_labware";
     assert.equal(enoughHardware(session), false);
     assert.equal(snapshot(session).plan, null);
+    assert.equal(snapshot(session).artifacts, null);
+  });
+
+  it("snapshot includes Tecan compile artifacts until robot switch clears them", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A", robot: "Tecan" });
+    session.artifacts = {
+      worklistGwl: "C; Plan IR demo compiled for Tecan FluentControl Load Worklist\nB;\n",
+      scriptXml: "B;<ScriptGroup>",
+    };
+    assert.match(snapshot(session).artifacts?.worklistGwl || "", /^C;/);
+    applyPreset(session, "hamilton_star_standard");
+    assert.equal(session.artifacts, undefined);
+    assert.equal(snapshot(session).artifacts, null);
   });
 
   it("OT-2 standard3 preset sets robot and makes session ready", () => {
@@ -331,6 +359,7 @@ describe("session machine", () => {
     session.code = "def run(protocol):\n    protocol.home()\n";
     session.plan = { steps: [{ step_id: "1" }] };
     session.analyze = { commands: [{ commandType: "home" }] };
+    session.artifacts = { worklistGwl: "C; leftover\n", scriptXml: "B;<ScriptGroup>" };
     session.lastChecks = { fab: { lit: true } } as never;
     applyAskUser(session, {
       robot: "OT-2",
@@ -344,8 +373,10 @@ describe("session machine", () => {
     assert.equal(session.code, undefined);
     assert.equal(session.plan, undefined);
     assert.equal(session.analyze, undefined);
+    assert.equal(session.artifacts, undefined);
     assert.equal(session.lastChecks, undefined);
     assert.equal(session.sop, undefined);
+    assert.equal(snapshot(session).artifacts, null);
   });
 
   it("mismatched preset then robot still lands on the named robot deck", () => {
@@ -388,5 +419,107 @@ describe("session machine", () => {
     assert.equal(session.doc, "none");
     assert.equal(session.phase, "ready");
     assert.equal(session.deckAssumed, true);
+  });
+
+  it("explicit robot wins over a differently named goal", () => {
+    const session = createSession();
+    applyForm(session, {
+      goal: "Hamilton STAR: transfer 50 µL A1 to B1",
+      doc: "",
+      robot: "OT-2",
+    });
+    assert.equal(session.robot, "OT-2");
+    assert.equal(session.phase, "ready");
+    assert.equal(session.hardware.deck["1"], "opentrons_96_tiprack_300ul");
+    assert.equal(session.hardware.deck.A1, undefined);
+  });
+
+  it("rejects an illegal robot instead of inferring", () => {
+    const session = createSession();
+    assert.throws(
+      () => applyForm(session, { goal: "Hamilton STAR: transfer", robot: "nope" }),
+      /invalid robot/
+    );
+    assert.equal(session.robot, undefined);
+  });
+});
+
+describe("Plan IR tip_positions normalize", () => {
+  it("strips TIPS:/tips: prefixes and leaves plate:A1 locations alone", () => {
+    const { plan, notes } = normalizePlanTipPositions({
+      steps: [
+        { step_id: "1", primitive_type: "PICK_TIPS", tip_positions: ["TIPS:A1", "tips:b1"] },
+        { step_id: "2", primitive_type: "ASPIRATE", source: "plate:A1", volume_ul: 50 },
+        { step_id: "3", primitive_type: "DISPENSE", destination: "plate:B1", volume_ul: 50 },
+        { step_id: "4", primitive_type: "PICK_TIPS", tip_positions: ["A1"] },
+      ],
+    });
+    const steps = plan.steps as Array<Record<string, unknown>>;
+    assert.deepEqual(steps[0].tip_positions, ["A1", "B1"]);
+    assert.equal(steps[1].source, "plate:A1");
+    assert.equal(steps[2].destination, "plate:B1");
+    assert.deepEqual(steps[3].tip_positions, ["A1"]);
+    assert.ok(notes.some((n) => n === "You wrote TIPS:A1, normalized to A1"));
+    assert.ok(notes.some((n) => n === "You wrote tips:b1, normalized to B1"));
+    assert.equal(
+      notes.some((n) => /plate:A1/.test(n)),
+      false
+    );
+  });
+
+  it("explainPlanErrors points at A1 / tip_rack / empty dependencies", () => {
+    const errors = explainPlanErrors([
+      "1: PICK_TIPS needs tip_positions",
+      "2: dependencies must be a list",
+      "source must look like plate:A1",
+    ]);
+    assert.match(errors[0], /A1/);
+    assert.match(errors[0], /TIPS:A1/);
+    assert.match(errors[1], /\[\]/);
+    assert.match(errors[2], /plate:A1/);
+    assert.match(errors[2], /bare wells/);
+  });
+
+  it("normalizes type/vol/dest aliases and location objects before validate", () => {
+    const { plan, notes } = normalizePlanInput({
+      steps: [
+        { step_id: "1", type: "PICK_TIPS", tiprack: "tips", tip_positions: ["TIPS:A1"] },
+        { step_id: "2", type: "ASPIRATE", source: { labware: "plate", well: "A1" }, vol: 50 },
+        { step_id: "3", type: "DISPENSE", dest: { labware: "plate", well: "B1" }, volume: 50 },
+        { step_id: "4", type: "MIX", well: "plate:A1", volume: 20 },
+      ],
+    });
+    const steps = plan.steps as Array<Record<string, unknown>>;
+    assert.equal(steps[0].primitive_type, "PICK_TIPS");
+    assert.equal(steps[0].tip_rack, "tips");
+    assert.deepEqual(steps[0].tip_positions, ["A1"]);
+    assert.equal("type" in steps[0], false);
+    assert.equal(steps[1].source, "plate:A1");
+    assert.equal(steps[1].volume_ul, 50);
+    assert.equal(steps[2].destination, "plate:B1");
+    assert.equal(steps[2].volume_ul, 50);
+    assert.equal(steps[3].location, "plate:A1");
+    assert.ok(notes.some((n) => n === "You wrote type, normalized to primitive_type"));
+    assert.ok(notes.some((n) => n === "You wrote vol, normalized to volume_ul"));
+    assert.ok(notes.some((n) => n === "You wrote dest, normalized to destination"));
+    assert.ok(notes.some((n) => n === "You wrote well, normalized to location"));
+    assert.ok(notes.some((n) => n === "You wrote tiprack, normalized to tip_rack"));
+    assert.ok(notes.some((n) => n.includes("location object") && n.includes("plate:A1")));
+    assert.ok(notes.some((n) => n === "You wrote TIPS:A1, normalized to A1"));
+    assert.equal(normalizePlanTipPositions, normalizePlanInput);
+  });
+
+  it("explainPlanErrors names primitive_type, volume_ul, and plate:A1", () => {
+    const errors = explainPlanErrors([
+      "unsupported primitive (missing); LH subset is ASPIRATE",
+      "2: ASPIRATE needs volume_ul",
+      "3: DISPENSE needs destination",
+    ]);
+    assert.match(errors[0], /primitive_type/);
+    assert.match(errors[0], /not "type"/);
+    assert.match(errors[1], /volume_ul/);
+    assert.match(errors[1], /not vol or volume/);
+    assert.match(errors[2], /plate:A1/);
+    assert.match(errors[2], /\{well:"A1"\}/);
   });
 });

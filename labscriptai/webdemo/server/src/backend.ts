@@ -3,15 +3,18 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { assertLocalBackend, loadDemoEnv } from "./env.ts";
+import { usesFluentCompile } from "./devices.ts";
 import {
   emptyStatepass,
   inspectAnalyze,
+  logicpassFromPlanCli,
   looksLikeRaiseOnly,
   forceRaiseOnlySim,
   sanitizeLogicpass,
   shouldRunLlmreview,
   skippedLogic,
   type ChecksResult,
+  type CompileResult,
   type LogicPassResult,
   type LlmReviewResult,
   type SimResult,
@@ -19,6 +22,7 @@ import {
   unevaluableLogic,
   wrapChecks,
   attachConsequences,
+  withCompile,
 } from "./gate.ts";
 import { capSop } from "./session.ts";
 import { parseSseBuffer } from "./sse.ts";
@@ -453,10 +457,213 @@ export async function validatePlan(
   return { ok: false, errors };
 }
 
+const FLUENT_COMPILE_MS = 30_000;
+
+export interface SessionArtifacts {
+  worklistGwl: string;
+  scriptXml: string;
+}
+
+export type FluentCompileOk = {
+  ok: true;
+  worklist_gwl: string;
+  script_xml: string;
+  command_count: number;
+  warnings: string[];
+};
+
+export type FluentCompileFail = {
+  ok: false;
+  stage: string;
+  error: string;
+  hint: string;
+};
+
+export type FluentCompileResult = FluentCompileOk | FluentCompileFail;
+
+export type StdinJsonSpawn = (input: {
+  argv: string[];
+  stdin: string;
+  timeoutMs: number;
+  env?: NodeJS.ProcessEnv;
+}) => Promise<{ stdout: string; timedOut?: boolean; spawnError?: string }>;
+
+function compileFail(stage: string, error: string, hint: string): FluentCompileFail {
+  return { ok: false, stage, error, hint };
+}
+
+export function spawnStdinJson(input: {
+  argv: string[];
+  stdin: string;
+  timeoutMs: number;
+  env?: NodeJS.ProcessEnv;
+}): Promise<{ stdout: string; timedOut?: boolean; spawnError?: string }> {
+  const { argv, stdin, timeoutMs, env } = input;
+  return new Promise((resolve) => {
+    let stdout = "";
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (result: { stdout: string; timedOut?: boolean; spawnError?: string }) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(argv[0], argv.slice(1), {
+        env: env ?? process.env,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    } catch {
+      finish({ stdout: "", spawnError: "spawn_failed" });
+      return;
+    }
+    timer = setTimeout(() => {
+      child.kill("SIGKILL");
+      finish({ stdout, timedOut: true });
+    }, timeoutMs);
+    const stdinStream = child.stdin;
+    const stdoutStream = child.stdout;
+    const stderrStream = child.stderr;
+    if (!stdinStream || !stdoutStream || !stderrStream) {
+      finish({ stdout: "", spawnError: "spawn_failed" });
+      return;
+    }
+    stdoutStream.setEncoding("utf8");
+    stdoutStream.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    stderrStream.resume();
+    child.on("error", () => finish({ stdout, spawnError: "spawn_failed" }));
+    child.on("close", () => finish({ stdout }));
+    try {
+      stdinStream.write(stdin);
+      stdinStream.end();
+    } catch {
+      finish({ stdout, spawnError: "stdin_failed" });
+    }
+  });
+}
+
+function asStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => String(item)).filter((item) => item.trim());
+}
+
+export function parseFluentCompileStdout(
+  stdout: string,
+  failReason?: { timedOut?: boolean; spawnError?: string }
+): FluentCompileResult {
+  if (failReason?.timedOut) {
+    return compileFail("internal", "Fluent compiler timed out.", "Retry, or shorten the plan.");
+  }
+  if (failReason?.spawnError) {
+    return compileFail(
+      "internal",
+      "Fluent compiler did not start.",
+      "Confirm python3 can run python/compile_fluent.py."
+    );
+  }
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(stdout) as Record<string, unknown>;
+  } catch {
+    return compileFail("internal", "Fluent compiler returned invalid JSON.", "Retry the check.");
+  }
+  if (!parsed || typeof parsed !== "object") {
+    return compileFail("internal", "Fluent compiler returned invalid JSON.", "Retry the check.");
+  }
+  if (parsed.ok === true) {
+    const worklist = typeof parsed.worklist_gwl === "string" ? parsed.worklist_gwl : "";
+    const script = typeof parsed.script_xml === "string" ? parsed.script_xml : "";
+    if (!worklist.trim()) {
+      return compileFail("internal", "Fluent compiler returned no worklist.", "Retry the check.");
+    }
+    const count = typeof parsed.command_count === "number" && Number.isFinite(parsed.command_count)
+      ? parsed.command_count
+      : 0;
+    return {
+      ok: true,
+      worklist_gwl: worklist,
+      script_xml: script,
+      command_count: count,
+      warnings: asStringList(parsed.warnings),
+    };
+  }
+  const stage = typeof parsed.stage === "string" && parsed.stage.trim() ? parsed.stage : "internal";
+  const error =
+    typeof parsed.error === "string" && parsed.error.trim()
+      ? parsed.error
+      : "Fluent compiler rejected the plan.";
+  const hint =
+    typeof parsed.hint === "string" && parsed.hint.trim()
+      ? parsed.hint
+      : "Fix the plan and run checks again.";
+  return compileFail(stage, error, hint);
+}
+
+function publicCompile(raw: FluentCompileResult): CompileResult {
+  if (raw.ok) {
+    return { ok: true, warnings: raw.warnings, command_count: raw.command_count };
+  }
+  return { ok: false, stage: raw.stage, error: raw.error, hint: raw.hint };
+}
+
+export async function runFluentCompile(
+  plan: Record<string, unknown>,
+  spawnFn: StdinJsonSpawn = spawnStdinJson
+): Promise<FluentCompileResult> {
+  const env = loadDemoEnv();
+  const script = path.join(env.webdemoRoot, "python", "compile_fluent.py");
+  try {
+    const result = await spawnFn({
+      argv: [env.python, script],
+      stdin: JSON.stringify(plan),
+      timeoutMs: FLUENT_COMPILE_MS,
+      env: { ...process.env, PYTHONPATH: env.repoRoot },
+    });
+    return parseFluentCompileStdout(result.stdout, result);
+  } catch {
+    return compileFail("internal", "Fluent compiler did not start.", "Retry the check.");
+  }
+}
+
+export async function attachFluentCompile(
+  checks: ChecksResult,
+  plan: Record<string, unknown>,
+  robot?: string,
+  compileFn: (plan: Record<string, unknown>) => Promise<FluentCompileResult> = runFluentCompile
+): Promise<{ checks: ChecksResult; artifacts?: SessionArtifacts }> {
+  if (!usesFluentCompile(robot)) return { checks };
+  let compiled: FluentCompileResult;
+  try {
+    compiled = await compileFn(plan);
+  } catch {
+    compiled = compileFail("internal", "Fluent compiler did not start.", "Retry the check.");
+  }
+  const next = withCompile(checks, publicCompile(compiled));
+  if (compiled.ok && next.status === "pass") {
+    return {
+      checks: next,
+      artifacts: { worklistGwl: compiled.worklist_gwl, scriptXml: compiled.script_xml },
+    };
+  }
+  return { checks: next };
+}
+
 export async function runPlanChecks(
   plan: Record<string, unknown>,
-  userIntent = ""
-): Promise<{ checks: ChecksResult; plan: Record<string, unknown> | null }> {
+  userIntent = "",
+  opts?: {
+    robot?: string;
+    compileFn?: (plan: Record<string, unknown>) => Promise<FluentCompileResult>;
+  }
+): Promise<{
+  checks: ChecksResult;
+  plan: Record<string, unknown> | null;
+  artifacts?: SessionArtifacts;
+}> {
   const raw = await runPlanCli({ plan, user_intent: userIntent });
   const simRaw = (raw.sim && typeof raw.sim === "object" ? raw.sim : raw) as Record<string, unknown>;
   const sim: SimResult = {
@@ -464,25 +671,19 @@ export async function runPlanChecks(
     reason: typeof simRaw.reason === "string" ? simRaw.reason : undefined,
     errors: Array.isArray(simRaw.errors) ? simRaw.errors.map(String) : undefined,
   };
-  if (!sim.ok) {
-    return {
-      checks: await withOptionalReview(
-        wrapChecks(sim, skippedLogic(String(sim.reason || "sim_failed")), emptyStatepass(String(sim.reason || "sim_failed"))),
-        JSON.stringify(plan),
-        userIntent
-      ),
-      plan: (raw.plan as Record<string, unknown>) || plan,
-    };
-  }
-  const logicpass = sanitizeLogicpass(
-    raw.logicpass && typeof raw.logicpass === "object" ? (raw.logicpass as Record<string, unknown>) : null
-  );
+  const outPlan = (raw.plan as Record<string, unknown>) || plan;
+  const rawLogic =
+    raw.logicpass && typeof raw.logicpass === "object" ? (raw.logicpass as Record<string, unknown>) : null;
+  const logicpass = logicpassFromPlanCli(sim, rawLogic);
   const checks = await withOptionalReview(
-    wrapChecks(sim, logicpass, emptyStatepass()),
+    wrapChecks(sim, logicpass, emptyStatepass(sim.ok ? undefined : String(sim.reason || "sim_failed"))),
     JSON.stringify(plan),
     userIntent
   );
-  return { checks, plan: (raw.plan as Record<string, unknown>) || plan };
+  return {
+    ...(await attachFluentCompile(checks, outPlan, opts?.robot, opts?.compileFn)),
+    plan: outPlan,
+  };
 }
 
 export async function runChecks(
@@ -526,13 +727,14 @@ export async function runChecks(
   const analyze = await analyzeProtocol(code);
   const artifact = inspectAnalyze(analyze);
   if (!artifact.ok || !analyze) {
+    const reason = artifact.ok ? "missing_analyze_artifact" : artifact.reason;
     return {
       checks: await withOptionalReview(
-        wrapChecks(sim, unevaluableLogic(artifact.reason), emptyStatepass(artifact.reason)),
+        wrapChecks(sim, unevaluableLogic(reason), emptyStatepass(reason)),
         code,
         userIntent
       ),
-      analyze: artifact.reason === "missing_analyze_artifact" ? null : analyze,
+      analyze: reason === "missing_analyze_artifact" ? null : analyze,
     };
   }
 
@@ -548,7 +750,7 @@ export async function runChecks(
         : {
             issues: logicpass.issues,
             coverage: logicpass.coverage,
-            input_conflicts: raw.input_conflicts,
+            input_conflicts: Array.isArray(raw.input_conflicts) ? raw.input_conflicts : [],
           };
     return {
       checks: await withOptionalReview(wrapChecks(sim, logicpass, statepass), code, userIntent),

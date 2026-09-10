@@ -6,7 +6,8 @@
     "dev": "node scripts/dev.mjs",
     "dev:server": "tsx watch server/src/index.ts",
     "dev:web": "vite --config web/vite.config.ts",
-    "test": "node --import tsx --test tests/*.test.ts && PYTHONPATH=../.. python3 python/test_eval_logicpass.py && PYTHONPATH=../.. python3 python/test_eval_plan.py"
+    "build": "vite build --config web/vite.config.ts",
+    "test": "npx tsc --noEmit && npx tsc --noEmit -p web/tsconfig.json && node --import tsx --test tests/*.test.ts && PYTHONPATH=../.. python3 python/test_eval_logicpass.py && PYTHONPATH=../.. python3 python/test_eval_plan.py && PYTHONPATH=../.. python3 python/test_compile_fluent.py"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.85.1",

@@ -1,14 +1,15 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
-import { isPlayableAnalyze } from "./analysis";
+import { sessionCanWatch } from "./analysis";
 import { createSession, streamChat } from "./api";
 import { ChatPane } from "./ChatPane";
+import { robotSupportsWatch } from "./devices";
 import { ExportsPanel } from "./ExportsPanel";
 import { IssuesPanel } from "./IssuesPanel";
 import { OverlayChrome } from "./OverlayChrome";
 import { Pipeline } from "./Pipeline.tsx";
-import { phaseLabel } from "./pipelineLogic.ts";
+import { headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { StartForm } from "./StartForm";
-import type { ChatMessage, SessionSnapshot } from "./types";
+import type { ChatMessage, SessionSnapshot, StartInput } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
 
@@ -22,6 +23,7 @@ export function App() {
   const robotRef = useRef<SessionSnapshot["robot"]>(null);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
+    robotRef.current = snap.robot;
     setSession(snap);
   }, []);
 
@@ -68,7 +70,7 @@ export function App() {
             setSession((cur) => (cur && checks ? { ...cur, checks } : cur));
           },
           onAnimation: (allowed) => {
-            if (allowed) setOverlay(true);
+            if (allowed && robotSupportsWatch(robotRef.current)) setOverlay(true);
           },
           onError: (message) => setError(message),
           onDone: () => undefined,
@@ -83,11 +85,20 @@ export function App() {
     [applySnapshot]
   );
 
-  const start = async (input: { goal: string; doc: string }) => {
+  const changeDevice = () => {
+    setOverlay(false);
+    setSession(null);
+    setMessages([]);
+    setError("");
+    setRunningTool(null);
+  };
+
+  const start = async (input: StartInput) => {
     setBusy(true);
     setError("");
     try {
       const snap = await createSession(input);
+      robotRef.current = snap.robot;
       setSession(snap);
       setMessages([
         {
@@ -104,8 +115,9 @@ export function App() {
   };
 
   const status = session?.checks?.status;
-  const canWatch = status === "pass" && isPlayableAnalyze(session?.analyze ?? null);
+  const canWatch = sessionCanWatch(session?.robot, status, session?.analyze ?? null);
   const planBackend = session?.robot === "Hamilton" || session?.robot === "Tecan";
+  const tone = headerTone(status, canWatch);
 
   return (
     <div className="app">
@@ -131,11 +143,16 @@ export function App() {
             <div className="card collapsed">
               <div>
                 <div>
-                  <strong>{phaseLabel(session.phase, status, canWatch, planBackend)}</strong>
+                  <strong className={tone ? `status-${tone}` : undefined}>
+                    {phaseLabel(session.phase, status, canWatch, planBackend, session.checks)}
+                  </strong>
                 </div>
                 <div>{session.goal}</div>
                 <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
               </div>
+              <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
+                Change device
+              </button>
             </div>
             <Pipeline session={session} runningTool={runningTool} busy={busy} />
             <ChatPane

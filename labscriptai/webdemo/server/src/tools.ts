@@ -1,7 +1,7 @@
 import { Type } from "typebox";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
-import type { AgentTool } from "@earendil-works/pi-agent-core";
+import type { AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import {
   generateCodeStream,
   generateCompactSop,
@@ -12,6 +12,7 @@ import {
 } from "./backend.ts";
 import { loadDemoEnv } from "./env.ts";
 import {
+  animationAllowed,
   compactChecks,
   needsPatch,
   PATCH_BUDGET_REFUSAL,
@@ -20,6 +21,7 @@ import {
   patchInstruction,
   refuseEmptySop,
 } from "./gate.ts";
+import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import {
   applyAskUser,
   canEmitPlan,
@@ -27,9 +29,11 @@ import {
   canRunPipeline,
   checksRoute,
   capSop,
+  explainPlanErrors,
   formatHardwareConfig,
   isOpentrons,
   missingList,
+  normalizePlanInput,
   planBackendFor,
   presetMismatchWarning,
   shouldCallCompactSop,
@@ -40,11 +44,7 @@ import {
 } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 
-type ToolResult = {
-  content: Array<{ type: "text"; text: string }>;
-  details?: Record<string, unknown>;
-  terminate?: boolean;
-};
+type ToolResult = AgentToolResult<Record<string, unknown>>;
 
 function ok(payload: unknown): ToolResult {
   return {
@@ -69,31 +69,26 @@ function toolGoal(session: SessionState): string {
   return goal;
 }
 
+function unionLiterals(values: string[]) {
+  return Type.Union(
+    values.map((v) => Type.Literal(v)) as [ReturnType<typeof Type.Literal>, ReturnType<typeof Type.Literal>]
+  );
+}
+
+const PYTHON_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "opentrons_python").map((d) => d.legacyRobot);
+const PLAN_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "plan_ir").map((d) => d.legacyRobot);
+
 export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
   const askUser: AgentTool = {
     name: "ask_user",
     label: "Ask user / session",
     description:
-      "Persist session fields. Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true) — state-setting, not a question. Pass deck only when the protocol names labware the assumed deck lacks. Does not generate code. No deck UI.",
+      "Persist session fields. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
-      robot: Type.Optional(
-        Type.Union([
-          Type.Literal("OT-2"),
-          Type.Literal("Flex"),
-          Type.Literal("Hamilton"),
-          Type.Literal("Tecan"),
-        ])
-      ),
-      preset: Type.Optional(
-        Type.Union([
-          Type.Literal("ot2_p300_standard3"),
-          Type.Literal("flex_1000_standard3"),
-          Type.Literal("hamilton_star_standard"),
-          Type.Literal("tecan_evo_standard"),
-        ])
-      ),
+      robot: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.legacyRobot))),
+      preset: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.hardwarePreset.id))),
       left_pipette: Type.Optional(Type.String()),
       right_pipette: Type.Optional(Type.String()),
       use_gripper: Type.Optional(Type.Boolean()),
@@ -173,10 +168,10 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (!canRunPipeline(session)) {
         return ok({ blocked: true, missing: missingList(session) });
       }
-      if (!isOpentrons(session)) {
+      if (deviceFor(session.robot)?.codegen !== "opentrons_python") {
         return ok({
           blocked: true,
-          missing: ["emit_plan — Hamilton/Tecan use Plan IR, not Opentrons Python"],
+          missing: [`emit_plan — ${PLAN_ROBOTS.join("/")} use Plan IR, not Opentrons Python`],
         });
       }
       const refused = refuseEmptySop(session.sop);
@@ -256,7 +251,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "emit_plan",
     label: "Emit Plan IR",
     description:
-      "Preferred for Hamilton and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Does not generate Python; Watch/animation unavailable without 8010 analyze.",
+      'Preferred for Hamilton and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Minimal valid plan: {"schema":"bpl.plan_ir.lh.v0","resources":[{"id":"tips","type":"tiprack","slot":"1"},{"id":"plate","type":"plate","slot":"2","max_volume_ul":360}],"initial_volumes_ul":{"plate:A1":100,"plate:B1":0},"steps":[{"step_id":"1","primitive_type":"PICK_TIPS","tip_rack":"tips","tip_positions":["A1"],"dependencies":[]},{"step_id":"2","primitive_type":"ASPIRATE","source":"plate:A1","volume_ul":50,"dependencies":["1"]},{"step_id":"3","primitive_type":"DISPENSE","destination":"plate:B1","volume_ul":50,"dependencies":["2"]},{"step_id":"4","primitive_type":"DROP_TIPS","to_waste":true,"dependencies":["3"]}]}. tip_positions are bare wells ("A1"), never "TIPS:A1". tip_rack is the tiprack resource id. dependencies may be []. Common rejects: (1) tip_positions "TIPS:A1" — write "A1"; (2) PICK_TIPS missing tip_rack matching resources[].id; (3) dependencies not a list — use []. Hamilton standard wells: Corning 96-well 360 µL, 15 mL reservoir 15000 µL. Tecan standard wells: 96-well plate 360 µL, 1000 µL DiTi, 15 mL reservoir 15000 µL. Omit max_volume_ul only when capacity is unknown (cannot-verify, never a silent pass). Hamilton deliverable is the step table today — a runnable STAR script is not produced yet. Tecan also compiles a .gwl. Does not generate Python; Watch/animation unavailable without 8010 analyze.',
     parameters: Type.Object({
       plan: Type.Record(Type.String(), Type.Unknown()),
     }),
@@ -273,19 +268,22 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       const raw = { ...((args as { plan?: Record<string, unknown> }).plan ?? {}) };
       if (!raw.backend) raw.backend = planBackendFor(session.robot);
       const replacing = Boolean(session.plan && session.lastChecks);
-      const checked = await validatePlan(raw);
+      const { plan: normalized, notes } = normalizePlanInput(raw);
+      const checked = await validatePlan(normalized);
       if (!checked.ok || !checked.plan) {
-        return ok({ ok: false, errors: checked.errors ?? ["invalid_plan"] });
+        return ok({ ok: false, errors: explainPlanErrors(checked.errors ?? ["invalid_plan"]) });
       }
       session.plan = checked.plan;
       if (replacing) session.patchesUsed = (session.patchesUsed ?? 0) + 1;
       session.lastChecks = undefined;
       session.analyze = undefined;
+      session.artifacts = undefined;
       sse.write("snapshot", snapshot(session));
       return ok({
         ok: true,
         steps: Array.isArray(checked.plan.steps) ? checked.plan.steps.length : 0,
         backend: checked.plan.backend,
+        ...(notes.length ? { normalized: notes } : {}),
       });
     },
   };
@@ -305,14 +303,21 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           missing: isOpentrons(session)
             ? session.codeService === "down"
               ? ["emit_plan — 8010 down; use Plan IR fallback"]
-              : ["generate_code — OT-2/Flex need 8010 Python, or emit_plan if 8010 is down"]
-            : ["emit_plan — Hamilton/Tecan need a plan"],
+              : [`generate_code — ${PYTHON_ROBOTS.join("/")} need 8010 Python, or emit_plan if 8010 is down`]
+            : [`emit_plan — ${PLAN_ROBOTS.join("/")} need a plan`],
         });
       }
       if (route === "plan") {
-        const { checks, plan } = await runPlanChecks(session.plan as Record<string, unknown>, session.goal ?? "");
+        const { checks, plan, artifacts } = await runPlanChecks(
+          session.plan as Record<string, unknown>,
+          session.goal ?? "",
+          { robot: session.robot }
+        );
         session.lastChecks = checks;
         if (plan) session.plan = plan;
+        if (deviceFor(session.robot)?.id === "tecan_fluent") {
+          session.artifacts = checks.status === "pass" ? artifacts : undefined;
+        }
         sse.write("checks", checks);
         sse.write("snapshot", snapshot(session));
         return ok(compactChecks(checks, session.patchesUsed ?? 0));
@@ -366,20 +371,22 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     parameters: Type.Object({}),
     executionMode: "sequential",
     execute: async () => {
-      const lit = Boolean(session.lastChecks?.fab.lit);
       const commands = Array.isArray(session.analyze?.commands) ? session.analyze.commands : [];
-      if (!lit) {
-        return ok({ blocked: true, allowed: false, missing: ["final_pass_v2"] });
-      }
-      if (!commands.length) {
-        return ok({
-          blocked: true,
-          allowed: false,
-          missing: ["opentrons_animation"],
-        });
+      if (!animationAllowed(session.lastChecks, commands.length)) {
+        if (!session.lastChecks?.fab.lit) {
+          return ok({ blocked: true, allowed: false, missing: ["final_pass_v2"] });
+        }
+        if (!commands.length) {
+          return ok({
+            blocked: true,
+            allowed: false,
+            missing: ["opentrons_animation"],
+          });
+        }
+        return ok({ blocked: true, allowed: false, missing: ["review_match"] });
       }
       sse.write("animation", { allowed: true });
-      return ok({ allowed: true, commands: Array.isArray(session.analyze?.commands) ? session.analyze?.commands.length : 0 });
+      return ok({ allowed: true, commands: commands.length });
     },
   };
 

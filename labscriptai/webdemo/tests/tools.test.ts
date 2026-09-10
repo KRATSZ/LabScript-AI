@@ -1,8 +1,17 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { applyAskUser, applyForm, createSession } from "../server/src/session.ts";
 import { buildTools } from "../server/src/tools.ts";
 import { compactChecks, PATCH_BUDGET_REFUSAL, wrapChecks } from "../server/src/gate.ts";
+
+function toolText(result: AgentToolResult<unknown>): string {
+  const block = result.content[0];
+  if (!block || block.type !== "text") {
+    assert.fail("expected text tool result");
+  }
+  return block.text;
+}
 
 describe("tools harness", () => {
   it("exposes the seven demo tools", () => {
@@ -20,7 +29,7 @@ describe("tools harness", () => {
     const sop = tools.find((t) => t.name === "generate_sop");
     assert.ok(sop);
     const result = await sop.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.blocked, true);
     assert.ok(Array.isArray(parsed.missing));
   });
@@ -33,7 +42,7 @@ describe("tools harness", () => {
     const sop = tools.find((t) => t.name === "generate_sop");
     assert.ok(sop);
     const result = await sop.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.blocked, true);
     assert.ok(parsed.missing.includes("robot"));
   });
@@ -45,7 +54,7 @@ describe("tools harness", () => {
     const code = tools.find((t) => t.name === "generate_code");
     assert.ok(code);
     const result = await code.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.blocked, true);
     assert.ok(Array.isArray(parsed.missing));
   });
@@ -58,7 +67,7 @@ describe("tools harness", () => {
     const sop = tools.find((t) => t.name === "generate_sop");
     assert.ok(sop);
     const result = await sop.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.skipped, true);
     assert.equal(parsed.sop_markdown, "# SOP\n1. A");
   });
@@ -78,7 +87,7 @@ describe("tools harness", () => {
     const code = tools.find((t) => t.name === "generate_code");
     assert.ok(code);
     const result = await code.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.skipped, true);
     assert.equal(parsed.next, "done");
     assert.equal(session.code.includes("protocol.home"), true);
@@ -92,7 +101,7 @@ describe("tools harness", () => {
     const checks = tools.find((t) => t.name === "run_checks");
     assert.ok(checks);
     const result = await checks.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.blocked, true);
     assert.deepEqual(parsed.missing, [
       "generate_code — OT-2/Flex need 8010 Python, or emit_plan if 8010 is down",
@@ -105,9 +114,56 @@ describe("tools harness", () => {
     const open = tools.find((t) => t.name === "open_animation");
     assert.ok(open);
     const result = await open.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.blocked, true);
     assert.equal(parsed.allowed, false);
+  });
+
+  it("open_animation blocked when review.match is false", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A", robot: "OT-2" });
+    session.lastChecks = wrapChecks(
+      { ok: true },
+      { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      { issues: [] },
+      { match: false, findings: [{ claim: "destination changed to reservoir A2" }] }
+    );
+    session.analyze = { commands: [{ commandType: "aspirate" }] };
+    const parsed = JSON.parse(toolText(await tool(session, "open_animation").execute("1", {})));
+    assert.equal(parsed.blocked, true);
+    assert.equal(parsed.allowed, false);
+    assert.deepEqual(parsed.missing, ["review_match"]);
+  });
+
+  it("open_animation allowed when reviewer is unavailable", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A", robot: "OT-2" });
+    session.lastChecks = wrapChecks(
+      { ok: true },
+      { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      { issues: [] },
+      {
+        match: false,
+        reason: "llmreview_cli_bad_json",
+        findings: [{ claim: "reviewer_exception" }],
+      }
+    );
+    session.analyze = { commands: [{ commandType: "aspirate" }] };
+    const parsed = JSON.parse(toolText(await tool(session, "open_animation").execute("1", {})));
+    assert.equal(parsed.allowed, true);
+    assert.equal(parsed.blocked, undefined);
+  });
+
+  it("ask_user description keeps robot but does not ask which machine", () => {
+    const session = createSession();
+    const tools = buildTools(session, { write() {}, close() {} });
+    const ask = tools.find((t) => t.name === "ask_user");
+    assert.ok(ask);
+    assert.match(ask.description, /Do not ask which robot/);
+    assert.match(ask.description, /already picked one at start/);
+    assert.match(ask.description, /mid-chat switch/);
+    const schema = JSON.stringify(ask.parameters);
+    assert.match(schema, /"robot"/);
   });
 
   it("ask_user with Flex robot returns assumed_deck true", async () => {
@@ -117,7 +173,7 @@ describe("tools harness", () => {
     const ask = tools.find((t) => t.name === "ask_user");
     assert.ok(ask);
     const result = await ask.execute("1", { robot: "Flex" });
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.assumed_deck, true);
     assert.equal(parsed.ready, true);
     assert.equal(parsed.phase, "ready");
@@ -161,12 +217,13 @@ function tool(session: ReturnType<typeof createSession>, name: string) {
   return found;
 }
 
-function assertRefused(result: { content: Array<{ type: string; text: string }>; terminate?: boolean; details?: unknown }) {
+function assertRefused(result: AgentToolResult<unknown>) {
   assert.equal(result.terminate, true);
-  assert.match(result.content[0].text, /Patch budget used/);
-  assert.match(result.content[0].text, /Stop calling tools/);
-  assert.match(result.content[0].text, /Tell the user what fails/);
-  assert.equal(result.content[0].text, PATCH_BUDGET_REFUSAL);
+  const text = toolText(result);
+  assert.match(text, /One patch per reply/);
+  assert.match(text, /Stop calling tools/);
+  assert.match(text, /Tell the user what fails/);
+  assert.equal(text, PATCH_BUDGET_REFUSAL);
   assert.equal((result.details as { refused?: boolean }).refused, true);
 }
 
@@ -179,14 +236,14 @@ describe("one-patch budget", () => {
     const emit = tool(session, "emit_plan");
 
     const first = await emit.execute("1", { plan: DEMO_PLAN });
-    assert.equal(JSON.parse(first.content[0].text).ok, true);
+    assert.equal(JSON.parse(toolText(first)).ok, true);
     assert.equal(session.patchesUsed ?? 0, 0);
 
     session.lastChecks = failChecks();
     assert.equal(compactChecks(session.lastChecks, session.patchesUsed ?? 0).next, "patch");
 
     const patch = await emit.execute("2", { plan: { ...DEMO_PLAN, plan_id: "demo-transfer-v2" } });
-    assert.equal(JSON.parse(patch.content[0].text).ok, true);
+    assert.equal(JSON.parse(toolText(patch)).ok, true);
     assert.equal(session.patchesUsed, 1);
 
     session.lastChecks = failChecks();
@@ -200,9 +257,73 @@ describe("one-patch budget", () => {
 
     session.patchesUsed = 0;
     const retry = await emit.execute("4", { plan: { ...DEMO_PLAN, plan_id: "after-user" } });
-    assert.equal(JSON.parse(retry.content[0].text).ok, true);
+    assert.equal(JSON.parse(toolText(retry)).ok, true);
     assert.equal(session.patchesUsed, 1);
     assert.equal(retry.terminate, undefined);
+  });
+
+  it("emit_plan strips TIPS:A1, tells the model, and stores A1", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Tecan: transfer 50 µL A1 to B1", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "tecan_evo_standard" });
+    session.sop = "# SOP\n1. A";
+    const prefixed = {
+      ...DEMO_PLAN,
+      backend: "tecan_evo",
+      steps: DEMO_PLAN.steps.map((step, index) =>
+        index === 0 ? { ...step, tip_positions: ["TIPS:A1"] } : step
+      ),
+    };
+    const emit = tool(session, "emit_plan");
+    const result = await emit.execute("1", { plan: prefixed });
+    const parsed = JSON.parse(toolText(result));
+    assert.equal(parsed.ok, true);
+    assert.ok(Array.isArray(parsed.normalized));
+    assert.ok(parsed.normalized.some((n: string) => n === "You wrote TIPS:A1, normalized to A1"));
+    const stored = session.plan as { steps: Array<{ tip_positions?: string[] }> };
+    assert.deepEqual(stored.steps[0].tip_positions, ["A1"]);
+    assert.equal(JSON.stringify(session.plan).includes("TIPS:A1"), false);
+    assert.equal(session.artifacts, undefined);
+  });
+
+  it("emit_plan normalizes type/vol/source aliases before validate", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Hamilton: transfer 50 µL A1 to B1", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    session.sop = "# SOP\n1. A";
+    const aliased = {
+      ...DEMO_PLAN,
+      steps: [
+        { step_id: "1", type: "PICK_TIPS", tiprack: "tips", tip_positions: ["A1"], dependencies: [] },
+        {
+          step_id: "2",
+          type: "ASPIRATE",
+          source: { labware: "plate", well: "A1" },
+          vol: 50,
+          dependencies: ["1"],
+        },
+        {
+          step_id: "3",
+          type: "DISPENSE",
+          dest: { labware: "plate", well: "B1" },
+          volume: 50,
+          dependencies: ["2"],
+        },
+        { step_id: "4", type: "DROP_TIPS", to_waste: true, dependencies: ["3"] },
+      ],
+    };
+    const result = await tool(session, "emit_plan").execute("1", { plan: aliased });
+    const parsed = JSON.parse(toolText(result));
+    assert.equal(parsed.ok, true);
+    assert.ok(Array.isArray(parsed.normalized));
+    assert.ok(parsed.normalized.some((n: string) => /type/.test(n) && /primitive_type/.test(n)));
+    assert.ok(parsed.normalized.some((n: string) => /location object/.test(n)));
+    const stored = session.plan as { steps: Array<Record<string, unknown>> };
+    assert.equal(stored.steps[1].primitive_type, "ASPIRATE");
+    assert.equal(stored.steps[1].source, "plate:A1");
+    assert.equal(stored.steps[1].volume_ul, 50);
+    assert.equal(stored.steps[2].destination, "plate:B1");
+    assert.equal("type" in stored.steps[0], false);
   });
 
   it("generate_code: fail → patch used → fail → refuse, reset allows one more", async () => {
@@ -239,7 +360,7 @@ describe("one-patch budget", () => {
     session.lastChecks = passChecks();
     const code = tool(session, "generate_code");
     const result = await code.execute("1", {});
-    const parsed = JSON.parse(result.content[0].text);
+    const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.skipped, true);
     assert.equal(parsed.next, "done");
     assert.equal(result.terminate, undefined);

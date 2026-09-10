@@ -1,4 +1,4 @@
-import { PIPELINE_HINTS, PIPELINE_STEPS, pipelineStates, preview } from "./pipelineLogic.ts";
+import { PIPELINE_HINTS, pipelineStates, pipelineSteps, preview } from "./pipelineLogic.ts";
 import type { SessionSnapshot } from "./types";
 
 interface Props {
@@ -8,12 +8,13 @@ interface Props {
 }
 
 export function Pipeline({ session, runningTool, busy }: Props) {
+  const steps = pipelineSteps(session.robot);
   const states = pipelineStates(session, runningTool);
   const hint = busy ? PIPELINE_HINTS[runningTool || ""] || "Working…" : "";
   return (
     <div className="pipeline-wrap">
       <div className="pipeline" aria-label="Progress">
-        {PIPELINE_STEPS.map((label, i) => (
+        {steps.map((label, i) => (
           <div key={label} className="pipeline-step">
             {i > 0 ? <span className="pipeline-line" /> : null}
             <span className={`pipeline-dot ${states[i]}`} />

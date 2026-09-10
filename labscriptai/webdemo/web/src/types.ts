@@ -1,4 +1,20 @@
 export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
+export type CodegenKind = "opentrons_python" | "plan_ir";
+
+export interface DeviceCard {
+  id: string;
+  label: string;
+  legacyRobot: RobotModel;
+  codegen: CodegenKind;
+  animation: boolean;
+  blurb: string;
+}
+
+export interface StartInput {
+  goal: string;
+  doc: string;
+  robot: RobotModel;
+}
 
 export type CheckStatus = "pass" | "fail" | "unevaluable";
 
@@ -22,6 +38,14 @@ export interface ChecksResult {
     findings?: unknown[];
     reason?: string;
   };
+  compile?: {
+    ok: boolean;
+    stage?: string;
+    error?: string;
+    hint?: string;
+    warnings?: string[];
+    command_count?: number;
+  };
   consequences?: string[];
 }
 
@@ -44,6 +68,10 @@ export interface SessionSnapshot {
   code: string;
   plan: Record<string, unknown> | null;
   analyze: Record<string, unknown> | null;
+  artifacts?: {
+    worklistGwl?: string;
+    scriptXml?: string;
+  } | null;
   checks: ChecksResult | null;
   fab: { lit: boolean };
   deck_assumed?: boolean;

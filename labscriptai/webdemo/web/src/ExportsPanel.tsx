@@ -1,22 +1,29 @@
-import { downloadable, downloadSuffix, downloadText, planStepLine, planSteps } from "./artifacts";
+import {
+  DOWNLOAD_LABELS,
+  downloadHint,
+  downloadable,
+  downloadSuffix,
+  downloadText,
+  planStepLine,
+  planSteps,
+} from "./artifacts";
+import { isPythonCodegen } from "./devices";
+import { statusTone } from "./pipelineLogic";
 import type { SessionSnapshot } from "./types";
-
-const DOWNLOAD_LABELS: Record<ReturnType<typeof downloadable>[number], string> = {
-  sop: "SOP",
-  python: "Python",
-  plan: "Plan",
-};
 
 function downloadFor(session: SessionSnapshot, kind: ReturnType<typeof downloadable>[number]): void {
   if (kind === "sop") downloadText("sop.md", session.sop, "text/markdown");
   else if (kind === "python") downloadText("protocol.py", session.code, "text/x-python");
+  else if (kind === "gwl") downloadText("worklist.gwl", session.artifacts?.worklistGwl ?? "", "text/plain");
   else downloadText("plan.json", JSON.stringify(session.plan, null, 2), "application/json");
 }
 
 export function ExportsPanel({ session }: { session: SessionSnapshot }) {
   const files = downloadable(session);
-  const steps = planSteps(session.plan);
+  const showPlanTable = !isPythonCodegen(session.robot) || !session.code?.trim();
+  const steps = showPlanTable ? planSteps(session.plan) : [];
   const marker = downloadSuffix(session.checks?.status);
+  const tone = statusTone(session.checks?.status);
 
   if (!files.length && !steps.length) return null;
 
@@ -25,10 +32,17 @@ export function ExportsPanel({ session }: { session: SessionSnapshot }) {
       {files.length ? (
         <div className="exports">
           {files.map((kind) => (
-            <button key={kind} type="button" className="export-btn" onClick={() => downloadFor(session, kind)}>
-              {DOWNLOAD_LABELS[kind]}
-              {marker}
-            </button>
+            <div key={kind} className="export-item">
+              <button
+                type="button"
+                className="export-btn"
+                onClick={() => downloadFor(session, kind)}
+              >
+                {DOWNLOAD_LABELS[kind]}
+                {marker ? <span className={tone ? `status-${tone}` : undefined}>{marker}</span> : null}
+              </button>
+              <p className="export-hint">{downloadHint(kind, session.robot)}</p>
+            </div>
           ))}
         </div>
       ) : null}

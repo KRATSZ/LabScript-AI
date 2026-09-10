@@ -1,4 +1,4 @@
-import type { SessionSnapshot } from "./types";
+import type { SessionSnapshot, StartInput } from "./types";
 
 export interface StreamHandlers {
   onThinking: (token: string, source: string) => void;
@@ -31,10 +31,7 @@ function consumeFrames(buffer: string, onEvent: (event: string, data: unknown) =
   return rest;
 }
 
-export async function createSession(input: {
-  goal: string;
-  doc: string;
-}): Promise<SessionSnapshot> {
+export async function createSession(input: StartInput): Promise<SessionSnapshot> {
   const response = await fetch("/api/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

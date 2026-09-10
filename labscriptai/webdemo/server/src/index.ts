@@ -56,13 +56,16 @@ const server = createServer(async (req, res) => {
     const raw = await readBody(req);
     const body = raw ? (JSON.parse(raw) as { goal?: string; doc?: string; robot?: string }) : {};
     const goal = (body.goal || "").trim();
-    const robot = isRobotModel(body.robot) ? body.robot : undefined;
     if (!goal) {
       json(res, 400, { error: "goal is required" });
       return;
     }
+    if (body.robot != null && String(body.robot).trim() !== "" && !isRobotModel(body.robot)) {
+      json(res, 400, { error: "invalid robot" });
+      return;
+    }
     const session = createSession();
-    applyForm(session, { goal, doc: body.doc, robot });
+    applyForm(session, { goal, doc: body.doc, robot: body.robot });
     session.codeService = await checkCodeService();
     json(res, 200, snapshot(session));
     return;

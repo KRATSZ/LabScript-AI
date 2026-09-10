@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { SYSTEM_PROMPT } from "../server/src/prompt.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel: string) => readFileSync(path.join(root, rel), "utf8");
@@ -10,8 +11,6 @@ const read = (rel: string) => readFileSync(path.join(root, rel), "utf8");
 describe("demo contract lock", () => {
   it("four robots, seven tools, Plan IR fallback for OT when 8010 down", () => {
     const session = read("server/src/session.ts");
-    assert.match(session, /Hamilton/);
-    assert.match(session, /Tecan/);
     assert.match(session, /canEmitPlan/);
     assert.match(session, /planBackendFor/);
     assert.match(session, /plan\?:/);
@@ -23,33 +22,67 @@ describe("demo contract lock", () => {
     );
     assert.doesNotMatch(session, /&& !isOpentrons\(session\)/);
 
+    const devices = read("server/src/devices.ts");
+    assert.match(devices, /Hamilton/);
+    assert.match(devices, /Tecan/);
+    assert.match(devices, /DEVICE_REGISTRY/);
+    assert.match(devices, /tecan_fluent/);
+    assert.match(devices, /pyfluent_compile/);
+    assert.match(devices, /artifactExt: "\.gwl"/);
+    assert.doesNotMatch(devices, /compiler pending \(R4\)/);
+    assert.match(devices, /diti/);
+
     const backend = read("server/src/backend.ts");
     assert.match(backend, /runPlanCli/);
     assert.match(backend, /validatePlan/);
     assert.match(backend, /runPlanChecks/);
+    assert.match(backend, /runFluentCompile/);
+    assert.match(backend, /compile_fluent\.py/);
     assert.match(backend, /eval_plan\.py/);
 
     const types = read("web/src/types.ts");
     assert.match(types, /^\s*plan:/m);
 
     const prompt = read("server/src/prompt.ts");
-    assert.match(prompt, /Which robot — OT-2, Flex, Hamilton, or Tecan\?/);
-    assert.match(prompt, /Hamilton/);
+    assert.doesNotMatch(SYSTEM_PROMPT, /Which robot/);
+    assert.doesNotMatch(SYSTEM_PROMPT, /If robot is unset/);
+    assert.match(SYSTEM_PROMPT, /Never ask which machine/);
+    assert.match(SYSTEM_PROMPT, /volumes, wells, sample counts/);
+    assert.match(SYSTEM_PROMPT, /Hamilton: step-table JSON today \(STAR script later\)/);
+    assert.match(SYSTEM_PROMPT, /Deliverables:/);
+    assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
+    assert.match(SYSTEM_PROMPT, /Tecan: \.gwl worklist \+ step JSON, no Watch/);
+    assert.ok(SYSTEM_PROMPT.trim().split("\n").length <= 32);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
-    assert.match(prompt, /Do not change volumes, wells, or counts the user gave/);
+    assert.match(SYSTEM_PROMPT, /Patch only mechanical issues/);
+    assert.match(SYSTEM_PROMPT, /Never change volumes, wells, counts/);
+    assert.match(SYSTEM_PROMPT, /each user message gives you one fresh patch-and-recheck/i);
+    assert.match(SYSTEM_PROMPT, /review\.match=false/);
+    assert.match(SYSTEM_PROMPT, /call open_animation immediately/);
+    assert.match(SYSTEM_PROMPT, /do not ask permission/);
+    assert.match(SYSTEM_PROMPT, /refuses to adjust/);
+    assert.match(SYSTEM_PROMPT, /do not keep asking/);
     assert.match(prompt, /Do not skip generate_code/);
     assert.match(prompt, /emit_plan → run_checks/);
     assert.match(prompt, /Watch\/animation is unavailable/);
     assert.doesNotMatch(prompt, /Default path for EVERY robot/);
 
     const tools = read("server/src/tools.ts");
+    assert.match(tools, /Do not ask which robot/);
     assert.match(tools, /Preferred for OT-2 and Flex/);
     assert.match(tools, /Allowed for OT-2\/Flex when 8010 is down/);
     assert.match(tools, /Do not prefer a stored plan/);
     assert.match(tools, /generateCode, emitPlan, runChecksTool/);
     assert.match(tools, /Hamilton/);
     assert.match(tools, /Tecan/);
+    assert.match(tools, /runnable STAR script is not produced yet/);
+    assert.match(tools, /"tip_positions":\["A1"\]/);
+    assert.match(tools, /never "TIPS:A1"/);
+    assert.match(tools, /tip_rack is the tiprack resource id/);
+    assert.match(tools, /dependencies may be \[\]/);
+    assert.match(tools, /Tecan standard wells: 96-well plate 360/);
+    assert.match(tools, /1000 µL DiTi/);
     assert.match(tools, /must_call: "emit_plan"/);
     assert.match(tools, /Call emit_plan then run_checks/);
     assert.doesNotMatch(tools, /8010_unreachable/);
@@ -71,5 +104,14 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/pipelineLogic.ts"), /Checks passed — step table below/);
     assert.match(read("web/src/pipelineLogic.ts"), /Cannot verify/);
     assert.doesNotMatch(read("web/src/ExportsPanel.tsx"), /Watch is Opentrons-only/);
+    assert.match(read("web/src/StartForm.tsx"), /DEVICE_CARDS/);
+    assert.match(read("web/src/StartForm.tsx"), /Pick a robot first/);
+    assert.doesNotMatch(read("web/src/StartForm.tsx"), /Robot is asked in chat/);
+    assert.match(read("web/src/App.tsx"), /Change device/);
+    assert.match(read("web/src/types.ts"), /export interface StartInput/);
+    assert.match(read("web/src/types.ts"), /export interface DeviceCard/);
+    assert.match(read("web/src/api.ts"), /StartInput/);
+    assert.match(read("server/src/index.ts"), /invalid robot/);
+    assert.match(read("server/src/index.ts"), /robot: body\.robot/);
   });
 });

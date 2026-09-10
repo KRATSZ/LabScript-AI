@@ -8,6 +8,9 @@ import sys
 from typing import Any
 
 
+SKIP_DECK_REASONS = frozenset({"invalid_plan", "invalid_plan_json", "planir_package_missing"})
+
+
 def fail(reason: str, errors: list[str] | None = None) -> dict[str, Any]:
     return {
         "sim": {"ok": False, "reason": reason, "errors": errors or [reason]},
@@ -20,6 +23,43 @@ def fail(reason: str, errors: list[str] | None = None) -> dict[str, Any]:
         },
         "fab": {"lit": False},
     }
+
+
+def attach_virtual_deck_if_sim_failed(result: dict[str, Any], plan: Any) -> dict[str, Any]:
+    """webdemo-only: run virtual_deck when PLR fails so overflow is not swallowed.
+
+    planir.run_plan_checks still skips LogicPass on sim fail (manuscript CLI unchanged).
+    Overlay only fail/unevaluable; a passing deck keeps the skipped outcome so
+    plr_unavailable stays cannot-verify instead of a fake fail.
+    """
+    sim = result.get("sim") if isinstance(result.get("sim"), dict) else {}
+    logic = result.get("logicpass") if isinstance(result.get("logicpass"), dict) else {}
+    if sim.get("ok") or logic.get("outcome") != "skipped":
+        return result
+    if str(sim.get("reason") or "") in SKIP_DECK_REASONS:
+        return result
+    try:
+        from labscriptai.planir.schema import PlanError, load_plan
+        from labscriptai.planir.virtual_deck import evaluate_virtual_deck
+
+        deck = evaluate_virtual_deck(load_plan(plan))
+        logicpass = deck.to_logicpass()
+    except PlanError:
+        return result
+    except Exception as exc:  # noqa: BLE001
+        logicpass = {
+            "outcome": "unevaluable",
+            "logic_pass": False,
+            "final_pass_v2": False,
+            "issues": [],
+            "reason": f"virtual_deck_error:{exc}",
+        }
+    if logicpass.get("outcome") not in {"fail", "unevaluable"}:
+        return result
+    out = dict(result)
+    out["logicpass"] = logicpass
+    out["fab"] = {"lit": False}
+    return out
 
 
 def main() -> int:
@@ -55,6 +95,7 @@ def main() -> int:
         user_intent=str(payload.get("user_intent") or ""),
         skip_review=True,
     )
+    result = attach_virtual_deck_if_sim_failed(result, plan)
     print(json.dumps(result, ensure_ascii=False, default=str))
     return 0
 

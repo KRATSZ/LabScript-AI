@@ -45,6 +45,14 @@ export default defineConfig({
       "@opentrons/components": path.join(slimRoot, "components/src/index.ts"),
       "@opentrons/shared-data": path.join(slimRoot, "shared-data/js/index.ts"),
       "@opentrons/step-generation": path.join(slimRoot, "step-generation/src/index.ts"),
+      "@visualizer/normalize-analysis": path.join(
+        slimRoot,
+        "protocol-visualizer-web/client/src/normalizeAnalysisOutput.ts"
+      ),
+      "@visualizer/animator": path.join(
+        cloudRoot,
+        "labscriptAI-frontend/src/components/ProtocolOperationAnimator.tsx"
+      ),
       "@popperjs/core": fromNm("@popperjs/core"),
       "@react-spring/types": fromNm("@react-spring/types"),
       "@react-spring/web": fromNm("@react-spring/web"),

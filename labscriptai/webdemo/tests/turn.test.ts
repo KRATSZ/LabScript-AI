@@ -27,6 +27,20 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.match(first, /Goal: PCR/);
     assert.match(first, /Doc: none/);
     assert.match(first, /Robot: Flex/);
+    assert.doesNotMatch(first, /Robot: unset/);
+  });
+
+  it("explicit robot first turn hints generate_sop, not ask_user", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer 50 µL A1 to B1", doc: "", robot: "Flex" });
+    assert.equal(session.phase, "ready");
+    assert.equal(session.robot, "Flex");
+    assert.equal(nextToolHint(session), "generate_sop");
+    const first = nextUserMessage(session, "");
+    assert.match(first, /Goal: transfer 50 µL A1 to B1/);
+    assert.match(first, /Robot: Flex/);
+    assert.doesNotMatch(liveSessionBlock(session), /next_tool: ask_user/);
+    assert.doesNotMatch(CONTINUE_STEER, /robot is unknown/);
   });
 
   it("does not re-emit Goal/Doc/Robot when history exists", () => {
@@ -60,7 +74,7 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.match(block, /review.match=false/);
     session.plan = { steps: [{ step_id: "1" }, { step_id: "2" }] };
     assert.match(liveSessionBlock(session), /plan_steps: 2/);
-    assert.match(block, /next=patch/);
+    assert.match(block, /next=done/);
     assert.doesNotMatch(block, /# long draft/);
     assert.doesNotMatch(block, /aspirate/);
   });
@@ -136,5 +150,54 @@ describe("nextUserMessage / LIVE SESSION", () => {
     );
     assert.equal(nextToolHint(session), "done");
     assert.match(liveSessionBlock(session), /next=done/);
+  });
+
+  it("next_tool is open_animation when checks pass, commands exist, and review matches", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A", robot: "OT-2" });
+    session.sop = "# SOP\n1. A";
+    session.code = "def run(protocol):\n    protocol.home()\n";
+    session.analyze = { commands: [{ commandType: "aspirate" }] };
+    session.lastChecks = wrapChecks(
+      { ok: true },
+      { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      { issues: [] },
+      { match: true, findings: [] }
+    );
+    assert.equal(nextToolHint(session), "open_animation");
+    assert.match(liveSessionBlock(session), /next_tool: open_animation/);
+  });
+
+  it("reviewer exception is review.match=unavailable and still hints open_animation", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A", robot: "OT-2" });
+    session.sop = "# SOP\n1. A";
+    session.code = "def run(protocol):\n    protocol.home()\n";
+    session.analyze = { commands: [{ commandType: "aspirate" }] };
+    session.lastChecks = wrapChecks(
+      { ok: true },
+      { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      { issues: [] },
+      {
+        match: false,
+        reason: "llmreview_cli_spawn_failed",
+        findings: [{ claim: "reviewer_exception" }],
+      }
+    );
+    assert.match(liveSessionBlock(session), /review.match=unavailable/);
+    assert.equal(nextToolHint(session), "open_animation");
+  });
+
+  it("first turn and LIVE SESSION include assumed plate/tip capacities", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer 500 µL A1 to B1", doc: "", robot: "OT-2" });
+    const first = nextUserMessage(session, "");
+    const block = liveSessionBlock(session);
+    assert.match(first, /Assumed deck: plate wells hold 200 µL, tips 300 µL/);
+    assert.match(block, /assumed_capacity: plate wells hold 200 µL, tips 300 µL/);
+
+    const flex = createSession();
+    applyForm(flex, { goal: "transfer 500 µL A1 to B1", doc: "", robot: "Flex" });
+    assert.match(liveSessionBlock(flex), /assumed_capacity: plate wells hold 200 µL, tips 1000 µL/);
   });
 });

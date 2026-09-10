@@ -66,7 +66,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
         <textarea
           ref={areaRef}
           rows={1}
-          placeholder="OT-2, Flex, Hamilton, or Tecan? Describe the deck in your own words."
+          placeholder="Add details or answer the agent…"
           value={text}
           disabled={busy}
           onChange={(e) => {

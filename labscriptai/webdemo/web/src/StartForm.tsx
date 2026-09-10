@@ -1,10 +1,7 @@
 import { useState } from "react";
+import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
-
-interface StartInput {
-  goal: string;
-  doc: string;
-}
+import type { StartInput } from "./types";
 
 interface Props {
   busy: boolean;
@@ -15,21 +12,44 @@ export function StartForm({ busy, onSubmit }: Props) {
   const [goal, setGoal] = useState("");
   const [doc, setDoc] = useState("");
   const [fileName, setFileName] = useState("");
+  const [deviceId, setDeviceId] = useState<string | undefined>();
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!goal.trim() || busy) return;
-    onSubmit({ goal: goal.trim(), doc: doc.trim() });
+    if (!canStart(goal, deviceId) || busy) return;
+    const card = DEVICE_CARDS.find((item) => item.id === deviceId);
+    if (!card) return;
+    onSubmit({ goal: goal.trim(), doc: doc.trim(), robot: card.legacyRobot });
   };
 
   const pickExample = (item: (typeof EXAMPLES)[number]) => {
     if (busy) return;
     setGoal(item.goal);
     setDoc(item.doc);
+    const hit = matchDeviceFromText(`${item.label}\n${item.goal}\n${item.doc}`);
+    if (hit) setDeviceId(hit);
   };
 
   return (
     <form className="card form" onSubmit={submit}>
+      <label>Device</label>
+      <p className="hint">Pick a robot first. You can change it later.</p>
+      <div className="device-grid">
+        {DEVICE_CARDS.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            className={deviceId === card.id ? "device-card selected" : "device-card"}
+            aria-pressed={deviceId === card.id}
+            disabled={busy}
+            onClick={() => setDeviceId(card.id)}
+          >
+            <strong>{card.label}</strong>
+            <span>{card.blurb}</span>
+          </button>
+        ))}
+      </div>
+
       <label htmlFor="goal">Experimental goal</label>
       <textarea
         id="goal"
@@ -62,7 +82,6 @@ export function StartForm({ busy, onSubmit }: Props) {
         <span className="file">{fileName || "No file selected"}</span>
       </div>
 
-      <p className="hint">Robot is asked in chat: OT-2, Flex, Hamilton, or Tecan. Unsure? Click an example.</p>
       <div className="chips">
         {EXAMPLES.map((item) => (
           <button
@@ -77,7 +96,7 @@ export function StartForm({ busy, onSubmit }: Props) {
         ))}
       </div>
 
-      <button className="primary" type="submit" disabled={busy || !goal.trim()}>
+      <button className="primary" type="submit" disabled={busy || !canStart(goal, deviceId)}>
         {busy ? "Starting…" : "Start"}
       </button>
     </form>

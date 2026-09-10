@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { SYSTEM_PROMPT } from "../server/src/prompt.ts";
 
 const webSrc = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../web/src");
 
@@ -53,13 +54,16 @@ describe("AnimationOverlay code-split", () => {
     assert.match(blob, /Hamilton/);
     assert.match(blob, /Tecan/);
     const prompt = readFileSync(path.resolve(webSrc, "../../server/src/prompt.ts"), "utf8");
-    assert.match(prompt, /Which robot — OT-2, Flex, Hamilton, or Tecan\?/);
-    assert.match(prompt, /Hamilton/);
+    assert.doesNotMatch(SYSTEM_PROMPT, /Which robot/);
+    assert.match(SYSTEM_PROMPT, /Never ask which machine/);
+    assert.match(SYSTEM_PROMPT, /Hamilton/);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
-    assert.match(prompt, /Do not change volumes, wells, or counts the user gave/);
+    assert.match(prompt, /Never change volumes, wells, counts/);
     assert.match(prompt, /Do not skip generate_code/);
     assert.doesNotMatch(prompt, /Plan IR/);
+    assert.doesNotMatch(blob, /Robot is asked in chat/);
+    assert.match(blob, /DEVICE_CARDS/);
   });
 
   it("artifacts helpers and Artifacts panel exist", () => {
@@ -67,12 +71,23 @@ describe("AnimationOverlay code-split", () => {
     assert.match(artifacts, /export function planStepLine/);
     assert.match(artifacts, /export function downloadable/);
     assert.match(artifacts, /export function downloadText/);
+    assert.match(artifacts, /"gwl"/);
+    assert.match(artifacts, /\.gwl worklist/);
     const panel = readFileSync(path.join(webSrc, "ExportsPanel.tsx"), "utf8");
     assert.match(panel, /from ["']\.\/artifacts["']/);
+    assert.match(panel, /DOWNLOAD_LABELS/);
+    assert.match(panel, /export-hint/);
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     assert.match(app, /from ["']\.\/ExportsPanel["']/);
     assert.match(app, /<ExportsPanel session=\{session\} \/>/);
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
+    assert.match(app, /sessionCanWatch/);
+    assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);
+    assert.match(app, /disabled=\{busy\}/);
+    assert.match(app, /setOverlay\(false\)/);
+    const issues = readFileSync(path.join(webSrc, "IssuesPanel.tsx"), "utf8");
+    assert.match(issues, /statusWord/);
+    assert.match(issues, /status-word/);
   });
 
   it("overlay smoke uses simpleAnalysisFile and AnimatorGuard exposes errors", () => {

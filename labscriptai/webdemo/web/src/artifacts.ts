@@ -1,6 +1,14 @@
-import type { SessionSnapshot } from "./types";
+import { isPlanCodegen, isPythonCodegen } from "./devices";
+import type { RobotModel, SessionSnapshot } from "./types";
 
-export type DownloadKind = "sop" | "python" | "plan";
+export type DownloadKind = "sop" | "python" | "plan" | "gwl";
+
+export const DOWNLOAD_LABELS: Record<DownloadKind, string> = {
+  sop: "SOP",
+  python: "Python",
+  plan: "Step JSON",
+  gwl: ".gwl worklist",
+};
 
 export interface PlanStepLike {
   step_id?: string;
@@ -46,13 +54,32 @@ export function downloadSuffix(status?: string): string {
   return "";
 }
 
-export function downloadable(
-  session: Pick<SessionSnapshot, "sop" | "code" | "plan">
-): DownloadKind[] {
+export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): string {
+  if (kind === "sop") return "Human-readable protocol write-up";
+  if (kind === "python") return "Run with opentrons_simulate or upload to OT App";
+  if (kind === "gwl") return "Import into FluentControl via Load Worklist";
+  if (robot === "Hamilton") return "Step table for STAR (runnable script later)";
+  if (robot === "Tecan") return "Step table alongside the Fluent worklist";
+  return "Step table as JSON";
+}
+
+type DownloadSource = Pick<SessionSnapshot, "sop" | "code" | "plan" | "artifacts"> & {
+  robot?: SessionSnapshot["robot"];
+};
+
+export function downloadable(session: DownloadSource): DownloadKind[] {
+  const robot = session.robot ?? null;
+  const pythonDevice = isPythonCodegen(robot);
+  const planDevice = isPlanCodegen(robot);
+  const allowPython = !robot || pythonDevice;
+  const allowPlan = !robot || planDevice || (pythonDevice && !session.code?.trim());
+  const allowGwl = !robot || robot === "Tecan";
+
   const out: DownloadKind[] = [];
   if (session.sop?.trim()) out.push("sop");
-  if (session.code?.trim()) out.push("python");
-  if (session.plan && typeof session.plan === "object") out.push("plan");
+  if (allowPython && session.code?.trim()) out.push("python");
+  if (allowPlan && session.plan && typeof session.plan === "object") out.push("plan");
+  if (allowGwl && session.artifacts?.worklistGwl?.trim()) out.push("gwl");
   return out;
 }
 

@@ -1,8 +1,9 @@
-import type { CheckStatus, ChecksResult, SessionSnapshot } from "./types";
+import { isPlayableAnalyze } from "./analysis";
+import { isPlanCodegen, robotSupportsWatch } from "./devices";
+import type { CheckStatus, ChecksResult, RobotModel, SessionSnapshot } from "./types";
 
 export type StepState = "wait" | "run" | "ok" | "fail" | "uneval";
-
-export const PIPELINE_STEPS = ["Robot", "SOP", "Script", "Checks", "Review"] as const;
+export type StatusTone = "pass" | "fail" | "uneval";
 
 export const PIPELINE_HINTS: Record<string, string> = {
   ask_user: "Recording hardware…",
@@ -13,33 +14,65 @@ export const PIPELINE_HINTS: Record<string, string> = {
   open_animation: "Opening animation…",
 };
 
+const PYTHON_STEPS = ["Goal", "SOP", "Code", "Checks", "Watch"] as const;
+const PLAN_STEPS = ["Goal", "SOP", "Plan", "Checks", "Export"] as const;
+
+export function pipelineSteps(robot: RobotModel | null | undefined): readonly string[] {
+  return isPlanCodegen(robot) ? PLAN_STEPS : PYTHON_STEPS;
+}
+
 export function preview(text: string, lines = 20): string {
   return text.split("\n").slice(0, lines).join("\n");
+}
+
+export function statusWord(status: CheckStatus): string {
+  if (status === "pass") return "Passed";
+  if (status === "unevaluable") return "Cannot verify";
+  return "Failed";
+}
+
+export function statusTone(status: CheckStatus | null | undefined): StatusTone | null {
+  if (status === "pass") return "pass";
+  if (status === "fail") return "fail";
+  if (status === "unevaluable") return "uneval";
+  return null;
+}
+
+export function headerTone(
+  status: CheckStatus | null | undefined,
+  canWatch: boolean
+): StatusTone | null {
+  if (canWatch) return "pass";
+  return statusTone(status);
+}
+
+/** First check consequence when unevaluable; otherwise empty. Never invents a reason. */
+export function unevalDetail(checks: ChecksResult | null | undefined): string {
+  if (!checks || checks.status !== "unevaluable") return "";
+  const line = checks.consequences?.find((item) => typeof item === "string" && item.trim());
+  return typeof line === "string" ? line.trim() : "";
 }
 
 export function phaseLabel(
   phase: string,
   status: CheckStatus | null | undefined,
   canWatch: boolean,
-  planBackend = false
+  planBackend = false,
+  checks?: ChecksResult | null
 ): string {
   if (canWatch) return "Ready to watch";
   if (status === "pass") {
     return planBackend ? "Checks passed — step table below" : "Checks passed — no animation available";
   }
   if (status === "fail") return "Checks failed";
-  if (status === "unevaluable") return "Cannot verify";
+  if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
   if (phase === "need_hw_slots") return "Missing deck details";
   if (phase === "ready") return "In progress";
   return "Which robot — OT-2, Flex, Hamilton, or Tecan?";
 }
 
-function hwState(phase: string, running: string | null): StepState {
-  if (phase === "ready") return "ok";
-  if (phase === "need_robot" || phase === "need_hw_slots") {
-    return running === "ask_user" ? "run" : "wait";
-  }
-  return "wait";
+function goalState(goal: string): StepState {
+  return goal.trim() ? "ok" : "wait";
 }
 
 function sopState(sop: string, running: string | null): StepState {
@@ -71,24 +104,25 @@ function checkState(checks: ChecksResult | null, running: string | null): StepSt
   return "fail";
 }
 
-function reviewState(checks: ChecksResult | null, running: string | null): StepState {
-  if (running === "run_checks") return "run";
-  const review = checks?.llmreview;
-  if (!review) return "wait";
-  if (review.match === true) return "ok";
-  if (review.match === false) return "fail";
-  return "wait";
+function finishState(session: SessionSnapshot, running: string | null): StepState {
+  if (running === "open_animation") return "run";
+  if (robotSupportsWatch(session.robot)) {
+    if (session.checks?.status === "pass" && isPlayableAnalyze(session.analyze)) return "ok";
+    return "wait";
+  }
+  if (!session.checks) return "wait";
+  const hasExport = Boolean(session.sop?.trim() || session.plan);
+  if (!hasExport) return "wait";
+  if (session.checks.status === "unevaluable") return "uneval";
+  return "ok";
 }
 
-export function pipelineStates(
-  session: SessionSnapshot,
-  runningTool: string | null
-): StepState[] {
+export function pipelineStates(session: SessionSnapshot, runningTool: string | null): StepState[] {
   return [
-    hwState(session.phase, runningTool),
+    goalState(session.goal),
     sopState(session.sop, runningTool),
     codeState(session.code, session.plan, session.robot, runningTool),
     checkState(session.checks, runningTool),
-    reviewState(session.checks, runningTool),
+    finishState(session, runningTool),
   ];
 }
