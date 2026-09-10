@@ -71,8 +71,6 @@ class FinalPassV2Result:
             "provenance": None
             if self.provenance is None
             else {
-                "protocol_sha256": self.provenance.protocol_sha256,
-                "package_sha256": self.provenance.package_sha256,
                 "ot_version": self.provenance.ot_version,
                 "api_level": self.provenance.api_level,
                 "parameter_values": dict(self.provenance.parameter_values),

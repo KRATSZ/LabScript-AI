@@ -1,6 +1,6 @@
-import type { ChecksResult, SessionSnapshot } from "./types";
+import type { CheckStatus, ChecksResult, SessionSnapshot } from "./types";
 
-export type StepState = "wait" | "run" | "ok" | "fail";
+export type StepState = "wait" | "run" | "ok" | "fail" | "uneval";
 
 export const PIPELINE_STEPS = ["Robot", "SOP", "Script", "Checks", "Review"] as const;
 
@@ -15,6 +15,23 @@ export const PIPELINE_HINTS: Record<string, string> = {
 
 export function preview(text: string, lines = 20): string {
   return text.split("\n").slice(0, lines).join("\n");
+}
+
+export function phaseLabel(
+  phase: string,
+  status: CheckStatus | null | undefined,
+  canWatch: boolean,
+  planBackend = false
+): string {
+  if (canWatch) return "Ready to watch";
+  if (status === "pass") {
+    return planBackend ? "Checks passed — step table below" : "Checks passed — no animation available";
+  }
+  if (status === "fail") return "Checks failed";
+  if (status === "unevaluable") return "Cannot verify";
+  if (phase === "need_hw_slots") return "Missing deck details";
+  if (phase === "ready") return "In progress";
+  return "Which robot — OT-2, Flex, Hamilton, or Tecan?";
 }
 
 function hwState(phase: string, running: string | null): StepState {
@@ -49,14 +66,8 @@ function codeState(
 function checkState(checks: ChecksResult | null, running: string | null): StepState {
   if (running === "run_checks") return "run";
   if (!checks) return "wait";
-  if (
-    checks.sim.ok &&
-    checks.logicpass.outcome === "pass" &&
-    checks.logicpass.logic_pass === true &&
-    checks.logicpass.final_pass_v2 === true
-  ) {
-    return "ok";
-  }
+  if (checks.status === "pass") return "ok";
+  if (checks.status === "unevaluable") return "uneval";
   return "fail";
 }
 

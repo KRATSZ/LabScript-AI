@@ -4,23 +4,22 @@ Single-page local demo. Browser talks to a small pi-agent-core server; that serv
 
 Binds **127.0.0.1 only**. Do not start if localhost cannot bind. Do not listen on `0.0.0.0`.
 
-## What you do
+## Behavior
 
-1. Write an experimental goal. Notes are optional.
-2. In chat, pick a robot: **OT-2, Flex, Hamilton, or Tecan**. The server fills a standard deck (tip rack, 96-well plate, reservoir). You can correct the deck later.
-3. The agent writes a short SOP, then:
-   - **OT-2 / Flex:** Opentrons Python via **8010** when the code service is up, then simulate + analyze + LogicPass.
-   - **Hamilton / Tecan:** Plan IR + PyLabRobot checks (no 8010 Python).
-   - **OT-2 / Flex fallback:** if 8010 is down or `generate_code` is blocked, the agent emits Plan IR and runs the same PyLabRobot checks. Watch/animation stays unavailable without 8010 analyze commands.
-4. **Watch animation** lights only after FinalPass_v2, and only if `session.analyze` from 8010 has commands (Opentrons Python path only).
+Four robots: **OT-2, Flex, Hamilton, Tecan**. Name one in the goal and generation starts; otherwise the agent asks once which robot, then assumes a standard deck (tip rack, 96-well plate, reservoir).
 
-There is no live robot, no `bash`. Hardware is collected in chat — no deck UI.
+- **OT-2 / Flex:** Python via **8010** when that service is up; otherwise a step table. Watch/animation is Opentrons-only and needs 8010 analyze commands.
+- **Hamilton / Tecan:** step table only. Never Python, never Watch.
+
+Checks are **pass / fail / cannot-verify**. cannot-verify never lights Watch. One automatic patch, then the agent stops and talks. Downloads are always available; they are marked when checks did not pass.
+
+No live robot, no `bash`. No deck UI.
 
 ## Run
 
-Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`. **8010** is required for OT-2/Flex Python generation and Watch; Hamilton/Tecan and OT Plan-IR fallback do not need it.
+Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`. **8010** is required for OT-2/Flex Python and Watch; Hamilton/Tecan and the OT step-table fallback do not need it.
 
-Optional: `pip install pylabrobot` for Hamilton/Tecan and OT Plan-IR simulation. Missing PyLabRobot is not a pass — checks report the failure.
+Optional: `pip install pylabrobot` for Hamilton/Tecan and OT step-table simulation. Missing PyLabRobot is not a pass — checks report cannot-verify.
 
 ```bash
 cd labscriptai/webdemo

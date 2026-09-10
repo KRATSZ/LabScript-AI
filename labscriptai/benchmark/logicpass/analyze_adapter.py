@@ -17,7 +17,6 @@ Shared types live in :mod:`labscriptai.benchmark.logicpass.types`.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping, Sequence
@@ -42,17 +41,7 @@ __all__ = [
     "ADAPTER_SCHEMA_VERSION",
     "OT_VERSION_PROBE_BASELINE",
     "load_analyze_json",
-    "sha256_file",
 ]
-
-
-def sha256_file(path: Path) -> str:
-    """Return hex SHA-256 of a file's bytes."""
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _as_mapping(value: Any) -> Mapping[str, Any] | None:
@@ -76,27 +65,6 @@ def _as_finite_number(value: Any) -> float | None:
             return None
         return number
     return None
-
-
-def _package_sha256(package_path: Path | None) -> str | None:
-    """``null`` iff no package *file* artifact supplied.
-
-    Directory presence alone does not select the string branch
-    (``predicates_disjoint`` freeze).
-    """
-    if package_path is None:
-        return None
-    if not package_path.is_file():
-        return None
-    return sha256_file(package_path)
-
-
-def _protocol_sha256(protocol_path: Path | None) -> str | None:
-    if protocol_path is None:
-        return None
-    if not protocol_path.is_file():
-        return None
-    return sha256_file(protocol_path)
 
 
 def _extract_api_level(payload: Mapping[str, Any]) -> str | None:
@@ -374,8 +342,6 @@ def _unevaluable_result(
     *,
     reason: str,
     analyze_source_path: str | None,
-    protocol_sha256: str | None,
-    package_sha256: str | None,
     ot_version: str | None,
     api_level: str | None,
     parameter_values: Mapping[str, Any],
@@ -406,8 +372,6 @@ def _unevaluable_result(
         commands=(),
         dispositions=dispositions,
         provenance=AnalyzeProvenance(
-            protocol_sha256=protocol_sha256,
-            package_sha256=package_sha256,
             ot_version=ot_version,
             api_level=api_level,
             parameter_values=dict(parameter_values),
@@ -445,10 +409,9 @@ def load_analyze_json(
     payload:
         In-memory analyze dict (tests / callers that already parsed JSON).
     protocol_path:
-        Optional protocol file used for ``protocol_sha256``.
+        Ignored. Kept for caller compatibility.
     package_path:
-        Optional *file* artifact for ``package_sha256``. ``None`` or a
-        directory → ``package_sha256=null``.
+        Ignored. Kept for caller compatibility.
     ot_version:
         Runtime OT version override; defaults to probe baseline when unknown.
     parameter_values:
@@ -457,11 +420,7 @@ def load_analyze_json(
         Optional wall-clock seconds for the analyze invocation.
     """
     analyze_path = Path(path) if path is not None else None
-    protocol = Path(protocol_path) if protocol_path is not None else None
-    package = Path(package_path) if package_path is not None else None
-
-    protocol_digest = _protocol_sha256(protocol)
-    package_digest = _package_sha256(package)
+    _ = protocol_path, package_path
     source_path = str(analyze_path.resolve()) if analyze_path is not None else None
     resolved_ot = ot_version or OT_VERSION_PROBE_BASELINE
 
@@ -470,8 +429,6 @@ def load_analyze_json(
             return _unevaluable_result(
                 reason="missing_analyze_artifact",
                 analyze_source_path=None,
-                protocol_sha256=protocol_digest,
-                package_sha256=package_digest,
                 ot_version=resolved_ot,
                 api_level=None,
                 parameter_values=dict(parameter_values or {}),
@@ -482,8 +439,6 @@ def load_analyze_json(
             return _unevaluable_result(
                 reason="missing_analyze_artifact",
                 analyze_source_path=source_path,
-                protocol_sha256=protocol_digest,
-                package_sha256=package_digest,
                 ot_version=resolved_ot,
                 api_level=None,
                 parameter_values=dict(parameter_values or {}),
@@ -496,8 +451,6 @@ def load_analyze_json(
             return _unevaluable_result(
                 reason="invalid_analyze_json",
                 analyze_source_path=source_path,
-                protocol_sha256=protocol_digest,
-                package_sha256=package_digest,
                 ot_version=resolved_ot,
                 api_level=None,
                 parameter_values=dict(parameter_values or {}),
@@ -508,8 +461,6 @@ def load_analyze_json(
             return _unevaluable_result(
                 reason="invalid_analyze_json",
                 analyze_source_path=source_path,
-                protocol_sha256=protocol_digest,
-                package_sha256=package_digest,
                 ot_version=resolved_ot,
                 api_level=None,
                 parameter_values=dict(parameter_values or {}),
@@ -523,8 +474,6 @@ def load_analyze_json(
         return _unevaluable_result(
             reason="missing_commands",
             analyze_source_path=source_path,
-            protocol_sha256=protocol_digest,
-            package_sha256=package_digest,
             ot_version=resolved_ot,
             api_level=_extract_api_level(payload),
             parameter_values=_extract_parameter_values(payload, parameter_values),
@@ -539,8 +488,6 @@ def load_analyze_json(
             return _unevaluable_result(
                 reason="malformed_command_entry",
                 analyze_source_path=source_path,
-                protocol_sha256=protocol_digest,
-                package_sha256=package_digest,
                 ot_version=resolved_ot,
                 api_level=_extract_api_level(payload),
                 parameter_values=_extract_parameter_values(payload, parameter_values),
@@ -570,8 +517,6 @@ def load_analyze_json(
     params = _extract_parameter_values(payload, parameter_values)
     summary = _status_summary(raw_commands)
     provenance = AnalyzeProvenance(
-        protocol_sha256=protocol_digest,
-        package_sha256=package_digest,
         ot_version=resolved_ot,
         api_level=api_level,
         parameter_values=params,

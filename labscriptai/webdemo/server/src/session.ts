@@ -80,11 +80,24 @@ export function refreshPhase(session: SessionState): Phase {
   return session.phase;
 }
 
+export function inferRobotFromText(text: string): RobotModel | undefined {
+  const found: RobotModel[] = [];
+  const src = text.toLowerCase();
+  if (/\bot-?2\b/.test(src)) found.push("OT-2");
+  if (/\bflex\b/.test(src)) found.push("Flex");
+  if (/\bhamilton\b/.test(src)) found.push("Hamilton");
+  if (/\btecan\b/.test(src)) found.push("Tecan");
+  return found.length === 1 ? found[0] : undefined;
+}
+
 export function missingList(session: SessionState): string[] {
   const missing: string[] = [];
   if (!session.goal?.trim()) missing.push("goal");
   if (session.doc === undefined) missing.push("doc");
-  if (!session.robot) missing.push("robot");
+  if (!session.robot) {
+    missing.push("robot");
+    return missing;
+  }
   const left = session.hardware.leftPipette;
   const right = session.hardware.rightPipette;
   if (![left, right].some((p) => p && p !== "None")) {
@@ -131,10 +144,11 @@ export function applyForm(
   const doc = (input.doc ?? "").trim();
   session.doc = doc ? doc : "none";
   session.sop = session.doc !== "none" ? session.doc : undefined;
-  if (isRobotModel(input.robot)) {
-    session.robot = input.robot;
-    if (!session.hardware.apiVersion && (input.robot === "OT-2" || input.robot === "Flex")) {
-      session.hardware.apiVersion = input.robot === "OT-2" ? "2.15" : "2.22";
+  const robot = isRobotModel(input.robot) ? input.robot : inferRobotFromText(session.goal);
+  if (robot) {
+    session.robot = robot;
+    if (!session.hardware.apiVersion && (robot === "OT-2" || robot === "Flex")) {
+      session.hardware.apiVersion = robot === "OT-2" ? "2.15" : "2.22";
     }
   }
   assumeStandardDeck(session);
@@ -290,24 +304,29 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   if (typeof input.goal === "string" && input.goal.trim()) {
     session.goal = input.goal.trim();
   }
+  const named = isRobotModel(input.robot)
+    ? input.robot
+    : !session.robot
+      ? inferRobotFromText(session.goal ?? "")
+      : undefined;
   if (typeof input.doc === "string") {
     const doc = input.doc.trim();
     session.doc = doc ? doc : "none";
     if (session.doc !== "none" && !session.sop?.trim()) {
       session.sop = session.doc;
     }
-  } else if (hardwareTouched(input) && session.doc === undefined) {
+  } else if ((hardwareTouched(input) || Boolean(named)) && session.doc === undefined) {
     session.doc = "none";
   }
-  if (isRobotModel(input.robot)) {
+  if (named) {
     const from = session.robot ?? previousRobot;
-    const switching = Boolean(from && from !== input.robot);
-    session.robot = input.robot;
+    const switching = Boolean(from && from !== named);
+    session.robot = named;
     if (switching) {
-      resetForRobotSwitch(session, input.robot);
+      resetForRobotSwitch(session, named);
     } else if (!session.hardware.apiVersion) {
-      if (input.robot === "OT-2") session.hardware.apiVersion = "2.15";
-      else if (input.robot === "Flex") session.hardware.apiVersion = "2.22";
+      if (named === "OT-2") session.hardware.apiVersion = "2.15";
+      else if (named === "Flex") session.hardware.apiVersion = "2.22";
     }
   }
   if (typeof input.left_pipette === "string") {

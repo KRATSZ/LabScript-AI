@@ -46,12 +46,6 @@ export async function createSession(input: {
   return response.json();
 }
 
-export async function getSession(id: string): Promise<SessionSnapshot> {
-  const response = await fetch(`/api/session/${id}`);
-  if (!response.ok) throw new Error("unknown session");
-  return response.json();
-}
-
 export async function streamChat(
   sessionId: string,
   message: string,

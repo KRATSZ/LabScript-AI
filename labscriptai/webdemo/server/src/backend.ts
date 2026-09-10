@@ -18,6 +18,7 @@ import {
   type StatePassResult,
   unevaluableLogic,
   wrapChecks,
+  attachConsequences,
 } from "./gate.ts";
 import { capSop } from "./session.ts";
 import { parseSseBuffer } from "./sse.ts";
@@ -404,7 +405,7 @@ async function withOptionalReview(
 ): Promise<ChecksResult> {
   if (!shouldRunLlmreview(checks.sim, checks.logicpass)) return checks;
   const llmreview = await runLlmreviewCli(userIntent, code);
-  return { ...checks, llmreview };
+  return attachConsequences({ ...checks, llmreview });
 }
 
 function runPlanCli(payload: unknown): Promise<Record<string, unknown>> {

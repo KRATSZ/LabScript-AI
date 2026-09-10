@@ -13,6 +13,8 @@ import {
   createSession,
   enoughHardware,
   formatHardwareConfig,
+  inferRobotFromText,
+  missingList,
   presetMismatchWarning,
   shouldCallCompactSop,
   shouldReuseSop,
@@ -37,6 +39,7 @@ describe("session machine", () => {
     assert.equal(session.sop, undefined);
     assert.equal(enoughHardware(session), false);
     assert.equal(session.phase, "need_robot");
+    assert.deepEqual(missingList(session), ["robot"]);
     assert.equal(canGenerateSop(session), false);
     assert.equal(shouldCallCompactSop(session), false);
     assert.match(formatHardwareConfig(session), /Robot Model: unset/);
@@ -352,6 +355,38 @@ describe("session machine", () => {
     assert.equal(session.robot, "OT-2");
     assert.equal(session.hardware.deck["1"], "opentrons_96_tiprack_300ul");
     assert.equal(session.hardware.deck.A1, undefined);
+    assert.equal(session.deckAssumed, true);
+  });
+
+  it("inferRobotFromText needs exactly one named robot", () => {
+    assert.equal(inferRobotFromText("Hamilton STAR: transfer 50 µL A1 to B1"), "Hamilton");
+    assert.equal(inferRobotFromText("ot2 transfer"), "OT-2");
+    assert.equal(inferRobotFromText("OT-2 PCR"), "OT-2");
+    assert.equal(inferRobotFromText("Flex protocol"), "Flex");
+    assert.equal(inferRobotFromText("Tecan Freedom EVO"), "Tecan");
+    assert.equal(inferRobotFromText("PCR setup"), undefined);
+    assert.equal(
+      inferRobotFromText("common deck on OT-2, Flex, Hamilton, or Tecan"),
+      undefined
+    );
+  });
+
+  it("goal that names one robot assumes a deck and skips the robot ask", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Hamilton STAR: transfer 50 µL A1 to B1", doc: "" });
+    assert.equal(session.robot, "Hamilton");
+    assert.equal(session.phase, "ready");
+    assert.equal(session.deckAssumed, true);
+    assert.deepEqual(missingList(session), []);
+    assert.equal(canEmitPlan(session), false);
+  });
+
+  it("ask_user infers robot from a goal that names one", () => {
+    const session = createSession();
+    applyAskUser(session, { goal: "Flex: transfer 50 µL A1 to B1" });
+    assert.equal(session.robot, "Flex");
+    assert.equal(session.doc, "none");
+    assert.equal(session.phase, "ready");
     assert.equal(session.deckAssumed, true);
   });
 });

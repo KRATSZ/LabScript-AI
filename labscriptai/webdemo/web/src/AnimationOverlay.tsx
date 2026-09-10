@@ -40,7 +40,7 @@ class AnimatorGuard extends Component<
     if (this.state.failed) {
       return (
         <p className="file" data-animator-error={this.state.error}>
-          Cannot play yet.
+          Cannot play.
         </p>
       );
     }
@@ -80,7 +80,7 @@ export function AnimationOverlay({
             </ThemeProvider>
           </div>
         ) : (
-          <p className="file">Cannot play yet.</p>
+          <p className="file">Cannot play.</p>
         )}
       </div>
     </OverlayChrome>

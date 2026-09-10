@@ -1,11 +1,12 @@
 export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
 
+export type CheckStatus = "pass" | "fail" | "unevaluable";
+
 export interface ChecksResult {
+  status: CheckStatus;
   sim: { ok: boolean; reason?: string; errors?: string[] };
   logicpass: {
     outcome: string;
-    logic_pass: boolean;
-    final_pass_v2?: boolean;
     issues?: unknown[];
     coverage?: unknown;
     reason?: string;
@@ -21,7 +22,7 @@ export interface ChecksResult {
     findings?: unknown[];
     reason?: string;
   };
-  fab: { lit: boolean };
+  consequences?: string[];
 }
 
 export interface SessionSnapshot {
@@ -54,5 +55,4 @@ export interface ChatMessage {
   text: string;
   meta?: string;
   thinking?: string;
-  tools?: string[];
 }

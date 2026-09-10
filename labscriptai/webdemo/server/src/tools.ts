@@ -11,7 +11,15 @@ import {
   validatePlan,
 } from "./backend.ts";
 import { loadDemoEnv } from "./env.ts";
-import { compactChecks, needsPatch, PATCH_CAP, patchInstruction, refuseEmptySop } from "./gate.ts";
+import {
+  compactChecks,
+  needsPatch,
+  PATCH_BUDGET_REFUSAL,
+  PATCH_CAP,
+  patchCapHit,
+  patchInstruction,
+  refuseEmptySop,
+} from "./gate.ts";
 import {
   applyAskUser,
   canEmitPlan,
@@ -35,12 +43,21 @@ import type { SseWriter } from "./sse.ts";
 type ToolResult = {
   content: Array<{ type: "text"; text: string }>;
   details?: Record<string, unknown>;
+  terminate?: boolean;
 };
 
 function ok(payload: unknown): ToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
     details: { payload },
+  };
+}
+
+function refusePatchBudget(): ToolResult {
+  return {
+    content: [{ type: "text", text: PATCH_BUDGET_REFUSAL }],
+    details: { refused: true, next: "done" },
+    terminate: true,
   };
 }
 
@@ -57,7 +74,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "ask_user",
     label: "Ask user / session",
     description:
-      "Persist collected answers and read the session machine. Use after the user gives goal, doc=none/draft, robot, pipettes, or deck slots. Naming any supported robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the user names specific labware. Does not generate code. No deck UI.",
+      "Persist session fields. Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true) — state-setting, not a question. Pass deck only when the protocol names labware the assumed deck lacks. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
@@ -168,6 +185,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         if (refused) missing.push("sop");
         return ok({ blocked: true, missing });
       }
+      if (patchCapHit(session.patchesUsed ?? 0, session.lastChecks)) {
+        return refusePatchBudget();
+      }
       const instruction = String((args as { instruction?: string }).instruction ?? "").trim();
       const existing = session.code?.trim() ?? "";
       const fromChecks = needsPatch(session.lastChecks) && (session.patchesUsed ?? 0) < PATCH_CAP;
@@ -246,6 +266,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         const missing = missingList(session);
         if (!session.sop?.trim()) missing.push("sop");
         return ok({ blocked: true, missing });
+      }
+      if (patchCapHit(session.patchesUsed ?? 0, session.lastChecks)) {
+        return refusePatchBudget();
       }
       const raw = { ...((args as { plan?: Record<string, unknown> }).plan ?? {}) };
       if (!raw.backend) raw.backend = planBackendFor(session.robot);

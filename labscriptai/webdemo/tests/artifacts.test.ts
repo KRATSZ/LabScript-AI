@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { downloadable, planStepLine, planSteps } from "../web/src/artifacts.ts";
+import { downloadable, downloadSuffix, planStepLine, planSteps } from "../web/src/artifacts.ts";
 
 describe("planStepLine", () => {
   it("formats aspirate with volume and route", () => {
@@ -43,10 +43,32 @@ describe("downloadable", () => {
   });
 });
 
+describe("downloadSuffix", () => {
+  it("marks fail and unevaluable without blocking", () => {
+    assert.equal(downloadSuffix("pass"), "");
+    assert.equal(downloadSuffix(undefined), "");
+    assert.equal(downloadSuffix("fail"), " (checks failed)");
+    assert.equal(downloadSuffix("unevaluable"), " (cannot verify)");
+  });
+});
+
 describe("planSteps", () => {
   it("returns steps array or empty", () => {
     assert.deepEqual(planSteps(null), []);
     assert.deepEqual(planSteps({}), []);
     assert.deepEqual(planSteps({ steps: [{ step_id: "1" }] }), [{ step_id: "1" }]);
+  });
+});
+
+describe("robot switch downloads", () => {
+  it("lists only the new snapshot files", () => {
+    assert.deepEqual(
+      downloadable({ sop: "# OT SOP", code: "def run(): pass", plan: null }),
+      ["sop", "python"]
+    );
+    assert.deepEqual(
+      downloadable({ sop: "# HAM SOP", code: "", plan: { steps: [{ step_id: "1" }] } }),
+      ["sop", "plan"]
+    );
   });
 });

@@ -1,6 +1,6 @@
 # LabscriptAI
 
-**This branch (`pi-agent`):** [local chat demo](labscriptai/webdemo/README.md) — four robots (OT-2, Flex, Hamilton, Tecan). OT-2/Flex use 8010 Python + Watch when up; Hamilton/Tecan and OT Plan-IR fallback use Plan IR + PyLabRobot (`pip install pylabrobot` optional; missing PLR is not a pass). Watch after FinalPass_v2 needs 8010 analyze; no live Flex.
+**This branch (`pi-agent`):** [local chat demo](labscriptai/webdemo/README.md) — four robots. OT-2/Flex: Python when 8010 is up, else a step table. Hamilton/Tecan: step table only. Checks are pass / fail / cannot-verify (cannot-verify never lights Watch). One auto-patch then it stops. Downloads always available.
 
 **Paper CLI (`manuscript`):** `labscriptai chat` below.
 

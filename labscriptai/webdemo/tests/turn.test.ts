@@ -83,6 +83,18 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.equal(nextToolHint(session), "emit_plan");
   });
 
+  it("goal that names Hamilton with an SOP draft skips ask_user", () => {
+    const session = createSession();
+    applyForm(session, {
+      goal: "Hamilton STAR: transfer 50 µL A1 to B1",
+      doc: "# SOP\n1. A",
+    });
+    assert.equal(session.robot, "Hamilton");
+    assert.equal(session.phase, "ready");
+    assert.equal(nextToolHint(session), "emit_plan");
+    assert.doesNotMatch(liveSessionBlock(session), /next_tool: ask_user/);
+  });
+
   it("next_tool is emit_plan for Flex when code_service is down and no Python", () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
@@ -108,5 +120,21 @@ describe("nextUserMessage / LIVE SESSION", () => {
     );
     assert.equal(nextToolHint(session), "emit_plan");
     assert.match(liveSessionBlock(session), /next_tool: emit_plan/);
+  });
+
+  it("next_tool is done after the patch cap with failing checks", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "hamilton_star_standard" });
+    session.sop = "# SOP\n1. A";
+    session.plan = { steps: [{ step_id: "1", primitive_type: "ASPIRATE" }] };
+    session.patchesUsed = 1;
+    session.lastChecks = wrapChecks(
+      { ok: false, reason: "sim_failed" },
+      { outcome: "skipped", logic_pass: false },
+      { issues: [] }
+    );
+    assert.equal(nextToolHint(session), "done");
+    assert.match(liveSessionBlock(session), /next=done/);
   });
 });

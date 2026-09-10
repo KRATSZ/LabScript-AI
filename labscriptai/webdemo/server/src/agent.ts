@@ -2,6 +2,7 @@ import { Agent } from "@earendil-works/pi-agent-core";
 import type { AssistantMessageEvent, Model } from "@earendil-works/pi-ai";
 import { streamSimple } from "@earendil-works/pi-ai/compat";
 import { loadDemoEnv } from "./env.ts";
+import { isPatchBudgetRefusal } from "./gate.ts";
 import { snapshot, type SessionState } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
@@ -63,6 +64,10 @@ export async function runChatTurn(
     getApiKey: async () => env.apiKey,
     toolExecution: "sequential",
     sessionId: session.id,
+    afterToolCall: async ({ result }) =>
+      isPatchBudgetRefusal(result.details) ? { isError: true, terminate: true } : undefined,
+    shouldStopAfterTurn: ({ toolResults }) =>
+      toolResults.some((r) => isPatchBudgetRefusal(r.details)),
   });
 
   agent.subscribe((event) => {

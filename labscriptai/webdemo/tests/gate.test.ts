@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   fabLit,
+  checkStatus,
   forceRaiseOnlySim,
   inspectAnalyze,
   looksLikeRaiseOnly,
@@ -12,7 +13,10 @@ import {
   unevaluableLogic,
   wrapChecks,
   compactChecks,
+  isPatchBudgetRefusal,
   needsPatch,
+  patchCapHit,
+  patchInstruction,
   type LogicPassResult,
   type SimResult,
 } from "../server/src/gate.ts";
@@ -206,6 +210,38 @@ describe("compactChecks", () => {
     assert.equal(compactLp.next, "patch");
     assert.equal(compactLp.logicpass.outcome, "fail");
     assert.ok(compactLp.logicpass.issues.length >= 1);
+    assert.equal(compactLp.logicpass.issues.some((line) => line.includes("LP-")), false);
+    assert.ok(compactLp.consequences.length >= 1);
+    assert.equal(compactLp.consequences.some((line) => line.includes("LP-")), false);
+
+    const patchSimCompact = compactChecks(patchSim);
+    assert.match(patchSimCompact.sim.consequence || "", /cannot run/i);
+    assert.equal("reason" in patchSimCompact.sim, false);
+
+    const overflow = wrapChecks(
+      simOk,
+      {
+        outcome: "fail",
+        logic_pass: false,
+        issues: [{ code: "LP-OVERFLOW", detail_text: "dispense 50 µL into plate:B1 would exceed 200 µL", step_id: "3" }],
+      },
+      { issues: [] }
+    );
+    assert.match(overflow.consequences?.[0] || "", /spill/i);
+    assert.equal(overflow.consequences?.[0]?.includes("LP-"), false);
+    const patch = patchInstruction(overflow);
+    assert.match(patch, /spill/i);
+    assert.doesNotMatch(patch, /LP-OVERFLOW/);
+    assert.doesNotMatch(patch, /Sim failed:/);
+
+    const uneval = wrapChecks(simOk, unevaluableLogic("capacity_unknown"), { issues: [] });
+    assert.match(uneval.consequences?.[0] || "", /^Cannot verify:/);
+    const simUneval = wrapChecks(
+      { ok: false, reason: "plr_unavailable" },
+      skippedLogic("plr_unavailable"),
+      { issues: [] }
+    );
+    assert.match(simUneval.consequences?.[0] || "", /^Cannot verify:/);
 
     const withReview = wrapChecks(simOk, lpPass, { issues: [] }, {
       match: false,
@@ -217,5 +253,51 @@ describe("compactChecks", () => {
     assert.equal(compactChecks(withReview).review.match, false);
     assert.ok(compactChecks(withReview).review.findings.length >= 1);
     assert.equal(compactChecks(withReview, 1).next, "done");
+  });
+
+  it("patchCapHit after the one allowed patch while checks still fail", () => {
+    const fail = wrapChecks(simFail, skippedLogic("sim_failed"), { issues: [] });
+    const pass = wrapChecks(simOk, lpPass, { issues: [] });
+    assert.equal(patchCapHit(0, fail), false);
+    assert.equal(patchCapHit(1, fail), true);
+    assert.equal(patchCapHit(1, undefined), true);
+    assert.equal(patchCapHit(1, pass), false);
+    assert.equal(isPatchBudgetRefusal({ refused: true }), true);
+    assert.equal(isPatchBudgetRefusal({ payload: {} }), false);
+  });
+});
+
+describe("checkStatus", () => {
+  it("maps pass, fail, unevaluable, sim-failed, and plr-unavailable", () => {
+    const pass = wrapChecks(simOk, lpPass, { issues: [] });
+    assert.equal(pass.status, "pass");
+    assert.equal(checkStatus(pass), "pass");
+
+    const fail = wrapChecks(simOk, lpFail, { issues: [] });
+    assert.equal(fail.status, "fail");
+    assert.equal(fail.fab.lit, false);
+
+    const uneval = wrapChecks(simOk, unevaluableLogic("missing_analyze_artifact"), { issues: [] });
+    assert.equal(uneval.status, "unevaluable");
+    assert.equal(uneval.fab.lit, false);
+
+    const simFailed = wrapChecks(simFail, skippedLogic("sim_failed"), { issues: [] });
+    assert.equal(simFailed.status, "fail");
+    assert.equal(simFailed.logicpass.outcome, "skipped");
+
+    const plr = wrapChecks(
+      { ok: false, reason: "plr_unavailable" },
+      skippedLogic("plr_unavailable"),
+      { issues: [] }
+    );
+    assert.equal(plr.status, "unevaluable");
+    assert.equal(plr.fab.lit, false);
+
+    const invalid = wrapChecks(
+      { ok: false, reason: "invalid_plan" },
+      skippedLogic("invalid_plan"),
+      { issues: [] }
+    );
+    assert.equal(invalid.status, "fail");
   });
 });

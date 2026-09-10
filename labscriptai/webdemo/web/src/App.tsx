@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { isPlayableAnalyze } from "./analysis";
 import { createSession, streamChat } from "./api";
 import { ChatPane } from "./ChatPane";
@@ -6,18 +6,11 @@ import { ExportsPanel } from "./ExportsPanel";
 import { IssuesPanel } from "./IssuesPanel";
 import { OverlayChrome } from "./OverlayChrome";
 import { Pipeline } from "./Pipeline.tsx";
+import { phaseLabel } from "./pipelineLogic.ts";
 import { StartForm } from "./StartForm";
 import type { ChatMessage, SessionSnapshot } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
-
-function phaseLabel(phase: string, lit: boolean, canWatch: boolean): string {
-  if (canWatch) return "Ready to watch";
-  if (lit) return "No animation yet";
-  if (phase === "need_hw_slots") return "Missing deck details";
-  if (phase === "ready") return "In progress";
-  return "Which robot — OT-2, Flex, Hamilton, or Tecan?";
-}
 
 export function App() {
   const [session, setSession] = useState<SessionSnapshot | null>(null);
@@ -26,10 +19,18 @@ export function App() {
   const [overlay, setOverlay] = useState(false);
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
+  const robotRef = useRef<SessionSnapshot["robot"]>(null);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
     setSession(snap);
   }, []);
+
+  useEffect(() => {
+    const prev = robotRef.current;
+    const next = session?.robot ?? null;
+    if (prev && next && prev !== next) setOverlay(false);
+    robotRef.current = next;
+  }, [session?.robot]);
 
   const runTurn = useCallback(
     async (sessionId: string, text: string, alreadyAddedUser: boolean) => {
@@ -38,7 +39,7 @@ export function App() {
       if (!alreadyAddedUser && text.trim()) {
         setMessages((prev) => [...prev, { role: "user", text }]);
       }
-      setMessages((prev) => [...prev, { role: "assistant", text: "", thinking: "", tools: [] }]);
+      setMessages((prev) => [...prev, { role: "assistant", text: "", thinking: "" }]);
       try {
         await streamChat(sessionId, text, {
           onThinking: (token) => {
@@ -64,7 +65,7 @@ export function App() {
           },
           onSnapshot: applySnapshot,
           onChecks: (checks) => {
-            setSession((cur) => (cur && checks ? { ...cur, checks, fab: checks.fab } : cur));
+            setSession((cur) => (cur && checks ? { ...cur, checks } : cur));
           },
           onAnimation: (allowed) => {
             if (allowed) setOverlay(true);
@@ -102,8 +103,9 @@ export function App() {
     }
   };
 
-  const lit = Boolean(session?.fab.lit);
-  const canWatch = lit && isPlayableAnalyze(session?.analyze ?? null);
+  const status = session?.checks?.status;
+  const canWatch = status === "pass" && isPlayableAnalyze(session?.analyze ?? null);
+  const planBackend = session?.robot === "Hamilton" || session?.robot === "Tecan";
 
   return (
     <div className="app">
@@ -113,7 +115,7 @@ export function App() {
           <div>
             <h1>LabscriptAI</h1>
             <p>Local chat demo · 127.0.0.1</p>
-            {session?.code_service === "down" ? (
+            {session?.code_service === "down" && !planBackend ? (
               <p className="code-offline">Code service offline — animation unavailable</p>
             ) : null}
           </div>
@@ -129,7 +131,7 @@ export function App() {
             <div className="card collapsed">
               <div>
                 <div>
-                  <strong>{phaseLabel(session.phase, lit, canWatch)}</strong>
+                  <strong>{phaseLabel(session.phase, status, canWatch, planBackend)}</strong>
                 </div>
                 <div>{session.goal}</div>
                 <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
@@ -162,6 +164,7 @@ export function App() {
           }
         >
           <AnimationOverlay
+            key={session?.robot ?? ""}
             analyze={session?.analyze ?? null}
             robot={session?.robot}
             onClose={() => setOverlay(false)}

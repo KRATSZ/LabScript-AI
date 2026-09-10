@@ -1,5 +1,4 @@
-import { isPlayableAnalyze } from "./analysis";
-import { downloadable, downloadText, planStepLine, planSteps } from "./artifacts";
+import { downloadable, downloadSuffix, downloadText, planStepLine, planSteps } from "./artifacts";
 import type { SessionSnapshot } from "./types";
 
 const DOWNLOAD_LABELS: Record<ReturnType<typeof downloadable>[number], string> = {
@@ -17,9 +16,9 @@ function downloadFor(session: SessionSnapshot, kind: ReturnType<typeof downloada
 export function ExportsPanel({ session }: { session: SessionSnapshot }) {
   const files = downloadable(session);
   const steps = planSteps(session.plan);
-  const showWatchNote = Boolean(session.plan) && !isPlayableAnalyze(session.analyze);
+  const marker = downloadSuffix(session.checks?.status);
 
-  if (!files.length && !steps.length && !showWatchNote) return null;
+  if (!files.length && !steps.length) return null;
 
   return (
     <div className="artifacts">
@@ -28,6 +27,7 @@ export function ExportsPanel({ session }: { session: SessionSnapshot }) {
           {files.map((kind) => (
             <button key={kind} type="button" className="export-btn" onClick={() => downloadFor(session, kind)}>
               {DOWNLOAD_LABELS[kind]}
+              {marker}
             </button>
           ))}
         </div>
@@ -44,7 +44,6 @@ export function ExportsPanel({ session }: { session: SessionSnapshot }) {
           </div>
         </div>
       ) : null}
-      {showWatchNote ? <p className="file">Watch is Opentrons-only.</p> : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { collectConsequences, formatIssue, formatReason, isUnevaluableCode } from "./consequences.ts";
+
 export type LogicOutcome = "pass" | "fail" | "unevaluable" | string;
 
 export interface SimResult {
@@ -40,12 +42,16 @@ export interface LlmReviewResult {
   reason?: string;
 }
 
+export type CheckStatus = "pass" | "fail" | "unevaluable";
+
 export interface ChecksResult {
   sim: SimResult;
   logicpass: LogicPassResult;
   statepass: StatePassResult;
   llmreview?: LlmReviewResult;
   fab: { lit: boolean };
+  status: CheckStatus;
+  consequences?: string[];
 }
 
 export function fabLit(sim: SimResult, logicpass: LogicPassResult): boolean {
@@ -55,6 +61,23 @@ export function fabLit(sim: SimResult, logicpass: LogicPassResult): boolean {
       logicpass.logic_pass === true &&
       logicpass.final_pass_v2 === true
   );
+}
+
+/** Pass iff FAB is lit. Unevaluable is never pass. */
+export function checkStatus(checks: {
+  sim: SimResult;
+  logicpass: LogicPassResult;
+  fab: { lit: boolean };
+}): CheckStatus {
+  if (checks.fab.lit) return "pass";
+  if (checks.logicpass.outcome === "unevaluable") return "unevaluable";
+  if (
+    checks.logicpass.outcome === "skipped" &&
+    isUnevaluableCode(checks.logicpass.reason || checks.sim.reason)
+  ) {
+    return "unevaluable";
+  }
+  return "fail";
 }
 
 export function unevaluableLogic(reason: string): LogicPassResult {
@@ -165,29 +188,32 @@ export function wrapChecks(
   statepass: StatePassResult,
   llmreview?: LlmReviewResult
 ): ChecksResult {
-  return {
+  return attachConsequences({
     sim,
     logicpass,
     statepass,
     fab: { lit: fabLit(sim, logicpass) },
     ...(llmreview ? { llmreview } : {}),
-  };
+  });
 }
 
-export function issueLine(item: unknown): string {
-  if (typeof item === "string") return item.trim();
-  if (item && typeof item === "object") {
-    const rec = item as Record<string, unknown>;
-    const bits = [rec.code, rec.detail_text, rec.hint, rec.claim, rec.suggestion, rec.reason].filter(
-      (part) => typeof part === "string" && part.trim()
-    );
-    if (bits.length) return bits.join(" — ");
+export function attachConsequences(
+  checks: Omit<ChecksResult, "status" | "consequences"> & {
+    status?: CheckStatus;
+    consequences?: string[];
   }
-  const text = String(item ?? "").trim();
-  return text;
+): ChecksResult {
+  return { ...checks, status: checkStatus(checks), consequences: collectConsequences(checks) };
+}
+
+export function issueLine(item: unknown, unevaluable = false): string {
+  return formatIssue(item, unevaluable);
 }
 
 export const PATCH_CAP = 1;
+
+export const PATCH_BUDGET_REFUSAL =
+  "Patch budget used. Stop calling tools. Tell the user what fails, what that means for their experiment, and ask how to proceed.";
 
 /** Iterate when FAB is dark, or when llmreview explicitly disagrees. */
 export function needsPatch(checks: ChecksResult | null | undefined): boolean {
@@ -196,21 +222,47 @@ export function needsPatch(checks: ChecksResult | null | undefined): boolean {
   return checks.llmreview?.match === false;
 }
 
+/** One patch per turn. Further generate_code/emit_plan calls must be refused. */
+export function patchCapHit(
+  patchesUsed: number,
+  checks: ChecksResult | null | undefined
+): boolean {
+  if (patchesUsed < PATCH_CAP) return false;
+  return !checks || needsPatch(checks);
+}
+
+export function isPatchBudgetRefusal(details: unknown): boolean {
+  return Boolean(
+    details && typeof details === "object" && (details as { refused?: boolean }).refused
+  );
+}
+
 export function compactChecks(
   checks: ChecksResult,
   patchesUsed = 0
 ): {
-  sim: { ok: boolean; reason?: string };
+  sim: { ok: boolean; consequence?: string };
   logicpass: { outcome: string; issues: string[] };
   review: { match?: boolean; findings: string[] };
   fab: { lit: boolean };
   next: "patch" | "done";
+  consequences: string[];
 } {
-  const issues = (checks.logicpass.issues ?? []).slice(0, 3).map(issueLine).filter(Boolean);
+  const uneval = checks.logicpass.outcome === "unevaluable";
+  const issues = (checks.logicpass.issues ?? [])
+    .slice(0, 3)
+    .map((item) => issueLine(item, uneval))
+    .filter(Boolean);
   const findings = (checks.llmreview?.findings ?? []).slice(0, 2).map(issueLine).filter(Boolean);
   const iterate = needsPatch(checks) && patchesUsed < PATCH_CAP;
+  const consequences = checks.consequences ?? collectConsequences(checks);
   return {
-    sim: { ok: checks.sim.ok, ...(checks.sim.reason ? { reason: checks.sim.reason } : {}) },
+    sim: {
+      ok: checks.sim.ok,
+      ...(!checks.sim.ok
+        ? { consequence: formatReason(checks.sim.reason || "sim_failed", isUnevaluableCode(checks.sim.reason)) }
+        : {}),
+    },
     logicpass: { outcome: String(checks.logicpass.outcome), issues },
     review: {
       ...(typeof checks.llmreview?.match === "boolean" ? { match: checks.llmreview.match } : {}),
@@ -218,6 +270,7 @@ export function compactChecks(
     },
     fab: { lit: checks.fab.lit },
     next: iterate ? "patch" : "done",
+    consequences: consequences.slice(0, 5),
   };
 }
 
@@ -226,15 +279,19 @@ export function patchInstruction(checks: ChecksResult): string {
     "Patch this Opentrons protocol. Apply the check failures and review findings. Return a complete runnable script.",
   ];
   if (!checks.sim.ok) {
-    lines.push(`Sim failed: ${checks.sim.reason || "sim_failed"}`);
+    lines.push(formatReason(checks.sim.reason || "sim_failed", isUnevaluableCode(checks.sim.reason)));
     for (const err of (checks.sim.errors ?? []).slice(0, 3)) {
       const text = issueLine(err);
-      if (text) lines.push(`- ${text}`);
+      if (text && text !== checks.sim.reason) lines.push(`- ${text}`);
     }
   }
-  const issues = (checks.logicpass.issues ?? []).slice(0, 3).map(issueLine).filter(Boolean);
+  const uneval = checks.logicpass.outcome === "unevaluable";
+  const issues = (checks.logicpass.issues ?? [])
+    .slice(0, 3)
+    .map((item) => issueLine(item, uneval))
+    .filter(Boolean);
   if (issues.length) {
-    lines.push("LogicPass:");
+    lines.push("Logic check:");
     for (const item of issues) lines.push(`- ${item}`);
   }
   const findings = (checks.llmreview?.findings ?? []).slice(0, 3);
@@ -253,7 +310,7 @@ export function patchInstruction(checks: ChecksResult): string {
     }
   }
   if (checks.llmreview?.match === false) {
-    lines.push("llmreview.match is false; patch even if simulation passed.");
+    lines.push("Review does not match the goal; patch even if simulation passed.");
   }
   return lines.join("\n");
 }

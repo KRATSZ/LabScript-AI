@@ -361,14 +361,8 @@ class NormalizedCommand:
 
 @dataclass(frozen=True)
 class AnalyzeProvenance:
-    """Frozen analyze provenance envelope (required keys always present).
+    """Frozen analyze provenance envelope (required keys always present)."""
 
-    ``package_sha256`` is ``None`` iff no package *file* artifact was supplied.
-    Directory presence alone does not select the string branch.
-    """
-
-    protocol_sha256: str | None
-    package_sha256: str | None
     ot_version: str | None
     api_level: str | None
     parameter_values: Mapping[str, Any]

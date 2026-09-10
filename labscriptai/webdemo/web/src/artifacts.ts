@@ -40,6 +40,12 @@ export function planSteps(plan: Record<string, unknown> | null): unknown[] {
   return plan.steps;
 }
 
+export function downloadSuffix(status?: string): string {
+  if (status === "fail") return " (checks failed)";
+  if (status === "unevaluable") return " (cannot verify)";
+  return "";
+}
+
 export function downloadable(
   session: Pick<SessionSnapshot, "sop" | "code" | "plan">
 ): DownloadKind[] {

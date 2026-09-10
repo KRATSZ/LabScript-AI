@@ -3,7 +3,7 @@ import { SYSTEM_PROMPT } from "./prompt.ts";
 import { isOpentrons, snapshot, type SessionState } from "./session.ts";
 
 export const CONTINUE_STEER =
-  "Continue from LIVE SESSION. Ask missing hardware or run the next allowed tool.";
+  "Continue from LIVE SESSION. Run next_tool. Ask only if robot is unknown or the protocol needs labware the assumed deck does not have.";
 
 export function nextToolHint(session: SessionState): string {
   const snap = snapshot(session);

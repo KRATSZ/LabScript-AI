@@ -7,8 +7,6 @@ from typing import Any
 
 from labscriptai.planir.schema import PlanDocument, PlanStep
 
-DEFAULT_MAX_UL = 200.0
-
 
 @dataclass
 class DeckIssue:
@@ -28,6 +26,7 @@ class VirtualDeckResult:
     pipette_ul: float = 0.0
     has_tip: bool = False
     steps_run: int = 0
+    unevaluable: bool = False
 
     def to_logicpass(self) -> dict[str, Any]:
         if not self.ok:
@@ -38,6 +37,14 @@ class VirtualDeckResult:
                 "issues": [issue.to_dict() for issue in self.issues],
                 "reason": self.issues[0].code if self.issues else "virtual_deck_failed",
             }
+        if self.unevaluable:
+            return {
+                "outcome": "unevaluable",
+                "logic_pass": False,
+                "final_pass_v2": False,
+                "issues": [issue.to_dict() for issue in self.issues],
+                "reason": self.issues[0].code if self.issues else "capacity_unknown",
+            }
         return {
             "outcome": "pass",
             "logic_pass": True,
@@ -46,12 +53,14 @@ class VirtualDeckResult:
         }
 
 
-def _max_for(plan: PlanDocument, loc: str) -> float:
+def _max_for(plan: PlanDocument, loc: str) -> float | None:
     plate = loc.split(":", 1)[0]
     for resource in plan.resources:
-        if resource.id == plate and resource.max_volume_ul is not None:
+        if resource.id == plate:
+            if resource.max_volume_ul is None:
+                return None
             return float(resource.max_volume_ul)
-    return DEFAULT_MAX_UL
+    return None
 
 
 def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
@@ -60,6 +69,7 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
     pipette = 0.0
     has_tip = False
     issues: list[DeckIssue] = []
+    unknown_locs: dict[str, str] = {}
     ran = 0
 
     def fail(code: str, text: str, step: PlanStep) -> VirtualDeckResult:
@@ -72,6 +82,12 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
             has_tip=has_tip,
             steps_run=ran,
         )
+
+    def touch(loc: str, step: PlanStep) -> float | None:
+        cap = _max_for(plan, loc)
+        if cap is None and loc and loc not in unknown_locs:
+            unknown_locs[loc] = step.step_id
+        return cap
 
     for step in plan.ordered_steps():
         ran += 1
@@ -95,6 +111,7 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
         volume = float(step.volume_ul or 0)
         if kind == "ASPIRATE":
             loc = step.source or ""
+            touch(loc, step)
             have = wells.get(loc, 0.0)
             if have + 1e-9 < volume:
                 return fail(
@@ -113,9 +130,9 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
                     f"dispense {volume} µL but pipette holds {pipette:.1f} µL",
                     step,
                 )
-            cap = _max_for(plan, loc)
+            cap = touch(loc, step)
             have = wells.get(loc, 0.0)
-            if have + volume > cap + 1e-9:
+            if cap is not None and have + volume > cap + 1e-9:
                 return fail(
                     "LP-OVERFLOW",
                     f"dispense {volume} µL into {loc} would exceed {cap} µL",
@@ -126,6 +143,7 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
             continue
         if kind == "MIX":
             loc = step.location or step.source or step.destination or ""
+            touch(loc, step)
             have = wells.get(loc, 0.0)
             if have + 1e-9 < volume:
                 return fail(
@@ -134,4 +152,21 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
                     step,
                 )
             continue
+    if unknown_locs:
+        return VirtualDeckResult(
+            ok=True,
+            unevaluable=True,
+            issues=[
+                DeckIssue(
+                    code="LP-CAPACITY-UNKNOWN",
+                    detail_text=f"capacity unknown for {loc} — cannot verify overflow",
+                    step_id=unknown_locs[loc],
+                )
+                for loc in sorted(unknown_locs)
+            ],
+            wells=wells,
+            pipette_ul=pipette,
+            has_tip=has_tip,
+            steps_run=ran,
+        )
     return VirtualDeckResult(ok=True, wells=wells, pipette_ul=pipette, has_tip=has_tip, steps_run=ran)

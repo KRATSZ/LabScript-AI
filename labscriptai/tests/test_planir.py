@@ -160,6 +160,81 @@ def test_overflow_does_not_light_fab() -> None:
     assert "llmreview" not in out
 
 
+def test_unknown_capacity_dispense_is_unevaluable() -> None:
+    payload = {
+        **DEMO,
+        "resources": [
+            {"id": "tips", "type": "tiprack", "slot": "1"},
+            {"id": "plate", "type": "plate", "slot": "2"},
+        ],
+    }
+    deck = evaluate_virtual_deck(load_plan(payload))
+    logic = deck.to_logicpass()
+    assert deck.ok is True
+    assert deck.unevaluable is True
+    assert logic["outcome"] == "unevaluable"
+    assert logic["logic_pass"] is False
+    assert logic["final_pass_v2"] is False
+    texts = " ".join(issue["detail_text"] for issue in logic["issues"])
+    assert "plate:B1" in texts
+    assert "cannot verify overflow" in texts
+    out = run_plan_checks(payload, sim=_ok_sim(None), skip_review=True)
+    assert out["logicpass"]["outcome"] == "unevaluable"
+    assert out["fab"]["lit"] is False
+
+
+def test_unknown_capacity_plus_overflow_is_fail() -> None:
+    payload = {
+        **DEMO,
+        "resources": [
+            {"id": "tips", "type": "tiprack", "slot": "1"},
+            {"id": "plate", "type": "plate", "slot": "2", "max_volume_ul": 200},
+            {"id": "reservoir", "type": "reservoir", "slot": "3"},
+        ],
+        "initial_volumes_ul": {"plate:A1": 50, "plate:B1": 180, "reservoir:A1": 0},
+        "steps": [
+            DEMO["steps"][0],
+            {**DEMO["steps"][1], "volume_ul": 50},
+            {**DEMO["steps"][2], "destination": "reservoir:A1", "volume_ul": 50},
+            {
+                "step_id": "4",
+                "primitive_type": "ASPIRATE",
+                "source": "reservoir:A1",
+                "volume_ul": 50,
+                "dependencies": ["3"],
+            },
+            {
+                "step_id": "5",
+                "primitive_type": "DISPENSE",
+                "destination": "plate:B1",
+                "volume_ul": 50,
+                "dependencies": ["4"],
+            },
+        ],
+    }
+    deck = evaluate_virtual_deck(load_plan(payload))
+    logic = deck.to_logicpass()
+    assert deck.ok is False
+    assert logic["outcome"] == "fail"
+    assert deck.issues[0].code == "LP-OVERFLOW"
+    out = run_plan_checks(payload, sim=_ok_sim(None), skip_review=True)
+    assert out["logicpass"]["outcome"] == "fail"
+    assert out["fab"]["lit"] is False
+
+
+def test_known_capacity_clean_plan_passes() -> None:
+    deck = evaluate_virtual_deck(load_plan(DEMO))
+    logic = deck.to_logicpass()
+    assert deck.ok is True
+    assert deck.unevaluable is False
+    assert logic["outcome"] == "pass"
+    assert logic["logic_pass"] is True
+    assert logic["final_pass_v2"] is True
+    out = run_plan_checks(DEMO, sim=_ok_sim(None), skip_review=True)
+    assert out["logicpass"]["outcome"] == "pass"
+    assert out["fab"]["lit"] is True
+
+
 def test_skills_are_read_only() -> None:
     names = {item["name"] for item in list_skills()}
     assert "authoring-guide" in names
