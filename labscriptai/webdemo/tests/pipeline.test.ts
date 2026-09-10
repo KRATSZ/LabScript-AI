@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { pipelineStates } from "../web/src/pipelineLogic.ts";
 import type { SessionSnapshot } from "../web/src/types.ts";
-import { extractPatchedCode } from "../server/src/backend.ts";
+import { checkCodeService, extractPatchedCode } from "../server/src/backend.ts";
 
 function snap(over: Partial<SessionSnapshot> = {}): SessionSnapshot {
   return {
@@ -16,7 +16,6 @@ function snap(over: Partial<SessionSnapshot> = {}): SessionSnapshot {
     hardware_config: "",
     sop: "",
     code: "",
-    plan: null,
     analyze: null,
     checks: null,
     fab: { lit: false },
@@ -31,10 +30,9 @@ describe("pipelineStates", () => {
     assert.equal(pipelineStates(snap({ phase: "ready", sop: "# x" }), null)[0], "ok");
     assert.equal(pipelineStates(snap({ sop: "# x" }), "generate_sop")[1], "run");
     assert.equal(pipelineStates(snap({ code: "def run():\n  pass\n" }), "generate_code")[2], "run");
-    assert.equal(pipelineStates(snap({ plan: { steps: [{ step_id: "1" }] } }), "emit_plan")[2], "run");
-    assert.equal(pipelineStates(snap({ plan: { steps: [{ step_id: "1" }] } }), null)[2], "ok");
-    assert.equal(pipelineStates(snap({ robot: "OT-2", plan: { steps: [{ step_id: "1" }] } }), null)[2], "wait");
-    assert.equal(pipelineStates(snap({ robot: "Hamilton", plan: { steps: [{ step_id: "1" }] } }), null)[2], "ok");
+    assert.equal(pipelineStates(snap({}), null)[2], "wait");
+    assert.equal(pipelineStates(snap({ robot: "OT-2" }), null)[2], "wait");
+    assert.equal(pipelineStates(snap({ code: "def run():\n  pass\n" }), null)[2], "ok");
   });
 
   it("marks unevaluable checks as fail, not wait", () => {
@@ -85,5 +83,12 @@ describe("extractPatchedCode", () => {
     });
     assert.match(fenced || "", /def run/);
     assert.equal(extractPatchedCode({ type: "chat", content: "I cannot edit that." }), null);
+  });
+});
+
+describe("checkCodeService", () => {
+  it("resolves to up or down and never throws", async () => {
+    const status = await checkCodeService();
+    assert.ok(status === "up" || status === "down");
   });
 });

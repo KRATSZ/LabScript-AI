@@ -54,9 +54,17 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(blob, /Tecan/);
     const prompt = readFileSync(path.resolve(webSrc, "../../server/src/prompt.ts"), "utf8");
     assert.match(prompt, /Which robot — OT-2 or Flex\?/);
+    assert.match(prompt, /I'll assume a standard deck/);
+    assert.match(prompt, /assumed_deck=true/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
+    assert.match(prompt, /Do not change volumes, wells, or counts the user gave/);
+    assert.match(prompt, /No bash\. No robot\. No live Flex\./);
+    assert.match(prompt, /Replies stay short/);
     assert.match(prompt, /Do not skip generate_code/);
-    assert.match(prompt, /Do not call emit_plan for OT-2 or Flex/);
+    assert.doesNotMatch(prompt, /emit_plan/);
+    assert.doesNotMatch(prompt, /Hamilton/);
+    assert.doesNotMatch(prompt, /Tecan/);
+    assert.doesNotMatch(prompt, /Plan IR/);
   });
 
   it("overlay smoke uses simpleAnalysisFile and AnimatorGuard exposes errors", () => {

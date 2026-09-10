@@ -5,12 +5,12 @@ import { buildTools } from "../server/src/tools.ts";
 import { wrapChecks } from "../server/src/gate.ts";
 
 describe("tools harness", () => {
-  it("exposes the seven demo tools", () => {
+  it("exposes the six demo tools", () => {
     const session = createSession();
     const tools = buildTools(session, { write() {}, close() {} });
     assert.deepEqual(
       tools.map((t) => t.name),
-      ["ask_user", "generate_sop", "generate_code", "emit_plan", "run_checks", "skill", "open_animation"]
+      ["ask_user", "generate_sop", "generate_code", "run_checks", "skill", "open_animation"]
     );
   });
 
@@ -94,7 +94,7 @@ describe("tools harness", () => {
     const result = await checks.execute("1", {});
     const parsed = JSON.parse(result.content[0].text);
     assert.equal(parsed.blocked, true);
-    assert.ok(parsed.missing.some((item: string) => /code|plan/.test(item)));
+    assert.deepEqual(parsed.missing, ["generate_code — OT-2/Flex need 8010 Python"]);
   });
 
   it("open_animation blocked without FinalPass returns JSON", async () => {
@@ -108,41 +108,16 @@ describe("tools harness", () => {
     assert.equal(parsed.allowed, false);
   });
 
-  it("generate_code blocked for Hamilton; emit_plan is the path", async () => {
+  it("ask_user with Flex robot returns assumed_deck true", async () => {
     const session = createSession();
-    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "hamilton_star_standard" });
+    applyForm(session, { goal: "transfer", doc: "" });
     const tools = buildTools(session, { write() {}, close() {} });
-    const code = tools.find((t) => t.name === "generate_code");
-    assert.ok(code);
-    const result = await code.execute("1", {});
+    const ask = tools.find((t) => t.name === "ask_user");
+    assert.ok(ask);
+    const result = await ask.execute("1", { robot: "Flex" });
     const parsed = JSON.parse(result.content[0].text);
-    assert.equal(parsed.blocked, true);
-    assert.ok(parsed.missing.some((item: string) => /emit_plan/.test(item)));
-  });
-
-  it("emit_plan blocked for OT-2; generate_code is the path", async () => {
-    const session = createSession();
-    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "ot2_p300_standard3" });
-    session.sop = "# SOP\n1. A";
-    const tools = buildTools(session, { write() {}, close() {} });
-    const emit = tools.find((t) => t.name === "emit_plan");
-    assert.ok(emit);
-    const result = await emit.execute("1", { plan: { steps: [] } });
-    const parsed = JSON.parse(result.content[0].text);
-    assert.equal(parsed.blocked, true);
-    assert.ok(parsed.missing.some((item: string) => /generate_code/.test(item)));
-  });
-
-  it("emit_plan is not preferred for OT-2/Flex; run_checks stays on 8010 Python", () => {
-    const tools = buildTools(createSession(), { write() {}, close() {} });
-    const emit = tools.find((t) => t.name === "emit_plan");
-    const checks = tools.find((t) => t.name === "run_checks");
-    const code = tools.find((t) => t.name === "generate_code");
-    assert.ok(emit && checks && code);
-    assert.match(emit.description, /Not for OT-2 or Flex/);
-    assert.match(code.description, /Preferred for OT-2 and Flex/);
-    assert.match(checks.description, /Do not prefer a stored plan/);
+    assert.equal(parsed.assumed_deck, true);
+    assert.equal(parsed.ready, true);
+    assert.equal(parsed.phase, "ready");
   });
 });

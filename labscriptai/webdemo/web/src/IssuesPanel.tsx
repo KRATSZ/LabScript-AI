@@ -13,15 +13,12 @@ function issueText(item: unknown): string {
 }
 
 function simLine(checks: ChecksResult): string {
-  if (checks.sim.reason === "plr_unavailable") {
-    return "Simulation unavailable (not a pass)";
-  }
   if (checks.sim.ok) return "Simulation passed";
   return `Simulation failed${checks.sim.reason ? ` (${checks.sim.reason})` : ""}`;
 }
 
 function humanReason(reason?: string): string {
-  if (!reason || reason === "plr_unavailable") return "";
+  if (!reason) return "";
   return ` (${reason})`;
 }
 

@@ -1,4 +1,4 @@
-export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
+export type RobotModel = "OT-2" | "Flex";
 
 export interface ChecksResult {
   sim: { ok: boolean; reason?: string; errors?: string[] };
@@ -41,10 +41,11 @@ export interface SessionSnapshot {
   hardware_config: string;
   sop: string;
   code: string;
-  plan: Record<string, unknown> | null;
   analyze: Record<string, unknown> | null;
   checks: ChecksResult | null;
   fab: { lit: boolean };
+  deck_assumed?: boolean;
+  code_service?: "up" | "down";
 }
 
 export interface ChatMessage {

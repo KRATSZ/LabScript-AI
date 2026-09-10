@@ -1,6 +1,6 @@
 # LabscriptAI
 
-**This branch (`pi-agent`):** local Pi-agent chat — [labscriptai/webdemo/README.md](labscriptai/webdemo/README.md). Plan IR + PyLabRobot checks; no live Flex.
+**This branch (`pi-agent`):** [local chat demo](labscriptai/webdemo/README.md) — OT-2 / Flex, 8010 Python, Watch after FinalPass_v2; no live Flex.
 
 **Paper CLI (`manuscript`):** `labscriptai chat` below.
 

@@ -112,6 +112,9 @@ export function App() {
           <div>
             <h1>LabscriptAI</h1>
             <p>Local chat demo · 127.0.0.1</p>
+            {session?.code_service === "down" ? (
+              <p className="code-offline">Code service offline — animation unavailable</p>
+            ) : null}
           </div>
         </div>
 

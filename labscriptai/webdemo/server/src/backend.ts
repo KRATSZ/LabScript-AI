@@ -33,6 +33,17 @@ function localBackend(): string {
   return assertLocalBackend(backend);
 }
 
+export type CodeServiceStatus = "up" | "down";
+
+export async function checkCodeService(): Promise<CodeServiceStatus> {
+  try {
+    const response = await fetch(`${localBackend()}/`, { signal: AbortSignal.timeout(1500) });
+    return response.ok ? "up" : "down";
+  } catch {
+    return "down";
+  }
+}
+
 function isAbort(error: unknown): boolean {
   return error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError");
 }
@@ -92,7 +103,7 @@ Output only:
 - Numbered steps, one line each: pipette, µL, source → dest; mix only if needed; new tip vs reuse
 - Assume: one line if you guessed
 
-Stop when a Plan IR can be written (PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS). No summary, no repeated deck.`;
+Stop when a technician can run it on the stated deck. No summary, no repeated deck.`;
 
   let sop = "";
   try {
@@ -394,83 +405,6 @@ async function withOptionalReview(
   if (!shouldRunLlmreview(checks.sim, checks.logicpass)) return checks;
   const llmreview = await runLlmreviewCli(userIntent, code);
   return { ...checks, llmreview };
-}
-
-function runPlanCli(payload: unknown): Promise<Record<string, unknown>> {
-  const env = loadDemoEnv();
-  const script = path.join(env.webdemoRoot, "python", "eval_plan.py");
-  return new Promise((resolve) => {
-    const child = spawn(env.python, [script], {
-      env: { ...process.env, PYTHONPATH: env.repoRoot },
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    let stdout = "";
-    child.stdout.setEncoding("utf8");
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk;
-    });
-    const fail = (reason: string): Record<string, unknown> => ({
-      sim: { ok: false, reason },
-      logicpass: skippedLogic(reason),
-      fab: { lit: false },
-      errors: [reason],
-      ok: false,
-    });
-    child.on("error", () => resolve(fail("plan_cli_spawn_failed")));
-    child.on("close", () => {
-      try {
-        const parsed = JSON.parse(stdout) as Record<string, unknown>;
-        resolve(parsed && typeof parsed === "object" ? parsed : fail("plan_cli_bad_json"));
-      } catch {
-        resolve(fail("plan_cli_bad_json"));
-      }
-    });
-    child.stdin.write(JSON.stringify(payload));
-    child.stdin.end();
-  });
-}
-
-export async function validatePlan(
-  plan: Record<string, unknown>
-): Promise<{ ok: boolean; plan?: Record<string, unknown>; errors?: string[] }> {
-  const raw = await runPlanCli({ plan, validate_only: true });
-  if (raw.ok === true && raw.plan && typeof raw.plan === "object") {
-    return { ok: true, plan: raw.plan as Record<string, unknown> };
-  }
-  const errors = Array.isArray(raw.errors) ? raw.errors.map(String) : [String(raw.reason || "invalid_plan")];
-  return { ok: false, errors };
-}
-
-export async function runPlanChecks(
-  plan: Record<string, unknown>,
-  userIntent = ""
-): Promise<{ checks: ChecksResult; plan: Record<string, unknown> | null }> {
-  const raw = await runPlanCli({ plan, user_intent: userIntent });
-  const simRaw = (raw.sim && typeof raw.sim === "object" ? raw.sim : raw) as Record<string, unknown>;
-  const sim: SimResult = {
-    ok: simRaw.ok === true,
-    reason: typeof simRaw.reason === "string" ? simRaw.reason : undefined,
-    errors: Array.isArray(simRaw.errors) ? simRaw.errors.map(String) : undefined,
-  };
-  if (!sim.ok) {
-    return {
-      checks: await withOptionalReview(
-        wrapChecks(sim, skippedLogic(String(sim.reason || "sim_failed")), emptyStatepass(String(sim.reason || "sim_failed"))),
-        JSON.stringify(plan),
-        userIntent
-      ),
-      plan: (raw.plan as Record<string, unknown>) || plan,
-    };
-  }
-  const logicpass = sanitizeLogicpass(
-    raw.logicpass && typeof raw.logicpass === "object" ? (raw.logicpass as Record<string, unknown>) : null
-  );
-  const checks = await withOptionalReview(
-    wrapChecks(sim, logicpass, emptyStatepass()),
-    JSON.stringify(plan),
-    userIntent
-  );
-  return { checks, plan: (raw.plan as Record<string, unknown>) || plan };
 }
 
 export async function runChecks(

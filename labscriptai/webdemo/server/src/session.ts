@@ -8,8 +8,7 @@ export type Phase =
   | "need_hw_slots"
   | "ready";
 
-export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
-export type PlanBackend = "serializing" | "hamilton" | "ot2" | "tecan_evo" | "auto";
+export type RobotModel = "OT-2" | "Flex";
 
 export interface HardwareState {
   leftPipette?: string;
@@ -29,11 +28,13 @@ export interface SessionState {
   hardware: HardwareState;
   sop?: string;
   code?: string;
-  plan?: Record<string, unknown>;
   analyze?: Record<string, unknown>;
   lastChecks?: ChecksResult;
   /** Auto-patches used this user turn. Reset at the start of each chat turn. */
   patchesUsed?: number;
+  /** True when deck/pipettes came from a standard preset, not a custom layout. */
+  deckAssumed?: boolean;
+  codeService?: "up" | "down";
   messages: unknown[];
 }
 
@@ -59,7 +60,7 @@ export function enoughHardware(session: SessionState): boolean {
   const right = session.hardware.rightPipette;
   const hasPipette = [left, right].some((p) => p && p !== "None");
   const values = Object.values(session.hardware.deck);
-  const hasTip = values.some((v) => /tip\s*rack|tiprack|diti/i.test(v));
+  const hasTip = values.some((v) => /tip\s*rack|tiprack/i.test(v));
   const hasPlate = values.some((v) => /plate|reservoir|tube/i.test(v));
   return Boolean(session.robot && hasPipette && hasTip && hasPlate);
 }
@@ -88,11 +89,29 @@ export function missingList(session: SessionState): string[] {
     missing.push("pipette (left or right)");
   }
   const values = Object.values(session.hardware.deck);
-  if (!values.some((v) => /tip\s*rack|tiprack|diti/i.test(v))) missing.push("tips/tiprack slot");
+  if (!values.some((v) => /tip\s*rack|tiprack/i.test(v))) missing.push("tips/tiprack slot");
   if (!values.some((v) => /plate|reservoir|tube/i.test(v))) {
     missing.push("plate or reservoir slot");
   }
   return missing;
+}
+
+function pipetteUnset(value: string | undefined): boolean {
+  return !value || value === "None";
+}
+
+export function assumeStandardDeck(session: SessionState): void {
+  if (session.robot !== "OT-2" && session.robot !== "Flex") return;
+  if (Object.keys(session.hardware.deck).length > 0) return;
+  const id = session.robot === "OT-2" ? "ot2_p300_standard3" : "flex_1000_standard3";
+  const preset = HARDWARE_PRESETS[id];
+  session.hardware.deck = { ...preset.deck };
+  if (pipetteUnset(session.hardware.leftPipette) && pipetteUnset(session.hardware.rightPipette)) {
+    session.hardware.leftPipette = preset.leftPipette;
+    session.hardware.rightPipette = preset.rightPipette;
+    session.hardware.apiVersion = preset.apiVersion;
+  }
+  session.deckAssumed = true;
 }
 
 export function applyForm(
@@ -105,10 +124,11 @@ export function applyForm(
   session.sop = session.doc !== "none" ? session.doc : undefined;
   if (isRobotModel(input.robot)) {
     session.robot = input.robot;
-    if (!session.hardware.apiVersion && (input.robot === "OT-2" || input.robot === "Flex")) {
+    if (!session.hardware.apiVersion) {
       session.hardware.apiVersion = input.robot === "OT-2" ? "2.15" : "2.22";
     }
   }
+  assumeStandardDeck(session);
   refreshPhase(session);
   return session;
 }
@@ -135,26 +155,6 @@ export const HARDWARE_PRESETS = {
       A3: "trash_bin",
     },
   },
-  hamilton_star_standard: {
-    leftPipette: "star_1000",
-    rightPipette: "None",
-    apiVersion: "",
-    deck: {
-      "1": "hamilton_96_tiprack_300ul",
-      "2": "corning_96_wellplate_360ul_flat",
-      "3": "nest_12_reservoir_15ml",
-    },
-  },
-  tecan_evo_standard: {
-    leftPipette: "liha_1000",
-    rightPipette: "None",
-    apiVersion: "",
-    deck: {
-      "1": "tecan_diti_200ul_tiprack",
-      "2": "tecan_96_wellplate",
-      "3": "nest_12_reservoir_15ml",
-    },
-  },
 } as const;
 
 export type HardwarePresetId = keyof typeof HARDWARE_PRESETS;
@@ -162,19 +162,10 @@ export type HardwarePresetId = keyof typeof HARDWARE_PRESETS;
 const PRESET_ROBOT: Record<HardwarePresetId, RobotModel> = {
   ot2_p300_standard3: "OT-2",
   flex_1000_standard3: "Flex",
-  hamilton_star_standard: "Hamilton",
-  tecan_evo_standard: "Tecan",
 };
 
 export function isRobotModel(value: string | undefined): value is RobotModel {
-  return value === "OT-2" || value === "Flex" || value === "Hamilton" || value === "Tecan";
-}
-
-export function planBackendFor(robot: RobotModel | undefined): PlanBackend {
-  if (robot === "Hamilton") return "hamilton";
-  if (robot === "Tecan") return "tecan_evo";
-  if (robot === "OT-2" || robot === "Flex") return "serializing";
-  return "auto";
+  return value === "OT-2" || value === "Flex";
 }
 
 export function presetMismatchWarning(
@@ -196,6 +187,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
   session.hardware.rightPipette = preset.rightPipette;
   session.hardware.apiVersion = preset.apiVersion;
   session.hardware.deck = { ...preset.deck };
+  session.deckAssumed = true;
   refreshPhase(session);
   return session;
 }
@@ -222,7 +214,13 @@ function hardwareTouched(input: AskUserInput): boolean {
   );
 }
 
+function hasExplicitDeck(input: AskUserInput): boolean {
+  return Array.isArray(input.deck) && input.deck.length > 0;
+}
+
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {
+  const previousRobot = session.robot;
+  const explicitDeck = hasExplicitDeck(input);
   if (input.preset && input.preset in HARDWARE_PRESETS) {
     applyPreset(session, input.preset);
   }
@@ -239,8 +237,16 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
     session.doc = "none";
   }
   if (isRobotModel(input.robot)) {
+    const from = session.robot ?? previousRobot;
+    const switching = Boolean(from && from !== input.robot);
     session.robot = input.robot;
-    if (!session.hardware.apiVersion && (input.robot === "OT-2" || input.robot === "Flex")) {
+    if (!session.hardware.apiVersion) {
+      session.hardware.apiVersion = input.robot === "OT-2" ? "2.15" : "2.22";
+    }
+    if (switching && session.deckAssumed && !explicitDeck) {
+      session.hardware.deck = {};
+      session.hardware.leftPipette = undefined;
+      session.hardware.rightPipette = undefined;
       session.hardware.apiVersion = input.robot === "OT-2" ? "2.15" : "2.22";
     }
   }
@@ -256,11 +262,14 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   if (typeof input.api_version === "string" && input.api_version.trim()) {
     session.hardware.apiVersion = input.api_version.trim();
   }
-  if (Array.isArray(input.deck)) {
-    for (const item of input.deck) {
+  if (explicitDeck) {
+    for (const item of input.deck!) {
       if (!item?.slot || !item?.labware) continue;
       session.hardware.deck[String(item.slot).trim()] = String(item.labware).trim();
     }
+    session.deckAssumed = false;
+  } else {
+    assumeStandardDeck(session);
   }
   refreshPhase(session);
   return session;
@@ -274,27 +283,12 @@ export function canGenerateSop(session: SessionState): boolean {
   return canRunPipeline(session);
 }
 
-export function isOpentrons(session: Pick<SessionState, "robot">): boolean {
-  return session.robot === "OT-2" || session.robot === "Flex";
-}
-
-export function checksRoute(
-  session: Pick<SessionState, "robot" | "code" | "plan">
-): "opentrons" | "plan" | "blocked" {
-  if (isOpentrons(session)) {
-    return session.code?.trim() ? "opentrons" : "blocked";
-  }
-  if (session.plan && typeof session.plan === "object") return "plan";
-  if (session.code?.trim()) return "opentrons";
-  return "blocked";
+export function checksRoute(session: Pick<SessionState, "code">): "opentrons" | "blocked" {
+  return session.code?.trim() ? "opentrons" : "blocked";
 }
 
 export function canGenerateCode(session: SessionState): boolean {
-  return canRunPipeline(session) && Boolean(session.sop?.trim()) && isOpentrons(session);
-}
-
-export function canEmitPlan(session: SessionState): boolean {
-  return canRunPipeline(session) && Boolean(session.sop?.trim()) && !isOpentrons(session);
+  return canRunPipeline(session) && Boolean(session.sop?.trim());
 }
 
 export function shouldReuseSop(session: SessionState, force?: boolean): boolean {
@@ -327,7 +321,6 @@ export function formatHardwareConfig(session: SessionState): string {
     `Left Pipette: ${session.hardware.leftPipette || "None"}`,
     `Right Pipette: ${session.hardware.rightPipette || "None"}`,
     `Use Gripper: ${session.hardware.useGripper ?? false}`,
-    `Plan backend: ${planBackendFor(session.robot)}`,
     "Deck Layout:",
     deck,
   ].join("\n");
@@ -346,9 +339,10 @@ export function snapshot(session: SessionState) {
     hardware_config: formatHardwareConfig(session),
     sop: session.sop ?? "",
     code: session.code ?? "",
-    plan: session.plan ?? null,
     analyze: session.analyze ?? null,
     checks: checks ?? null,
     fab: { lit: Boolean(checks?.fab.lit) },
+    deck_assumed: Boolean(session.deckAssumed),
+    code_service: session.codeService ?? "down",
   };
 }

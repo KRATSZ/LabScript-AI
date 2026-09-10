@@ -7,15 +7,15 @@ Binds **127.0.0.1 only**. Do not start if localhost cannot bind. Do not listen o
 ## What you do
 
 1. Write an experimental goal. Notes are optional.
-2. In chat, say the robot: **OT-2 or Flex**. A common deck (tip rack, 96-well plate, reagent reservoir) is enough.
+2. In chat, say the robot: **OT-2 or Flex**. The server fills a standard deck (tip rack, 96-well plate, reservoir). You can correct the deck later.
 3. The agent writes a short SOP, then Opentrons Python via **8010**, then runs simulate + analyze + LogicPass.
 4. **Watch animation** lights only after FinalPass_v2, and only if `session.analyze` from 8010 has commands.
 
-There is no live robot, no `bash`. Hardware and robot are collected in chat — no deck UI.
-
-Internal: extra tools (`emit_plan`, Hamilton/Tecan presets) may exist in the server. The demo path is Opentrons Python so the deck animator can play.
+There is no live robot, no `bash`. Hardware is collected in chat — no deck UI.
 
 ## Run
+
+Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`. Also need the Labscript backend on **8010**.
 
 ```bash
 cd labscriptai/webdemo
@@ -28,8 +28,6 @@ Open http://127.0.0.1:5173
 - UI: `127.0.0.1:5173` (Vite)
 - Agent server: `127.0.0.1:8787`
 - Backend: `127.0.0.1:8010`
-
-Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`.
 
 ```bash
 cd labscriptai/webdemo && npm test

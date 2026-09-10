@@ -6,7 +6,6 @@ import {
   applyPreset,
   canGenerateCode,
   canGenerateSop,
-  canEmitPlan,
   canRunPipeline,
   checksRoute,
   computePhase,
@@ -16,6 +15,7 @@ import {
   presetMismatchWarning,
   shouldCallCompactSop,
   shouldReuseSop,
+  snapshot,
 } from "../server/src/session.ts";
 import { refuseEmptySop } from "../server/src/gate.ts";
 
@@ -52,15 +52,8 @@ describe("session machine", () => {
     });
     assert.equal(session.doc, "# SOP\n1. Aspirate A1");
     assert.equal(session.sop, session.doc);
-    assert.equal(canGenerateCode(session), false);
-    applyAskUser(session, {
-      left_pipette: "p300_single_gen2",
-      deck: [
-        { slot: "1", labware: "opentrons_96_tiprack_300ul" },
-        { slot: "2", labware: "nest_96_wellplate_200ul_flat" },
-      ],
-    });
     assert.equal(session.phase, "ready");
+    assert.equal(session.deckAssumed, true);
     assert.equal(canGenerateCode(session), true);
     assert.equal(shouldReuseSop(session), true);
     assert.equal(shouldCallCompactSop(session), false);
@@ -68,25 +61,21 @@ describe("session machine", () => {
     assert.equal(shouldReuseSop(session, true), false);
   });
 
-  it("does not become ready without pipettes/tips/plate", () => {
+  it("enoughHardware still requires pipette, tips, and plate", () => {
     const session = createSession();
-    applyForm(session, { goal: "goal", robot: "OT-2" });
-    applyAskUser(session, { left_pipette: "p300_single_gen2" });
+    session.goal = "goal";
+    session.doc = "none";
+    session.robot = "OT-2";
     assert.equal(enoughHardware(session), false);
-    assert.equal(session.phase, "need_hw_slots");
-    applyAskUser(session, {
-      deck: [{ slot: "1", labware: "opentrons_96_tiprack_300ul" }],
-    });
+    session.hardware.leftPipette = "p300_single_gen2";
     assert.equal(enoughHardware(session), false);
-    assert.equal(session.phase, "need_hw_slots");
-    applyAskUser(session, {
-      deck: [{ slot: "2", labware: "nest_96_wellplate_200ul_flat" }],
-    });
-    assert.equal(session.phase, "ready");
-    assert.equal(canRunPipeline(session), true);
-    assert.equal(canGenerateCode(session), false);
-    session.sop = "# filled sop";
-    assert.equal(canGenerateCode(session), true);
+    session.hardware.deck["1"] = "opentrons_96_tiprack_300ul";
+    assert.equal(enoughHardware(session), false);
+    session.hardware.deck["2"] = "nest_96_wellplate_200ul_flat";
+    assert.equal(enoughHardware(session), true);
+    session.hardware.deck["1"] = "diti";
+    assert.equal(enoughHardware(session), false);
+    assert.equal("plan" in snapshot(session), false);
   });
 
   it("OT-2 standard3 preset sets robot and makes session ready", () => {
@@ -99,6 +88,7 @@ describe("session machine", () => {
     assert.equal(session.phase, "ready");
     assert.equal(session.hardware.leftPipette, "p300_single_gen2");
     assert.equal(session.hardware.deck["1"], "opentrons_96_tiprack_300ul");
+    assert.equal(session.deckAssumed, true);
   });
 
   it("Flex standard3 preset sets robot and includes A3 trash", () => {
@@ -111,6 +101,7 @@ describe("session machine", () => {
     assert.equal(session.hardware.deck.A1, "opentrons_flex_96_tiprack_1000ul");
     assert.equal(session.hardware.deck.C1, "nest_12_reservoir_15ml");
     assert.equal(session.hardware.deck.A3, "trash_bin");
+    assert.equal(session.deckAssumed, true);
   });
 
   it("ask_user draft seeds sop when sop is empty", () => {
@@ -185,55 +176,98 @@ describe("session machine", () => {
     assert.equal(canGenerateCode(session), false);
   });
 
-  it("OT-2 with Python and a stored plan still routes checks to opentrons", () => {
+  it("checksRoute is opentrons when Python exists, else blocked", () => {
     assert.equal(
       checksRoute({
-        robot: "OT-2",
         code: "from opentrons import protocol_api\ndef run(protocol):\n    protocol.home()\n",
-        plan: { steps: [{ step_id: "1" }] },
       }),
       "opentrons"
     );
-    assert.equal(checksRoute({ robot: "Flex", code: "def run(p):\n  p.home()\n", plan: {} }), "opentrons");
-    assert.equal(checksRoute({ robot: "Hamilton", code: "", plan: { steps: [] } }), "plan");
-    assert.equal(checksRoute({ robot: "OT-2", code: "", plan: { steps: [{ step_id: "1" }] } }), "blocked");
-    assert.equal(checksRoute({ robot: "OT-2", code: "", plan: undefined }), "blocked");
+    assert.equal(checksRoute({ code: "def run(p):\n  p.home()\n" }), "opentrons");
+    assert.equal(checksRoute({ code: "" }), "blocked");
+    assert.equal(checksRoute({ code: undefined }), "blocked");
   });
 
-  it("OT-2 ready with SOP cannot emit_plan", () => {
+  it("applyAskUser robot Flex assumes standard deck and becomes ready", () => {
     const session = createSession();
-    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "ot2_p300_standard3" });
-    session.sop = "# SOP\n1. A";
-    assert.equal(canGenerateCode(session), true);
-    assert.equal(canEmitPlan(session), false);
-  });
-
-  it("Hamilton preset is ready for Plan IR, not Opentrons Python", () => {
-    const session = createSession();
-    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "hamilton_star_standard" });
-    assert.equal(session.robot, "Hamilton");
+    applyForm(session, { goal: "transfer", doc: "" });
+    applyAskUser(session, { robot: "Flex" });
+    assert.equal(session.robot, "Flex");
     assert.equal(session.phase, "ready");
-    assert.equal(canEmitPlan(session), true);
-    assert.equal(canGenerateCode(session), false);
-    assert.match(formatHardwareConfig(session), /Plan backend: hamilton/);
+    assert.equal(session.hardware.deck.A1, "opentrons_flex_96_tiprack_1000ul");
+    assert.equal(session.hardware.deck.D2, "nest_96_wellplate_200ul_flat");
+    assert.equal(session.hardware.deck.C1, "nest_12_reservoir_15ml");
+    assert.equal(session.hardware.deck.A3, "trash_bin");
+    assert.equal(session.hardware.leftPipette, "flex_1channel_1000");
+    assert.equal(session.deckAssumed, true);
+    assert.equal(snapshot(session).deck_assumed, true);
+    assert.equal(snapshot(session).code_service, "down");
   });
 
-  it("Tecan DiTi preset counts as tips", () => {
+  it("applyAskUser robot OT-2 assumes standard deck and becomes ready", () => {
     const session = createSession();
-    applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "tecan_evo_standard" });
-    assert.equal(session.robot, "Tecan");
-    assert.equal(enoughHardware(session), true);
-    assert.equal(canEmitPlan(session), true);
-    assert.equal(canGenerateCode(session), false);
-    assert.match(formatHardwareConfig(session), /Plan backend: tecan_evo/);
+    applyForm(session, { goal: "transfer", doc: "" });
+    applyAskUser(session, { robot: "OT-2" });
+    assert.equal(session.robot, "OT-2");
+    assert.equal(session.phase, "ready");
+    assert.equal(session.hardware.deck["1"], "opentrons_96_tiprack_300ul");
+    assert.equal(session.hardware.deck["2"], "nest_96_wellplate_200ul_flat");
+    assert.equal(session.hardware.deck["3"], "nest_12_reservoir_15ml");
+    assert.equal(session.hardware.leftPipette, "p300_single_gen2");
+    assert.equal(session.deckAssumed, true);
+    assert.equal(snapshot(session).deck_assumed, true);
   });
 
-  it("non-Opentrons Plan IR still routes checks to plan", () => {
-    assert.equal(checksRoute({ robot: "Hamilton", code: "", plan: { steps: [] } }), "plan");
-    assert.equal(checksRoute({ robot: "Tecan", code: "def run(p):\n  pass\n", plan: { steps: [] } }), "plan");
-    assert.equal(checksRoute({ robot: "Hamilton", code: "", plan: undefined }), "blocked");
+  it("explicit deck array keeps user labware and is not assumed", () => {
+    const custom = createSession();
+    applyForm(custom, { goal: "transfer", doc: "" });
+    applyAskUser(custom, {
+      robot: "Flex",
+      deck: [
+        { slot: "D1", labware: "corning_96_wellplate_360ul_flat" },
+        { slot: "A2", labware: "opentrons_flex_96_tiprack_1000ul" },
+      ],
+    });
+    assert.equal(custom.deckAssumed, false);
+    assert.equal(custom.hardware.deck.D1, "corning_96_wellplate_360ul_flat");
+    assert.equal(custom.hardware.deck.A2, "opentrons_flex_96_tiprack_1000ul");
+    assert.equal(custom.hardware.deck.A1, undefined);
+    assert.equal(custom.hardware.deck.A3, undefined);
+
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "" });
+    applyAskUser(session, { robot: "Flex" });
+    assert.equal(session.deckAssumed, true);
+    applyAskUser(session, {
+      deck: [{ slot: "D1", labware: "corning_96_wellplate_360ul_flat" }],
+    });
+    assert.equal(session.deckAssumed, false);
+    assert.equal(session.hardware.deck.D1, "corning_96_wellplate_360ul_flat");
+    assert.equal(session.hardware.deck.A1, "opentrons_flex_96_tiprack_1000ul");
+    assert.equal(session.hardware.deck.A3, "trash_bin");
+    assert.equal(snapshot(session).deck_assumed, false);
+  });
+
+  it("switching robot on an assumed deck replaces the layout", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "" });
+    applyAskUser(session, { robot: "Flex" });
+    assert.equal(session.hardware.deck.A1, "opentrons_flex_96_tiprack_1000ul");
+    applyAskUser(session, { robot: "OT-2" });
+    assert.equal(session.robot, "OT-2");
+    assert.equal(session.deckAssumed, true);
+    assert.equal(session.hardware.deck.A1, undefined);
+    assert.equal(session.hardware.deck["1"], "opentrons_96_tiprack_300ul");
+    assert.equal(session.hardware.leftPipette, "p300_single_gen2");
+  });
+
+  it("mismatched preset then robot still lands on the named robot deck", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "" });
+    applyAskUser(session, { preset: "flex_1000_standard3", robot: "OT-2" });
+    assert.equal(session.robot, "OT-2");
+    assert.equal(session.hardware.deck["1"], "opentrons_96_tiprack_300ul");
+    assert.equal(session.hardware.deck.A1, undefined);
+    assert.equal(session.deckAssumed, true);
   });
 });

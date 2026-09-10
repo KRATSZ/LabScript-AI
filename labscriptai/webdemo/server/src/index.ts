@@ -8,6 +8,7 @@ import {
 } from "./session.ts";
 import { createSseWriter } from "./sse.ts";
 import { runChatTurn } from "./agent.ts";
+import { checkCodeService } from "./backend.ts";
 import { loadDemoEnv } from "./env.ts";
 
 const HOST = "127.0.0.1";
@@ -46,6 +47,7 @@ const server = createServer(async (req, res) => {
       backend: env.backend,
       model: env.model,
       hasKey: Boolean(env.apiKey),
+      code_service: await checkCodeService(),
     });
     return;
   }
@@ -54,19 +56,14 @@ const server = createServer(async (req, res) => {
     const raw = await readBody(req);
     const body = raw ? (JSON.parse(raw) as { goal?: string; doc?: string; robot?: string }) : {};
     const goal = (body.goal || "").trim();
-    const robot =
-      body.robot === "OT-2" ||
-      body.robot === "Flex" ||
-      body.robot === "Hamilton" ||
-      body.robot === "Tecan"
-        ? (body.robot as RobotModel)
-        : undefined;
+    const robot = body.robot === "OT-2" || body.robot === "Flex" ? (body.robot as RobotModel) : undefined;
     if (!goal) {
       json(res, 400, { error: "goal is required" });
       return;
     }
     const session = createSession();
     applyForm(session, { goal, doc: body.doc, robot });
+    session.codeService = await checkCodeService();
     json(res, 200, snapshot(session));
     return;
   }
