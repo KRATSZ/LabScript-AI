@@ -261,6 +261,35 @@ describe("session machine", () => {
     assert.equal(session.hardware.leftPipette, "p300_single_gen2");
   });
 
+  it("robot switch clears leftover custom slots and generated artifacts", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "" });
+    applyAskUser(session, {
+      robot: "Flex",
+      deck: [
+        { slot: "D1", labware: "corning_96_wellplate_360ul_flat" },
+        { slot: "A2", labware: "opentrons_flex_96_tiprack_1000ul" },
+      ],
+    });
+    session.sop = "# Flex SOP";
+    session.code = "def run(protocol):\n    protocol.home()\n";
+    session.analyze = { commands: [{ commandType: "home" }] };
+    session.lastChecks = { fab: { lit: true } } as never;
+    applyAskUser(session, {
+      robot: "OT-2",
+      deck: [{ slot: "2", labware: "corning_96_wellplate_360ul_flat" }],
+    });
+    assert.equal(session.robot, "OT-2");
+    assert.equal(session.hardware.deck.A1, undefined);
+    assert.equal(session.hardware.deck.D1, undefined);
+    assert.equal(session.hardware.deck["2"], "corning_96_wellplate_360ul_flat");
+    assert.equal(session.deckAssumed, false);
+    assert.equal(session.code, undefined);
+    assert.equal(session.analyze, undefined);
+    assert.equal(session.lastChecks, undefined);
+    assert.equal(session.sop, undefined);
+  });
+
   it("mismatched preset then robot still lands on the named robot deck", () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "" });

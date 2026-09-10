@@ -181,13 +181,21 @@ export function presetMismatchWarning(
 }
 
 export function applyPreset(session: SessionState, id: HardwarePresetId): SessionState {
+  const next = PRESET_ROBOT[id];
+  const switching = Boolean(session.robot && session.robot !== next);
   const preset = HARDWARE_PRESETS[id];
-  session.robot = PRESET_ROBOT[id];
+  session.robot = next;
   session.hardware.leftPipette = preset.leftPipette;
   session.hardware.rightPipette = preset.rightPipette;
   session.hardware.apiVersion = preset.apiVersion;
   session.hardware.deck = { ...preset.deck };
   session.deckAssumed = true;
+  if (switching) {
+    session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
+    session.code = undefined;
+    session.analyze = undefined;
+    session.lastChecks = undefined;
+  }
   refreshPhase(session);
   return session;
 }
@@ -218,6 +226,19 @@ function hasExplicitDeck(input: AskUserInput): boolean {
   return Array.isArray(input.deck) && input.deck.length > 0;
 }
 
+function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
+  session.hardware.deck = {};
+  session.hardware.leftPipette = undefined;
+  session.hardware.rightPipette = undefined;
+  session.hardware.useGripper = undefined;
+  session.hardware.apiVersion = robot === "OT-2" ? "2.15" : "2.22";
+  session.deckAssumed = undefined;
+  session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
+  session.code = undefined;
+  session.analyze = undefined;
+  session.lastChecks = undefined;
+}
+
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {
   const previousRobot = session.robot;
   const explicitDeck = hasExplicitDeck(input);
@@ -240,13 +261,9 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
     const from = session.robot ?? previousRobot;
     const switching = Boolean(from && from !== input.robot);
     session.robot = input.robot;
-    if (!session.hardware.apiVersion) {
-      session.hardware.apiVersion = input.robot === "OT-2" ? "2.15" : "2.22";
-    }
-    if (switching && session.deckAssumed && !explicitDeck) {
-      session.hardware.deck = {};
-      session.hardware.leftPipette = undefined;
-      session.hardware.rightPipette = undefined;
+    if (switching) {
+      resetForRobotSwitch(session, input.robot);
+    } else if (!session.hardware.apiVersion) {
       session.hardware.apiVersion = input.robot === "OT-2" ? "2.15" : "2.22";
     }
   }
