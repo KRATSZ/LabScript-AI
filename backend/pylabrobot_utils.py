@@ -342,7 +342,7 @@ async def protocol(lh):
     await lh.pick_up_tips(tip_rack["A1"])
     await lh.aspirate(source["A1"], vols=[100])
     await lh.dispense(dest["A1"], vols=[100])
-    await lh.drop_tips()
+    await lh.drop_tips(tip_rack["A1"])
     
     print("--- PROTOCOL_SUCCESS ---")
 ```
@@ -733,7 +733,7 @@ def get_pylabrobot_error_recommendations(error_output: str) -> str:
     elif "notipattachederror" in error_lower or "no tip attached" in error_lower:
         return "在进行液体处理操作前，请确保已使用 await lh.pick_up_tips() 安装tip。"
     elif "tipattachederror" in error_lower or "tip already attached" in error_lower:
-        return "在安装新tip前，请先使用 await lh.drop_tips() 丢弃当前tip。"
+        return "在安装新tip前，请先使用 await lh.drop_tips(tip_rack[\"A1\"]) 丢弃当前tip（0.2.x 必须传入 tip_spots）。"
     elif "backend not setup" in error_lower or "setup" in error_lower:
         return "确保模拟器后端已正确初始化。这通常是内部错误，请检查硬件配置。"
     elif "deck" in error_lower and "not found" in error_lower:

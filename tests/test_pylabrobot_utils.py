@@ -31,7 +31,7 @@ async def protocol(lh):
     await lh.pick_up_tips(tips["A1"])
     await lh.aspirate(source["A1"], vols=[20])
     await lh.dispense(dest["A1"], vols=[20])
-    await lh.drop_tips()
+    await lh.drop_tips(tips["A1"])
     print("--- PROTOCOL_SUCCESS ---")
 """
 
