@@ -99,7 +99,8 @@ const SimulationResultsPage: React.FC = () => {
       if (isPyLabRobot) {
         // Call PyLabRobot simulation API
         response = await apiService.runPyLabRobotSimulation({
-          protocol_code: state.pythonCode
+          protocol_code: state.pythonCode,
+          hardware_config: state.rawHardwareConfigText || undefined,
         });
       } else {
         // Call existing Opentrons simulation API

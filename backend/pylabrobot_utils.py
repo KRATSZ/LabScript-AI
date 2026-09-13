@@ -23,7 +23,7 @@ from typing import Dict, Any, Union, Optional
 # PyLabRobot imports for real simulation
 try:
     from pylabrobot.liquid_handling import LiquidHandler
-    from pylabrobot.liquid_handling.backends import ChatterBoxBackend  # 正确的模拟后端
+    from pylabrobot.liquid_handling.backends import LiquidHandlerChatterboxBackend
     from pylabrobot.resources import Deck
     # Import resource classes as needed
     try:
@@ -38,6 +38,7 @@ try:
 except ImportError as e:
     print(f"Warning: PyLabRobot not available: {e}")
     PYLABROBOT_AVAILABLE = False
+    LiquidHandlerChatterboxBackend = None  # type: ignore[assignment,misc]
 
 # Hardware configuration file path
 HARDWARE_PROFILES_DIR = Path(__file__).parent / "hardware_profiles"
@@ -65,6 +66,88 @@ DEFAULT_HARDWARE_SETUP = {
         }
     }
 }
+
+_ROBOT_MODEL_RE = re.compile(r"robot_model\s*[:=]\s*['\"]?([A-Za-z0-9_]+)")
+
+
+def parse_hardware_config_str(raw: Optional[str]) -> Dict[str, Any]:
+    """Parse hardware config from JSON, or load a named profile from YAML-style text.
+
+    The frontend turns profile JSON into an indented ``key: value`` dump. That is
+    not JSON, so ``json.loads`` used to fail and Tecan/Hamilton selections silently
+    fell back to the default deck.
+    """
+    text = (raw or "").strip()
+    if not text:
+        return load_hardware_configuration()
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return parsed
+    except json.JSONDecodeError:
+        pass
+    match = _ROBOT_MODEL_RE.search(text)
+    if match:
+        model = match.group(1).lower()
+        profile_path = HARDWARE_PROFILES_DIR / f"pylabrobot_{model}.json"
+        if profile_path.exists():
+            print(f"Debug - [parse_hardware_config_str] Using profile {profile_path.name}")
+            return load_hardware_configuration(str(profile_path))
+    print("Warning - [parse_hardware_config_str] Could not parse hardware config, using default")
+    return load_hardware_configuration()
+
+
+def _labware_factory(resource_name: str, resource_type: str, robot_model: str):
+    """Map profile type strings onto real PyLabRobot 0.2.x factory functions."""
+    blob = f"{resource_type} {resource_name} {robot_model}".lower()
+    is_tip = any(token in blob for token in ("tip", "diti"))
+    is_trough = any(token in blob for token in ("trough", "reservoir"))
+    is_deep = "deep" in blob
+    is_tecan = "tecan" in blob or robot_model == "tecan_evo"
+    is_opentrons = "opentrons" in blob or robot_model == "opentrons"
+
+    if is_tecan:
+        from pylabrobot.resources.tecan import (
+            DeepWell_96_Well,
+            DiTi_200ul_LiHa,
+            DiTi_1000ul_LiHa,
+            Microplate_96_Well,
+        )
+        if is_tip:
+            return DiTi_200ul_LiHa if "200" in blob and "1000" not in blob else DiTi_1000ul_LiHa
+        if is_deep:
+            return DeepWell_96_Well
+        return Microplate_96_Well
+
+    if is_opentrons and is_tip:
+        from pylabrobot.resources.opentrons import (
+            opentrons_96_tiprack_300ul,
+            opentrons_96_tiprack_1000ul,
+        )
+        return opentrons_96_tiprack_1000ul if "1000" in blob else opentrons_96_tiprack_300ul
+
+    if is_tip:
+        from pylabrobot.resources.hamilton import (
+            TIP_50ul,
+            hamilton_96_tiprack_300uL_filter,
+            hamilton_96_tiprack_1000uL_filter,
+        )
+        if "50" in blob and "300" not in blob and "1000" not in blob:
+            return TIP_50ul
+        if "1000" in blob:
+            return hamilton_96_tiprack_1000uL_filter
+        return hamilton_96_tiprack_300uL_filter
+
+    if is_trough:
+        try:
+            from pylabrobot.resources import nest_12_troughplate_15000uL_Vb
+            return nest_12_troughplate_15000uL_Vb
+        except ImportError:
+            pass
+
+    from pylabrobot.resources import cor_96_wellplate_360uL_Fb
+    return cor_96_wellplate_360uL_Fb
+
 
 def load_hardware_configuration(config_path: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -410,8 +493,8 @@ async def setup_simulation_environment(hardware_config: Dict[str, Any]):
         robot_model = hardware_config.get("robot_model", "").lower()
         print(f"Debug - [setup_simulation_environment] Setting up {robot_model} simulation environment")
         
-        # Use ChatterBoxBackend for reliable simulation
-        backend = ChatterBoxBackend()
+        # LiquidHandlerChatterboxBackend: ChatterBoxBackend raises NotImplementedError on 0.2.x
+        backend = LiquidHandlerChatterboxBackend()
         
         # Create deck based on robot model
         if robot_model == "hamilton_star" or robot_model == "hamilton_vantage":
@@ -444,72 +527,20 @@ async def setup_simulation_environment(hardware_config: Dict[str, Any]):
         
         for resource_name, resource_info in resources_config.items():
             try:
-                # Create a simple resource object that can be accessed via lh.get_resource()
-                # For simulation, we'll create mock resource objects with the expected interface
-                
-                # Import basic resource types
-                try:
-                    from pylabrobot.resources import (
-                        TipRack, Plate, Container,
-                        Coordinate
-                    )
-                    
-                    resource_type = resource_info.get("type", "generic")
-                    location = resource_info.get("location", {"x": 0, "y": 0, "z": 0})
-                    
-                    # Create coordinate
-                    coord = Coordinate(
-                        x=location.get("x", 0),
-                        y=location.get("y", 0), 
-                        z=location.get("z", 0)
-                    )
-                    
-                    # Create appropriate resource based on type
-                    if "tip" in resource_type.lower() or "tip" in resource_name.lower():
-                        # Create tip rack
-                        resource = TipRack(
-                            name=resource_name,
-                            size_x=85.48, size_y=127.76, size_z=97,  # Standard 96-tip rack
-                            num_items_x=12, num_items_y=8
-                        )
-                    elif "plate" in resource_type.lower() or "plate" in resource_name.lower():
-                        # Create plate
-                        resource = Plate(
-                            name=resource_name,
-                            size_x=85.48, size_y=127.76, size_z=14.22,  # Standard 96-well plate
-                            num_items_x=12, num_items_y=8
-                        )
-                    else:
-                        # Create generic container
-                        resource = Container(
-                            name=resource_name,
-                            size_x=85.48, size_y=127.76, size_z=50
-                        )
-                    
-                    # Assign resource to deck
-                    deck.assign_child_resource(resource, location=coord)
-                    configured_resources[resource_name] = resource
-                    
-                    print(f"Debug - [setup_simulation_environment] Configured {resource_name} ({type(resource).__name__})")
-                    
-                except ImportError as e:
-                    print(f"Warning - [setup_simulation_environment] Could not import PyLabRobot resources: {e}")
-                    # Create a simple mock object
-                    class MockResource:
-                        def __init__(self, name):
-                            self.name = name
-                            
-                        def __getitem__(self, key):
-                            # Return a mock well/position
-                            return MockWell(f"{self.name}[{key}]")
-                    
-                    class MockWell:
-                        def __init__(self, name):
-                            self.name = name
-                    
-                    configured_resources[resource_name] = MockResource(resource_name)
-                    print(f"Debug - [setup_simulation_environment] Created mock resource {resource_name}")
-                    
+                from pylabrobot.resources.coordinate import Coordinate
+
+                resource_type = resource_info.get("type", "generic")
+                location = resource_info.get("location", {"x": 0, "y": 0, "z": 0})
+                coord = Coordinate(
+                    x=location.get("x", 0),
+                    y=location.get("y", 0),
+                    z=location.get("z", 0),
+                )
+                factory = _labware_factory(resource_name, str(resource_type), robot_model)
+                resource = factory(name=resource_name)
+                deck.assign_child_resource(resource, location=coord)
+                configured_resources[resource_name] = resource
+                print(f"Debug - [setup_simulation_environment] Configured {resource_name} ({type(resource).__name__})")
             except Exception as e:
                 print(f"Warning - [setup_simulation_environment] Failed to configure resource {resource_name}: {e}")
         

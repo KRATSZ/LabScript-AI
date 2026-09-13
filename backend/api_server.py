@@ -72,7 +72,7 @@ from backend.langchain_agent import (
     converse_about_code_stream, # Add the new streaming function
 )
 from backend.opentrons_utils import run_opentrons_simulation
-from backend.pylabrobot_utils import run_pylabrobot_simulation
+from backend.pylabrobot_utils import parse_hardware_config_str, run_pylabrobot_simulation
 from backend.pylabrobot_agent import run_pylabrobot_agent_and_stream_events
 from backend.file_exporter import ProtocolsIOExporter
 
@@ -104,6 +104,7 @@ class ProtocolSimulationRequest(BaseModel):
 
 class PyLabRobotSimulationRequest(BaseModel):
     protocol_code: str
+    hardware_config: Optional[str] = None
 
 class ProtocolSimulationResponse(BaseModel):
     success: bool
@@ -323,7 +324,12 @@ async def simulate_pylabrobot_protocol(
         print(f"Debug - Starting PyLabRobot simulation")
         print(f"Debug - Protocol code length: {len(request.protocol_code)}")
         
-        simulation_result = await run_pylabrobot_simulation(request.protocol_code, return_structured=True)
+        hw_config = parse_hardware_config_str(request.hardware_config) if request.hardware_config else None
+        simulation_result = await run_pylabrobot_simulation(
+            request.protocol_code,
+            return_structured=True,
+            hardware_config=hw_config,
+        )
         
         return ProtocolSimulationResponse(
             success=simulation_result.get("success", False),

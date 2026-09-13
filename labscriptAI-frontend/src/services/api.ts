@@ -226,7 +226,7 @@ export const apiService = {
         }
     },
 
-    runPyLabRobotSimulation: async (params: { protocol_code: string }): Promise<SimulationResult> => {
+    runPyLabRobotSimulation: async (params: { protocol_code: string; hardware_config?: string }): Promise<SimulationResult> => {
         try {
           const response = await apiClient.post('/api/simulate-pylabrobot-protocol', params);
           return response.data;

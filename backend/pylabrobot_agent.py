@@ -18,9 +18,9 @@ from langchain.schema import HumanMessage, SystemMessage
 
 # Import utilities - Enhanced version
 from backend.pylabrobot_utils import (
-    run_pylabrobot_simulation, 
-    load_hardware_configuration,
-    generate_dynamic_pylabrobot_knowledge
+    run_pylabrobot_simulation,
+    generate_dynamic_pylabrobot_knowledge,
+    parse_hardware_config_str,
 )
 from backend.diff_utils import apply_diff
 from backend.config import (
@@ -1236,14 +1236,7 @@ async def run_pylabrobot_agent_and_stream_events(
         """Synchronous event reporter for graph nodes"""
         event_queue.append(event_data)
     
-    # Parse the hardware configuration from the string
-    try:
-        hardware_config = json.loads(hardware_config_str)
-    except json.JSONDecodeError:
-        print(f"Error: Invalid JSON in hardware_config_str. Falling back to default.")
-        # Fallback to loading the default configuration
-        from .pylabrobot_utils import load_hardware_configuration
-        hardware_config = load_hardware_configuration()
+    hardware_config = parse_hardware_config_str(hardware_config_str)
 
     dynamic_knowledge = generate_dynamic_pylabrobot_knowledge(hardware_config)
     
