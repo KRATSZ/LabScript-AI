@@ -60,6 +60,22 @@ def _ok_sim(_plan) -> dict:
     return {"ok": True, "backend": "test"}
 
 
+def test_tip_positions_strip_resource_prefix() -> None:
+    payload = {
+        **DEMO,
+        "backend": "tecan_evo",
+        "steps": [
+            {**DEMO["steps"][0], "tip_positions": ["TIPS:A1"]},
+            *DEMO["steps"][1:],
+        ],
+    }
+    plan = load_plan(payload)
+    assert plan.steps[0].tip_positions == ("A1",)
+    if pylabrobot_available():
+        out = run_plr_sim(plan)
+        assert out["ok"] is True, out
+
+
 def test_load_plan_accepts_demo() -> None:
     plan = load_plan(DEMO)
     assert plan.schema == PLAN_SCHEMA_ID
