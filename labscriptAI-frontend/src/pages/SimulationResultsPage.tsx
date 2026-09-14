@@ -309,7 +309,7 @@ const SimulationResultsPage: React.FC = () => {
               mb: 2
             }}
           >
-            Review the validation results of your protocol to ensure it will run correctly on your Opentrons robot
+            Review the validation results of your protocol to ensure it will run correctly on your {state.robotModel || 'lab'} robot
           </Typography>
         </Box>
         
@@ -788,8 +788,8 @@ const SimulationResultsPage: React.FC = () => {
                         🎉 Protocol Validation Successful!
                       </Typography>
                       <Typography variant="body2">
-                        Your protocol has passed all validation checks and is ready to run on the Opentrons robot.
-                        You can now view the animation to see how your protocol will execute.
+                        Your protocol has passed all validation checks and is ready to run on the {state.robotModel || 'lab'} robot.
+                        This is a software simulation, not a live instrument.
                       </Typography>
                     </Alert>
                   )}

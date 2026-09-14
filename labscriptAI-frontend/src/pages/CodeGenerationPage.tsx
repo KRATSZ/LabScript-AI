@@ -343,18 +343,18 @@ const CodeGenerationPage: React.FC = () => {
                       && (!finalCode.trim() || /from opentrons|protocol_api/.test(finalCode));
 
                     if (needsTecanFallback) {
-                      applyFallbackProtocol('AI generation failed. A Tecan starter protocol is in the editor — click Run Simulation.');
-                    } else if (finalCode) {
-                      dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
-                      setEditedCode(finalCode);
+                      applyFallbackProtocol('AI generation was unavailable. A Tecan starter protocol is in the editor — click Run Simulation.');
+                      setAttempts(data.total_attempts || 0);
+                    } else {
+                      if (finalCode) {
+                        dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
+                        setEditedCode(finalCode);
+                      }
+                      setAttempts(data.total_attempts || 0);
+                      setWarnings([data.error_details || 'Code generation failed']);
+                      setProgress(`❌ Code generation failed after ${data.total_attempts ?? 0} attempts`);
+                      enqueueSnackbar('Code generation failed', { variant: 'error' });
                     }
-                    
-                    setAttempts(data.total_attempts || 0);
-                    setWarnings([data.error_details || 'Code generation failed']);
-                    setProgress(`❌ Code generation failed after ${data.total_attempts ?? 0} attempts`);
-                    enqueueSnackbar('Code generation failed', { variant: 'error' });
-                    
-                    // 显示错误报告
                     console.error('Code generation error report:', errorReport);
                   }
                   break;
