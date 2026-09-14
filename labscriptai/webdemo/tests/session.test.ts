@@ -4,6 +4,7 @@ import {
   applyAskUser,
   applyForm,
   applyPreset,
+  applyTipCountOverlay,
   canEmitPlan,
   canGenerateCode,
   canGenerateSop,
@@ -18,7 +19,9 @@ import {
   missingList,
   normalizePlanInput,
   normalizePlanTipPositions,
+  planPickTipWells,
   presetMismatchWarning,
+  requestedTipWells,
   shouldCallCompactSop,
   shouldReuseSop,
   snapshot,
@@ -61,7 +64,7 @@ describe("session machine", () => {
     assert.equal(shouldCallCompactSop(session), true);
   });
 
-  it("form draft becomes session sop so code can run after hardware", () => {
+  it("form notes stay in doc; generate_sop is still required", () => {
     const session = createSession();
     applyForm(session, {
       goal: "transfer",
@@ -69,10 +72,13 @@ describe("session machine", () => {
       robot: "Flex",
     });
     assert.equal(session.doc, "# SOP\n1. Aspirate A1");
-    assert.equal(session.sop, session.doc);
+    assert.equal(session.sop, undefined);
     assert.equal(session.phase, "ready");
     assert.equal(session.deckAssumed, true);
-    assert.equal(canGenerateCode(session), true);
+    assert.equal(canGenerateCode(session), false);
+    assert.equal(shouldReuseSop(session), false);
+    assert.equal(shouldCallCompactSop(session), true);
+    session.sop = "# generated SOP";
     assert.equal(shouldReuseSop(session), true);
     assert.equal(shouldCallCompactSop(session), false);
     assert.equal(shouldCallCompactSop(session, true), true);
@@ -136,19 +142,22 @@ describe("session machine", () => {
     assert.equal(session.deckAssumed, true);
   });
 
-  it("ask_user draft seeds sop when sop is empty", () => {
+  it("ask_user notes stay in doc, not sop", () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "" });
     assert.equal(session.doc, "none");
     assert.equal(session.sop, undefined);
     applyAskUser(session, { doc: "# SOP\n1. A", preset: "ot2_p300_standard3" });
-    assert.equal(session.sop, "# SOP\n1. A");
-    assert.equal(canGenerateCode(session), true);
+    assert.equal(session.doc, "# SOP\n1. A");
+    assert.equal(session.sop, undefined);
+    assert.equal(shouldCallCompactSop(session), true);
+    assert.equal(canGenerateCode(session), false);
     applyAskUser(session, { doc: "none" });
     assert.equal(session.doc, "none");
-    assert.equal(session.sop, "# SOP\n1. A");
+    assert.equal(session.sop, undefined);
     applyAskUser(session, { doc: "# later draft" });
-    assert.equal(session.sop, "# SOP\n1. A");
+    assert.equal(session.doc, "# later draft");
+    assert.equal(session.sop, undefined);
   });
 
   it("hardware ask_user treats undefined doc as none", () => {
@@ -239,6 +248,9 @@ describe("session machine", () => {
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
     assert.equal(session.deckAssumed, true);
+    assert.equal(shouldCallCompactSop(session), true);
+    assert.equal(canEmitPlan(session), false);
+    session.sop = "# SOP\n1. A";
     assert.equal(canEmitPlan(session), true);
     assert.equal(canGenerateCode(session), false);
     assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
@@ -250,6 +262,9 @@ describe("session machine", () => {
     applyAskUser(session, { preset: "hamilton_star_standard" });
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
+    assert.equal(shouldCallCompactSop(session), true);
+    assert.equal(canEmitPlan(session), false);
+    session.sop = "# SOP\n1. A";
     assert.equal(canEmitPlan(session), true);
     assert.equal(canGenerateCode(session), false);
     assert.match(formatHardwareConfig(session), /Plan backend: hamilton/);
@@ -261,6 +276,9 @@ describe("session machine", () => {
     applyAskUser(session, { preset: "tecan_evo_standard" });
     assert.equal(session.robot, "Tecan");
     assert.equal(enoughHardware(session), true);
+    assert.equal(shouldCallCompactSop(session), true);
+    assert.equal(canEmitPlan(session), false);
+    session.sop = "# SOP\n1. A";
     assert.equal(canEmitPlan(session), true);
     assert.equal(canGenerateCode(session), false);
     assert.match(formatHardwareConfig(session), /Plan backend: tecan_evo/);
@@ -521,5 +539,45 @@ describe("Plan IR tip_positions normalize", () => {
     assert.match(errors[1], /not vol or volume/);
     assert.match(errors[2], /plate:A1/);
     assert.match(errors[2], /\{well:"A1"\}/);
+  });
+});
+
+describe("tip-count overlay", () => {
+  const planA1 = {
+    steps: [{ primitive_type: "PICK_TIPS", tip_positions: ["A1"] }],
+  };
+
+  it("expands TIPS:A1 through TIPS:H1 and fails when the plan picks one tip", () => {
+    assert.deepEqual(requestedTipWells("Pick TIPS:A1 through TIPS:H1"), [
+      "A1",
+      "B1",
+      "C1",
+      "D1",
+      "E1",
+      "F1",
+      "G1",
+      "H1",
+    ]);
+    assert.deepEqual(planPickTipWells(planA1), ["A1"]);
+    const overlay = applyTipCountOverlay(
+      { outcome: "pass", logic_pass: true, final_pass_v2: true, issues: [] },
+      planA1,
+      "PCR 8 wells. Pick TIPS:A1 through TIPS:H1."
+    );
+    assert.equal(overlay.outcome, "fail");
+    assert.equal(overlay.reason, "LP-TIP-COUNT");
+    const codes = (overlay.issues ?? []).map((item) =>
+      item && typeof item === "object" ? (item as { code?: string }).code : ""
+    );
+    assert.ok(codes.includes("LP-TIP-COUNT"));
+  });
+
+  it("does not fail a single requested tip well", () => {
+    const overlay = applyTipCountOverlay(
+      { outcome: "pass", logic_pass: true, final_pass_v2: true, issues: [] },
+      planA1,
+      "MUST pick from TIPS:A1"
+    );
+    assert.equal(overlay.outcome, "pass");
   });
 });

@@ -114,7 +114,13 @@ def test_virtual_deck_overflow() -> None:
     assert deck.issues[0].code == "LP-OVERFLOW"
 
 
-def test_virtual_deck_empty() -> None:
+def test_virtual_deck_initial_overflow():
+    payload = {**DEMO, "initial_volumes_ul": {"plate:A1": 1000, "plate:B1": 0}}
+    deck = evaluate_virtual_deck(load_plan(payload))
+    assert deck.ok is False
+    assert deck.issues[0].code == "LP-OVERFLOW"
+    assert deck.issues[0].step_id == "initial"
+    assert "already exceeds" in deck.issues[0].detail_text
     payload = {**DEMO, "initial_volumes_ul": {"plate:A1": 10, "plate:B1": 0}}
     payload = {
         **payload,

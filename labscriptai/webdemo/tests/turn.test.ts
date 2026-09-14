@@ -105,7 +105,7 @@ describe("nextUserMessage / LIVE SESSION", () => {
     });
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
-    assert.equal(nextToolHint(session), "emit_plan");
+    assert.equal(nextToolHint(session), "generate_sop");
     assert.doesNotMatch(liveSessionBlock(session), /next_tool: ask_user/);
   });
 

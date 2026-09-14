@@ -56,6 +56,8 @@ export const POST_EMIT_PLAN_HINT =
   "SYSTEM HINT: emit_plan succeeded. Call run_checks now before any further planning or patching.";
 export const POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT =
   `SYSTEM HINT: ${REVIEWER_UNAVAILABLE_DISCLOSURE} Disclose this in the final user-facing message.`;
+export const POST_RUN_CHECKS_WITHHELD_HINT =
+  "SYSTEM HINT: Checks did not pass, so .gwl / worklist / downloadable script is withheld. Do not tell the user those files are ready. Report the bench consequence and ask whether to adjust.";
 
 export function afterWebdemoToolCall(
   context: {
@@ -71,6 +73,8 @@ export function afterWebdemoToolCall(
       ok?: unknown;
       fab?: { lit?: unknown };
       review?: { status?: unknown };
+      status?: unknown;
+      download?: unknown;
     };
   } | undefined;
   if (context.toolCall.name === "emit_plan" && details?.payload?.ok === true) {
@@ -78,6 +82,17 @@ export function afterWebdemoToolCall(
       content: [
         ...context.result.content,
         { type: "text", text: POST_EMIT_PLAN_HINT },
+      ],
+    };
+  }
+  if (
+    context.toolCall.name === "run_checks" &&
+    (details?.payload?.download === "withheld" || details?.payload?.status === "fail")
+  ) {
+    return {
+      content: [
+        ...context.result.content,
+        { type: "text", text: POST_RUN_CHECKS_WITHHELD_HINT },
       ],
     };
   }

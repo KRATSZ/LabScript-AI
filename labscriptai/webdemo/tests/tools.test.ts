@@ -59,13 +59,15 @@ describe("tools harness", () => {
     assert.ok(Array.isArray(parsed.missing));
   });
 
-  it("generate_sop skips when a draft already exists", async () => {
+  it("generate_sop skips only when a generated sop already exists", async () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
     applyAskUser(session, { preset: "ot2_p300_standard3" });
     const tools = buildTools(session, { write() {}, close() {} });
     const sop = tools.find((t) => t.name === "generate_sop");
     assert.ok(sop);
+    assert.equal(session.sop, undefined);
+    session.sop = "# SOP\n1. A";
     const result = await sop.execute("1", {});
     const parsed = JSON.parse(toolText(result));
     assert.equal(parsed.skipped, true);

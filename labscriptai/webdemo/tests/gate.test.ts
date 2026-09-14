@@ -222,6 +222,8 @@ describe("compactChecks", () => {
     const done = wrapChecks(simOk, lpPass, { issues: [] });
     assert.equal(done.fab.lit, true);
     assert.equal(compactChecks(done).next, "done");
+    assert.equal(compactChecks(done).status, "pass");
+    assert.equal(compactChecks(done).download, "ready");
     assert.equal(needsPatch(done), false);
 
     const patchSim = wrapChecks(simFail, skippedLogic("sim_failed"), { issues: [] });
@@ -231,6 +233,10 @@ describe("compactChecks", () => {
     const patchLp = wrapChecks(simOk, lpFail, { issues: [] });
     const compactLp = compactChecks(patchLp);
     assert.equal(compactLp.next, "patch");
+    assert.equal(compactLp.status, "fail");
+    assert.equal(compactLp.download, "withheld");
+    assert.match(compactLp.hint || "", /withheld/i);
+    assert.match(compactLp.hint || "", /do not say \.gwl/i);
     assert.equal(compactLp.logicpass.outcome, "fail");
     assert.ok(compactLp.logicpass.issues.length >= 1);
     assert.equal(compactLp.logicpass.issues.some((line) => line.includes("LP-")), false);

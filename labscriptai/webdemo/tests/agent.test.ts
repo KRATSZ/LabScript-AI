@@ -11,6 +11,7 @@ import {
   MODEL_CONTINUE_MESSAGE,
   POST_EMIT_PLAN_HINT,
   POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT,
+  POST_RUN_CHECKS_WITHHELD_HINT,
   promptWithAutoContinue,
   withToolEvents,
 } from "../server/src/agent.ts";
@@ -132,6 +133,30 @@ describe("agent tool-result handling", () => {
     assert.match(JSON.stringify(update.content), /semantic review is unverified/i);
     assert.match(JSON.stringify(update.content), /not a mismatch/i);
     assert.match(JSON.stringify(update.content), /does not block/i);
+  });
+
+  it("adds a withheld-download hint after failed run_checks", () => {
+    const update = afterWebdemoToolCall({
+      toolCall: { name: "run_checks" },
+      result: {
+        content: [{ type: "text", text: '{"status":"fail","download":"withheld"}' }],
+        details: {
+          payload: {
+            status: "fail",
+            download: "withheld",
+            fab: { lit: false },
+          },
+        },
+      },
+    });
+
+    assert.ok(update?.content);
+    assert.equal(
+      (update.content.at(-1) as { text: string }).text,
+      POST_RUN_CHECKS_WITHHELD_HINT
+    );
+    assert.match(JSON.stringify(update.content), /withheld/i);
+    assert.match(JSON.stringify(update.content), /do not tell the user those files are ready/i);
   });
 
   it("emits tool done only after the handler resolves, with duration", async () => {

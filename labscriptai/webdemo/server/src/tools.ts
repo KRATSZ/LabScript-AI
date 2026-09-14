@@ -124,7 +124,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "generate_sop",
     label: "Generate SOP",
     description:
-      "Write a compact SOP via DeepSeek only after phase=ready. Skip if sop already stored unless force=true. Blocked without robot/slots (returns JSON, does not throw, does not call DeepSeek).",
+      "Write a compact SOP from the session goal after phase=ready. Notes/doc are a draft only — do not copy intern junk. Skip if a generated sop is already stored unless force=true. Blocked without robot/slots (returns JSON, does not throw, does not call DeepSeek).",
     parameters: Type.Object({
       force: Type.Optional(Type.Boolean()),
     }),
@@ -342,7 +342,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (route === "plan") {
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
-          session.goal ?? "",
+          toolGoal(session),
           { robot: session.robot }
         );
         session.lastChecks = checks;

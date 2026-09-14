@@ -18,6 +18,10 @@ describe("consequences", () => {
       if (code === "LP-OVERFLOW" || code === "LP-L4") {
         assert.match(rendered, /spill/i);
       }
+      if (code === "LP-TIP-COUNT") {
+        assert.match(rendered, /tip well/i);
+        assert.doesNotMatch(rendered, /LP-/);
+      }
     }
   });
 

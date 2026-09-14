@@ -2,6 +2,8 @@
 
 export const CONSEQUENCE_BY_CODE: Record<string, string> = {
   "LP-OVERFLOW": "Liquid exceeds well capacity, it will spill.",
+  "LP-TIP-COUNT":
+    "The plan does not pick every named tip well, so some samples never get a fresh tip.",
   "LP-L4": "Liquid exceeds well capacity, it will spill.",
   "LP-EMPTY": "Aspirating more than the well holds: air gets aspirated, the transfer is short.",
   "LP-L1": "Aspirating more than the well holds: air gets aspirated, the transfer is short.",

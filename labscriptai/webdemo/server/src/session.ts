@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ChecksResult } from "./gate.ts";
+import type { ChecksResult, LogicPassResult } from "./gate.ts";
 import {
   DEVICE_REGISTRY,
   HARDWARE_PRESETS,
@@ -157,7 +157,7 @@ export function applyForm(
   session.goal = input.goal.trim();
   const doc = (input.doc ?? "").trim();
   session.doc = doc ? doc : "none";
-  session.sop = session.doc !== "none" ? session.doc : undefined;
+  session.sop = undefined;
   if (selectedRobot) {
     session.robot = selectedRobot;
   } else {
@@ -206,7 +206,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
   session.hardware.deck = { ...preset.deck };
   session.deckAssumed = true;
   if (switching) {
-    session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
+    session.sop = undefined;
     session.code = undefined;
     session.plan = undefined;
     session.analyze = undefined;
@@ -251,7 +251,7 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.hardware.useGripper = undefined;
   session.hardware.apiVersion = deviceFor(robot)?.hardwarePreset.apiVersion ?? "";
   session.deckAssumed = undefined;
-  session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
+  session.sop = undefined;
   session.code = undefined;
   session.plan = undefined;
   session.analyze = undefined;
@@ -277,9 +277,6 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   if (typeof input.doc === "string") {
     const doc = input.doc.trim();
     session.doc = doc ? doc : "none";
-    if (session.doc !== "none" && !session.sop?.trim()) {
-      session.sop = session.doc;
-    }
   } else if ((hardwareTouched(input) || Boolean(named)) && session.doc === undefined) {
     session.doc = "none";
   }
@@ -508,4 +505,95 @@ export function explainPlanErrors(errors: string[]): string[] {
     }
     return text;
   });
+}
+
+const WELL_TOKEN = /^([A-H])(\d{1,2})$/i;
+
+function expandWellRange(start: string, end: string): string[] {
+  const parse = (well: string) => {
+    const match = well.toUpperCase().match(WELL_TOKEN);
+    if (!match) return null;
+    return { row: match[1].charCodeAt(0), col: Number(match[2]) };
+  };
+  const from = parse(start);
+  const to = parse(end);
+  if (!from || !to) {
+    return [...new Set([start.toUpperCase(), end.toUpperCase()])];
+  }
+  const rowLo = Math.min(from.row, to.row);
+  const rowHi = Math.max(from.row, to.row);
+  const colLo = Math.min(from.col, to.col);
+  const colHi = Math.max(from.col, to.col);
+  const out: string[] = [];
+  for (let row = rowLo; row <= rowHi; row += 1) {
+    for (let col = colLo; col <= colHi; col += 1) {
+      out.push(`${String.fromCharCode(row)}${col}`);
+    }
+  }
+  return out;
+}
+
+function bareWell(raw: string): string {
+  const text = raw.trim();
+  const idx = text.lastIndexOf(":");
+  return (idx >= 0 ? text.slice(idx + 1) : text).trim().toUpperCase();
+}
+
+/** Unique tip wells named in goal/notes, e.g. TIPS:A1 through TIPS:H1. */
+export function requestedTipWells(intent: string): string[] {
+  const found = new Set<string>();
+  const text = intent ?? "";
+  const rangeRe = /TIPS:([A-H]\d{1,2})\s*(?:through|to|-|–|—)\s*TIPS:([A-H]\d{1,2})/gi;
+  for (const match of text.matchAll(rangeRe)) {
+    for (const well of expandWellRange(match[1], match[2])) found.add(well);
+  }
+  const wellRe = /TIPS:([A-H]\d{1,2})/gi;
+  for (const match of text.matchAll(wellRe)) {
+    found.add(match[1].toUpperCase());
+  }
+  return [...found];
+}
+
+export function planPickTipWells(plan: Record<string, unknown>): string[] {
+  const steps = Array.isArray(plan.steps) ? plan.steps : [];
+  const wells = new Set<string>();
+  for (const step of steps) {
+    if (!step || typeof step !== "object") continue;
+    const rec = step as Record<string, unknown>;
+    const kind = String(rec.primitive_type ?? rec.type ?? "").toUpperCase().replace("-", "_");
+    if (kind !== "PICK_TIPS") continue;
+    const pos = rec.tip_positions;
+    const list = Array.isArray(pos) ? pos : pos != null ? [pos] : [];
+    for (const item of list) {
+      const well = bareWell(String(item ?? ""));
+      if (well) wells.add(well);
+    }
+  }
+  return [...wells];
+}
+
+export function applyTipCountOverlay(
+  logicpass: LogicPassResult,
+  plan: Record<string, unknown>,
+  userIntent: string
+): LogicPassResult {
+  const requested = requestedTipWells(userIntent);
+  if (requested.length <= 1) return logicpass;
+  const have = new Set(planPickTipWells(plan));
+  const missing = requested.filter((well) => !have.has(well));
+  if (missing.length === 0) return logicpass;
+  const haveLabel = [...have].join(", ") || "none";
+  const issue = {
+    code: "LP-TIP-COUNT",
+    detail_text: `requested tip wells ${requested.join(", ")} but plan PICK_TIPS only has ${haveLabel}`,
+    step_id: "pick_tips",
+  };
+  return {
+    outcome: "fail",
+    logic_pass: false,
+    final_pass_v2: false,
+    issues: [...(logicpass.issues ?? []), issue],
+    coverage: logicpass.coverage,
+    reason: logicpass.outcome === "fail" ? logicpass.reason : "LP-TIP-COUNT",
+  };
 }

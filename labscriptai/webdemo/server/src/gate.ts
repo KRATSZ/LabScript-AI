@@ -329,6 +329,8 @@ export function compactChecks(
   review: { match?: boolean; status?: "unavailable"; findings: string[] };
   compile?: { ok: boolean; stage?: string; error?: string; hint?: string; command_count?: number };
   fab: { lit: boolean };
+  status: CheckStatus;
+  download: "ready" | "withheld";
   next: "patch" | "done";
   consequences: string[];
   hint?: string;
@@ -370,6 +372,7 @@ export function compactChecks(
         ? { match: checks.llmreview.match }
         : {}),
   };
+  const withheld = checks.status !== "pass";
   const payload = {
     sim: {
       ok: checks.sim.ok,
@@ -381,6 +384,8 @@ export function compactChecks(
     review,
     ...(compile ? { compile } : {}),
     fab: { lit: checks.fab.lit },
+    status: checks.status,
+    download: (withheld ? "withheld" : "ready") as "ready" | "withheld",
     next: (iterate ? "patch" : "done") as "patch" | "done",
     consequences: consequences.slice(0, 5),
     ...(mismatch
@@ -391,7 +396,11 @@ export function compactChecks(
         }
       : unavailable && checks.status === "pass"
         ? { hint: REVIEWER_UNAVAILABLE_DISCLOSURE }
-      : {}),
+      : withheld
+        ? {
+            hint: "Do not say .gwl, worklist, or a downloadable script is ready. Checks did not pass; those files are withheld.",
+          }
+        : {}),
   };
   if (!mismatch) return payload;
   const { review: reviewFirst, ...rest } = payload;

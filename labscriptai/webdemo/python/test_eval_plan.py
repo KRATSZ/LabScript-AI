@@ -130,6 +130,24 @@ class EvalPlanTests(unittest.TestCase):
             blob = " ".join(str(err) for err in (out["sim"].get("errors") or []))
             self.assertTrue("IPS" in blob or out["sim"].get("reason") in {"plr_unavailable", "sim_failed"})
 
+    def test_source_already_over_capacity_fails_logicpass(self) -> None:
+        payload = {
+            **DEMO,
+            "backend": "tecan_evo",
+            "resources": [
+                {"id": "tips", "type": "tiprack", "slot": "1"},
+                {"id": "plate", "type": "plate", "slot": "2", "max_volume_ul": 360},
+            ],
+            "initial_volumes_ul": {"plate:A1": 1000, "plate:B1": 0},
+        }
+        out = run_cli({"plan": payload})
+        self.assertEqual(out["logicpass"]["outcome"], "fail")
+        codes = [issue.get("code") for issue in out["logicpass"].get("issues") or []]
+        self.assertIn("LP-OVERFLOW", codes)
+        detail = " ".join(str(issue.get("detail_text") or "") for issue in out["logicpass"].get("issues") or [])
+        self.assertIn("already exceeds", detail)
+        self.assertFalse(out["fab"]["lit"])
+
     def test_import_failure_is_not_a_pass(self) -> None:
         out = run_cli({"plan": DEMO}, extra_env={"PYTHONPATH": "/tmp/webdemo-empty-path"})
         self.assertFalse(out["sim"]["ok"])

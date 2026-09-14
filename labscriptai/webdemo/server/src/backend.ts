@@ -24,7 +24,7 @@ import {
   attachConsequences,
   withCompile,
 } from "./gate.ts";
-import { capSop } from "./session.ts";
+import { applyTipCountOverlay, capSop } from "./session.ts";
 import { parseSseBuffer } from "./sse.ts";
 import { codeThinkingToken } from "./think.ts";
 import { DEEPSEEK_MAX_TOKENS } from "./agent.ts";
@@ -100,6 +100,8 @@ ${hardwareConfig}
 
 Goal:
 ${userGoal}
+
+Notes (if any "Existing SOP draft") are intern notes, not the SOP. Write from the Goal volumes and wells. Do not copy junk or contradictory notes.
 
 Output only:
 # <one-line objective>
@@ -797,7 +799,11 @@ export async function runPlanChecks(
   const outPlan = (raw.plan as Record<string, unknown>) || plan;
   const rawLogic =
     raw.logicpass && typeof raw.logicpass === "object" ? (raw.logicpass as Record<string, unknown>) : null;
-  const logicpass = logicpassFromPlanCli(sim, rawLogic);
+  const logicpass = applyTipCountOverlay(
+    logicpassFromPlanCli(sim, rawLogic),
+    outPlan,
+    userIntent
+  );
   const checks = await withOptionalReview(
     wrapChecks(sim, logicpass, emptyStatepass(sim.ok ? undefined : String(sim.reason || "sim_failed"))),
     JSON.stringify(plan),
