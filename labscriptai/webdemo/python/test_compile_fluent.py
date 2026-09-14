@@ -141,6 +141,21 @@ class CompileFluentTests(unittest.TestCase):
         self.assertTrue(out.get("hint"))
         self.assertNotIn("Traceback", completed.stdout)
 
+    def test_tip_positions_with_resource_prefix(self) -> None:
+        plan = {
+            **DEMO,
+            "steps": [
+                {**DEMO["steps"][0], "tip_positions": ["TIPS:A1"]},
+                *DEMO["steps"][1:],
+            ],
+        }
+        out, _ = run_cli(plan)
+        self.assertTrue(out["ok"], out)
+        gwl = out["worklist_gwl"]
+        self.assertNotIn("IPS", gwl)
+        self.assertIn("A;plate;;;A1;;50;Water Free Single;;1;", gwl)
+        self.assertIn("D;plate;;;B1;;50;Water Free Single;;1;", gwl)
+
     def test_empty_steps(self) -> None:
         out, _ = run_cli({**DEMO, "steps": []})
         self.assertFalse(out["ok"])

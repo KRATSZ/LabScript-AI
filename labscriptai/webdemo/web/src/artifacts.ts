@@ -20,6 +20,8 @@ export interface PlanStepLike {
   destination?: string;
   location?: string;
   volume_ul?: number;
+  tip_rack?: string;
+  tip_positions?: string[] | string;
 }
 
 function asStep(step: unknown): PlanStepLike {
@@ -36,11 +38,19 @@ export function planStepLine(step: unknown): string {
   const source = typeof s.source === "string" && s.source.trim() ? s.source : "";
   const dest = typeof s.destination === "string" && s.destination.trim() ? s.destination : "";
   const loc = typeof s.location === "string" && s.location.trim() ? s.location : "";
+  const rack = typeof s.tip_rack === "string" && s.tip_rack.trim() ? s.tip_rack : "";
+  const tipList = Array.isArray(s.tip_positions)
+    ? s.tip_positions.filter((well) => typeof well === "string" && well.trim())
+    : typeof s.tip_positions === "string" && s.tip_positions.trim()
+      ? [s.tip_positions.trim()]
+      : [];
+  const tips = tipList.join(",");
   let route = "";
   if (source && dest) route = `${source}→${dest}`;
   else if (source) route = source;
   else if (dest) route = dest;
   else if (loc) route = loc;
+  else if (tips) route = rack ? `${rack}:${tips}` : tips;
   return [id, prim, vol, route].filter(Boolean).join(" ");
 }
 
