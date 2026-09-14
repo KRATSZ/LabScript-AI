@@ -339,15 +339,19 @@ const CodeGenerationPage: React.FC = () => {
                     // 处理失败情况
                     const finalCode = data.generated_code || '';
                     const errorReport = data.error_report || '';
-                    
-                    if (finalCode) {
+                    const needsTecanFallback = state.robotModel === 'PyLabRobot'
+                      && (!finalCode.trim() || /from opentrons|protocol_api/.test(finalCode));
+
+                    if (needsTecanFallback) {
+                      applyFallbackProtocol('AI generation failed. A Tecan starter protocol is in the editor — click Run Simulation.');
+                    } else if (finalCode) {
                       dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
                       setEditedCode(finalCode);
                     }
                     
                     setAttempts(data.total_attempts || 0);
                     setWarnings([data.error_details || 'Code generation failed']);
-                    setProgress(`❌ Code generation failed after ${data.total_attempts} attempts`);
+                    setProgress(`❌ Code generation failed after ${data.total_attempts ?? 0} attempts`);
                     enqueueSnackbar('Code generation failed', { variant: 'error' });
                     
                     // 显示错误报告
@@ -358,7 +362,7 @@ const CodeGenerationPage: React.FC = () => {
                 case 'error':
                   setIsGenerating(false);
                   setShowProcessExplanation(false);
-                  setProgress('❌ Error occurred during code generation');
+                  applyFallbackProtocol(data.message || 'Code generation error. A starter protocol is in the editor.');
                   enqueueSnackbar(data.message || 'Code generation error', { variant: 'error' });
                   console.error('Code generation error:', data);
                   break;
@@ -412,8 +416,20 @@ const CodeGenerationPage: React.FC = () => {
     enqueueSnackbar('Code copied to clipboard', { variant: 'success' });
   };
 
+  const applyFallbackProtocol = (reason: string) => {
+    const partialCode = state.robotModel === 'PyLabRobot'
+      ? PYLABROBOT_FALLBACK_PROTOCOL
+      : OPENTRONS_FALLBACK_PROTOCOL;
+    setEditedCode(partialCode);
+    dispatch({ type: 'SET_PYTHON_CODE', payload: partialCode });
+    setWarnings([reason]);
+    setProgress(`⚠️ ${reason}`);
+  };
+
   const handleEditorChange = (value: string | undefined) => {
-    setEditedCode(value || '');
+    const next = value || '';
+    setEditedCode(next);
+    dispatch({ type: 'SET_PYTHON_CODE', payload: next });
   };
 
   const handleRunSimulation = () => {
@@ -519,7 +535,7 @@ const CodeGenerationPage: React.FC = () => {
               mb: 2
             }}
           >
-            AI-powered generation and validation of Opentrons Python protocol code, automatically optimized based on your SOP
+            AI-powered generation and simulation of protocol code for {state.robotModel === 'PyLabRobot' ? 'PyLabRobot (Tecan, Hamilton, …)' : 'Opentrons'}, based on your SOP
           </Typography>
           
           {showReadyAlert && !editedCode && !isGenerating && (
@@ -608,6 +624,24 @@ const CodeGenerationPage: React.FC = () => {
                   }}
                 >
                   {isGenerating ? 'Intelligent Generation...' : 'Start Code Generation'}
+                </Button>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  startIcon={<Play size={20} />}
+                  onClick={handleRunSimulation}
+                  disabled={!editedCode || isGenerating}
+                  sx={{
+                    mb: 2,
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontWeight: 600,
+                  }}
+                >
+                  Run Simulation
                 </Button>
                 
                 <Button

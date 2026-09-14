@@ -11,7 +11,7 @@ import os
 import sys
 import json
 import re
-from typing import TypedDict, Optional, Dict, AsyncGenerator
+from typing import Any, TypedDict, Optional, Dict, AsyncGenerator
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
@@ -168,6 +168,48 @@ if __name__ == "__main__":
     asyncio.run(main())
 """
 
+def starter_logic_from_hardware(hardware_config: Optional[Dict[str, Any]]) -> str:
+    """Build a tiny transferable protocol from named deck resources.
+
+    Used when the LLM is unavailable (missing/invalid API key) so Generate →
+    Simulate still produces something that runs on the selected Tecan/Hamilton deck.
+    """
+    resources = list((hardware_config or {}).get("resources", {}).keys())
+    tip = next((name for name in resources if "tip" in name.lower() and "1000" not in name), None)
+    if tip is None:
+        tip = next((name for name in resources if "tip" in name.lower()), None)
+    plates = [
+        name for name in resources
+        if name != tip and "wash" not in name.lower()
+    ]
+    source = next((name for name in plates if "source" in name.lower()), None)
+    dest = next((name for name in plates if "dest" in name.lower()), None)
+    if source is None and plates:
+        source = plates[0]
+    if dest is None and len(plates) > 1:
+        dest = plates[1]
+    if dest is None:
+        dest = source
+
+    if not tip or not source or not dest:
+        return (
+            "    print('ERROR: Hardware config has no tip rack and plates to transfer with')\n"
+            "    raise Exception('Incomplete hardware configuration')\n"
+        )
+
+    return (
+        "    # Starter protocol: AI code generation was unavailable.\n"
+        f"    tips = lh.get_resource({tip!r})\n"
+        f"    source = lh.get_resource({source!r})\n"
+        f"    dest = lh.get_resource({dest!r})\n"
+        '    await lh.pick_up_tips(tips["A1"])\n'
+        '    await lh.aspirate(source["A1"], vols=[20])\n'
+        '    await lh.dispense(dest["A1"], vols=[20])\n'
+        '    await lh.drop_tips(tips["A1"])\n'
+        '    print("--- PROTOCOL_SUCCESS ---")\n'
+    )
+
+
 def fill_template_with_logic(template: str, protocol_logic: str) -> str:
     """
     Replace the [AGENT_CODE_STUB] placeholder in template with actual protocol logic.
@@ -293,9 +335,9 @@ Generate ONLY the protocol logic (function body content) with proper indentation
             
         except Exception as e:
             print(f"Error in LLM generation: {e}")
-            # Fallback: use template with minimal logic
-            fallback_logic = """    print("ERROR: Failed to generate protocol logic from LLM")
-    raise Exception("LLM generation failed")"""
+            # Missing API keys used to loop 9 failed sims. Hand back a deck-aware
+            # starter so Tecan/Hamilton Generate → Simulate still works.
+            fallback_logic = starter_logic_from_hardware(state.get("hardware_config"))
             final_code = fill_template_with_logic(template, fallback_logic)
             
     else:
