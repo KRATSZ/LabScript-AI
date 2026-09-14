@@ -67,10 +67,6 @@ export function loadDemoEnv(): DemoEnv {
     process.env.LABSCRIPTAI_DEEPSEEK_API_KEY ||
     process.env.DEEPSEEK_API_KEY ||
     "";
-  if (apiKey && !process.env.DEEPSEEK_API_KEY) {
-    process.env.DEEPSEEK_API_KEY = apiKey;
-  }
-
   const baseUrl = (
     process.env.LABSCRIPTAI_DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1"
   ).replace(/\/$/, "");
@@ -78,6 +74,20 @@ export function loadDemoEnv(): DemoEnv {
     process.env.LABSCRIPTAI_DEEPSEEK_MODEL ||
     process.env.LABSCRIPTAI_MODEL_NAME ||
     "deepseek-v4-flash";
+  // Python reviewer/author clients read DEEPSEEK_* / DEEPSEEK_REVIEW_*.
+  // Official DeepSeek accepts both https://api.deepseek.com and .../v1.
+  const pythonBase = baseUrl.replace(/\/v1$/, "") || "https://api.deepseek.com";
+  const fill = (key: string, value: string) => {
+    if (!process.env[key]) process.env[key] = value;
+  };
+  if (apiKey) {
+    fill("DEEPSEEK_API_KEY", apiKey);
+    fill("DEEPSEEK_REVIEW_API_KEY", apiKey);
+  }
+  fill("DEEPSEEK_BASE_URL", pythonBase);
+  fill("DEEPSEEK_REVIEW_BASE_URL", pythonBase);
+  fill("DEEPSEEK_MODEL", model);
+  fill("DEEPSEEK_REVIEW_MODEL", model);
 
   return {
     apiKey,

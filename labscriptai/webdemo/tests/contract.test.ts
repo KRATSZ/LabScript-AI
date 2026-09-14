@@ -80,6 +80,12 @@ describe("demo contract lock", () => {
     assert.match(prompt, /Watch\/animation is unavailable/);
     assert.doesNotMatch(prompt, /Default path for EVERY robot/);
 
+    const env = read("server/src/env.ts");
+    assert.match(env, /LABSCRIPTAI_DEEPSEEK_API_KEY/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_API_KEY"/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_MODEL"/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_BASE_URL"/);
+
     const tools = read("server/src/tools.ts");
     assert.match(tools, /Do not ask which robot/);
     assert.match(tools, /Preferred for OT-2 and Flex/);
