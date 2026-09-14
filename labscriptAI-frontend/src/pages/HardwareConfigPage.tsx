@@ -550,7 +550,7 @@ const HardwareConfigPage: React.FC = () => {
                 <li>Protocol validation is experimental</li>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                For production workflows, we strongly recommend using Opentrons Flex or OT-2 platforms.
+                This is a software simulation path for Tecan/Hamilton-style decks. It is not EVOware, FluentControl, or a live instrument.
               </Typography>
             </DialogContentText>
           </DialogContent>
@@ -1056,7 +1056,11 @@ const HardwareConfigPage: React.FC = () => {
                 rows={15}
                 fullWidth
                 variant="outlined"
-                placeholder={`Example configuration for ${state.robotModel || 'selected robot'}:\n{\n  "robot_model": "${state.robotModel || 'Flex'}",\n  "api_version": "${state.apiVersion || '2.20'}",\n  "left_pipette": "p1000_single_gen2",\n  "right_pipette": null,\n  "deck_layout": {\n    "A1": "opentrons_96_tiprack_1000ul",\n    "B2": "corning_6_wellplate_16.8ml_flat"\n  },\n  "use_gripper": false\n}`}
+                placeholder={
+                  state.robotModel === 'PyLabRobot'
+                    ? 'Example Tecan Freedom EVO YAML:\nrobot_model: Tecan Freedom EVO\nresources:\n  tip_rack_200ul_evo:\n    type: TipRack_200ul_Tecan\n    tip_volume: 200\n  microplate_source:\n    type: plate\n  microplate_dest:\n    type: plate'
+                    : `Example configuration for ${state.robotModel || 'selected robot'}:\n{\n  "robot_model": "${state.robotModel || 'Flex'}",\n  "api_version": "${state.apiVersion || '2.20'}",\n  "left_pipette": "p1000_single_gen2",\n  "right_pipette": null,\n  "deck_layout": {\n    "A1": "opentrons_96_tiprack_1000ul",\n    "B2": "corning_6_wellplate_16.8ml_flat"\n  },\n  "use_gripper": false\n}`
+                }
                 value={configText}
                 onChange={handleConfigTextChange}
                 sx={{ 

@@ -598,7 +598,7 @@ const SimulationResultsPage: React.FC = () => {
                       Running Protocol Simulation
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
-                      We're validating your protocol code against the {state.robotModel === 'PyLabRobot' ? 'PyLabRobot' : 'Opentrons'} simulation environment. 
+                      We're validating your protocol code against the {pylabrobotDisplayName(state)} simulation environment. 
                       This process checks for syntax errors, hardware compatibility, and logical flow.
                     </Typography>
                     <LinearProgress 
