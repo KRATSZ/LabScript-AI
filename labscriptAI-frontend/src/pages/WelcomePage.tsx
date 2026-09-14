@@ -57,7 +57,7 @@ const WelcomePage: React.FC = () => {
   const workflowSteps = [
     {
       title: 'Configure Hardware',
-      description: 'Select your Opentrons model, pipettes, and labware arrangement.',
+      description: 'Select Opentrons Flex/OT-2 or a PyLabRobot device such as Tecan Freedom EVO.',
       icon: <Lucide.Settings size={24} />,
       number: '1'
     },
@@ -69,7 +69,7 @@ const WelcomePage: React.FC = () => {
     },
     {
       title: 'Generate Protocol',
-      description: 'Our AI generates Python code for your Opentrons robot.',
+      description: 'Our AI generates Python code for the robot you selected.',
       icon: <Lucide.Code size={24} />,
       number: '3'
     },
@@ -135,7 +135,7 @@ const WelcomePage: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                Transform natural language descriptions into precise lab automation protocols for differnet robots.
+                Transform natural language descriptions into precise lab automation protocols for different robots.
               </MotionTypography>
               
               <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
@@ -314,7 +314,7 @@ const WelcomePage: React.FC = () => {
               Ready to automate your lab protocols?
             </Typography>
             <Typography variant="body1" paragraph sx={{ maxWidth: 700, mx: 'auto', mb: 4 }}>
-              LabScript AI helps you convert complex lab procedures into Opentrons protocols without writing a single line of code.
+              LabScript AI helps you convert complex lab procedures into robot protocols without writing a single line of code.
             </Typography>
             <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button 

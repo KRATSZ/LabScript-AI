@@ -35,7 +35,7 @@ import { ArrowLeft, Play, RefreshCw, Copy, Code2, Zap, CheckCircle, AlertTriangl
 import { useSnackbar } from 'notistack';
 import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
-import { formatHardwareConfig } from '../services/api';
+import { formatHardwareConfig, pylabrobotDisplayName } from '../services/api';
 import type { IterationLog } from '../services/api';
 
 interface ApiErrorDetail {
@@ -133,13 +133,17 @@ const CodeGenerationPage: React.FC = () => {
     },
     { 
       label: 'Generate Initial Code', 
-      description: 'Generate Opentrons Python protocol code based on SOP, including all necessary hardware configurations',
+      description: state.robotModel === 'PyLabRobot'
+        ? 'Generate PyLabRobot protocol code for the selected Tecan/Hamilton deck'
+        : 'Generate Opentrons Python protocol code based on SOP, including all necessary hardware configurations',
       icon: <Code2 size={20} />,
       estimatedTime: 30
     },
     { 
       label: 'Simulation Validation', 
-      description: 'Run Opentrons simulator to validate code syntax and logical correctness',
+      description: state.robotModel === 'PyLabRobot'
+        ? 'Run the PyLabRobot chatterbox simulator against the selected deck'
+        : 'Run Opentrons simulator to validate code syntax and logical correctness',
       icon: <TestTube size={20} />,
       estimatedTime: 20
     },
@@ -713,7 +717,7 @@ const CodeGenerationPage: React.FC = () => {
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                       💡 Estimated Time Required: {Math.ceil(getTotalEstimatedTime() / 60)} minutes
                     </Typography>
-                    Our AI system will execute a multi-stage intelligent generation and validation process to ensure the generated code can run safely and accurately on Opentrons robots.
+                    Our AI system will execute a multi-stage generation and validation process so the code can run on {pylabrobotDisplayName(state)}.
                     Please be patient, complex experiments may require multiple iterative optimizations.
                   </Alert>
 
@@ -1298,7 +1302,7 @@ const CodeGenerationPage: React.FC = () => {
                                     <Box sx={{ flex: 1 }}>
                                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                                         {log.node_name === 'generator' ? '🧠 AI Code Generation' :
-                                         log.node_name === 'simulator' ? '🧪 Opentrons Simulation Validation' :
+                                         log.node_name === 'simulator' ? (state.robotModel === 'PyLabRobot' ? '🧪 PyLabRobot Simulation Validation' : '🧪 Opentrons Simulation Validation') :
                                          log.node_name === 'feedback_preparer' ? '🔍 Error Analysis & Fix Strategy' :
                                          `📋 ${log.event_type}`}
                                       </Typography>

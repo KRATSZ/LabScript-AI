@@ -124,7 +124,7 @@ const CodeInputPage: React.FC = () => {
               mb: 1.5
             }}
           >
-            Upload or paste your existing Opentrons protocol code to begin AI-powered editing
+            Upload or paste existing Opentrons protocol code. Tecan / PyLabRobot protocols use Hardware Config → Generate instead.
           </Typography>
           
           {isInfoAlertVisible && (

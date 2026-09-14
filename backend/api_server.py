@@ -223,8 +223,11 @@ async def generate_protocol_code_stream(
         print(f"Debug - SOP length: {len(request.sop_markdown)}")
         print(f"Debug - Hardware config length: {len(request.hardware_config)}")
         
-        # Dispatcher logic: check robot type from explicit robot_model field
-        is_pylabrobot = request.robot_model == 'PyLabRobot'
+        # Dispatcher: explicit robot_model, or Tecan/Hamilton YAML even if the UI still says Flex
+        hw_blob = (request.hardware_config or "").lower()
+        is_pylabrobot = request.robot_model == 'PyLabRobot' or any(
+            token in hw_blob for token in ("tecan", "hamilton", "pylabrobot", "tecan_evo")
+        )
         print(f"Debug - Robot model from request: {request.robot_model}")
         print(f"Debug - Detected robot type: {'PyLabRobot' if is_pylabrobot else 'Opentrons'}")
 

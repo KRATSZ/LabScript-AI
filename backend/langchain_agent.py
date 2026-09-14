@@ -111,6 +111,23 @@ class CodeGenerationState(TypedDict):
 # SOP生成功能部分
 # ============================================================================
 
+def _augment_hardware_context(hardware_context: str) -> str:
+    """Stop Tecan/Hamilton SOPs from being written as Opentrons Flex protocols."""
+    blob = (hardware_context or "").lower()
+    if not any(token in blob for token in ("tecan", "hamilton", "pylabrobot", "star", "vantage")):
+        return hardware_context
+    extra = (
+        "\n\nCRITICAL HARDWARE CONSTRAINTS:\n"
+        "- This is NOT an Opentrons Flex or OT-2.\n"
+        "- Do not mention Flex gripper, Opentrons API levels, left/right Opentrons pipettes, "
+        "magnetic module, thermocycler, or Opentrons deck slots unless they appear in the hardware config.\n"
+        "- Name the robot from the hardware config (e.g. Tecan Freedom EVO).\n"
+        "- Use the listed deck resources (tip racks and plates) by those names.\n"
+        "- Describe LiHa/arm channels on this robot, not Opentrons mounts.\n"
+    )
+    return f"{hardware_context}{extra}"
+
+
 def generate_sop_with_langchain(user_goal_with_hardware_context: str) -> str:
     """
     使用本地LangChain生成标准操作程序(SOP)
@@ -141,6 +158,7 @@ def generate_sop_with_langchain(user_goal_with_hardware_context: str) -> str:
             # 如果没有找到分隔符，假设整个输入都是用户目标
             hardware_context = "No specific hardware configuration provided."
             user_goal = user_goal_with_hardware_context.strip()
+        hardware_context = _augment_hardware_context(hardware_context)
         
         # 打印调试信息，帮助开发者了解处理过程
         print(f"Debug - [generate_sop_with_langchain] 原始输入长度: {len(user_goal_with_hardware_context)}")
@@ -300,7 +318,10 @@ async def generate_sop_with_langchain_stream(hardware_context: str, user_goal: s
     
     try:
         # 准备链的输入参数
-        chain_input = {"hardware_context": hardware_context, "user_goal": user_goal}
+        chain_input = {
+            "hardware_context": _augment_hardware_context(hardware_context),
+            "user_goal": user_goal,
+        }
         
         # 为了实现真正的token级流式输出，我们绕过LLMChain，直接调用llm.astream
         # 步骤1: 手动格式化提示词

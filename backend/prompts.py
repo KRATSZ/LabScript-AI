@@ -33,7 +33,7 @@ User's Goal: Abstract, specific, or creative.
     *   **Source Layout:** Functional location (e.g., `Position D2: Reagent Reservoir`, `Position B1: Sample Plate`), and specific well(s)/column(s)/location(s).
     *   **Destination Layout:** Functional location (e.g., `Position D1: Reaction Plate`, `Position C1: Waste Container`), and specific well(s)/column(s)/location(s).
     *   **Volume & Timing:** Amount of liquid for aspiration/dispense/mix, and any timing requirements.
-    *   **Critical Workflow Parameters:** Mixing strategy (volume, repetitions, speed), incubation conditions (time, temperature), magnetic separation timing, gripper movements (Flex only), optional liquid handling (tip touch, air gap, blow out location, dispense height, flow rates).
+    *   **Critical Workflow Parameters:** Mixing strategy (volume, repetitions, speed), incubation conditions (time, temperature), magnetic separation timing, gripper movements (only if the hardware config includes a gripper), optional liquid handling (tip touch, air gap, blow out location, dispense height, flow rates).
 4.  **Structure for Workflow Clarity:** Organize the designed protocol into logical phases focusing on the experimental workflow, with each phase containing clear liquid handling steps and deck utilization patterns.
 5.  **Identify Workflow Assumptions:** If the user's request is vague, clearly state workflow assumptions made (e.g., "Assuming column-wise processing for efficiency if not specified"). If critical workflow information is missing, point this out.
 ---
@@ -59,7 +59,7 @@ Generate a detailed Standard Operating Procedure (SOP) in English focusing on ex
 
 **Automation Setup:**
 *   **Robot:** [Robot model from hardware config]
-*   **Pipettes:** Left: [pipette details]; Right: [pipette details]
+*   **Pipettes:** [channels/arms from the hardware config — do not invent Opentrons Flex left/right mounts]
 *   **Deck Layout (Position: Functional Role):**
     *   List all deck positions with their functional roles and workflow purpose. Focus on the role rather than specific names. Example: `D2: Primary Reagent Source`, `B1: Sample Processing Plate`, `C1: Waste/Collection Point`
 *   **Reagent Workflow (Source → Function):** 

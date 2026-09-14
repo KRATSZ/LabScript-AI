@@ -145,11 +145,15 @@ const HardwareConfigPage: React.FC = () => {
         if (config.rawHardwareConfigText) {
           setConfigText(config.rawHardwareConfigText);
           setConfigMode('text');
-          const modelMatch = String(config.rawHardwareConfigText).match(/robot_model\s*[:=]\s*['"]?([A-Za-z0-9_]+)/);
+          const modelMatch = String(config.rawHardwareConfigText).match(/robot_model\s*[:=]\s*['"]?([^\n]+)/);
           if (config.robotModel === 'PyLabRobot' && modelMatch) {
-            const model = modelMatch[1].replace(/_/g, ' ');
+            const raw = modelMatch[1].trim();
+            const blob = raw.toLowerCase();
             setSelectedPyLabRobotDisplayName(
-              model.toLowerCase() === 'tecan evo' ? 'Tecan Freedom EVO' : model
+              blob.includes('tecan') ? 'Tecan Freedom EVO'
+                : blob.includes('vantage') ? 'Hamilton Vantage'
+                : blob.includes('hamilton') ? 'Hamilton STAR'
+                : raw.replace(/_/g, ' ')
             );
           }
         } else {
@@ -398,7 +402,7 @@ const HardwareConfigPage: React.FC = () => {
               mb: 2
             }}
           >
-            Set up your Opentrons robot configuration, pipettes, and define the labware on your deck for optimal protocol execution
+            Set up your robot, pipettes, and deck labware. PyLabRobot devices such as Tecan Freedom EVO are configured as YAML-style text.
           </Typography>
         </Box>
 
@@ -434,7 +438,7 @@ const HardwareConfigPage: React.FC = () => {
                   Select Robot Model
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Choose your Opentrons robot model to begin configuration
+                  Choose Flex, OT-2, or a PyLabRobot device such as Tecan Freedom EVO
                 </Typography>
               </Box>
             </Stack>
@@ -1042,7 +1046,7 @@ const HardwareConfigPage: React.FC = () => {
                     Advanced Text Configuration
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Define your hardware setup using JSON format for maximum flexibility
+                    Define your hardware setup as YAML-style text or JSON. Edits to resources are sent to generate and simulate.
                   </Typography>
                 </Box>
               </Stack>

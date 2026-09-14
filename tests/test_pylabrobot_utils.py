@@ -20,6 +20,7 @@ from backend.pylabrobot_utils import (
     pick_transfer_resource_names,
     run_pylabrobot_simulation,
     setup_simulation_environment,
+    validate_protocol_volumes,
 )
 
 TECAN_YAML = """
@@ -30,6 +31,33 @@ resources:
   tip_rack_200ul_evo:
     type: TipRack_200ul_Tecan
 """
+
+DISPLAY_NAME_YAML = """
+robot_model: Tecan Freedom EVO
+"""
+
+EDITED_TECAN_YAML = """
+robot_model: tecan_evo
+resources:
+  tip_rack_200ul_evo:
+    type: TipRack_200ul_Tecan
+    tip_volume: 200
+  oops:
+    type: banana
+"""
+
+OVERFLOW_PROTOCOL = """
+async def protocol(lh):
+    tips = lh.get_resource("tip_rack_200ul_evo")
+    source = lh.get_resource("microplate_source")
+    dest = lh.get_resource("microplate_dest")
+    await lh.pick_up_tips(tips["A1"])
+    await lh.aspirate(source["A1"], vols=[5000])
+    await lh.dispense(dest["A1"], vols=[5000])
+    await lh.drop_tips(tips["A1"])
+    print("--- PROTOCOL_SUCCESS ---")
+"""
+
 
 MIN_PROTOCOL = """
 async def protocol(lh):
@@ -48,7 +76,21 @@ def test_yaml_style_tecan_text_loads_tecan_profile() -> None:
     config = parse_hardware_config_str(TECAN_YAML)
     assert config["robot_model"] == "tecan_evo"
     assert "tip_rack_200ul_evo" in config["resources"]
-    assert "microplate_source" in config["resources"]
+    assert "oops" not in config["resources"]
+
+
+def test_display_name_yaml_loads_tecan_not_hamilton() -> None:
+    config = parse_hardware_config_str(DISPLAY_NAME_YAML)
+    assert config["robot_model"] == "tecan_evo"
+    assert "tip_rack_200ul_evo" in config["resources"]
+    assert config.get("deck_type") != "hamilton_star"
+
+
+def test_yaml_resource_edits_are_kept() -> None:
+    config = parse_hardware_config_str(EDITED_TECAN_YAML)
+    assert "oops" in config["resources"]
+    assert "microplate_source" not in config["resources"]
+    assert config["resources"]["oops"]["type"] == "banana"
 
 
 def test_json_hardware_config_is_kept() -> None:
@@ -66,7 +108,7 @@ def test_tecan_profile_file_exists() -> None:
     reason="pylabrobot not installed",
 )
 def test_tecan_setup_places_named_resources() -> None:
-    config = parse_hardware_config_str(TECAN_YAML)
+    config = json.loads((HARDWARE_PROFILES_DIR / "pylabrobot_tecan_evo.json").read_text())
 
     async def _run():
         lh = await setup_simulation_environment(config)
@@ -121,7 +163,7 @@ def test_chatterbox_backend_is_deprecated() -> None:
 
 
 def test_tecan_knowledge_uses_named_resources() -> None:
-    config = parse_hardware_config_str(TECAN_YAML)
+    config = json.loads((HARDWARE_PROFILES_DIR / "pylabrobot_tecan_evo.json").read_text())
     knowledge = generate_dynamic_pylabrobot_knowledge(config)
     assert "tip_rack_200ul_evo" in knowledge
     assert 'lh.get_resource("tip_rack_200ul_evo")' in knowledge
@@ -160,3 +202,20 @@ def test_final_result_event_uses_status_success() -> None:
     assert event["status"] == "success"
     assert event["success"] is True
     assert "tip_rack_200ul_evo" in event["generated_code"]
+
+
+def test_5000ul_transfer_fails_volume_check() -> None:
+    config = json.loads((HARDWARE_PROFILES_DIR / "pylabrobot_tecan_evo.json").read_text())
+    message = validate_protocol_volumes(OVERFLOW_PROTOCOL, config)
+    assert message is not None
+    assert "5000" in message
+
+    result = asyncio.run(
+        run_pylabrobot_simulation(
+            OVERFLOW_PROTOCOL,
+            return_structured=True,
+            hardware_config=config,
+        )
+    )
+    assert result["success"] is False
+    assert "5000" in (result.get("error_details") or "")

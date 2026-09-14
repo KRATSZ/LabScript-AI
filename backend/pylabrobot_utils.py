@@ -67,7 +67,135 @@ DEFAULT_HARDWARE_SETUP = {
     }
 }
 
-_ROBOT_MODEL_RE = re.compile(r"robot_model\s*[:=]\s*['\"]?([A-Za-z0-9_]+)")
+_ROBOT_MODEL_RE = re.compile(r"robot_model\s*[:=]\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+_VOLS_RE = re.compile(r"vols\s*=\s*\[([^\]]+)\]")
+
+
+def normalize_robot_model(raw: Optional[str]) -> str:
+    """Map UI labels like 'Tecan Freedom EVO' onto profile ids like tecan_evo."""
+    slug = re.sub(r"[^a-z0-9]+", "_", (raw or "").strip().strip("'\"").lower()).strip("_")
+    if not slug:
+        return ""
+    if "tecan" in slug or "freedom_evo" in slug:
+        return "tecan_evo"
+    if "vantage" in slug:
+        return "hamilton_vantage"
+    if "hamilton" in slug or slug in {"star", "starlet"}:
+        return "hamilton_star"
+    if "opentrons" in slug or slug in {"ot2", "ot_2", "flex"}:
+        return "opentrons"
+    aliases = {
+        "tecan_evo": "tecan_evo",
+        "hamilton_star": "hamilton_star",
+        "hamilton_vantage": "hamilton_vantage",
+        "opentrons": "opentrons",
+        "generic": "generic",
+    }
+    return aliases.get(slug, slug)
+
+
+def _coerce_yaml_scalar(raw: str) -> Any:
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
+        return text[1:-1]
+    lowered = text.lower()
+    if lowered in {"true", "yes"}:
+        return True
+    if lowered in {"false", "no"}:
+        return False
+    if lowered in {"null", "none", "~", ""}:
+        return None
+    try:
+        if "." in text:
+            return float(text)
+        return int(text)
+    except ValueError:
+        return text
+
+
+def parse_yaml_style_mapping(text: str) -> Dict[str, Any]:
+    """Parse the frontend's indented key: value dump (not real YAML/JSON)."""
+    lines = [(len(line) - len(line.lstrip(" ")), line.strip()) for line in text.splitlines()]
+    lines = [(ind, body) for ind, body in lines if body and not body.startswith("#")]
+
+    def parse_level(index: int, indent: int):
+        mapping: Dict[str, Any] = {}
+        sequence: list = []
+        is_list = False
+        while index < len(lines):
+            cur_indent, body = lines[index]
+            if cur_indent < indent:
+                break
+            if cur_indent > indent:
+                index += 1
+                continue
+            if body.startswith("- "):
+                is_list = True
+                item = _coerce_yaml_scalar(body[2:])
+                nxt = index + 1
+                if nxt < len(lines) and lines[nxt][0] > cur_indent and ":" in lines[nxt][1]:
+                    nested, nxt = parse_level(nxt, lines[nxt][0])
+                    if isinstance(item, str) and item:
+                        nested = {item: nested} if not nested else nested
+                    sequence.append(nested)
+                    index = nxt
+                else:
+                    sequence.append(item)
+                    index += 1
+                continue
+            if ":" not in body:
+                index += 1
+                continue
+            key, _, rest = body.partition(":")
+            key = key.strip()
+            rest = rest.strip()
+            nxt = index + 1
+            if rest:
+                mapping[key] = _coerce_yaml_scalar(rest)
+                index = nxt
+                continue
+            if nxt < len(lines) and lines[nxt][0] > cur_indent:
+                child, nxt = parse_level(nxt, lines[nxt][0])
+                mapping[key] = child
+                index = nxt
+            else:
+                mapping[key] = {}
+                index = nxt
+        return (sequence if is_list else mapping), index
+
+    parsed, _ = parse_level(0, lines[0][0] if lines else 0)
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _load_profile_for_model(model: str) -> Dict[str, Any]:
+    if not model:
+        return load_hardware_configuration()
+    profile_path = HARDWARE_PROFILES_DIR / f"pylabrobot_{model}.json"
+    if profile_path.exists():
+        print(f"Debug - [parse_hardware_config_str] Using profile {profile_path.name}")
+        return load_hardware_configuration(str(profile_path))
+    return load_hardware_configuration()
+
+
+def _finalize_hardware_config(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    config = dict(parsed)
+    model = normalize_robot_model(str(config.get("robot_model") or ""))
+    if model:
+        config["robot_model"] = model
+    if "resources" in config:
+        if model and not config.get("deck_type"):
+            config["deck_type"] = model
+        return config
+    if model:
+        profile = _load_profile_for_model(model)
+        merged = dict(profile)
+        for key, value in config.items():
+            if key != "resources" and value not in (None, ""):
+                merged[key] = value
+        merged["robot_model"] = model
+        return merged
+    print("Warning - [parse_hardware_config_str] Could not parse hardware config, using default")
+    return load_hardware_configuration()
 
 
 def pick_transfer_resource_names(hardware_config: Optional[Dict[str, Any]]):
@@ -92,11 +220,12 @@ def pick_transfer_resource_names(hardware_config: Optional[Dict[str, Any]]):
 
 
 def parse_hardware_config_str(raw: Optional[str]) -> Dict[str, Any]:
-    """Parse hardware config from JSON, or load a named profile from YAML-style text.
+    """Parse hardware config from JSON, a YAML-style dump, or a robot_model label.
 
     The frontend turns profile JSON into an indented ``key: value`` dump. That is
-    not JSON, so ``json.loads`` used to fail and Tecan/Hamilton selections silently
-    fell back to the default deck.
+    not JSON. Display names like ``Tecan Freedom EVO`` must map to ``tecan_evo``.
+    When the dump includes a ``resources`` map, those edits are kept; otherwise
+    the matching on-disk profile is loaded.
     """
     text = (raw or "").strip()
     if not text:
@@ -104,16 +233,15 @@ def parse_hardware_config_str(raw: Optional[str]) -> Dict[str, Any]:
     try:
         parsed = json.loads(text)
         if isinstance(parsed, dict):
-            return parsed
+            return _finalize_hardware_config(parsed)
     except json.JSONDecodeError:
         pass
+    parsed = parse_yaml_style_mapping(text)
+    if parsed:
+        return _finalize_hardware_config(parsed)
     match = _ROBOT_MODEL_RE.search(text)
     if match:
-        model = match.group(1).lower()
-        profile_path = HARDWARE_PROFILES_DIR / f"pylabrobot_{model}.json"
-        if profile_path.exists():
-            print(f"Debug - [parse_hardware_config_str] Using profile {profile_path.name}")
-            return load_hardware_configuration(str(profile_path))
+        return _finalize_hardware_config({"robot_model": match.group(1)})
     print("Warning - [parse_hardware_config_str] Could not parse hardware config, using default")
     return load_hardware_configuration()
 
@@ -377,6 +505,71 @@ async def protocol(lh):
     
     return knowledge
 
+
+def validate_protocol_volumes(protocol_code: str, hardware_config: Dict[str, Any]) -> Optional[str]:
+    """Reject transfers that exceed tip, well, or robot volume limits.
+
+    ChatterBox does not model spill/over-volume, so a 5000 µL aspirate on a
+    200 µL Tecan DiTi would otherwise return SUCCESS.
+    """
+    volumes: list[float] = []
+    for match in _VOLS_RE.finditer(protocol_code or ""):
+        for part in match.group(1).split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                volumes.append(float(part))
+            except ValueError:
+                continue
+    if not volumes:
+        return None
+    max_vol = max(volumes)
+    resources = (hardware_config or {}).get("resources") or {}
+    volume_range = (hardware_config or {}).get("volume_range") or {}
+    robot_max = volume_range.get("max_ul")
+    if robot_max is not None and max_vol > float(robot_max):
+        return (
+            f"Volume {max_vol:g} µL exceeds the robot max of {float(robot_max):g} µL "
+            f"in hardware config volume_range."
+        )
+
+    named_tips = []
+    named_wells = []
+    for name, info in resources.items():
+        if not isinstance(info, dict) or name not in protocol_code:
+            continue
+        tip_volume = info.get("tip_volume")
+        if tip_volume is None:
+            blob = f"{name} {info.get('type', '')}".lower()
+            for token, vol in (("1000", 1000.0), ("300", 300.0), ("200", 200.0), ("50", 50.0)):
+                if token in blob and "tip" in blob:
+                    tip_volume = vol
+                    break
+        if tip_volume is not None:
+            named_tips.append((name, float(tip_volume)))
+        well_volume = info.get("well_volume")
+        if well_volume is not None:
+            named_wells.append((name, float(well_volume)))
+
+    if named_tips:
+        tip_cap = min(vol for _, vol in named_tips)
+        if max_vol > tip_cap:
+            tip_name = next(name for name, vol in named_tips if vol == tip_cap)
+            return (
+                f"Volume {max_vol:g} µL exceeds tip capacity {tip_cap:g} µL "
+                f"on {tip_name}."
+            )
+    if named_wells:
+        well_cap = min(vol for _, vol in named_wells)
+        if max_vol > well_cap:
+            well_name = next(name for name, vol in named_wells if vol == well_cap)
+            return (
+                f"Volume {max_vol:g} µL would overflow well capacity {well_cap:g} µL "
+                f"on {well_name}."
+            )
+    return None
+
 async def run_pylabrobot_simulation(
     protocol_code: str, 
     return_structured: bool = False,
@@ -420,6 +613,20 @@ async def run_pylabrobot_simulation(
     }
     
     try:
+        volume_error = validate_protocol_volumes(protocol_code, hw_config)
+        if volume_error:
+            result_data["success"] = False
+            result_data["error_details"] = volume_error
+            result_data["raw_output"] = volume_error
+            result_data["final_status"] = "PyLabRobot simulation failed"
+            result_data["recommendations"] = (
+                "Reduce the transfer volume to fit the selected tip and well, "
+                "or use a larger tip rack / plate from the hardware config."
+            )
+            if return_structured:
+                return result_data
+            return f"❌ PyLabRobot 协议模拟失败\n错误: {volume_error}"
+
         # Run the real async simulation
         try:
             # Check if we're already in an event loop

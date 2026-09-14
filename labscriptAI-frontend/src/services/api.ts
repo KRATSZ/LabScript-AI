@@ -123,6 +123,17 @@ Deck Layout:
 ${deckItems || '  (No labware configured)'}`;
 };
 
+export const pylabrobotDisplayName = (state: Pick<AppState, 'robotModel'> & { rawHardwareConfigText?: string | null }): string => {
+  if (state.robotModel !== 'PyLabRobot') {
+    return state.robotModel || 'lab';
+  }
+  const blob = `${state.rawHardwareConfigText || ''} ${state.robotModel}`.toLowerCase();
+  if (blob.includes('tecan')) return 'Tecan Freedom EVO';
+  if (blob.includes('vantage')) return 'Hamilton Vantage';
+  if (blob.includes('hamilton')) return 'Hamilton STAR';
+  if (blob.includes('opentrons')) return 'Opentrons';
+  return 'PyLabRobot';
+};
 
 export const apiService = {
     healthCheck: async () => {
