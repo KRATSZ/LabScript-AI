@@ -1230,6 +1230,25 @@ def create_pylabrobot_agent():
     
     return workflow.compile()
 
+
+def build_pylabrobot_final_result(state: Dict[str, Any]) -> Dict[str, Any]:
+    """SSE payload the frontend expects after generate → simulate."""
+    simulation_result = state.get("simulation_result") or {}
+    success = bool(simulation_result.get("success")) or state.get("final_outcome") == "Success"
+    return {
+        "event_type": "final_result",
+        "status": "success" if success else "failed",
+        "success": success,
+        "generated_code": state.get("python_code") or "",
+        "total_attempts": state.get("attempts"),
+        "final_outcome": state.get("final_outcome"),
+        "error_report": None if success else simulation_result.get("error_details"),
+        "message": f"PyLabRobot Agent completed after {state.get('attempts')} attempts",
+        "has_warnings": bool(simulation_result.get("has_warnings")),
+        "warning_details": simulation_result.get("warning_details") or "",
+    }
+
+
 async def run_pylabrobot_agent_and_stream_events(
     user_query: str, 
     hardware_config_str: str, 
@@ -1297,46 +1316,25 @@ async def run_pylabrobot_agent_and_stream_events(
     }
     
     try:
-        # Use astream for real-time event processing
+        # astream(updates) yields {node: partial_state}. Keep a running snapshot
+        # so final_result still has python_code after the last simulate step.
+        final_state: Dict[str, Any] = dict(initial_state)
         async for event in app.astream(
             initial_state,
             config={"recursion_limit": 100}  # Increase recursion limit
         ):
-            # The event dictionary contains information about the current step
-            # We can extract the node name and output
-            
-            node_name = list(event.keys())[0]
-            node_output = event[node_name]
-            
-            # The 'iteration_reporter' in each node already sends detailed updates.
-            # Here, we can yield the raw events if needed for deeper debugging,
-            # but the primary reporting is handled within the nodes.
-            # For now, we'll just print a high-level trace.
-            
-            print(f"--- Agent Step: {node_name} ---")
-            # print(f"Output: {node_output}") # Uncomment for verbose logging
+            for node_name, node_output in event.items():
+                print(f"--- Agent Step: {node_name} ---")
+                if isinstance(node_output, dict):
+                    for key, value in node_output.items():
+                        if key != "iteration_reporter":
+                            final_state[key] = value
 
-            # The 'sync_reporter' collects events from nodes. We yield them here.
             while event_queue:
                 yield event_queue.pop(0)
                 await asyncio.sleep(0.01)
 
-        # After the stream is finished, the final state is in the last event
-        final_state = event.get('__end__', {})
-
-        # Send final result event
-        simulation_result = final_state.get('simulation_result', {})
-        success = simulation_result.get('success', False)
-        
-        yield {
-            "event_type": "final_result",
-            "success": success,
-            "generated_code": final_state.get('python_code'),
-            "total_attempts": final_state.get('attempts'),
-            "final_outcome": final_state.get('final_outcome'),
-            "error_report": simulation_result.get('error_details') if not success else None,
-            "message": f"PyLabRobot Agent completed after {final_state.get('attempts')} attempts"
-        }
+        yield build_pylabrobot_final_result(final_state)
         
     except Exception as e:
         print(f"❌ PyLabRobot Agent failed with exception: {e}")

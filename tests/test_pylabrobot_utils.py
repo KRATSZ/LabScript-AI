@@ -7,7 +7,12 @@ import json
 
 import pytest
 
-from backend.pylabrobot_agent import extract_protocol_logic, fill_template_with_logic, load_golden_template
+from backend.pylabrobot_agent import (
+    extract_protocol_logic,
+    fill_template_with_logic,
+    load_golden_template,
+    build_pylabrobot_final_result,
+)
 from backend.pylabrobot_utils import (
     HARDWARE_PROFILES_DIR,
     generate_dynamic_pylabrobot_knowledge,
@@ -142,3 +147,16 @@ if __name__ == "__main__":
     assert body.splitlines()[0].startswith("    ")
     filled = fill_template_with_logic(load_golden_template(), body)
     assert filled.count("async def protocol") == 1
+
+
+def test_final_result_event_uses_status_success() -> None:
+    event = build_pylabrobot_final_result({
+        "python_code": 'tips = lh.get_resource("tip_rack_200ul_evo")',
+        "attempts": 4,
+        "final_outcome": "Success",
+        "simulation_result": {"success": True, "has_warnings": False},
+    })
+    assert event["event_type"] == "final_result"
+    assert event["status"] == "success"
+    assert event["success"] is True
+    assert "tip_rack_200ul_evo" in event["generated_code"]

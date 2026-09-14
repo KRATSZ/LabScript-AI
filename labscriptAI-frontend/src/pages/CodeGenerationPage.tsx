@@ -321,7 +321,7 @@ const CodeGenerationPage: React.FC = () => {
                   setShowProcessExplanation(false);
                   setCurrentStep(generationSteps.length - 1);
                   
-                  if (data.status === 'success') {
+                  if (data.status === 'success' || data.success === true) {
                     const finalCode = data.generated_code || '';
                     dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
                     setEditedCode(finalCode);
@@ -339,7 +339,9 @@ const CodeGenerationPage: React.FC = () => {
                     // 处理失败情况
                     const finalCode = data.generated_code || '';
                     const errorReport = data.error_report || '';
+                    const looksPylab = /lh\.get_resource|pick_up_tips/.test(finalCode);
                     const needsTecanFallback = state.robotModel === 'PyLabRobot'
+                      && !looksPylab
                       && (!finalCode.trim() || /from opentrons|protocol_api/.test(finalCode));
 
                     if (needsTecanFallback) {
