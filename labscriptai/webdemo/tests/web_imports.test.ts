@@ -99,4 +99,12 @@ describe("AnimationOverlay code-split", () => {
     const overlay = readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8");
     assert.match(overlay, /data-animator-error=\{this\.state\.error\}/);
   });
+
+  it("vite falls back to local Watch stubs when LabscriptAI_cloud is absent", () => {
+    const vite = readFileSync(path.resolve(webSrc, "../vite.config.ts"), "utf8");
+    assert.match(vite, /function cloudOrStub/);
+    assert.match(vite, /stubRoot/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/normalize-analysis.ts"), "utf8"), /normalizeAnalysisOutput/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /Tecan Fluent/);
+  });
 });
