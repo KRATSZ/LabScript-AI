@@ -52,6 +52,59 @@ interface ApiError {
   message?: string;
 }
 
+const OPENTRONS_FALLBACK_PROTOCOL = `# Code generation failed, providing a basic template for reference
+# Please modify the following code manually according to your SOP
+
+from opentrons import protocol_api
+
+metadata = {
+    'protocolName': 'Generated Protocol Template',
+    'author': 'LabScript AI',
+    'description': 'Basic Protocol Template - Please modify according to your experimental needs',
+    'apiLevel': '2.20'
+}
+
+def run(protocol: protocol_api.ProtocolContext):
+    """
+    Basic Protocol Template - Please modify according to your experimental needs
+    """
+    
+    # 1. Load tip racks
+    tiprack_300 = protocol.load_labware('opentrons_96_tiprack_300ul', 1)
+    
+    # 2. Load pipette
+    pipette = protocol.load_instrument('p300_single_gen2', 'right', tip_racks=[tiprack_300])
+    
+    # 3. Load labware
+    source_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 2)
+    dest_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 3)
+    
+    # 4. Protocol Steps - Please modify according to your SOP
+    # Example: Simple liquid transfer
+    pipette.pick_up_tip()
+    pipette.aspirate(100, source_plate['A1'])
+    pipette.dispense(100, dest_plate['A1'])
+    pipette.drop_tip()
+    
+    # TODO: Add specific experimental steps according to your SOP
+    protocol.comment("Please add specific experimental steps according to your SOP")
+`;
+
+const PYLABROBOT_FALLBACK_PROTOCOL = `# AI code generation needs an API key. This is a Tecan Freedom EVO
+# starter protocol that uses the deck loaded from Hardware Config.
+# Edit the transfers below, then click Simulate.
+
+async def protocol(lh):
+    tips = lh.get_resource("tip_rack_200ul_evo")
+    source = lh.get_resource("microplate_source")
+    dest = lh.get_resource("microplate_dest")
+    await lh.pick_up_tips(tips["A1"])
+    await lh.aspirate(source["A1"], vols=[20])
+    await lh.dispense(dest["A1"], vols=[20])
+    await lh.drop_tips(tips["A1"])
+    print("--- PROTOCOL_SUCCESS ---")
+`;
+
 const CodeGenerationPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -337,44 +390,10 @@ const CodeGenerationPage: React.FC = () => {
         errorMessage = String(err.message);
       }
       
-      // 提供基础模板
-      const partialCode = `# Code generation failed, providing a basic template for reference
-# Please modify the following code manually according to your SOP
-
-from opentrons import protocol_api
-
-metadata = {
-    'protocolName': 'Generated Protocol Template',
-    'author': 'LabScript AI',
-    'description': 'Basic Protocol Template - Please modify according to your experimental needs',
-    'apiLevel': '2.20'
-}
-
-def run(protocol: protocol_api.ProtocolContext):
-    """
-    Basic Protocol Template - Please modify according to your experimental needs
-    """
-    
-    # 1. Load tip racks
-    tiprack_300 = protocol.load_labware('opentrons_96_tiprack_300ul', 1)
-    
-    # 2. Load pipette
-    pipette = protocol.load_instrument('p300_single_gen2', 'right', tip_racks=[tiprack_300])
-    
-    # 3. Load labware
-    source_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 2)
-    dest_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 3)
-    
-    # 4. Protocol Steps - Please modify according to your SOP
-    # Example: Simple liquid transfer
-    pipette.pick_up_tip()
-    pipette.aspirate(100, source_plate['A1'])
-    pipette.dispense(100, dest_plate['A1'])
-    pipette.drop_tip()
-    
-    # TODO: Add specific experimental steps according to your SOP
-    protocol.comment("Please add specific experimental steps according to your SOP")
-`;
+      // Provide a robot-specific starter so Tecan users are not handed Opentrons code
+      const partialCode = state.robotModel === 'PyLabRobot'
+        ? PYLABROBOT_FALLBACK_PROTOCOL
+        : OPENTRONS_FALLBACK_PROTOCOL;
       
       const warningsToShow = ['A basic protocol template has been provided. Please modify it according to your SOP.'];
       

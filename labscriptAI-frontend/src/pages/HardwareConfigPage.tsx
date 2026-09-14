@@ -116,6 +116,7 @@ const HardwareConfigPage: React.FC = () => {
   const [pyLabRobotProfiles, setPyLabRobotProfiles] = useState<PyLabRobotProfile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [selectedPyLabRobotProfile, setSelectedPyLabRobotProfile] = useState<string>('');
+  const [selectedPyLabRobotDisplayName, setSelectedPyLabRobotDisplayName] = useState('');
   const { enqueueSnackbar } = useSnackbar();
   
   const shouldShowModeToggle = state.robotModel !== 'PyLabRobot';
@@ -144,6 +145,13 @@ const HardwareConfigPage: React.FC = () => {
         if (config.rawHardwareConfigText) {
           setConfigText(config.rawHardwareConfigText);
           setConfigMode('text');
+          const modelMatch = String(config.rawHardwareConfigText).match(/robot_model\s*[:=]\s*['"]?([A-Za-z0-9_]+)/);
+          if (config.robotModel === 'PyLabRobot' && modelMatch) {
+            const model = modelMatch[1].replace(/_/g, ' ');
+            setSelectedPyLabRobotDisplayName(
+              model.toLowerCase() === 'tecan evo' ? 'Tecan Freedom EVO' : model
+            );
+          }
         } else {
           setConfigMode('visual'); 
         }
@@ -204,9 +212,15 @@ const HardwareConfigPage: React.FC = () => {
     }
   };
 
+  const openPyLabRobotPicker = () => {
+    setShowPyLabRobotDialog(true);
+    void loadPyLabRobotProfiles();
+  };
+
   // Handle PyLabRobot profile selection
   const handlePyLabRobotProfileSelect = (profile: PyLabRobotProfile) => {
     setSelectedPyLabRobotProfile(profile.robot_model);
+    setSelectedPyLabRobotDisplayName(profile.display_name);
     
     // Format the profile's default_config into a user-friendly, YAML-like string
     const profileConfig = formatJsonToYamlStyle(profile.default_config);
@@ -307,7 +321,7 @@ const HardwareConfigPage: React.FC = () => {
       rightPipette: state.rightPipette,
       useGripper: state.useGripper,
       deckLayout: state.deckLayout,
-      rawHardwareConfigText: configMode === 'text' ? configText : null,
+      rawHardwareConfigText: effectiveConfigMode === 'text' ? configText : null,
     };
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
@@ -480,6 +494,19 @@ const HardwareConfigPage: React.FC = () => {
                 </MenuItem>
               </Select>
             </FormControl>
+            {state.robotModel === 'PyLabRobot' && (
+              <Alert
+                severity="info"
+                sx={{ mt: 2, borderRadius: 2 }}
+                action={
+                  <Button color="inherit" size="small" onClick={openPyLabRobotPicker}>
+                    Change device
+                  </Button>
+                }
+              >
+                Using {selectedPyLabRobotDisplayName || 'a PyLabRobot device'}. Simulation runs in software only.
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -524,18 +551,20 @@ const HardwareConfigPage: React.FC = () => {
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button 
+            <Button
+              onClick={() => setShowDevDialog(false)}
+              variant="outlined"
+            >
+              Cancel
+            </Button>
+            <Button
               onClick={() => {
                 setShowDevDialog(false);
-                // Force re-render of the select component to reset to current state
-                const currentSelect = document.getElementById('robot-model') as HTMLSelectElement;
-                if (currentSelect) {
-                  currentSelect.value = state.robotModel || '';
-                }
-              }} 
+                openPyLabRobotPicker();
+              }}
               variant="contained"
             >
-              OK
+              Continue
             </Button>
           </DialogActions>
         </Dialog>
@@ -606,6 +635,7 @@ const HardwareConfigPage: React.FC = () => {
                           }
                         }}
                         onClick={() => setSelectedPyLabRobotProfile(profile.robot_model)}
+                        onDoubleClick={() => handlePyLabRobotProfileSelect(profile)}
                       >
                         <CardContent sx={{ p: 2 }}>
                           <Stack direction="row" alignItems="flex-start" spacing={2}>

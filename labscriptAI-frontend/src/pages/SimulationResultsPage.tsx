@@ -50,7 +50,7 @@ import {
   Info
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, AppState } from '../context/AppContext';
 import { apiService, formatHardwareConfig } from '../services/api';
 
 const SimulationResultsPage: React.FC = () => {

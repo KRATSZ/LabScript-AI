@@ -1201,27 +1201,27 @@ async def run_code_generation_graph_stream(
                         }
                     
                 elif node_name == "reviewer":
-                review_feedback = current_state.get("review_feedback")
-                yield {
-                    "event_type": "node_complete",
-                    "node_name": "reviewer",
-                    "message": f"第 {current_attempt} 次审稿完成",
-                    "attempt_num": current_attempt,
-                    "review_feedback": review_feedback,
-                    "timestamp": datetime.now().isoformat()
-                }
-
-                if review_feedback and review_feedback.get("result") != "PASS":
+                    review_feedback = current_state.get("review_feedback")
                     yield {
-                        "event_type": "attempt_result",
-                        "status": "REVIEW_FAILED",
+                        "event_type": "node_complete",
+                        "node_name": "reviewer",
+                        "message": f"第 {current_attempt} 次审稿完成",
                         "attempt_num": current_attempt,
-                        "message": "Reviewer indicated mismatches with SOP.",
                         "review_feedback": review_feedback,
                         "timestamp": datetime.now().isoformat()
                     }
 
-        elif node_name == "feedback_preparer":
+                    if review_feedback and review_feedback.get("result") != "PASS":
+                        yield {
+                            "event_type": "attempt_result",
+                            "status": "REVIEW_FAILED",
+                            "attempt_num": current_attempt,
+                            "message": "Reviewer indicated mismatches with SOP.",
+                            "review_feedback": review_feedback,
+                            "timestamp": datetime.now().isoformat()
+                        }
+
+                elif node_name == "feedback_preparer":
                     # 反馈准备器节点完成
                     feedback = current_state.get("feedback_for_llm", {})
                     yield {
