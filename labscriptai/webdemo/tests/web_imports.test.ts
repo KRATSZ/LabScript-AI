@@ -82,6 +82,10 @@ describe("AnimationOverlay code-split", () => {
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     assert.match(app, /from ["']\.\/ExportsPanel["']/);
     assert.match(app, /<ExportsPanel session=\{session\} \/>/);
+    assert.ok(
+      app.indexOf("<ExportsPanel") < app.indexOf("<IssuesPanel"),
+      "step list and downloads must sit above developer JSON"
+    );
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
     assert.match(app, /sessionCanWatch/);
     assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);
