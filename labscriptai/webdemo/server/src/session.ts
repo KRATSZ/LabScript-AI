@@ -202,6 +202,29 @@ export function resolveGoalNotesConflict(session: SessionState): void {
   session.hasPassedChecks = undefined;
 }
 
+/** Goal (+ intern notes) for SOP authoring. After a volume pick, notes are dropped. */
+export function authoringGoal(session: SessionState): string {
+  const goal = session.goal ?? "";
+  if (session.draftConflictResolved) return goal;
+  if (session.doc && session.doc !== "none") {
+    return `${goal}\n\nExisting SOP draft:\n${session.doc}`;
+  }
+  return goal;
+}
+
+/** llmreview intent: chosen volume + generated SOP, never stale conflicting notes. */
+export function reviewIntent(session: SessionState): string {
+  if (!session.draftConflictResolved) return authoringGoal(session);
+  const goal = (session.goal ?? "").trim();
+  const sop = session.sop?.trim();
+  const parts = [
+    "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
+    goal,
+  ];
+  if (sop) parts.push(`Generated SOP:\n${sop}`);
+  return parts.filter(Boolean).join("\n\n");
+}
+
 export function missingList(session: SessionState): string[] {
   const missing: string[] = [];
   if (!session.goal?.trim()) missing.push("goal");

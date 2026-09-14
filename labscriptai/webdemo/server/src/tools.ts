@@ -25,11 +25,13 @@ import {
 import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import {
   applyAskUser,
+  authoringGoal,
   beginGoalNotesConflictAsk,
   canEmitPlan,
   canGenerateCode,
   canResolveGoalNotesConflict,
   canRunPipeline,
+  reviewIntent,
   checksRoute,
   capSop,
   explainPlanErrors,
@@ -67,11 +69,7 @@ function refusePatchBudget(): ToolResult {
 }
 
 function toolGoal(session: SessionState): string {
-  const goal = session.goal ?? "";
-  if (session.doc && session.doc !== "none") {
-    return `${goal}\n\nExisting SOP draft:\n${session.doc}`;
-  }
-  return goal;
+  return authoringGoal(session);
 }
 
 function unionLiterals(values: string[]) {
@@ -423,7 +421,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         }
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
-          toolGoal(session),
+          reviewIntent(session),
           { robot: session.robot }
         );
         session.lastChecks = checks;

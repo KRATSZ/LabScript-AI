@@ -5,6 +5,7 @@ import {
   applyForm,
   applyPreset,
   applyTipCountOverlay,
+  authoringGoal,
   canEmitPlan,
   canGenerateCode,
   canGenerateSop,
@@ -24,6 +25,8 @@ import {
   planPickTipWells,
   presetMismatchWarning,
   requestedTipWells,
+  resolveGoalNotesConflict,
+  reviewIntent,
   shouldCallCompactSop,
   shouldReuseSop,
   snapshot,
@@ -637,5 +640,31 @@ describe("goal vs notes volume conflict", () => {
     assert.equal(session.conflictUserReplied, true);
     assert.ok(unresolvedGoalNotesConflict(session));
     assert.equal(shouldCallCompactSop(session), false);
+  });
+
+  it("reviewIntent after a volume pick uses the generated SOP, not intern notes", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1.", doc: conflictDoc, robot: "Tecan" });
+    assert.match(authoringGoal(session), /IGNORE/);
+    markConflictUserReply(session, "50");
+    applyAskUser(session, { goal: "Transfer 50 µL A1 to B1." });
+    resolveGoalNotesConflict(session);
+    session.sop = "# Transfer 50 µL from A1 to B1\n1. 50 µL A1 → B1";
+    assert.equal(authoringGoal(session), "Transfer 50 µL A1 to B1.");
+    assert.doesNotMatch(authoringGoal(session), /IGNORE/);
+    const intent50 = reviewIntent(session);
+    assert.match(intent50, /50/);
+    assert.match(intent50, /Generated SOP/);
+    assert.doesNotMatch(intent50, /IGNORE/);
+    assert.doesNotMatch(intent50, /PI is happy/);
+    assert.doesNotMatch(intent50, /Existing SOP draft/);
+
+    session.goal = "Transfer 250 µL A1 to B1.";
+    session.sop = "# Transfer 250 µL from A1 to B1\n1. 125 µL then 125 µL";
+    const intent250 = reviewIntent(session);
+    assert.match(intent250, /250/);
+    assert.match(intent250, /Generated SOP/);
+    assert.doesNotMatch(intent250, /IGNORE/);
+    assert.doesNotMatch(intent250, /PI is happy/);
   });
 });

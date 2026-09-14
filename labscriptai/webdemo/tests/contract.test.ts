@@ -16,6 +16,8 @@ describe("demo contract lock", () => {
     assert.match(session, /plan\?:/);
     assert.match(session, /plan: session\.plan/);
     assert.match(session, /diti/);
+    assert.match(session, /export function reviewIntent/);
+    assert.match(session, /Generated SOP/);
     assert.match(
       session,
       /if \(isOpentrons\(session\) && session\.code\?\.trim\(\)\) return "opentrons"/
@@ -41,6 +43,8 @@ describe("demo contract lock", () => {
     assert.match(backend, /runHamiltonCompile/);
     assert.match(backend, /compile_hamilton\.py/);
     assert.match(backend, /eval_plan\.py/);
+
+    assert.match(read("server/src/tools.ts"), /reviewIntent\(session\)/);
 
     const types = read("web/src/types.ts");
     assert.match(types, /^\s*plan:/m);
