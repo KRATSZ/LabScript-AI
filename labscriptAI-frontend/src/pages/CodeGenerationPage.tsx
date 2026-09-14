@@ -232,6 +232,7 @@ const CodeGenerationPage: React.FC = () => {
       }
 
       let buffer = '';
+      let gotTerminalEvent = false;
       
       // 读取流式响应
       while (true) {
@@ -321,6 +322,7 @@ const CodeGenerationPage: React.FC = () => {
                 }
                   
                 case 'final_result':
+                  gotTerminalEvent = true;
                   setIsGenerating(false);
                   setShowProcessExplanation(false);
                   setCurrentStep(generationSteps.length - 1);
@@ -366,6 +368,7 @@ const CodeGenerationPage: React.FC = () => {
                   break;
                   
                 case 'error':
+                  gotTerminalEvent = true;
                   setIsGenerating(false);
                   setShowProcessExplanation(false);
                   applyFallbackProtocol(data.message || 'Code generation error. A starter protocol is in the editor.');
@@ -386,6 +389,11 @@ const CodeGenerationPage: React.FC = () => {
             }
           }
         }
+      }
+
+      if (!gotTerminalEvent) {
+        applyFallbackProtocol('Code generation stopped without a result. A Tecan starter is in the editor — click Run Simulation.');
+        enqueueSnackbar('Code generation stopped without a result', { variant: 'error' });
       }
       
     } catch (error: unknown) {

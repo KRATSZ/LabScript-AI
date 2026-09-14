@@ -1284,13 +1284,35 @@ async def run_pylabrobot_agent_and_stream_events(
         """Synchronous event reporter for graph nodes"""
         event_queue.append(event_data)
     
-    hardware_config = parse_hardware_config_str(hardware_config_str)
+    # Yield first so a parse/knowledge crash still starts the SSE stream
+    # instead of leaving the UI spinning with no starter.
+    yield {
+        "event_type": "initialization",
+        "message": f"Starting PyLabRobot protocol generation for: {user_query}",
+        "max_attempts": max_attempts,
+        "timestamp": asyncio.get_event_loop().time()
+    }
 
-    dynamic_knowledge = generate_dynamic_pylabrobot_knowledge(hardware_config)
-    
+    try:
+        hardware_config = parse_hardware_config_str(hardware_config_str)
+        dynamic_knowledge = generate_dynamic_pylabrobot_knowledge(hardware_config)
+    except Exception as e:
+        print(f"❌ PyLabRobot Agent failed while loading hardware: {e}")
+        yield {
+            "event_type": "error",
+            "message": (
+                f"Hardware config could not be used for generate: {e}. "
+                "Check YAML resources (use maps like `oops: {{type: banana}}`, not a bare scalar)."
+            ),
+            "error_details": str(e),
+            "timestamp": asyncio.get_event_loop().time()
+        }
+        yield {"event_type": "stream_complete"}
+        return
+
     print(f"Debug - [PyLabRobot Agent] Loaded hardware config: {hardware_config.get('deck_type', 'unknown')}")
     print(f"Debug - [PyLabRobot Agent] Available resources: {list(hardware_config.get('resources', {}).keys())}")
-    
+
     # Initial state
     initial_state = {
         "user_query": user_query,
@@ -1306,15 +1328,7 @@ async def run_pylabrobot_agent_and_stream_events(
         "iteration_reporter": sync_reporter,
         "force_regenerate": False
     }
-    
-    # Send initial event
-    yield {
-        "event_type": "initialization",
-        "message": f"Starting PyLabRobot protocol generation for: {user_query}",
-        "max_attempts": max_attempts,
-        "timestamp": asyncio.get_event_loop().time()
-    }
-    
+
     try:
         # astream(updates) yields {node: partial_state}. Keep a running snapshot
         # so final_result still has python_code after the last simulate step.

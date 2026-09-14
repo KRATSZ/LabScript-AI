@@ -177,12 +177,33 @@ def _load_profile_for_model(model: str) -> Dict[str, Any]:
     return load_hardware_configuration()
 
 
+def _normalize_resource_entry(value: Any) -> Optional[Dict[str, Any]]:
+    """Keep nested maps; turn messy scalars like ``oops: banana`` into ``{type: banana}``."""
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return None
+    return {"type": str(value)}
+
+
+def _normalize_resources(resources: Any) -> Dict[str, Any]:
+    if not isinstance(resources, dict):
+        return {}
+    normalized: Dict[str, Any] = {}
+    for name, info in resources.items():
+        entry = _normalize_resource_entry(info)
+        if entry is not None:
+            normalized[str(name)] = entry
+    return normalized
+
+
 def _finalize_hardware_config(parsed: Dict[str, Any]) -> Dict[str, Any]:
     config = dict(parsed)
     model = normalize_robot_model(str(config.get("robot_model") or ""))
     if model:
         config["robot_model"] = model
     if "resources" in config:
+        config["resources"] = _normalize_resources(config.get("resources"))
         if model and not config.get("deck_type"):
             config["deck_type"] = model
         return config
@@ -424,6 +445,8 @@ The deck has been pre-configured with the following resources that you MUST use:
 """
     
     for resource_name, resource_info in resources.items():
+        if not isinstance(resource_info, dict):
+            resource_info = _normalize_resource_entry(resource_info) or {"type": "Unknown"}
         resource_type = resource_info.get("type", "Unknown")
         description = resource_info.get("description", "")
         knowledge += f"\n- `{resource_name}`: {description} (Type: {resource_type})"
@@ -763,6 +786,8 @@ async def setup_simulation_environment(hardware_config: Dict[str, Any]):
             try:
                 from pylabrobot.resources.coordinate import Coordinate
 
+                if not isinstance(resource_info, dict):
+                    resource_info = _normalize_resource_entry(resource_info) or {}
                 resource_type = resource_info.get("type", "generic")
                 location = resource_info.get("location", {"x": 0, "y": 0, "z": 0})
                 coord = Coordinate(

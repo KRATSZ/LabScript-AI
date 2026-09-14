@@ -46,6 +46,19 @@ resources:
     type: banana
 """
 
+SCALAR_OOPS_YAML = """
+robot_model: Tecan Freedom EVO
+resources:
+  tip_rack_200ul_evo:
+    type: TipRack_200ul_Tecan
+    tip_volume: 200
+  microplate_source:
+    type: MicroPlate_96_Tecan
+  microplate_dest:
+    type: MicroPlate_96_Tecan
+  oops: banana
+"""
+
 OVERFLOW_PROTOCOL = """
 async def protocol(lh):
     tips = lh.get_resource("tip_rack_200ul_evo")
@@ -91,6 +104,17 @@ def test_yaml_resource_edits_are_kept() -> None:
     assert "oops" in config["resources"]
     assert "microplate_source" not in config["resources"]
     assert config["resources"]["oops"]["type"] == "banana"
+
+
+def test_scalar_oops_yaml_does_not_break_knowledge() -> None:
+    config = parse_hardware_config_str(SCALAR_OOPS_YAML)
+    assert config["robot_model"] == "tecan_evo"
+    assert isinstance(config["resources"]["oops"], dict)
+    assert config["resources"]["oops"]["type"] == "banana"
+    assert "tip_rack_200ul_evo" in config["resources"]
+    knowledge = generate_dynamic_pylabrobot_knowledge(config)
+    assert "oops" in knowledge
+    assert "tip_rack_200ul_evo" in knowledge
 
 
 def test_json_hardware_config_is_kept() -> None:
