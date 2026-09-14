@@ -142,13 +142,29 @@ def run(protocol: protocol_api.ProtocolContext):
 """
 
 # 1. API Configuration
-api_key = "YOUR_OPENAI_API_KEY"
-base_url = "https://api.ai190.com/v1"
-model_name = "gemini-2.5-pro"
+# Placeholders stay in git. Local secrets come from `.env` or process env.
+import os
+from pathlib import Path
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+except ImportError:
+    pass
+
+
+def _env(name: str, default: str) -> str:
+    value = os.environ.get(name, "").strip()
+    return value if value else default
+
+
+api_key = _env("LABSCRIPT_API_KEY", _env("OPENAI_API_KEY", "YOUR_OPENAI_API_KEY"))
+base_url = _env("LABSCRIPT_BASE_URL", _env("OPENAI_BASE_URL", "https://api.ai190.com/v1"))
+model_name = _env("LABSCRIPT_MODEL_NAME", _env("OPENAI_MODEL_NAME", "gemini-2.5-pro"))
 # Specialized API for Intent Classification (faster model)
-DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"
-DEEPSEEK_BASE_URL = "https://www.sophnet.com/api/open-apis/v1"
-DEEPSEEK_INTENT_MODEL = "DeepSeek-V3-Fast"
+DEEPSEEK_API_KEY = _env("DEEPSEEK_API_KEY", "YOUR_DEEPSEEK_API_KEY")
+DEEPSEEK_BASE_URL = _env("DEEPSEEK_BASE_URL", "https://www.sophnet.com/api/open-apis/v1")
+DEEPSEEK_INTENT_MODEL = _env("DEEPSEEK_INTENT_MODEL", "DeepSeek-V3-Fast")
 
 # Reviewer configuration (textual reasoning + optional vision assist)
 REVIEW_PRIMARY_MODEL_NAME = model_name  # default to main Gemini model

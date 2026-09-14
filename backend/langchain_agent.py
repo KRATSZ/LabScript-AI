@@ -312,10 +312,17 @@ async def generate_sop_with_langchain_stream(hardware_context: str, user_goal: s
         token_count = 0
         async for chunk in llm.astream(formatted_prompt):
             # AIMessageChunk有一个.content属性，包含实际的token字符串
-            if chunk and hasattr(chunk, 'content') and chunk.content:
+            if not chunk or not hasattr(chunk, "content") or not chunk.content:
+                continue
+            content = chunk.content
+            if isinstance(content, list):
+                content = "".join(
+                    (block.get("text") or "") if isinstance(block, dict) else str(block)
+                    for block in content
+                )
+            if content:
                 token_count += 1
-                # print(f"Debug - [stream] Yielding token #{token_count}")
-                yield chunk.content  # 立即yield每个token
+                yield content
         
         print(f"Debug - [generate_sop_with_langchain_stream] 流式生成完成，总共产出 {token_count} 个token")
         

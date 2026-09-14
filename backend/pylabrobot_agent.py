@@ -21,6 +21,7 @@ from backend.pylabrobot_utils import (
     run_pylabrobot_simulation,
     generate_dynamic_pylabrobot_knowledge,
     parse_hardware_config_str,
+    pick_transfer_resource_names,
 )
 from backend.diff_utils import apply_diff
 from backend.config import (
@@ -174,22 +175,7 @@ def starter_logic_from_hardware(hardware_config: Optional[Dict[str, Any]]) -> st
     Used when the LLM is unavailable (missing/invalid API key) so Generate →
     Simulate still produces something that runs on the selected Tecan/Hamilton deck.
     """
-    resources = list((hardware_config or {}).get("resources", {}).keys())
-    tip = next((name for name in resources if "tip" in name.lower() and "1000" not in name), None)
-    if tip is None:
-        tip = next((name for name in resources if "tip" in name.lower()), None)
-    plates = [
-        name for name in resources
-        if name != tip and "wash" not in name.lower()
-    ]
-    source = next((name for name in plates if "source" in name.lower()), None)
-    dest = next((name for name in plates if "dest" in name.lower()), None)
-    if source is None and plates:
-        source = plates[0]
-    if dest is None and len(plates) > 1:
-        dest = plates[1]
-    if dest is None:
-        dest = source
+    tip, source, dest = pick_transfer_resource_names(hardware_config)
 
     if not tip or not source or not dest:
         return (
@@ -208,6 +194,53 @@ def starter_logic_from_hardware(hardware_config: Optional[Dict[str, Any]]) -> st
         '    await lh.drop_tips(tips["A1"])\n'
         '    print("--- PROTOCOL_SUCCESS ---")\n'
     )
+
+
+def llm_message_text(response) -> str:
+    """Flatten ChatOpenAI content (string or multimodal list) to text."""
+    content = getattr(response, "content", response)
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(str(block.get("text") or block.get("content") or ""))
+            else:
+                parts.append(str(getattr(block, "text", None) or block))
+        return "".join(parts).strip()
+    return str(content or "").strip()
+
+
+def extract_protocol_logic(raw: str) -> str:
+    """Turn LLM output into an indented protocol() body.
+
+    Real models often wrap the body in markdown or a full ``async def protocol``.
+    Either would break the golden template if inserted as-is.
+    """
+    protocol_logic = llm_message_text(raw)
+    if protocol_logic.startswith("```"):
+        protocol_logic = re.sub(r"^```(?:python)?\s*", "", protocol_logic)
+        protocol_logic = re.sub(r"\s*```$", "", protocol_logic)
+        protocol_logic = protocol_logic.strip()
+
+    fn = re.search(r"async\s+def\s+protocol\s*\([^)]*\)\s*:(.*)", protocol_logic, re.DOTALL)
+    if fn:
+        protocol_logic = fn.group(1).strip("\n")
+        protocol_logic = re.split(
+            r"\n(?:async\s+def\s+\w+|def\s+\w+|if\s+__name__)",
+            protocol_logic,
+            maxsplit=1,
+        )[0]
+
+    indented_lines = []
+    for line in protocol_logic.split("\n"):
+        if line.strip():
+            if not line.startswith("    "):
+                indented_lines.append("    " + line.lstrip())
+            else:
+                indented_lines.append(line)
+        else:
+            indented_lines.append(line)
+    return "\n".join(indented_lines)
 
 
 def fill_template_with_logic(template: str, protocol_logic: str) -> str:
@@ -305,30 +338,7 @@ Generate ONLY the protocol logic (function body content) with proper indentation
                 HumanMessage(content=protocol_logic_prompt)
             ]
             response = selected_llm.invoke(messages)
-            protocol_logic = response.content.strip()
-            
-            # Clean the response
-            if protocol_logic.startswith("```python"):
-                protocol_logic = protocol_logic[9:]
-            if protocol_logic.endswith("```"):
-                protocol_logic = protocol_logic[:-3]
-            protocol_logic = protocol_logic.strip()
-            
-            # Ensure proper indentation
-            logic_lines = protocol_logic.split('\n')
-            indented_lines = []
-            for line in logic_lines:
-                if line.strip():  # Non-empty line
-                    if not line.startswith('    '):  # Not already indented
-                        indented_lines.append('    ' + line)
-                    else:
-                        indented_lines.append(line)
-                else:
-                    indented_lines.append(line)  # Keep empty lines as is
-            
-            protocol_logic = '\n'.join(indented_lines)
-            
-            # Fill template with generated logic
+            protocol_logic = extract_protocol_logic(response)
             final_code = fill_template_with_logic(template, protocol_logic)
             
             print(f"Generated protocol logic and filled template, total length: {len(final_code)} characters")
@@ -386,30 +396,7 @@ Generate the CORRECTED protocol logic (function body only) with proper indentati
                 HumanMessage(content=fix_logic_prompt)
             ]
             response = selected_llm.invoke(messages)
-            protocol_logic = response.content.strip()
-            
-            # Clean the response
-            if protocol_logic.startswith("```python"):
-                protocol_logic = protocol_logic[9:]
-            if protocol_logic.endswith("```"):
-                protocol_logic = protocol_logic[:-3]
-            protocol_logic = protocol_logic.strip()
-            
-            # Ensure proper indentation
-            logic_lines = protocol_logic.split('\n')
-            indented_lines = []
-            for line in logic_lines:
-                if line.strip():  # Non-empty line
-                    if not line.startswith('    '):  # Not already indented
-                        indented_lines.append('    ' + line)
-                    else:
-                        indented_lines.append(line)
-                else:
-                    indented_lines.append(line)  # Keep empty lines as is
-            
-            protocol_logic = '\n'.join(indented_lines)
-            
-            # Fill template with corrected logic
+            protocol_logic = extract_protocol_logic(response)
             final_code = fill_template_with_logic(template, protocol_logic)
             
             print(f"Generated corrected protocol logic and filled template, total length: {len(final_code)} characters")
@@ -891,7 +878,7 @@ def prepare_feedback_node(state: PyLabRobotGraphState) -> PyLabRobotGraphState:
             action = "Action: Ensure that `await lh.pick_up_tips(tip_rack['A1'])` is called before any liquid handling operation. Check your tip management workflow."
         elif error_type == "TipAttachedError":
             analysis = "The protocol failed with a `TipAttachedError`. This means the protocol tried to pick up a tip when a tip was already attached."
-            action = "Action: Check the tip management logic. Ensure `await lh.drop_tips()` is called before trying to pick up new tips, or use `await lh.drop_tips()` then `await lh.pick_up_tips()`."
+            action = "Action: Check the tip management logic. Ensure `await lh.drop_tips(tip_rack['A1'])` is called before trying to pick up new tips. PyLabRobot 0.2 requires tip_spots; do not call drop_tips() with no arguments."
         
         # Python syntax and code errors - ENHANCED precision
         elif error_type == "SyntaxError":

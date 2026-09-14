@@ -70,6 +70,27 @@ DEFAULT_HARDWARE_SETUP = {
 _ROBOT_MODEL_RE = re.compile(r"robot_model\s*[:=]\s*['\"]?([A-Za-z0-9_]+)")
 
 
+def pick_transfer_resource_names(hardware_config: Optional[Dict[str, Any]]):
+    """Pick tip / source / dest names from a loaded hardware profile."""
+    resources = list((hardware_config or {}).get("resources", {}).keys())
+    tip = next((name for name in resources if "tip" in name.lower() and "1000" not in name), None)
+    if tip is None:
+        tip = next((name for name in resources if "tip" in name.lower()), None)
+    plates = [
+        name for name in resources
+        if name != tip and "wash" not in name.lower()
+    ]
+    source = next((name for name in plates if "source" in name.lower()), None)
+    dest = next((name for name in plates if "dest" in name.lower()), None)
+    if source is None and plates:
+        source = plates[0]
+    if dest is None and len(plates) > 1:
+        dest = plates[1]
+    if dest is None:
+        dest = source
+    return tip, source, dest
+
+
 def parse_hardware_config_str(raw: Optional[str]) -> Dict[str, Any]:
     """Parse hardware config from JSON, or load a named profile from YAML-style text.
 
@@ -320,6 +341,11 @@ The deck has been pre-configured with the following resources that you MUST use:
     
     knowledge += best_practices
     
+    tip_name, source_name, dest_name = pick_transfer_resource_names(hardware_config)
+    tip_name = tip_name or "tip_rack_50ul"
+    source_name = source_name or "source_plate"
+    dest_name = dest_name or "destination_plate"
+
     knowledge += f"""
 
 == IMPORTANT PROTOCOL REQUIREMENTS ==
@@ -328,20 +354,21 @@ The deck has been pre-configured with the following resources that you MUST use:
 3. **Use exact resource names as specified**
 4. **All operations must be awaited with `await`**
 5. **End successful protocols with `print("--- PROTOCOL_SUCCESS ---")`**
-{f'6. **Follow {robot_model.upper()}-specific best practices as outlined above**' if robot_model else ''}
+6. **Always pass tip spots to drop_tips, e.g. `await lh.drop_tips(tip_rack["A1"])` (PyLabRobot 0.2 requires this)**
+{f'7. **Follow {robot_model.upper()}-specific best practices as outlined above**' if robot_model else ''}
 
 == Example Protocol Structure ==
 ```python
 async def protocol(lh):
     # Get pre-configured resources
-    tip_rack = lh.get_resource("tip_rack_50ul")
-    source = lh.get_resource("source_plate")
-    dest = lh.get_resource("destination_plate")
+    tip_rack = lh.get_resource("{tip_name}")
+    source = lh.get_resource("{source_name}")
+    dest = lh.get_resource("{dest_name}")
     
     # Perform operations{f' (optimized for {robot_model.upper()})' if robot_model else ''}
     await lh.pick_up_tips(tip_rack["A1"])
-    await lh.aspirate(source["A1"], vols=[100])
-    await lh.dispense(dest["A1"], vols=[100])
+    await lh.aspirate(source["A1"], vols=[20])
+    await lh.dispense(dest["A1"], vols=[20])
     await lh.drop_tips(tip_rack["A1"])
     
     print("--- PROTOCOL_SUCCESS ---")

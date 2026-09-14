@@ -7,9 +7,12 @@ import json
 
 import pytest
 
+from backend.pylabrobot_agent import extract_protocol_logic, fill_template_with_logic, load_golden_template
 from backend.pylabrobot_utils import (
     HARDWARE_PROFILES_DIR,
+    generate_dynamic_pylabrobot_knowledge,
     parse_hardware_config_str,
+    pick_transfer_resource_names,
     run_pylabrobot_simulation,
     setup_simulation_environment,
 )
@@ -110,3 +113,32 @@ def test_chatterbox_backend_is_deprecated() -> None:
 
     with pytest.raises(NotImplementedError):
         ChatterBoxBackend()
+
+
+def test_tecan_knowledge_uses_named_resources() -> None:
+    config = parse_hardware_config_str(TECAN_YAML)
+    knowledge = generate_dynamic_pylabrobot_knowledge(config)
+    assert "tip_rack_200ul_evo" in knowledge
+    assert 'lh.get_resource("tip_rack_200ul_evo")' in knowledge
+    assert "tip_rack_50ul" not in knowledge
+    tip, source, dest = pick_transfer_resource_names(config)
+    assert tip == "tip_rack_200ul_evo"
+    assert source == "microplate_source"
+    assert dest == "microplate_dest"
+
+
+def test_extract_protocol_logic_strips_function_wrapper() -> None:
+    raw = '''```python
+async def protocol(lh):
+    tips = lh.get_resource("tip_rack_200ul_evo")
+    await lh.pick_up_tips(tips["A1"])
+
+if __name__ == "__main__":
+    pass
+```'''
+    body = extract_protocol_logic(raw)
+    assert "async def protocol" not in body
+    assert 'lh.get_resource("tip_rack_200ul_evo")' in body
+    assert body.splitlines()[0].startswith("    ")
+    filled = fill_template_with_logic(load_golden_template(), body)
+    assert filled.count("async def protocol") == 1
