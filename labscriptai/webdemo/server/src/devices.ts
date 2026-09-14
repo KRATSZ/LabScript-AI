@@ -78,8 +78,8 @@ export const TECAN_STANDARD_WELL_UL: Record<string, number> = {
   nest_12_reservoir_15ml: 15_000,
 };
 
-/** Standard Fluent LiHa DiTi capacity on the assumed deck. Not a well — do not guess other sizes. */
-export const TECAN_STANDARD_TIP_UL = 1000;
+/** Standard Fluent LiHa DiTi capacity on the assumed deck (tecan_diti_200ul_tiprack). LiHa 1000 is the pipette, not a 1000 µL tip. */
+export const TECAN_STANDARD_TIP_UL = 200;
 
 export function knownTecanWellUl(labware: string | undefined): number | undefined {
   if (!labware) return undefined;
@@ -112,12 +112,13 @@ function knownWellUl(labware: string | undefined): number | undefined {
 }
 
 function knownTipUl(labware: string | undefined, device?: DeviceProfile): number | undefined {
-  if (device?.id === "tecan_fluent") return TECAN_STANDARD_TIP_UL;
-  if (!labware) return undefined;
-  const n = labware.trim().toLowerCase();
+  const n = (labware || "").trim().toLowerCase();
   if (n === "opentrons_96_tiprack_300ul") return OT2_STANDARD_TIP_UL;
   if (n === "opentrons_flex_96_tiprack_1000ul") return FLEX_STANDARD_TIP_UL;
   if (n === "hamilton_96_tiprack_300ul") return HAMILTON_STANDARD_TIP_UL;
+  const named = n.match(/(\d+)\s*ul/);
+  if (named && /diti|tiprack|tip\s*rack/.test(n)) return Number(named[1]);
+  if (device?.id === "tecan_fluent") return TECAN_STANDARD_TIP_UL;
   return undefined;
 }
 

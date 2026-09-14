@@ -234,9 +234,11 @@ export function attachConsequences(
     consequences?: string[];
   }
 ): ChecksResult {
-  const gated = isReviewMismatch(checks.llmreview)
-    ? { ...checks, fab: { lit: false } }
-    : checks;
+  const llmreview = scrubInventedLihaTipReview(checks.llmreview);
+  const next = llmreview !== undefined ? { ...checks, llmreview } : checks;
+  const gated = isReviewMismatch(next.llmreview)
+    ? { ...next, fab: { lit: false } }
+    : next;
   return {
     ...gated,
     status: checkStatus(gated),
@@ -287,6 +289,34 @@ export function isReviewerUnavailable(review?: LlmReviewResult | null): boolean 
 /** True mismatch only. Reviewer crashes are unavailable, not false. */
 export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
   return review?.match === false && !isReviewerUnavailable(review);
+}
+
+/** liha_1000 is the pipette. Do not treat it as a required 1000 µL DiTi rack vs 200 µL DiTi. */
+export function isInventedLihaTipSizeFinding(item: LlmReviewFinding): boolean {
+  const blob = [item.claim, item.evidence, item.suggestion]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (!blob) return false;
+  const wants1000 =
+    /liha[_\s-]*1000/.test(blob) ||
+    /1000\s*(?:µl|ul|μl)\s*diti/.test(blob) ||
+    /intent specifies 1000/.test(blob);
+  const has200 = /200\s*(?:µl|ul|μl)|200ul|diti_200/.test(blob);
+  const tipTalk = /diti|tip\s*rack|tiprack|tip type/.test(blob);
+  return wants1000 && has200 && tipTalk;
+}
+
+export function scrubInventedLihaTipReview(
+  review?: LlmReviewResult | null
+): LlmReviewResult | undefined {
+  if (!review) return undefined;
+  if (review.match === true || isReviewerUnavailable(review)) return review;
+  const findings = review.findings ?? [];
+  const kept = findings.filter((item) => !isInventedLihaTipSizeFinding(item));
+  if (kept.length === findings.length) return review;
+  if (kept.length === 0) return { ...review, match: true, findings: [] };
+  return { ...review, findings: kept };
 }
 
 /** Iterate when sim/logic/compile fails. Review-only mismatch is reported without auto-patching. */

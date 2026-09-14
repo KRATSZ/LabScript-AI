@@ -122,14 +122,14 @@ describe("device registry", () => {
     assert.equal(knownTecanWellUl("tecan_96_wellplate"), 360);
     assert.equal(knownTecanWellUl("nest_12_reservoir_15ml"), 15_000);
     assert.equal(knownTecanWellUl("TECAN_96_WELLPLATE"), 360);
-    assert.equal(TECAN_STANDARD_TIP_UL, 1000);
+    assert.equal(TECAN_STANDARD_TIP_UL, 200);
     assert.equal(knownTecanWellUl("tecan_diti_200ul_tiprack"), undefined);
     assert.equal(knownTecanWellUl("corning_96_wellplate_360ul_flat"), undefined);
     assert.equal(knownTecanWellUl("mystery_plate"), undefined);
     assert.match(assumedCapacityLine("OT-2"), /plate wells hold 200 µL, tips 300 µL/);
     assert.match(assumedCapacityLine("Flex"), /plate wells hold 200 µL, tips 1000 µL/);
     assert.match(assumedCapacityLine("Hamilton"), /plate wells hold 360 µL, tips 300 µL/);
-    assert.match(assumedCapacityLine("Tecan"), /plate wells hold 360 µL, tips 1000 µL/);
+    assert.match(assumedCapacityLine("Tecan"), /plate wells hold 360 µL, tips 200 µL/);
     assert.equal(knownOpentronsWellUl("nest_96_wellplate_200ul_flat"), 200);
     assert.equal(OT2_STANDARD_TIP_UL, 300);
     assert.equal(FLEX_STANDARD_TIP_UL, 1000);

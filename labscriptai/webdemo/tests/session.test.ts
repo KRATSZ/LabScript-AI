@@ -658,6 +658,8 @@ describe("goal vs notes volume conflict", () => {
     assert.doesNotMatch(intent50, /IGNORE/);
     assert.doesNotMatch(intent50, /PI is happy/);
     assert.doesNotMatch(intent50, /Existing SOP draft/);
+    assert.match(intent50, /200 µL DiTi/);
+    assert.match(intent50, /liha_1000 is the LiHa pipette/);
 
     session.goal = "Transfer 250 µL A1 to B1.";
     session.sop = "# Transfer 250 µL from A1 to B1\n1. 125 µL then 125 µL";

@@ -18,6 +18,7 @@ describe("demo contract lock", () => {
     assert.match(session, /diti/);
     assert.match(session, /export function reviewIntent/);
     assert.match(session, /Generated SOP/);
+    assert.match(session, /Assumed Tecan tips are 200/);
     assert.match(
       session,
       /if \(isOpentrons\(session\) && session\.code\?\.trim\(\)\) return "opentrons"/
@@ -107,7 +108,7 @@ describe("demo contract lock", () => {
     assert.match(tools, /mode:"append"/);
     assert.match(tools, /DROP_TIPS must come first/);
     assert.match(tools, /Tecan standard wells: 96-well plate 360/);
-    assert.match(tools, /1000 µL DiTi/);
+    assert.match(tools, /200 µL DiTi/);
     assert.match(tools, /must_call: "emit_plan"/);
     assert.match(tools, /Call emit_plan then run_checks/);
     assert.doesNotMatch(tools, /8010_unreachable/);

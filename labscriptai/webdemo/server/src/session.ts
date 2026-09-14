@@ -219,6 +219,7 @@ export function reviewIntent(session: SessionState): string {
   const sop = session.sop?.trim();
   const parts = [
     "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
+    "liha_1000 is the LiHa pipette. Assumed Tecan tips are 200 µL DiTi.",
     goal,
   ];
   if (sop) parts.push(`Generated SOP:\n${sop}`);
