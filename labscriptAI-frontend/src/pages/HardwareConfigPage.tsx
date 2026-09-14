@@ -116,6 +116,7 @@ const HardwareConfigPage: React.FC = () => {
   const [pyLabRobotProfiles, setPyLabRobotProfiles] = useState<PyLabRobotProfile[]>([]);
   const [loadingProfiles, setLoadingProfiles] = useState(false);
   const [selectedPyLabRobotProfile, setSelectedPyLabRobotProfile] = useState<string>('');
+  const [selectedPyLabRobotDisplayName, setSelectedPyLabRobotDisplayName] = useState('');
   const { enqueueSnackbar } = useSnackbar();
   
   const shouldShowModeToggle = state.robotModel !== 'PyLabRobot';
@@ -144,6 +145,17 @@ const HardwareConfigPage: React.FC = () => {
         if (config.rawHardwareConfigText) {
           setConfigText(config.rawHardwareConfigText);
           setConfigMode('text');
+          const modelMatch = String(config.rawHardwareConfigText).match(/robot_model\s*[:=]\s*['"]?([^\n]+)/);
+          if (config.robotModel === 'PyLabRobot' && modelMatch) {
+            const raw = modelMatch[1].trim();
+            const blob = raw.toLowerCase();
+            setSelectedPyLabRobotDisplayName(
+              blob.includes('tecan') ? 'Tecan Freedom EVO'
+                : blob.includes('vantage') ? 'Hamilton Vantage'
+                : blob.includes('hamilton') ? 'Hamilton STAR'
+                : raw.replace(/_/g, ' ')
+            );
+          }
         } else {
           setConfigMode('visual'); 
         }
@@ -204,9 +216,15 @@ const HardwareConfigPage: React.FC = () => {
     }
   };
 
+  const openPyLabRobotPicker = () => {
+    setShowPyLabRobotDialog(true);
+    void loadPyLabRobotProfiles();
+  };
+
   // Handle PyLabRobot profile selection
   const handlePyLabRobotProfileSelect = (profile: PyLabRobotProfile) => {
     setSelectedPyLabRobotProfile(profile.robot_model);
+    setSelectedPyLabRobotDisplayName(profile.display_name);
     
     // Format the profile's default_config into a user-friendly, YAML-like string
     const profileConfig = formatJsonToYamlStyle(profile.default_config);
@@ -307,7 +325,7 @@ const HardwareConfigPage: React.FC = () => {
       rightPipette: state.rightPipette,
       useGripper: state.useGripper,
       deckLayout: state.deckLayout,
-      rawHardwareConfigText: configMode === 'text' ? configText : null,
+      rawHardwareConfigText: effectiveConfigMode === 'text' ? configText : null,
     };
     
     localStorage.setItem(STORAGE_KEY, JSON.stringify(configToSave));
@@ -384,7 +402,7 @@ const HardwareConfigPage: React.FC = () => {
               mb: 2
             }}
           >
-            Set up your Opentrons robot configuration, pipettes, and define the labware on your deck for optimal protocol execution
+            Set up your robot, pipettes, and deck labware. PyLabRobot devices such as Tecan Freedom EVO are configured as YAML-style text.
           </Typography>
         </Box>
 
@@ -420,7 +438,7 @@ const HardwareConfigPage: React.FC = () => {
                   Select Robot Model
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Choose your Opentrons robot model to begin configuration
+                  Choose Flex, OT-2, or a PyLabRobot device such as Tecan Freedom EVO
                 </Typography>
               </Box>
             </Stack>
@@ -480,6 +498,19 @@ const HardwareConfigPage: React.FC = () => {
                 </MenuItem>
               </Select>
             </FormControl>
+            {state.robotModel === 'PyLabRobot' && (
+              <Alert
+                severity="info"
+                sx={{ mt: 2, borderRadius: 2 }}
+                action={
+                  <Button color="inherit" size="small" onClick={openPyLabRobotPicker}>
+                    Change device
+                  </Button>
+                }
+              >
+                Using {selectedPyLabRobotDisplayName || 'a PyLabRobot device'}. Simulation runs in software only.
+              </Alert>
+            )}
           </CardContent>
         </Card>
 
@@ -519,23 +550,25 @@ const HardwareConfigPage: React.FC = () => {
                 <li>Protocol validation is experimental</li>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                For production workflows, we strongly recommend using Opentrons Flex or OT-2 platforms.
+                This is a software simulation path for Tecan/Hamilton-style decks. It is not EVOware, FluentControl, or a live instrument.
               </Typography>
             </DialogContentText>
           </DialogContent>
           <DialogActions sx={{ p: 3 }}>
-            <Button 
+            <Button
+              onClick={() => setShowDevDialog(false)}
+              variant="outlined"
+            >
+              Cancel
+            </Button>
+            <Button
               onClick={() => {
                 setShowDevDialog(false);
-                // Force re-render of the select component to reset to current state
-                const currentSelect = document.getElementById('robot-model') as HTMLSelectElement;
-                if (currentSelect) {
-                  currentSelect.value = state.robotModel || '';
-                }
-              }} 
+                openPyLabRobotPicker();
+              }}
               variant="contained"
             >
-              OK
+              Continue
             </Button>
           </DialogActions>
         </Dialog>
@@ -606,6 +639,7 @@ const HardwareConfigPage: React.FC = () => {
                           }
                         }}
                         onClick={() => setSelectedPyLabRobotProfile(profile.robot_model)}
+                        onDoubleClick={() => handlePyLabRobotProfileSelect(profile)}
                       >
                         <CardContent sx={{ p: 2 }}>
                           <Stack direction="row" alignItems="flex-start" spacing={2}>
@@ -1012,7 +1046,7 @@ const HardwareConfigPage: React.FC = () => {
                     Advanced Text Configuration
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Define your hardware setup using JSON format for maximum flexibility
+                    Define your hardware setup as YAML-style text or JSON. Edits to resources are sent to generate and simulate.
                   </Typography>
                 </Box>
               </Stack>
@@ -1022,7 +1056,11 @@ const HardwareConfigPage: React.FC = () => {
                 rows={15}
                 fullWidth
                 variant="outlined"
-                placeholder={`Example configuration for ${state.robotModel || 'selected robot'}:\n{\n  "robot_model": "${state.robotModel || 'Flex'}",\n  "api_version": "${state.apiVersion || '2.20'}",\n  "left_pipette": "p1000_single_gen2",\n  "right_pipette": null,\n  "deck_layout": {\n    "A1": "opentrons_96_tiprack_1000ul",\n    "B2": "corning_6_wellplate_16.8ml_flat"\n  },\n  "use_gripper": false\n}`}
+                placeholder={
+                  state.robotModel === 'PyLabRobot'
+                    ? 'Example Tecan Freedom EVO YAML:\nrobot_model: Tecan Freedom EVO\nresources:\n  tip_rack_200ul_evo:\n    type: TipRack_200ul_Tecan\n    tip_volume: 200\n  microplate_source:\n    type: plate\n  microplate_dest:\n    type: plate'
+                    : `Example configuration for ${state.robotModel || 'selected robot'}:\n{\n  "robot_model": "${state.robotModel || 'Flex'}",\n  "api_version": "${state.apiVersion || '2.20'}",\n  "left_pipette": "p1000_single_gen2",\n  "right_pipette": null,\n  "deck_layout": {\n    "A1": "opentrons_96_tiprack_1000ul",\n    "B2": "corning_6_wellplate_16.8ml_flat"\n  },\n  "use_gripper": false\n}`
+                }
                 value={configText}
                 onChange={handleConfigTextChange}
                 sx={{ 

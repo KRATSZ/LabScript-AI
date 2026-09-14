@@ -11,16 +11,17 @@ import os
 import sys
 import json
 import re
-from typing import TypedDict, Optional, Dict, AsyncGenerator
+from typing import Any, TypedDict, Optional, Dict, AsyncGenerator
 from langgraph.graph import StateGraph, END, START
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage, SystemMessage
 
 # Import utilities - Enhanced version
 from backend.pylabrobot_utils import (
-    run_pylabrobot_simulation, 
-    load_hardware_configuration,
-    generate_dynamic_pylabrobot_knowledge
+    run_pylabrobot_simulation,
+    generate_dynamic_pylabrobot_knowledge,
+    parse_hardware_config_str,
+    pick_transfer_resource_names,
 )
 from backend.diff_utils import apply_diff
 from backend.config import (
@@ -168,6 +169,80 @@ if __name__ == "__main__":
     asyncio.run(main())
 """
 
+def starter_logic_from_hardware(hardware_config: Optional[Dict[str, Any]]) -> str:
+    """Build a tiny transferable protocol from named deck resources.
+
+    Used when the LLM is unavailable (missing/invalid API key) so Generate →
+    Simulate still produces something that runs on the selected Tecan/Hamilton deck.
+    """
+    tip, source, dest = pick_transfer_resource_names(hardware_config)
+
+    if not tip or not source or not dest:
+        return (
+            "    print('ERROR: Hardware config has no tip rack and plates to transfer with')\n"
+            "    raise Exception('Incomplete hardware configuration')\n"
+        )
+
+    return (
+        "    # Starter protocol: AI code generation was unavailable.\n"
+        f"    tips = lh.get_resource({tip!r})\n"
+        f"    source = lh.get_resource({source!r})\n"
+        f"    dest = lh.get_resource({dest!r})\n"
+        '    await lh.pick_up_tips(tips["A1"])\n'
+        '    await lh.aspirate(source["A1"], vols=[20])\n'
+        '    await lh.dispense(dest["A1"], vols=[20])\n'
+        '    await lh.drop_tips(tips["A1"])\n'
+        '    print("--- PROTOCOL_SUCCESS ---")\n'
+    )
+
+
+def llm_message_text(response) -> str:
+    """Flatten ChatOpenAI content (string or multimodal list) to text."""
+    content = getattr(response, "content", response)
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, dict):
+                parts.append(str(block.get("text") or block.get("content") or ""))
+            else:
+                parts.append(str(getattr(block, "text", None) or block))
+        return "".join(parts).strip()
+    return str(content or "").strip()
+
+
+def extract_protocol_logic(raw: str) -> str:
+    """Turn LLM output into an indented protocol() body.
+
+    Real models often wrap the body in markdown or a full ``async def protocol``.
+    Either would break the golden template if inserted as-is.
+    """
+    protocol_logic = llm_message_text(raw)
+    if protocol_logic.startswith("```"):
+        protocol_logic = re.sub(r"^```(?:python)?\s*", "", protocol_logic)
+        protocol_logic = re.sub(r"\s*```$", "", protocol_logic)
+        protocol_logic = protocol_logic.strip()
+
+    fn = re.search(r"async\s+def\s+protocol\s*\([^)]*\)\s*:(.*)", protocol_logic, re.DOTALL)
+    if fn:
+        protocol_logic = fn.group(1).strip("\n")
+        protocol_logic = re.split(
+            r"\n(?:async\s+def\s+\w+|def\s+\w+|if\s+__name__)",
+            protocol_logic,
+            maxsplit=1,
+        )[0]
+
+    indented_lines = []
+    for line in protocol_logic.split("\n"):
+        if line.strip():
+            if not line.startswith("    "):
+                indented_lines.append("    " + line.lstrip())
+            else:
+                indented_lines.append(line)
+        else:
+            indented_lines.append(line)
+    return "\n".join(indented_lines)
+
+
 def fill_template_with_logic(template: str, protocol_logic: str) -> str:
     """
     Replace the [AGENT_CODE_STUB] placeholder in template with actual protocol logic.
@@ -263,39 +338,16 @@ Generate ONLY the protocol logic (function body content) with proper indentation
                 HumanMessage(content=protocol_logic_prompt)
             ]
             response = selected_llm.invoke(messages)
-            protocol_logic = response.content.strip()
-            
-            # Clean the response
-            if protocol_logic.startswith("```python"):
-                protocol_logic = protocol_logic[9:]
-            if protocol_logic.endswith("```"):
-                protocol_logic = protocol_logic[:-3]
-            protocol_logic = protocol_logic.strip()
-            
-            # Ensure proper indentation
-            logic_lines = protocol_logic.split('\n')
-            indented_lines = []
-            for line in logic_lines:
-                if line.strip():  # Non-empty line
-                    if not line.startswith('    '):  # Not already indented
-                        indented_lines.append('    ' + line)
-                    else:
-                        indented_lines.append(line)
-                else:
-                    indented_lines.append(line)  # Keep empty lines as is
-            
-            protocol_logic = '\n'.join(indented_lines)
-            
-            # Fill template with generated logic
+            protocol_logic = extract_protocol_logic(response)
             final_code = fill_template_with_logic(template, protocol_logic)
             
             print(f"Generated protocol logic and filled template, total length: {len(final_code)} characters")
             
         except Exception as e:
             print(f"Error in LLM generation: {e}")
-            # Fallback: use template with minimal logic
-            fallback_logic = """    print("ERROR: Failed to generate protocol logic from LLM")
-    raise Exception("LLM generation failed")"""
+            # Missing API keys used to loop 9 failed sims. Hand back a deck-aware
+            # starter so Tecan/Hamilton Generate → Simulate still works.
+            fallback_logic = starter_logic_from_hardware(state.get("hardware_config"))
             final_code = fill_template_with_logic(template, fallback_logic)
             
     else:
@@ -344,30 +396,7 @@ Generate the CORRECTED protocol logic (function body only) with proper indentati
                 HumanMessage(content=fix_logic_prompt)
             ]
             response = selected_llm.invoke(messages)
-            protocol_logic = response.content.strip()
-            
-            # Clean the response
-            if protocol_logic.startswith("```python"):
-                protocol_logic = protocol_logic[9:]
-            if protocol_logic.endswith("```"):
-                protocol_logic = protocol_logic[:-3]
-            protocol_logic = protocol_logic.strip()
-            
-            # Ensure proper indentation
-            logic_lines = protocol_logic.split('\n')
-            indented_lines = []
-            for line in logic_lines:
-                if line.strip():  # Non-empty line
-                    if not line.startswith('    '):  # Not already indented
-                        indented_lines.append('    ' + line)
-                    else:
-                        indented_lines.append(line)
-                else:
-                    indented_lines.append(line)  # Keep empty lines as is
-            
-            protocol_logic = '\n'.join(indented_lines)
-            
-            # Fill template with corrected logic
+            protocol_logic = extract_protocol_logic(response)
             final_code = fill_template_with_logic(template, protocol_logic)
             
             print(f"Generated corrected protocol logic and filled template, total length: {len(final_code)} characters")
@@ -849,7 +878,7 @@ def prepare_feedback_node(state: PyLabRobotGraphState) -> PyLabRobotGraphState:
             action = "Action: Ensure that `await lh.pick_up_tips(tip_rack['A1'])` is called before any liquid handling operation. Check your tip management workflow."
         elif error_type == "TipAttachedError":
             analysis = "The protocol failed with a `TipAttachedError`. This means the protocol tried to pick up a tip when a tip was already attached."
-            action = "Action: Check the tip management logic. Ensure `await lh.drop_tips()` is called before trying to pick up new tips, or use `await lh.drop_tips()` then `await lh.pick_up_tips()`."
+            action = "Action: Check the tip management logic. Ensure `await lh.drop_tips(tip_rack['A1'])` is called before trying to pick up new tips. PyLabRobot 0.2 requires tip_spots; do not call drop_tips() with no arguments."
         
         # Python syntax and code errors - ENHANCED precision
         elif error_type == "SyntaxError":
@@ -1201,6 +1230,25 @@ def create_pylabrobot_agent():
     
     return workflow.compile()
 
+
+def build_pylabrobot_final_result(state: Dict[str, Any]) -> Dict[str, Any]:
+    """SSE payload the frontend expects after generate → simulate."""
+    simulation_result = state.get("simulation_result") or {}
+    success = bool(simulation_result.get("success")) or state.get("final_outcome") == "Success"
+    return {
+        "event_type": "final_result",
+        "status": "success" if success else "failed",
+        "success": success,
+        "generated_code": state.get("python_code") or "",
+        "total_attempts": state.get("attempts"),
+        "final_outcome": state.get("final_outcome"),
+        "error_report": None if success else simulation_result.get("error_details"),
+        "message": f"PyLabRobot Agent completed after {state.get('attempts')} attempts",
+        "has_warnings": bool(simulation_result.get("has_warnings")),
+        "warning_details": simulation_result.get("warning_details") or "",
+    }
+
+
 async def run_pylabrobot_agent_and_stream_events(
     user_query: str, 
     hardware_config_str: str, 
@@ -1236,20 +1284,35 @@ async def run_pylabrobot_agent_and_stream_events(
         """Synchronous event reporter for graph nodes"""
         event_queue.append(event_data)
     
-    # Parse the hardware configuration from the string
-    try:
-        hardware_config = json.loads(hardware_config_str)
-    except json.JSONDecodeError:
-        print(f"Error: Invalid JSON in hardware_config_str. Falling back to default.")
-        # Fallback to loading the default configuration
-        from .pylabrobot_utils import load_hardware_configuration
-        hardware_config = load_hardware_configuration()
+    # Yield first so a parse/knowledge crash still starts the SSE stream
+    # instead of leaving the UI spinning with no starter.
+    yield {
+        "event_type": "initialization",
+        "message": f"Starting PyLabRobot protocol generation for: {user_query}",
+        "max_attempts": max_attempts,
+        "timestamp": asyncio.get_event_loop().time()
+    }
 
-    dynamic_knowledge = generate_dynamic_pylabrobot_knowledge(hardware_config)
-    
+    try:
+        hardware_config = parse_hardware_config_str(hardware_config_str)
+        dynamic_knowledge = generate_dynamic_pylabrobot_knowledge(hardware_config)
+    except Exception as e:
+        print(f"❌ PyLabRobot Agent failed while loading hardware: {e}")
+        yield {
+            "event_type": "error",
+            "message": (
+                f"Hardware config could not be used for generate: {e}. "
+                "Check YAML resources (use maps like `oops: {{type: banana}}`, not a bare scalar)."
+            ),
+            "error_details": str(e),
+            "timestamp": asyncio.get_event_loop().time()
+        }
+        yield {"event_type": "stream_complete"}
+        return
+
     print(f"Debug - [PyLabRobot Agent] Loaded hardware config: {hardware_config.get('deck_type', 'unknown')}")
     print(f"Debug - [PyLabRobot Agent] Available resources: {list(hardware_config.get('resources', {}).keys())}")
-    
+
     # Initial state
     initial_state = {
         "user_query": user_query,
@@ -1265,56 +1328,27 @@ async def run_pylabrobot_agent_and_stream_events(
         "iteration_reporter": sync_reporter,
         "force_regenerate": False
     }
-    
-    # Send initial event
-    yield {
-        "event_type": "initialization",
-        "message": f"Starting PyLabRobot protocol generation for: {user_query}",
-        "max_attempts": max_attempts,
-        "timestamp": asyncio.get_event_loop().time()
-    }
-    
+
     try:
-        # Use astream for real-time event processing
+        # astream(updates) yields {node: partial_state}. Keep a running snapshot
+        # so final_result still has python_code after the last simulate step.
+        final_state: Dict[str, Any] = dict(initial_state)
         async for event in app.astream(
             initial_state,
             config={"recursion_limit": 100}  # Increase recursion limit
         ):
-            # The event dictionary contains information about the current step
-            # We can extract the node name and output
-            
-            node_name = list(event.keys())[0]
-            node_output = event[node_name]
-            
-            # The 'iteration_reporter' in each node already sends detailed updates.
-            # Here, we can yield the raw events if needed for deeper debugging,
-            # but the primary reporting is handled within the nodes.
-            # For now, we'll just print a high-level trace.
-            
-            print(f"--- Agent Step: {node_name} ---")
-            # print(f"Output: {node_output}") # Uncomment for verbose logging
+            for node_name, node_output in event.items():
+                print(f"--- Agent Step: {node_name} ---")
+                if isinstance(node_output, dict):
+                    for key, value in node_output.items():
+                        if key != "iteration_reporter":
+                            final_state[key] = value
 
-            # The 'sync_reporter' collects events from nodes. We yield them here.
             while event_queue:
                 yield event_queue.pop(0)
                 await asyncio.sleep(0.01)
 
-        # After the stream is finished, the final state is in the last event
-        final_state = event.get('__end__', {})
-
-        # Send final result event
-        simulation_result = final_state.get('simulation_result', {})
-        success = simulation_result.get('success', False)
-        
-        yield {
-            "event_type": "final_result",
-            "success": success,
-            "generated_code": final_state.get('python_code'),
-            "total_attempts": final_state.get('attempts'),
-            "final_outcome": final_state.get('final_outcome'),
-            "error_report": simulation_result.get('error_details') if not success else None,
-            "message": f"PyLabRobot Agent completed after {final_state.get('attempts')} attempts"
-        }
+        yield build_pylabrobot_final_result(final_state)
         
     except Exception as e:
         print(f"❌ PyLabRobot Agent failed with exception: {e}")

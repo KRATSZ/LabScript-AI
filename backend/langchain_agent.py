@@ -111,6 +111,23 @@ class CodeGenerationState(TypedDict):
 # SOP生成功能部分
 # ============================================================================
 
+def _augment_hardware_context(hardware_context: str) -> str:
+    """Stop Tecan/Hamilton SOPs from being written as Opentrons Flex protocols."""
+    blob = (hardware_context or "").lower()
+    if not any(token in blob for token in ("tecan", "hamilton", "pylabrobot", "star", "vantage")):
+        return hardware_context
+    extra = (
+        "\n\nCRITICAL HARDWARE CONSTRAINTS:\n"
+        "- This is NOT an Opentrons Flex or OT-2.\n"
+        "- Do not mention Flex gripper, Opentrons API levels, left/right Opentrons pipettes, "
+        "magnetic module, thermocycler, or Opentrons deck slots unless they appear in the hardware config.\n"
+        "- Name the robot from the hardware config (e.g. Tecan Freedom EVO).\n"
+        "- Use the listed deck resources (tip racks and plates) by those names.\n"
+        "- Describe LiHa/arm channels on this robot, not Opentrons mounts.\n"
+    )
+    return f"{hardware_context}{extra}"
+
+
 def generate_sop_with_langchain(user_goal_with_hardware_context: str) -> str:
     """
     使用本地LangChain生成标准操作程序(SOP)
@@ -141,6 +158,7 @@ def generate_sop_with_langchain(user_goal_with_hardware_context: str) -> str:
             # 如果没有找到分隔符，假设整个输入都是用户目标
             hardware_context = "No specific hardware configuration provided."
             user_goal = user_goal_with_hardware_context.strip()
+        hardware_context = _augment_hardware_context(hardware_context)
         
         # 打印调试信息，帮助开发者了解处理过程
         print(f"Debug - [generate_sop_with_langchain] 原始输入长度: {len(user_goal_with_hardware_context)}")
@@ -300,7 +318,10 @@ async def generate_sop_with_langchain_stream(hardware_context: str, user_goal: s
     
     try:
         # 准备链的输入参数
-        chain_input = {"hardware_context": hardware_context, "user_goal": user_goal}
+        chain_input = {
+            "hardware_context": _augment_hardware_context(hardware_context),
+            "user_goal": user_goal,
+        }
         
         # 为了实现真正的token级流式输出，我们绕过LLMChain，直接调用llm.astream
         # 步骤1: 手动格式化提示词
@@ -312,10 +333,17 @@ async def generate_sop_with_langchain_stream(hardware_context: str, user_goal: s
         token_count = 0
         async for chunk in llm.astream(formatted_prompt):
             # AIMessageChunk有一个.content属性，包含实际的token字符串
-            if chunk and hasattr(chunk, 'content') and chunk.content:
+            if not chunk or not hasattr(chunk, "content") or not chunk.content:
+                continue
+            content = chunk.content
+            if isinstance(content, list):
+                content = "".join(
+                    (block.get("text") or "") if isinstance(block, dict) else str(block)
+                    for block in content
+                )
+            if content:
                 token_count += 1
-                # print(f"Debug - [stream] Yielding token #{token_count}")
-                yield chunk.content  # 立即yield每个token
+                yield content
         
         print(f"Debug - [generate_sop_with_langchain_stream] 流式生成完成，总共产出 {token_count} 个token")
         
@@ -1201,27 +1229,27 @@ async def run_code_generation_graph_stream(
                         }
                     
                 elif node_name == "reviewer":
-                review_feedback = current_state.get("review_feedback")
-                yield {
-                    "event_type": "node_complete",
-                    "node_name": "reviewer",
-                    "message": f"第 {current_attempt} 次审稿完成",
-                    "attempt_num": current_attempt,
-                    "review_feedback": review_feedback,
-                    "timestamp": datetime.now().isoformat()
-                }
-
-                if review_feedback and review_feedback.get("result") != "PASS":
+                    review_feedback = current_state.get("review_feedback")
                     yield {
-                        "event_type": "attempt_result",
-                        "status": "REVIEW_FAILED",
+                        "event_type": "node_complete",
+                        "node_name": "reviewer",
+                        "message": f"第 {current_attempt} 次审稿完成",
                         "attempt_num": current_attempt,
-                        "message": "Reviewer indicated mismatches with SOP.",
                         "review_feedback": review_feedback,
                         "timestamp": datetime.now().isoformat()
                     }
 
-        elif node_name == "feedback_preparer":
+                    if review_feedback and review_feedback.get("result") != "PASS":
+                        yield {
+                            "event_type": "attempt_result",
+                            "status": "REVIEW_FAILED",
+                            "attempt_num": current_attempt,
+                            "message": "Reviewer indicated mismatches with SOP.",
+                            "review_feedback": review_feedback,
+                            "timestamp": datetime.now().isoformat()
+                        }
+
+                elif node_name == "feedback_preparer":
                     # 反馈准备器节点完成
                     feedback = current_state.get("feedback_for_llm", {})
                     yield {

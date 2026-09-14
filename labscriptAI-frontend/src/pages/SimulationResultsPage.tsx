@@ -50,8 +50,8 @@ import {
   Info
 } from 'lucide-react';
 import { useSnackbar } from 'notistack';
-import { useAppContext } from '../context/AppContext';
-import { apiService, formatHardwareConfig } from '../services/api';
+import { useAppContext, AppState } from '../context/AppContext';
+import { apiService, formatHardwareConfig, pylabrobotDisplayName } from '../services/api';
 
 const SimulationResultsPage: React.FC = () => {
   const theme = useTheme();
@@ -99,7 +99,8 @@ const SimulationResultsPage: React.FC = () => {
       if (isPyLabRobot) {
         // Call PyLabRobot simulation API
         response = await apiService.runPyLabRobotSimulation({
-          protocol_code: state.pythonCode
+          protocol_code: state.pythonCode,
+          hardware_config: state.rawHardwareConfigText || undefined,
         });
       } else {
         // Call existing Opentrons simulation API
@@ -308,7 +309,7 @@ const SimulationResultsPage: React.FC = () => {
               mb: 2
             }}
           >
-            Review the validation results of your protocol to ensure it will run correctly on your Opentrons robot
+            Review the validation results of your protocol to ensure it will run correctly on your {pylabrobotDisplayName(state)}
           </Typography>
         </Box>
         
@@ -370,7 +371,7 @@ const SimulationResultsPage: React.FC = () => {
                 )}
 
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Robot Model: {state.robotModel || 'OT-2'}
+                  Robot Model: {pylabrobotDisplayName(state)}
                 </Typography>
 
                 <Divider sx={{ my: 2 }} />
@@ -597,7 +598,7 @@ const SimulationResultsPage: React.FC = () => {
                       Running Protocol Simulation
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ mb: 3, lineHeight: 1.6 }}>
-                      We're validating your protocol code against the Opentrons simulation environment. 
+                      We're validating your protocol code against the {pylabrobotDisplayName(state)} simulation environment. 
                       This process checks for syntax errors, hardware compatibility, and logical flow.
                     </Typography>
                     <LinearProgress 
@@ -646,7 +647,7 @@ const SimulationResultsPage: React.FC = () => {
                       </Typography>
                       <Stack direction="row" spacing={2} alignItems="center">
                         <Typography variant="body1" color="text.secondary">
-                          Simulation for {state.robotModel || 'OT-2'} robot
+                          Simulation for {pylabrobotDisplayName(state)}
                         </Typography>
                         {simulationTime && (
                           <Chip 
@@ -787,8 +788,8 @@ const SimulationResultsPage: React.FC = () => {
                         🎉 Protocol Validation Successful!
                       </Typography>
                       <Typography variant="body2">
-                        Your protocol has passed all validation checks and is ready to run on the Opentrons robot.
-                        You can now view the animation to see how your protocol will execute.
+                        Your protocol has passed software simulation checks for {pylabrobotDisplayName(state)}.
+                        This is a software simulation, not a live instrument.
                       </Typography>
                     </Alert>
                   )}
@@ -811,7 +812,7 @@ const SimulationResultsPage: React.FC = () => {
                       No Simulation Results
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-                      Run a simulation to validate your protocol code and ensure it will execute correctly on your Opentrons robot.
+                      Run a simulation to validate your protocol code on {pylabrobotDisplayName(state)}.
                     </Typography>
                   </Box>
                 </CardContent>

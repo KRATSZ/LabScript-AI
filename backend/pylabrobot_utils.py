@@ -23,7 +23,7 @@ from typing import Dict, Any, Union, Optional
 # PyLabRobot imports for real simulation
 try:
     from pylabrobot.liquid_handling import LiquidHandler
-    from pylabrobot.liquid_handling.backends import ChatterBoxBackend  # 正确的模拟后端
+    from pylabrobot.liquid_handling.backends import LiquidHandlerChatterboxBackend
     from pylabrobot.resources import Deck
     # Import resource classes as needed
     try:
@@ -38,6 +38,7 @@ try:
 except ImportError as e:
     print(f"Warning: PyLabRobot not available: {e}")
     PYLABROBOT_AVAILABLE = False
+    LiquidHandlerChatterboxBackend = None  # type: ignore[assignment,misc]
 
 # Hardware configuration file path
 HARDWARE_PROFILES_DIR = Path(__file__).parent / "hardware_profiles"
@@ -65,6 +66,258 @@ DEFAULT_HARDWARE_SETUP = {
         }
     }
 }
+
+_ROBOT_MODEL_RE = re.compile(r"robot_model\s*[:=]\s*(.+)$", re.IGNORECASE | re.MULTILINE)
+_VOLS_RE = re.compile(r"vols\s*=\s*\[([^\]]+)\]")
+
+
+def normalize_robot_model(raw: Optional[str]) -> str:
+    """Map UI labels like 'Tecan Freedom EVO' onto profile ids like tecan_evo."""
+    slug = re.sub(r"[^a-z0-9]+", "_", (raw or "").strip().strip("'\"").lower()).strip("_")
+    if not slug:
+        return ""
+    if "tecan" in slug or "freedom_evo" in slug:
+        return "tecan_evo"
+    if "vantage" in slug:
+        return "hamilton_vantage"
+    if "hamilton" in slug or slug in {"star", "starlet"}:
+        return "hamilton_star"
+    if "opentrons" in slug or slug in {"ot2", "ot_2", "flex"}:
+        return "opentrons"
+    aliases = {
+        "tecan_evo": "tecan_evo",
+        "hamilton_star": "hamilton_star",
+        "hamilton_vantage": "hamilton_vantage",
+        "opentrons": "opentrons",
+        "generic": "generic",
+    }
+    return aliases.get(slug, slug)
+
+
+def _coerce_yaml_scalar(raw: str) -> Any:
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in "'\"":
+        return text[1:-1]
+    lowered = text.lower()
+    if lowered in {"true", "yes"}:
+        return True
+    if lowered in {"false", "no"}:
+        return False
+    if lowered in {"null", "none", "~", ""}:
+        return None
+    try:
+        if "." in text:
+            return float(text)
+        return int(text)
+    except ValueError:
+        return text
+
+
+def parse_yaml_style_mapping(text: str) -> Dict[str, Any]:
+    """Parse the frontend's indented key: value dump (not real YAML/JSON)."""
+    lines = [(len(line) - len(line.lstrip(" ")), line.strip()) for line in text.splitlines()]
+    lines = [(ind, body) for ind, body in lines if body and not body.startswith("#")]
+
+    def parse_level(index: int, indent: int):
+        mapping: Dict[str, Any] = {}
+        sequence: list = []
+        is_list = False
+        while index < len(lines):
+            cur_indent, body = lines[index]
+            if cur_indent < indent:
+                break
+            if cur_indent > indent:
+                index += 1
+                continue
+            if body.startswith("- "):
+                is_list = True
+                item = _coerce_yaml_scalar(body[2:])
+                nxt = index + 1
+                if nxt < len(lines) and lines[nxt][0] > cur_indent and ":" in lines[nxt][1]:
+                    nested, nxt = parse_level(nxt, lines[nxt][0])
+                    if isinstance(item, str) and item:
+                        nested = {item: nested} if not nested else nested
+                    sequence.append(nested)
+                    index = nxt
+                else:
+                    sequence.append(item)
+                    index += 1
+                continue
+            if ":" not in body:
+                index += 1
+                continue
+            key, _, rest = body.partition(":")
+            key = key.strip()
+            rest = rest.strip()
+            nxt = index + 1
+            if rest:
+                mapping[key] = _coerce_yaml_scalar(rest)
+                index = nxt
+                continue
+            if nxt < len(lines) and lines[nxt][0] > cur_indent:
+                child, nxt = parse_level(nxt, lines[nxt][0])
+                mapping[key] = child
+                index = nxt
+            else:
+                mapping[key] = {}
+                index = nxt
+        return (sequence if is_list else mapping), index
+
+    parsed, _ = parse_level(0, lines[0][0] if lines else 0)
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _load_profile_for_model(model: str) -> Dict[str, Any]:
+    if not model:
+        return load_hardware_configuration()
+    profile_path = HARDWARE_PROFILES_DIR / f"pylabrobot_{model}.json"
+    if profile_path.exists():
+        print(f"Debug - [parse_hardware_config_str] Using profile {profile_path.name}")
+        return load_hardware_configuration(str(profile_path))
+    return load_hardware_configuration()
+
+
+def _normalize_resource_entry(value: Any) -> Optional[Dict[str, Any]]:
+    """Keep nested maps; turn messy scalars like ``oops: banana`` into ``{type: banana}``."""
+    if isinstance(value, dict):
+        return value
+    if value is None:
+        return None
+    return {"type": str(value)}
+
+
+def _normalize_resources(resources: Any) -> Dict[str, Any]:
+    if not isinstance(resources, dict):
+        return {}
+    normalized: Dict[str, Any] = {}
+    for name, info in resources.items():
+        entry = _normalize_resource_entry(info)
+        if entry is not None:
+            normalized[str(name)] = entry
+    return normalized
+
+
+def _finalize_hardware_config(parsed: Dict[str, Any]) -> Dict[str, Any]:
+    config = dict(parsed)
+    model = normalize_robot_model(str(config.get("robot_model") or ""))
+    if model:
+        config["robot_model"] = model
+    if "resources" in config:
+        config["resources"] = _normalize_resources(config.get("resources"))
+        if model and not config.get("deck_type"):
+            config["deck_type"] = model
+        return config
+    if model:
+        profile = _load_profile_for_model(model)
+        merged = dict(profile)
+        for key, value in config.items():
+            if key != "resources" and value not in (None, ""):
+                merged[key] = value
+        merged["robot_model"] = model
+        return merged
+    print("Warning - [parse_hardware_config_str] Could not parse hardware config, using default")
+    return load_hardware_configuration()
+
+
+def pick_transfer_resource_names(hardware_config: Optional[Dict[str, Any]]):
+    """Pick tip / source / dest names from a loaded hardware profile."""
+    resources = list((hardware_config or {}).get("resources", {}).keys())
+    tip = next((name for name in resources if "tip" in name.lower() and "1000" not in name), None)
+    if tip is None:
+        tip = next((name for name in resources if "tip" in name.lower()), None)
+    plates = [
+        name for name in resources
+        if name != tip and "wash" not in name.lower()
+    ]
+    source = next((name for name in plates if "source" in name.lower()), None)
+    dest = next((name for name in plates if "dest" in name.lower()), None)
+    if source is None and plates:
+        source = plates[0]
+    if dest is None and len(plates) > 1:
+        dest = plates[1]
+    if dest is None:
+        dest = source
+    return tip, source, dest
+
+
+def parse_hardware_config_str(raw: Optional[str]) -> Dict[str, Any]:
+    """Parse hardware config from JSON, a YAML-style dump, or a robot_model label.
+
+    The frontend turns profile JSON into an indented ``key: value`` dump. That is
+    not JSON. Display names like ``Tecan Freedom EVO`` must map to ``tecan_evo``.
+    When the dump includes a ``resources`` map, those edits are kept; otherwise
+    the matching on-disk profile is loaded.
+    """
+    text = (raw or "").strip()
+    if not text:
+        return load_hardware_configuration()
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, dict):
+            return _finalize_hardware_config(parsed)
+    except json.JSONDecodeError:
+        pass
+    parsed = parse_yaml_style_mapping(text)
+    if parsed:
+        return _finalize_hardware_config(parsed)
+    match = _ROBOT_MODEL_RE.search(text)
+    if match:
+        return _finalize_hardware_config({"robot_model": match.group(1)})
+    print("Warning - [parse_hardware_config_str] Could not parse hardware config, using default")
+    return load_hardware_configuration()
+
+
+def _labware_factory(resource_name: str, resource_type: str, robot_model: str):
+    """Map profile type strings onto real PyLabRobot 0.2.x factory functions."""
+    blob = f"{resource_type} {resource_name} {robot_model}".lower()
+    is_tip = any(token in blob for token in ("tip", "diti"))
+    is_trough = any(token in blob for token in ("trough", "reservoir"))
+    is_deep = "deep" in blob
+    is_tecan = "tecan" in blob or robot_model == "tecan_evo"
+    is_opentrons = "opentrons" in blob or robot_model == "opentrons"
+
+    if is_tecan:
+        from pylabrobot.resources.tecan import (
+            DeepWell_96_Well,
+            DiTi_200ul_LiHa,
+            DiTi_1000ul_LiHa,
+            Microplate_96_Well,
+        )
+        if is_tip:
+            return DiTi_200ul_LiHa if "200" in blob and "1000" not in blob else DiTi_1000ul_LiHa
+        if is_deep:
+            return DeepWell_96_Well
+        return Microplate_96_Well
+
+    if is_opentrons and is_tip:
+        from pylabrobot.resources.opentrons import (
+            opentrons_96_tiprack_300ul,
+            opentrons_96_tiprack_1000ul,
+        )
+        return opentrons_96_tiprack_1000ul if "1000" in blob else opentrons_96_tiprack_300ul
+
+    if is_tip:
+        from pylabrobot.resources.hamilton import (
+            TIP_50ul,
+            hamilton_96_tiprack_300uL_filter,
+            hamilton_96_tiprack_1000uL_filter,
+        )
+        if "50" in blob and "300" not in blob and "1000" not in blob:
+            return TIP_50ul
+        if "1000" in blob:
+            return hamilton_96_tiprack_1000uL_filter
+        return hamilton_96_tiprack_300uL_filter
+
+    if is_trough:
+        try:
+            from pylabrobot.resources import nest_12_troughplate_15000uL_Vb
+            return nest_12_troughplate_15000uL_Vb
+        except ImportError:
+            pass
+
+    from pylabrobot.resources import cor_96_wellplate_360uL_Fb
+    return cor_96_wellplate_360uL_Fb
+
 
 def load_hardware_configuration(config_path: Optional[str] = None) -> Dict[str, Any]:
     """
@@ -192,6 +445,8 @@ The deck has been pre-configured with the following resources that you MUST use:
 """
     
     for resource_name, resource_info in resources.items():
+        if not isinstance(resource_info, dict):
+            resource_info = _normalize_resource_entry(resource_info) or {"type": "Unknown"}
         resource_type = resource_info.get("type", "Unknown")
         description = resource_info.get("description", "")
         knowledge += f"\n- `{resource_name}`: {description} (Type: {resource_type})"
@@ -237,6 +492,11 @@ The deck has been pre-configured with the following resources that you MUST use:
     
     knowledge += best_practices
     
+    tip_name, source_name, dest_name = pick_transfer_resource_names(hardware_config)
+    tip_name = tip_name or "tip_rack_50ul"
+    source_name = source_name or "source_plate"
+    dest_name = dest_name or "destination_plate"
+
     knowledge += f"""
 
 == IMPORTANT PROTOCOL REQUIREMENTS ==
@@ -245,27 +505,93 @@ The deck has been pre-configured with the following resources that you MUST use:
 3. **Use exact resource names as specified**
 4. **All operations must be awaited with `await`**
 5. **End successful protocols with `print("--- PROTOCOL_SUCCESS ---")`**
-{f'6. **Follow {robot_model.upper()}-specific best practices as outlined above**' if robot_model else ''}
+6. **Always pass tip spots to drop_tips, e.g. `await lh.drop_tips(tip_rack["A1"])` (PyLabRobot 0.2 requires this)**
+{f'7. **Follow {robot_model.upper()}-specific best practices as outlined above**' if robot_model else ''}
 
 == Example Protocol Structure ==
 ```python
 async def protocol(lh):
     # Get pre-configured resources
-    tip_rack = lh.get_resource("tip_rack_50ul")
-    source = lh.get_resource("source_plate")
-    dest = lh.get_resource("destination_plate")
+    tip_rack = lh.get_resource("{tip_name}")
+    source = lh.get_resource("{source_name}")
+    dest = lh.get_resource("{dest_name}")
     
     # Perform operations{f' (optimized for {robot_model.upper()})' if robot_model else ''}
     await lh.pick_up_tips(tip_rack["A1"])
-    await lh.aspirate(source["A1"], vols=[100])
-    await lh.dispense(dest["A1"], vols=[100])
-    await lh.drop_tips()
+    await lh.aspirate(source["A1"], vols=[20])
+    await lh.dispense(dest["A1"], vols=[20])
+    await lh.drop_tips(tip_rack["A1"])
     
     print("--- PROTOCOL_SUCCESS ---")
 ```
 """
     
     return knowledge
+
+
+def validate_protocol_volumes(protocol_code: str, hardware_config: Dict[str, Any]) -> Optional[str]:
+    """Reject transfers that exceed tip, well, or robot volume limits.
+
+    ChatterBox does not model spill/over-volume, so a 5000 µL aspirate on a
+    200 µL Tecan DiTi would otherwise return SUCCESS.
+    """
+    volumes: list[float] = []
+    for match in _VOLS_RE.finditer(protocol_code or ""):
+        for part in match.group(1).split(","):
+            part = part.strip()
+            if not part:
+                continue
+            try:
+                volumes.append(float(part))
+            except ValueError:
+                continue
+    if not volumes:
+        return None
+    max_vol = max(volumes)
+    resources = (hardware_config or {}).get("resources") or {}
+    volume_range = (hardware_config or {}).get("volume_range") or {}
+    robot_max = volume_range.get("max_ul")
+    if robot_max is not None and max_vol > float(robot_max):
+        return (
+            f"Volume {max_vol:g} µL exceeds the robot max of {float(robot_max):g} µL "
+            f"in hardware config volume_range."
+        )
+
+    named_tips = []
+    named_wells = []
+    for name, info in resources.items():
+        if not isinstance(info, dict) or name not in protocol_code:
+            continue
+        tip_volume = info.get("tip_volume")
+        if tip_volume is None:
+            blob = f"{name} {info.get('type', '')}".lower()
+            for token, vol in (("1000", 1000.0), ("300", 300.0), ("200", 200.0), ("50", 50.0)):
+                if token in blob and "tip" in blob:
+                    tip_volume = vol
+                    break
+        if tip_volume is not None:
+            named_tips.append((name, float(tip_volume)))
+        well_volume = info.get("well_volume")
+        if well_volume is not None:
+            named_wells.append((name, float(well_volume)))
+
+    if named_tips:
+        tip_cap = min(vol for _, vol in named_tips)
+        if max_vol > tip_cap:
+            tip_name = next(name for name, vol in named_tips if vol == tip_cap)
+            return (
+                f"Volume {max_vol:g} µL exceeds tip capacity {tip_cap:g} µL "
+                f"on {tip_name}."
+            )
+    if named_wells:
+        well_cap = min(vol for _, vol in named_wells)
+        if max_vol > well_cap:
+            well_name = next(name for name, vol in named_wells if vol == well_cap)
+            return (
+                f"Volume {max_vol:g} µL would overflow well capacity {well_cap:g} µL "
+                f"on {well_name}."
+            )
+    return None
 
 async def run_pylabrobot_simulation(
     protocol_code: str, 
@@ -310,6 +636,20 @@ async def run_pylabrobot_simulation(
     }
     
     try:
+        volume_error = validate_protocol_volumes(protocol_code, hw_config)
+        if volume_error:
+            result_data["success"] = False
+            result_data["error_details"] = volume_error
+            result_data["raw_output"] = volume_error
+            result_data["final_status"] = "PyLabRobot simulation failed"
+            result_data["recommendations"] = (
+                "Reduce the transfer volume to fit the selected tip and well, "
+                "or use a larger tip rack / plate from the hardware config."
+            )
+            if return_structured:
+                return result_data
+            return f"❌ PyLabRobot 协议模拟失败\n错误: {volume_error}"
+
         # Run the real async simulation
         try:
             # Check if we're already in an event loop
@@ -410,8 +750,8 @@ async def setup_simulation_environment(hardware_config: Dict[str, Any]):
         robot_model = hardware_config.get("robot_model", "").lower()
         print(f"Debug - [setup_simulation_environment] Setting up {robot_model} simulation environment")
         
-        # Use ChatterBoxBackend for reliable simulation
-        backend = ChatterBoxBackend()
+        # LiquidHandlerChatterboxBackend: ChatterBoxBackend raises NotImplementedError on 0.2.x
+        backend = LiquidHandlerChatterboxBackend()
         
         # Create deck based on robot model
         if robot_model == "hamilton_star" or robot_model == "hamilton_vantage":
@@ -444,72 +784,22 @@ async def setup_simulation_environment(hardware_config: Dict[str, Any]):
         
         for resource_name, resource_info in resources_config.items():
             try:
-                # Create a simple resource object that can be accessed via lh.get_resource()
-                # For simulation, we'll create mock resource objects with the expected interface
-                
-                # Import basic resource types
-                try:
-                    from pylabrobot.resources import (
-                        TipRack, Plate, Container,
-                        Coordinate
-                    )
-                    
-                    resource_type = resource_info.get("type", "generic")
-                    location = resource_info.get("location", {"x": 0, "y": 0, "z": 0})
-                    
-                    # Create coordinate
-                    coord = Coordinate(
-                        x=location.get("x", 0),
-                        y=location.get("y", 0), 
-                        z=location.get("z", 0)
-                    )
-                    
-                    # Create appropriate resource based on type
-                    if "tip" in resource_type.lower() or "tip" in resource_name.lower():
-                        # Create tip rack
-                        resource = TipRack(
-                            name=resource_name,
-                            size_x=85.48, size_y=127.76, size_z=97,  # Standard 96-tip rack
-                            num_items_x=12, num_items_y=8
-                        )
-                    elif "plate" in resource_type.lower() or "plate" in resource_name.lower():
-                        # Create plate
-                        resource = Plate(
-                            name=resource_name,
-                            size_x=85.48, size_y=127.76, size_z=14.22,  # Standard 96-well plate
-                            num_items_x=12, num_items_y=8
-                        )
-                    else:
-                        # Create generic container
-                        resource = Container(
-                            name=resource_name,
-                            size_x=85.48, size_y=127.76, size_z=50
-                        )
-                    
-                    # Assign resource to deck
-                    deck.assign_child_resource(resource, location=coord)
-                    configured_resources[resource_name] = resource
-                    
-                    print(f"Debug - [setup_simulation_environment] Configured {resource_name} ({type(resource).__name__})")
-                    
-                except ImportError as e:
-                    print(f"Warning - [setup_simulation_environment] Could not import PyLabRobot resources: {e}")
-                    # Create a simple mock object
-                    class MockResource:
-                        def __init__(self, name):
-                            self.name = name
-                            
-                        def __getitem__(self, key):
-                            # Return a mock well/position
-                            return MockWell(f"{self.name}[{key}]")
-                    
-                    class MockWell:
-                        def __init__(self, name):
-                            self.name = name
-                    
-                    configured_resources[resource_name] = MockResource(resource_name)
-                    print(f"Debug - [setup_simulation_environment] Created mock resource {resource_name}")
-                    
+                from pylabrobot.resources.coordinate import Coordinate
+
+                if not isinstance(resource_info, dict):
+                    resource_info = _normalize_resource_entry(resource_info) or {}
+                resource_type = resource_info.get("type", "generic")
+                location = resource_info.get("location", {"x": 0, "y": 0, "z": 0})
+                coord = Coordinate(
+                    x=location.get("x", 0),
+                    y=location.get("y", 0),
+                    z=location.get("z", 0),
+                )
+                factory = _labware_factory(resource_name, str(resource_type), robot_model)
+                resource = factory(name=resource_name)
+                deck.assign_child_resource(resource, location=coord)
+                configured_resources[resource_name] = resource
+                print(f"Debug - [setup_simulation_environment] Configured {resource_name} ({type(resource).__name__})")
             except Exception as e:
                 print(f"Warning - [setup_simulation_environment] Failed to configure resource {resource_name}: {e}")
         
@@ -702,7 +992,7 @@ def get_pylabrobot_error_recommendations(error_output: str) -> str:
     elif "notipattachederror" in error_lower or "no tip attached" in error_lower:
         return "在进行液体处理操作前，请确保已使用 await lh.pick_up_tips() 安装tip。"
     elif "tipattachederror" in error_lower or "tip already attached" in error_lower:
-        return "在安装新tip前，请先使用 await lh.drop_tips() 丢弃当前tip。"
+        return "在安装新tip前，请先使用 await lh.drop_tips(tip_rack[\"A1\"]) 丢弃当前tip（0.2.x 必须传入 tip_spots）。"
     elif "backend not setup" in error_lower or "setup" in error_lower:
         return "确保模拟器后端已正确初始化。这通常是内部错误，请检查硬件配置。"
     elif "deck" in error_lower and "not found" in error_lower:

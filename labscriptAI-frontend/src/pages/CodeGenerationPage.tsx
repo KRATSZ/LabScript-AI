@@ -35,7 +35,7 @@ import { ArrowLeft, Play, RefreshCw, Copy, Code2, Zap, CheckCircle, AlertTriangl
 import { useSnackbar } from 'notistack';
 import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
-import { formatHardwareConfig } from '../services/api';
+import { formatHardwareConfig, pylabrobotDisplayName } from '../services/api';
 import type { IterationLog } from '../services/api';
 
 interface ApiErrorDetail {
@@ -51,6 +51,59 @@ interface ApiError {
   };
   message?: string;
 }
+
+const OPENTRONS_FALLBACK_PROTOCOL = `# Code generation failed, providing a basic template for reference
+# Please modify the following code manually according to your SOP
+
+from opentrons import protocol_api
+
+metadata = {
+    'protocolName': 'Generated Protocol Template',
+    'author': 'LabScript AI',
+    'description': 'Basic Protocol Template - Please modify according to your experimental needs',
+    'apiLevel': '2.20'
+}
+
+def run(protocol: protocol_api.ProtocolContext):
+    """
+    Basic Protocol Template - Please modify according to your experimental needs
+    """
+    
+    # 1. Load tip racks
+    tiprack_300 = protocol.load_labware('opentrons_96_tiprack_300ul', 1)
+    
+    # 2. Load pipette
+    pipette = protocol.load_instrument('p300_single_gen2', 'right', tip_racks=[tiprack_300])
+    
+    # 3. Load labware
+    source_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 2)
+    dest_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 3)
+    
+    # 4. Protocol Steps - Please modify according to your SOP
+    # Example: Simple liquid transfer
+    pipette.pick_up_tip()
+    pipette.aspirate(100, source_plate['A1'])
+    pipette.dispense(100, dest_plate['A1'])
+    pipette.drop_tip()
+    
+    # TODO: Add specific experimental steps according to your SOP
+    protocol.comment("Please add specific experimental steps according to your SOP")
+`;
+
+const PYLABROBOT_FALLBACK_PROTOCOL = `# AI code generation needs an API key. This is a Tecan Freedom EVO
+# starter protocol that uses the deck loaded from Hardware Config.
+# Edit the transfers below, then click Simulate.
+
+async def protocol(lh):
+    tips = lh.get_resource("tip_rack_200ul_evo")
+    source = lh.get_resource("microplate_source")
+    dest = lh.get_resource("microplate_dest")
+    await lh.pick_up_tips(tips["A1"])
+    await lh.aspirate(source["A1"], vols=[20])
+    await lh.dispense(dest["A1"], vols=[20])
+    await lh.drop_tips(tips["A1"])
+    print("--- PROTOCOL_SUCCESS ---")
+`;
 
 const CodeGenerationPage: React.FC = () => {
   const theme = useTheme();
@@ -80,13 +133,17 @@ const CodeGenerationPage: React.FC = () => {
     },
     { 
       label: 'Generate Initial Code', 
-      description: 'Generate Opentrons Python protocol code based on SOP, including all necessary hardware configurations',
+      description: state.robotModel === 'PyLabRobot'
+        ? 'Generate PyLabRobot protocol code for the selected Tecan/Hamilton deck'
+        : 'Generate Opentrons Python protocol code based on SOP, including all necessary hardware configurations',
       icon: <Code2 size={20} />,
       estimatedTime: 30
     },
     { 
       label: 'Simulation Validation', 
-      description: 'Run Opentrons simulator to validate code syntax and logical correctness',
+      description: state.robotModel === 'PyLabRobot'
+        ? 'Run the PyLabRobot chatterbox simulator against the selected deck'
+        : 'Run Opentrons simulator to validate code syntax and logical correctness',
       icon: <TestTube size={20} />,
       estimatedTime: 20
     },
@@ -175,6 +232,7 @@ const CodeGenerationPage: React.FC = () => {
       }
 
       let buffer = '';
+      let gotTerminalEvent = false;
       
       // 读取流式响应
       while (true) {
@@ -264,11 +322,12 @@ const CodeGenerationPage: React.FC = () => {
                 }
                   
                 case 'final_result':
+                  gotTerminalEvent = true;
                   setIsGenerating(false);
                   setShowProcessExplanation(false);
                   setCurrentStep(generationSteps.length - 1);
                   
-                  if (data.status === 'success') {
+                  if (data.status === 'success' || data.success === true) {
                     const finalCode = data.generated_code || '';
                     dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
                     setEditedCode(finalCode);
@@ -286,26 +345,33 @@ const CodeGenerationPage: React.FC = () => {
                     // 处理失败情况
                     const finalCode = data.generated_code || '';
                     const errorReport = data.error_report || '';
-                    
-                    if (finalCode) {
-                      dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
-                      setEditedCode(finalCode);
+                    const looksPylab = /lh\.get_resource|pick_up_tips/.test(finalCode);
+                    const needsTecanFallback = state.robotModel === 'PyLabRobot'
+                      && !looksPylab
+                      && (!finalCode.trim() || /from opentrons|protocol_api/.test(finalCode));
+
+                    if (needsTecanFallback) {
+                      applyFallbackProtocol('AI generation was unavailable. A Tecan starter protocol is in the editor — click Run Simulation.');
+                      setAttempts(data.total_attempts || 0);
+                    } else {
+                      if (finalCode) {
+                        dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
+                        setEditedCode(finalCode);
+                      }
+                      setAttempts(data.total_attempts || 0);
+                      setWarnings([data.error_details || 'Code generation failed']);
+                      setProgress(`❌ Code generation failed after ${data.total_attempts ?? 0} attempts`);
+                      enqueueSnackbar('Code generation failed', { variant: 'error' });
                     }
-                    
-                    setAttempts(data.total_attempts || 0);
-                    setWarnings([data.error_details || 'Code generation failed']);
-                    setProgress(`❌ Code generation failed after ${data.total_attempts} attempts`);
-                    enqueueSnackbar('Code generation failed', { variant: 'error' });
-                    
-                    // 显示错误报告
                     console.error('Code generation error report:', errorReport);
                   }
                   break;
                   
                 case 'error':
+                  gotTerminalEvent = true;
                   setIsGenerating(false);
                   setShowProcessExplanation(false);
-                  setProgress('❌ Error occurred during code generation');
+                  applyFallbackProtocol(data.message || 'Code generation error. A starter protocol is in the editor.');
                   enqueueSnackbar(data.message || 'Code generation error', { variant: 'error' });
                   console.error('Code generation error:', data);
                   break;
@@ -324,6 +390,11 @@ const CodeGenerationPage: React.FC = () => {
           }
         }
       }
+
+      if (!gotTerminalEvent) {
+        applyFallbackProtocol('Code generation stopped without a result. A Tecan starter is in the editor — click Run Simulation.');
+        enqueueSnackbar('Code generation stopped without a result', { variant: 'error' });
+      }
       
     } catch (error: unknown) {
       console.error('[CodeGenerationPage] Failed to generate code:', error);
@@ -337,44 +408,10 @@ const CodeGenerationPage: React.FC = () => {
         errorMessage = String(err.message);
       }
       
-      // 提供基础模板
-      const partialCode = `# Code generation failed, providing a basic template for reference
-# Please modify the following code manually according to your SOP
-
-from opentrons import protocol_api
-
-metadata = {
-    'protocolName': 'Generated Protocol Template',
-    'author': 'LabScript AI',
-    'description': 'Basic Protocol Template - Please modify according to your experimental needs',
-    'apiLevel': '2.20'
-}
-
-def run(protocol: protocol_api.ProtocolContext):
-    """
-    Basic Protocol Template - Please modify according to your experimental needs
-    """
-    
-    # 1. Load tip racks
-    tiprack_300 = protocol.load_labware('opentrons_96_tiprack_300ul', 1)
-    
-    # 2. Load pipette
-    pipette = protocol.load_instrument('p300_single_gen2', 'right', tip_racks=[tiprack_300])
-    
-    # 3. Load labware
-    source_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 2)
-    dest_plate = protocol.load_labware('nest_96_wellplate_200ul_flat', 3)
-    
-    # 4. Protocol Steps - Please modify according to your SOP
-    # Example: Simple liquid transfer
-    pipette.pick_up_tip()
-    pipette.aspirate(100, source_plate['A1'])
-    pipette.dispense(100, dest_plate['A1'])
-    pipette.drop_tip()
-    
-    # TODO: Add specific experimental steps according to your SOP
-    protocol.comment("Please add specific experimental steps according to your SOP")
-`;
+      // Provide a robot-specific starter so Tecan users are not handed Opentrons code
+      const partialCode = state.robotModel === 'PyLabRobot'
+        ? PYLABROBOT_FALLBACK_PROTOCOL
+        : OPENTRONS_FALLBACK_PROTOCOL;
       
       const warningsToShow = ['A basic protocol template has been provided. Please modify it according to your SOP.'];
       
@@ -393,8 +430,20 @@ def run(protocol: protocol_api.ProtocolContext):
     enqueueSnackbar('Code copied to clipboard', { variant: 'success' });
   };
 
+  const applyFallbackProtocol = (reason: string) => {
+    const partialCode = state.robotModel === 'PyLabRobot'
+      ? PYLABROBOT_FALLBACK_PROTOCOL
+      : OPENTRONS_FALLBACK_PROTOCOL;
+    setEditedCode(partialCode);
+    dispatch({ type: 'SET_PYTHON_CODE', payload: partialCode });
+    setWarnings([reason]);
+    setProgress(`⚠️ ${reason}`);
+  };
+
   const handleEditorChange = (value: string | undefined) => {
-    setEditedCode(value || '');
+    const next = value || '';
+    setEditedCode(next);
+    dispatch({ type: 'SET_PYTHON_CODE', payload: next });
   };
 
   const handleRunSimulation = () => {
@@ -500,7 +549,7 @@ def run(protocol: protocol_api.ProtocolContext):
               mb: 2
             }}
           >
-            AI-powered generation and validation of Opentrons Python protocol code, automatically optimized based on your SOP
+            AI-powered generation and simulation of protocol code for {state.robotModel === 'PyLabRobot' ? 'PyLabRobot (Tecan, Hamilton, …)' : 'Opentrons'}, based on your SOP
           </Typography>
           
           {showReadyAlert && !editedCode && !isGenerating && (
@@ -590,6 +639,24 @@ def run(protocol: protocol_api.ProtocolContext):
                 >
                   {isGenerating ? 'Intelligent Generation...' : 'Start Code Generation'}
                 </Button>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  startIcon={<Play size={20} />}
+                  onClick={handleRunSimulation}
+                  disabled={!editedCode || isGenerating}
+                  sx={{
+                    mb: 2,
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontWeight: 600,
+                  }}
+                >
+                  Run Simulation
+                </Button>
                 
                 <Button
                   fullWidth
@@ -658,7 +725,7 @@ def run(protocol: protocol_api.ProtocolContext):
                     <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                       💡 Estimated Time Required: {Math.ceil(getTotalEstimatedTime() / 60)} minutes
                     </Typography>
-                    Our AI system will execute a multi-stage intelligent generation and validation process to ensure the generated code can run safely and accurately on Opentrons robots.
+                    Our AI system will execute a multi-stage generation and validation process so the code can run on {pylabrobotDisplayName(state)}.
                     Please be patient, complex experiments may require multiple iterative optimizations.
                   </Alert>
 
@@ -1243,7 +1310,7 @@ def run(protocol: protocol_api.ProtocolContext):
                                     <Box sx={{ flex: 1 }}>
                                       <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                                         {log.node_name === 'generator' ? '🧠 AI Code Generation' :
-                                         log.node_name === 'simulator' ? '🧪 Opentrons Simulation Validation' :
+                                         log.node_name === 'simulator' ? (state.robotModel === 'PyLabRobot' ? '🧪 PyLabRobot Simulation Validation' : '🧪 Opentrons Simulation Validation') :
                                          log.node_name === 'feedback_preparer' ? '🔍 Error Analysis & Fix Strategy' :
                                          `📋 ${log.event_type}`}
                                       </Typography>
