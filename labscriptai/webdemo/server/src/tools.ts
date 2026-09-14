@@ -25,8 +25,10 @@ import {
 import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import {
   applyAskUser,
+  beginGoalNotesConflictAsk,
   canEmitPlan,
   canGenerateCode,
+  canResolveGoalNotesConflict,
   canRunPipeline,
   checksRoute,
   capSop,
@@ -37,9 +39,11 @@ import {
   normalizePlanInput,
   planBackendFor,
   presetMismatchWarning,
+  resolveGoalNotesConflict,
   shouldCallCompactSop,
   shouldReuseSop,
   snapshot,
+  unresolvedGoalNotesConflict,
   type AskUserInput,
   type SessionState,
 } from "./session.ts";
@@ -84,7 +88,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "ask_user",
     label: "Ask user / session",
     description:
-      "Persist session fields. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. Does not generate code. No deck UI.",
+      "Persist session fields. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. If notes_conflict, call this, tell the user both volumes, and stop; after they answer, call again with goal set to the chosen volume. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
@@ -107,11 +111,52 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     execute: async (_id, args) => {
       const input = args as AskUserInput;
       const warning = presetMismatchWarning(session.robot, input.preset);
+      const conflictBefore = unresolvedGoalNotesConflict(session);
+      if (conflictBefore && !canResolveGoalNotesConflict(session)) {
+        applyAskUser(session, { ...input, goal: undefined, doc: undefined });
+        beginGoalNotesConflictAsk(session);
+        const ask = `The goal and notes disagree on volume (${conflictBefore}). Which volume should I use? I have not made a SOP, plan, or .gwl.`;
+        sse.write("text", { token: `\n\n${ask}\n` });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  wait: true,
+                  conflict: conflictBefore,
+                  ask,
+                  next_tool: "ask_user",
+                  phase: session.phase,
+                  missing: missingList(session),
+                  ready: false,
+                  hint: "Stop. Tell the user both volumes and wait. Do not generate_sop, emit_plan, run_checks, or a .gwl.",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          details: {
+            payload: {
+              wait: true,
+              conflict: conflictBefore,
+              ask,
+              next_tool: "ask_user",
+              ready: false,
+            },
+          },
+          terminate: true,
+        };
+      }
       applyAskUser(session, input);
+      if (conflictBefore && canResolveGoalNotesConflict(session)) {
+        resolveGoalNotesConflict(session);
+      }
       return ok({
         phase: session.phase,
         missing: missingList(session),
-        ready: canRunPipeline(session),
+        ready: canRunPipeline(session) && !unresolvedGoalNotesConflict(session),
         hardware_config: formatHardwareConfig(session),
         doc: session.doc ?? null,
         assumed_deck: Boolean(session.deckAssumed),
@@ -131,6 +176,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     executionMode: "sequential",
     execute: async (_id, args, _signal, onUpdate) => {
       const force = Boolean((args as { force?: boolean }).force);
+      const conflict = unresolvedGoalNotesConflict(session);
+      if (conflict) {
+        return ok({
+          blocked: true,
+          missing: missingList(session),
+          conflict,
+          hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+        });
+      }
       if (shouldReuseSop(session, force)) {
         return ok({
           chars: session.sop?.length ?? 0,
@@ -166,6 +220,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     }),
     executionMode: "sequential",
     execute: async (_id, args, _signal, onUpdate) => {
+      const conflict = unresolvedGoalNotesConflict(session);
+      if (conflict) {
+        return ok({
+          blocked: true,
+          missing: missingList(session),
+          conflict,
+          hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+        });
+      }
       if (!canRunPipeline(session)) {
         return ok({ blocked: true, missing: missingList(session) });
       }
@@ -259,6 +322,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     }),
     executionMode: "sequential",
     execute: async (_id, args) => {
+      const conflict = unresolvedGoalNotesConflict(session);
+      if (conflict) {
+        return ok({
+          blocked: true,
+          missing: missingList(session),
+          conflict,
+          hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+        });
+      }
       if (!canEmitPlan(session)) {
         const missing = missingList(session);
         if (!session.sop?.trim()) missing.push("sop");
@@ -340,6 +412,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         });
       }
       if (route === "plan") {
+        const conflict = unresolvedGoalNotesConflict(session);
+        if (conflict) {
+          return ok({
+            blocked: true,
+            missing: missingList(session),
+            conflict,
+            hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+          });
+        }
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
           toolGoal(session),

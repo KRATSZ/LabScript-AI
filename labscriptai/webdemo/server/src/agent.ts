@@ -12,7 +12,7 @@ import {
   isPatchBudgetRefusal,
   REVIEWER_UNAVAILABLE_DISCLOSURE,
 } from "./gate.ts";
-import { snapshot, type SessionState } from "./session.ts";
+import { markConflictUserReply, snapshot, type SessionState } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
@@ -58,6 +58,14 @@ export const POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT =
   `SYSTEM HINT: ${REVIEWER_UNAVAILABLE_DISCLOSURE} Disclose this in the final user-facing message.`;
 export const POST_RUN_CHECKS_WITHHELD_HINT =
   "SYSTEM HINT: Checks did not pass, so .gwl / worklist / downloadable script is withheld. Do not tell the user those files are ready. Report the bench consequence and ask whether to adjust.";
+export const POST_NOTES_CONFLICT_HINT =
+  "SYSTEM HINT: Notes conflict with the goal. Call ask_user, tell the user both volumes, and STOP. Do not generate_sop, emit_plan, run_checks, or say a .gwl is ready until the user answers.";
+
+export function isNotesConflictWait(details: unknown): boolean {
+  if (!details || typeof details !== "object") return false;
+  const payload = (details as { payload?: { wait?: unknown } }).payload;
+  return payload?.wait === true;
+}
 
 export function afterWebdemoToolCall(
   context: {
@@ -75,6 +83,10 @@ export function afterWebdemoToolCall(
       review?: { status?: unknown };
       status?: unknown;
       download?: unknown;
+      wait?: unknown;
+      blocked?: unknown;
+      conflict?: unknown;
+      missing?: unknown;
     };
   } | undefined;
   if (context.toolCall.name === "emit_plan" && details?.payload?.ok === true) {
@@ -83,6 +95,21 @@ export function afterWebdemoToolCall(
         ...context.result.content,
         { type: "text", text: POST_EMIT_PLAN_HINT },
       ],
+    };
+  }
+  if (
+    details?.payload?.wait === true ||
+    (details?.payload?.blocked === true &&
+      (Boolean(details.payload.conflict) ||
+        (Array.isArray(details.payload.missing) &&
+          details.payload.missing.some((item) => String(item).includes("ask_user")))))
+  ) {
+    return {
+      content: [
+        ...context.result.content,
+        { type: "text", text: POST_NOTES_CONFLICT_HINT },
+      ],
+      ...(details?.payload?.wait === true ? { terminate: true } : {}),
     };
   }
   if (
@@ -229,6 +256,7 @@ export async function runChatTurn(
   }
 
   session.patchesUsed = 0;
+  markConflictUserReply(session, userText);
   const tools = withToolEvents(buildTools(session, sse), sse);
   const prior = Array.isArray(session.messages) ? session.messages : [];
   const autoContinue = createAutoContinueState();
@@ -247,7 +275,9 @@ export async function runChatTurn(
     afterToolCall: async (context) => afterWebdemoToolCall(context),
     shouldStopAfterTurn: ({ toolResults }) =>
       Boolean(autoContinue.error) ||
-      toolResults.some((r) => isPatchBudgetRefusal(r.details)),
+      toolResults.some(
+        (r) => isPatchBudgetRefusal(r.details) || isNotesConflictWait(r.details)
+      ),
   });
 
   return promptWithAutoContinue(

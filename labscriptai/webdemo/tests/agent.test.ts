@@ -12,6 +12,7 @@ import {
   POST_EMIT_PLAN_HINT,
   POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT,
   POST_RUN_CHECKS_WITHHELD_HINT,
+  POST_NOTES_CONFLICT_HINT,
   promptWithAutoContinue,
   withToolEvents,
 } from "../server/src/agent.ts";
@@ -157,6 +158,21 @@ describe("agent tool-result handling", () => {
     );
     assert.match(JSON.stringify(update.content), /withheld/i);
     assert.match(JSON.stringify(update.content), /do not tell the user those files are ready/i);
+  });
+
+  it("adds a notes-conflict hint when ask_user waits", () => {
+    const update = afterWebdemoToolCall({
+      toolCall: { name: "ask_user" },
+      result: {
+        content: [{ type: "text", text: '{"wait":true}' }],
+        details: { payload: { wait: true, conflict: "goal 50 µL vs notes 250 µL" } },
+      },
+    });
+    assert.ok(update?.content);
+    assert.equal(update.terminate, true);
+    assert.equal((update.content.at(-1) as { text: string }).text, POST_NOTES_CONFLICT_HINT);
+    assert.match(JSON.stringify(update.content), /stop/i);
+    assert.match(JSON.stringify(update.content), /ask_user/i);
   });
 
   it("emits tool done only after the handler resolves, with duration", async () => {
