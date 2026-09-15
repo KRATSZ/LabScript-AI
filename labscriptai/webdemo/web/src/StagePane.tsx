@@ -19,11 +19,11 @@ interface Props {
 function DeckStrip({ session }: { session: SessionSnapshot }) {
   const slots = Object.entries(session.hardware?.deck ?? {});
   if (!slots.length) {
-    return <p className="hint">Assumed deck appears after a device is chosen.</p>;
+    return <p className="hint">Standard deck appears after a device is chosen.</p>;
   }
   return (
     <div className="deck-strip" data-testid="deck-strip">
-      <div className="plan-heading">Assumed deck</div>
+      <div className="plan-heading">Standard deck</div>
       {slots.map(([slot, labware]) => (
         <p key={slot} className="file">
           {slot}: {labwareLabel(labware) || labware}
@@ -48,15 +48,16 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
     isPlanCodegen(session.robot) &&
     session.checks?.status === "pass" &&
     Boolean(session.plan && typeof session.plan === "object");
+  const hasDeck = watchReady || plrReady;
   return (
-    <div className="stage-pane" data-testid="stage-pane">
-      <Pipeline session={session} runningTool={runningTool} busy={busy} />
+    <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
+      <Pipeline session={session} runningTool={runningTool} busy={busy} compact={hasDeck} />
       {watchReady ? (
         <OtDeckReplay
           analyze={session.analyze}
           robot={session.robot}
           protocolName={session.goal}
-          appType="web"
+          appType="desktop"
         />
       ) : plrReady ? (
         <PlrDeckReplay plan={session.plan} robot={session.robot} />
@@ -65,9 +66,8 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
       )}
       {watchReady ? (
         <div className="watch-cta">
-          <p className="hint">Watch is a software preview of the run — not the live deck.</p>
-          <button type="button" className="primary" onClick={onWatch}>
-            Expand the deck
+          <button type="button" className="ghost" onClick={onWatch}>
+            Expand
           </button>
         </div>
       ) : watchGap ? (
@@ -75,8 +75,7 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
           {watchGap}
         </p>
       ) : null}
-      {watchReady || plrReady ? <DeckStrip session={session} /> : null}
-      {steps.length ? (
+      {!hasDeck && steps.length ? (
         <div className="plan-block">
           <div className="plan-heading">Transfer steps</div>
           <div className="plan-steps">
@@ -87,14 +86,14 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
             ))}
           </div>
         </div>
-      ) : (
+      ) : !hasDeck ? (
         <p className="hint">
           {isPlanCodegen(session.robot)
             ? "Steps and check results show here after the protocol is written."
             : "When checks pass, Watch uses this pane. Otherwise the step list appears."}
         </p>
-      )}
-      <IssuesPanel checks={session.checks} />
+      ) : null}
+      {!hasDeck ? <IssuesPanel checks={session.checks} /> : null}
     </div>
   );
 }

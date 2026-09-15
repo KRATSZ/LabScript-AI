@@ -139,6 +139,10 @@ export function App() {
   const status = session?.checks?.status;
   const canWatch = sessionCanWatch(session?.robot, status, session?.analyze ?? null);
   const planBackend = isPlanCodegen(session?.robot);
+  const deckPreview =
+    planBackend &&
+    status === "pass" &&
+    Boolean(session?.plan && typeof session.plan === "object");
   const tone = headerTone(status, canWatch);
 
   return (
@@ -173,7 +177,8 @@ export function App() {
                     planBackend,
                     session.checks,
                     session.intake_done,
-                    Boolean(session.sop?.trim())
+                    Boolean(session.sop?.trim()),
+                    deckPreview
                   )}
                 </strong>
               </div>

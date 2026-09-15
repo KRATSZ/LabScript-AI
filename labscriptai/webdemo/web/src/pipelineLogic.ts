@@ -60,9 +60,10 @@ export function phaseLabel(
   planBackend = false,
   checks?: ChecksResult | null,
   intakeDone?: boolean,
-  hasSop?: boolean
+  hasSop?: boolean,
+  deckPreview = false
 ): string {
-  if (canWatch) return "Ready to watch";
+  if (canWatch || deckPreview) return "Ready to watch";
   if (status === "pass") {
     return planBackend ? "Checks passed — step table below" : "Checks passed — no animation available";
   }

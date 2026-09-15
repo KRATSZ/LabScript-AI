@@ -143,6 +143,7 @@ describe("AnimationOverlay code-split", () => {
     assert.equal(webFiles.includes("playBeats.ts"), false);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /OtDeckReplay/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /PlrDeckReplay/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /appType="desktop"/);
     assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/start/);
   });
 });

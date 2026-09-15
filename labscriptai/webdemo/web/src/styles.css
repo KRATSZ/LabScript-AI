@@ -121,7 +121,25 @@ body {
   overflow: auto;
   padding: 16px 20px 28px;
 }
+.stage-body:has(.has-deck) {
+  overflow: hidden;
+  padding-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+}
 .stage-pane, .artifacts-pane { display: flex; flex-direction: column; gap: 8px; }
+.stage-pane.has-deck {
+  flex: 1;
+  min-height: 0;
+  gap: 6px;
+}
+.stage-pane.has-deck .pipeline-wrap { margin-bottom: 0; }
+.stage-pane.has-deck .watch-cta {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: flex-end;
+  margin: 0;
+}
 .deck-strip { margin: 8px 0; }
 .ot-deck-embed,
 .plr-deck-embed {
@@ -135,13 +153,33 @@ body {
   display: flex;
   flex-direction: column;
 }
+.stage-pane.has-deck .ot-deck-embed,
+.stage-pane.has-deck .plr-deck-embed {
+  flex: 1;
+  min-height: 560px;
+  height: auto;
+  margin: 0;
+}
 .ot-deck-embed > * {
   flex: 1;
   min-height: 0;
   height: 100%;
 }
+.ot-deck-embed [class*="visualizercontainer-module__layout_container"] {
+  height: 100%;
+  min-height: 0;
+}
+/* Stage already has chat + pipeline; hide official Protocol Steps so the deck + inspector fill. */
+.stage-pane.has-deck [class*="visualizercontainer-module__left_column"],
+.stage-pane.has-deck [class*="visualizercontainer-module__left_column"] + [class*="visualizercontainer-module__gutter"] {
+  display: none;
+}
 .plr-deck-embed {
   padding: 10px 10px 0;
+}
+.stage-pane.has-deck .plr-deck-embed > .hint {
+  margin: 0 0 4px;
+  font-size: 12px;
 }
 .plr-deck-frame {
   flex: 1;

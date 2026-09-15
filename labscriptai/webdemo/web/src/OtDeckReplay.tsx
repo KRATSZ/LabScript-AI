@@ -44,7 +44,7 @@ export function OtDeckReplay({
   analyze,
   robot,
   protocolName,
-  appType = "web",
+  appType = "desktop",
 }: {
   analyze: Record<string, unknown> | null;
   robot?: string | null;

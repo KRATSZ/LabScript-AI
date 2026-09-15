@@ -37,5 +37,14 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("next_tool=generate_sop after code_service=up"),
       /generate_sop|code_service|next_tool/
     );
+    assert.equal(sanitizeAssistantText("Is that 50 L vs 50 µL?"), "Is that 50 µL?");
+    assert.equal(
+      sanitizeAssistantText("Using the assumed deck for this run."),
+      "Using the standard deck for this run."
+    );
+    assert.equal(
+      sanitizeAssistantText("After the analyze pass the script is ready."),
+      "After the checks passed the script is ready."
+    );
   });
 });

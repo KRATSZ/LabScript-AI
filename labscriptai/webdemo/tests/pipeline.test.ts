@@ -146,6 +146,10 @@ describe("phaseLabel", () => {
     assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
     assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed — no animation available");
     assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed — step table below");
+    assert.equal(
+      phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true),
+      "Ready to watch"
+    );
     assert.equal(phaseLabel("ready", "fail", false, false), "Checks failed");
     assert.equal(phaseLabel("ready", "fail", false, true), "Checks failed");
     assert.equal(phaseLabel("ready", "unevaluable", false, false), "Cannot verify");
@@ -205,6 +209,10 @@ describe("robot switch snapshot", () => {
     assert.notEqual(ot.sop, ham.sop);
     assert.equal(phaseLabel(ot.phase, ot.checks?.status, true, false), "Ready to watch");
     assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed — step table below");
+    assert.equal(
+      phaseLabel(ham.phase, ham.checks?.status, false, true, undefined, undefined, undefined, true),
+      "Ready to watch"
+    );
     assert.deepEqual(pipelineStates(ham, null).slice(0, 3), ["ok", "ok", "ok"]);
     assert.deepEqual(pipelineSteps(ot.robot), ["Goal", "SOP", "Code", "Checks", "Watch"]);
     assert.deepEqual(pipelineSteps(ham.robot), ["Goal", "SOP", "Plan", "Checks", "Export"]);
