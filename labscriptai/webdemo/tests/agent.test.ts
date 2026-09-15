@@ -15,6 +15,7 @@ import {
   POST_NOTES_CONFLICT_HINT,
   promptWithAutoContinue,
   withToolEvents,
+  isSuccessfulToolResult,
 } from "../server/src/agent.ts";
 import {
   reviewerProcessEnv,
@@ -243,6 +244,44 @@ describe("agent tool-result handling", () => {
     );
     assert.ok(result);
     assert.equal((result.data as { detail?: { ok?: boolean } }).detail?.ok, false);
+  });
+
+  it("records ok false when execute returns wait, blocked, fail, or withheld", async () => {
+    assert.equal(isSuccessfulToolResult({ details: { payload: { wait: true } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { blocked: true } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { status: "fail" } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { download: "withheld" } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { ok: false } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { ok: true, status: "pass" } } }), true);
+
+    const frames: Array<{ event: string; data: unknown }> = [];
+    const fakeTool: AgentTool = {
+      name: "ask_user",
+      label: "Ask",
+      description: "test",
+      parameters: Type.Object({}),
+      execute: async () => ({
+        content: [{ type: "text", text: '{"wait":true}' }],
+        details: { payload: { wait: true } },
+      }),
+    };
+    const wrapped = withToolEvents(
+      [fakeTool],
+      {
+        write(event, data) {
+          frames.push({ event, data });
+        },
+        close() {},
+      },
+      () => 10
+    )[0];
+    await wrapped.execute("1", {});
+    const result = frames.find(
+      (frame) =>
+        frame.event === "agent_event" &&
+        (frame.data as { kind?: string }).kind === "tool/result"
+    );
+    assert.equal((result?.data as { detail?: { ok?: boolean } }).detail?.ok, false);
   });
 });
 

@@ -68,6 +68,19 @@ export function isNotesConflictWait(details: unknown): boolean {
   return payload?.wait === true;
 }
 
+export function isSuccessfulToolResult(result: { details?: unknown }): boolean {
+  if (isPatchBudgetRefusal(result.details)) return false;
+  const payload = (result.details as { payload?: Record<string, unknown> } | undefined)?.payload;
+  if (!payload || typeof payload !== "object") return true;
+  if (payload.wait === true) return false;
+  if (payload.blocked === true) return false;
+  if (payload.ok === false) return false;
+  if (payload.allowed === false) return false;
+  if (payload.status === "fail") return false;
+  if (payload.download === "withheld") return false;
+  return true;
+}
+
 export function afterWebdemoToolCall(
   context: {
     toolCall: { name: string };
@@ -179,7 +192,7 @@ export function withToolEvents(
       };
       try {
         const result = await tool.execute(...args);
-        finish(true);
+        finish(isSuccessfulToolResult(result));
         return result;
       } catch (error) {
         finish(false);

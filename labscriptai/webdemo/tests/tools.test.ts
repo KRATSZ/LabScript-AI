@@ -533,4 +533,28 @@ describe("goal vs notes conflict gate", () => {
     assert.equal(session.sop, undefined);
     assert.equal(shouldCallCompactSop(session), true);
   });
+
+  it("does not resolve a conflict until ask_user persists the chosen volume", async () => {
+    const session = createSession();
+    applyForm(session, { goal: GOAL_50, doc: conflictDoc, robot: "Tecan" });
+    await tool(session, "ask_user").execute("1", { goal: "Transfer 250 µL A1 to B1." });
+    markConflictUserReply(session, "use 250");
+
+    const forgotten = await tool(session, "ask_user").execute("2", {});
+    assert.equal(JSON.parse(toolText(forgotten)).wait, true);
+    assert.equal(session.draftConflictResolved, false);
+    assert.equal(session.goal, GOAL_50);
+
+    const originalGoal = await tool(session, "ask_user").execute("3", { goal: GOAL_50 });
+    assert.equal(JSON.parse(toolText(originalGoal)).wait, true);
+    assert.equal(session.draftConflictResolved, false);
+    assert.equal(session.goal, GOAL_50);
+
+    const confirm = await tool(session, "ask_user").execute("4", {
+      goal: "Transfer 250 µL A1 to B1.",
+    });
+    assert.equal(JSON.parse(toolText(confirm)).wait, undefined);
+    assert.equal(session.draftConflictResolved, true);
+    assert.equal(session.goal, "Transfer 250 µL A1 to B1.");
+  });
 });

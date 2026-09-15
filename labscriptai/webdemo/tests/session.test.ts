@@ -9,6 +9,7 @@ import {
   canEmitPlan,
   canGenerateCode,
   canGenerateSop,
+  canResolveGoalNotesConflict,
   canRunPipeline,
   checksRoute,
   computePhase,
@@ -668,5 +669,28 @@ describe("goal vs notes volume conflict", () => {
     assert.match(intent250, /Generated SOP/);
     assert.doesNotMatch(intent250, /IGNORE/);
     assert.doesNotMatch(intent250, /PI is happy/);
+  });
+
+  it("reviewIntent does not inject Tecan LiHa copy for Hamilton", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1.", doc: conflictDoc, robot: "Hamilton" });
+    markConflictUserReply(session, "50");
+    applyAskUser(session, { goal: "Transfer 50 µL A1 to B1." });
+    resolveGoalNotesConflict(session);
+    session.sop = "# Transfer 50 µL from A1 to B1";
+    const intent = reviewIntent(session);
+    assert.match(intent, /50/);
+    assert.doesNotMatch(intent, /liha_1000/);
+    assert.doesNotMatch(intent, /200 µL DiTi/);
+  });
+
+  it("canResolveGoalNotesConflict requires a goal that names the volume the user chose", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1.", doc: conflictDoc, robot: "Tecan" });
+    assert.equal(canResolveGoalNotesConflict(session), false);
+    markConflictUserReply(session, "use 250");
+    assert.equal(canResolveGoalNotesConflict(session), false);
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 50 µL A1 to B1."), false);
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), true);
   });
 });

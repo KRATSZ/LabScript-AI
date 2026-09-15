@@ -110,10 +110,13 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       const input = args as AskUserInput;
       const warning = presetMismatchWarning(session.robot, input.preset);
       const conflictBefore = unresolvedGoalNotesConflict(session);
-      if (conflictBefore && !canResolveGoalNotesConflict(session)) {
+      if (conflictBefore && !canResolveGoalNotesConflict(session, input.goal)) {
         applyAskUser(session, { ...input, goal: undefined, doc: undefined });
         beginGoalNotesConflictAsk(session);
-        const ask = `The goal and notes disagree on volume (${conflictBefore}). Which volume should I use? I have not made a SOP, plan, or .gwl.`;
+        const waitingForChoice = Boolean(session.conflictUserReplied);
+        const ask = waitingForChoice
+          ? `I still need to record the chosen volume (${conflictBefore}). Which should I use? I have not made a SOP, plan, or .gwl.`
+          : `The goal and notes disagree on volume (${conflictBefore}). Which volume should I use? I have not made a SOP, plan, or .gwl.`;
         sse.write("text", { token: `\n\n${ask}\n` });
         return {
           content: [
@@ -128,7 +131,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
                   phase: session.phase,
                   missing: missingList(session),
                   ready: false,
-                  hint: "Stop. Tell the user both volumes and wait. Do not generate_sop, emit_plan, run_checks, or a .gwl.",
+                  hint: waitingForChoice
+                    ? "Call ask_user with goal set to the volume the user chose. Do not generate_sop, emit_plan, run_checks, or a .gwl."
+                    : "Stop. Tell the user both volumes and wait. Do not generate_sop, emit_plan, run_checks, or a .gwl.",
                 },
                 null,
                 2
@@ -148,7 +153,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         };
       }
       applyAskUser(session, input);
-      if (conflictBefore && canResolveGoalNotesConflict(session)) {
+      if (conflictBefore) {
         resolveGoalNotesConflict(session);
       }
       return ok({

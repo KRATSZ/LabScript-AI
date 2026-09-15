@@ -353,6 +353,22 @@ describe("compactChecks", () => {
     });
     assert.equal(volume.status, "fail");
     assert.equal(isReviewMismatch(volume.llmreview), true);
+
+    const quotedIntent = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      findings: [
+        {
+          claim: "destination volume differs from the chosen 50 µL transfer",
+          evidence:
+            "Intent: 'liha_1000 is the LiHa pipette. Assumed Tecan tips are 200 µL DiTi. Transfer 50 µL'. SOP dispenses 250 µL.",
+          suggestion: "use 50 uL not 250 uL",
+        },
+      ],
+    });
+    assert.equal(isInventedLihaTipSizeFinding(quotedIntent.llmreview?.findings?.[0] ?? {}), false);
+    assert.equal(quotedIntent.llmreview?.match, false);
+    assert.equal(quotedIntent.status, "fail");
+    assert.equal(isReviewMismatch(quotedIntent.llmreview), true);
   });
 
   it("patchCapHit after the one allowed patch while checks still fail", () => {

@@ -64,6 +64,8 @@ export interface SessionState {
   conflictAskedAt?: number;
   /** True after a later chat turn (non-empty user text) while a conflict is open. */
   conflictUserReplied?: boolean;
+  /** The later user message that answered the volume question. */
+  conflictReplyText?: string;
   /** True after a later user turn confirmed a volume via ask_user. */
   draftConflictResolved?: boolean;
 }
@@ -131,12 +133,8 @@ function contextAt(text: string, index: number, span = 40): string {
   return text.slice(Math.max(0, index - span), Math.min(text.length, index + span)).toLowerCase();
 }
 
-/** Goal vs notes transfer-volume fight. Capacity / initial-fill numbers are not a fight. */
-export function goalNotesVolumeConflict(goal = "", doc = ""): string | null {
-  const notes = doc.trim();
-  if (!notes || notes === "none") return null;
+function competingNoteVolumes(goal = "", notes = ""): { goalVols: number[]; extra: number[]; ignoreGoal: boolean } {
   const goalVols = [...new Set(ulAmounts(goal))];
-  if (!goalVols.length) return null;
   const ignoreGoal = goalVols.some((vol) =>
     new RegExp(`\\bignore(?:\\s+the)?\\s+${vol}\\b`, "i").test(notes)
   );
@@ -155,9 +153,33 @@ export function goalNotesVolumeConflict(goal = "", doc = ""): string | null {
     if (/\b(?:do not|don't|not)\s+clamp\b/.test(ctx)) continue;
     competing.push(vol);
   }
-  const extra = [...new Set(competing)];
+  return { goalVols, extra: [...new Set(competing)], ignoreGoal };
+}
+
+/** Goal vs notes transfer-volume fight. Capacity / initial-fill numbers are not a fight. */
+export function goalNotesVolumeConflict(goal = "", doc = ""): string | null {
+  const notes = doc.trim();
+  if (!notes || notes === "none") return null;
+  const { goalVols, extra, ignoreGoal } = competingNoteVolumes(goal, notes);
+  if (!goalVols.length) return null;
   if (!ignoreGoal && extra.length === 0) return null;
   return `goal ${goalVols.join("/")} µL vs notes ${extra.length ? extra.join("/") : "override"} µL`;
+}
+
+export function conflictChoiceVolumes(goal = "", doc = ""): number[] {
+  if (!goalNotesVolumeConflict(goal, doc)) return [];
+  const { goalVols, extra } = competingNoteVolumes(goal, (doc ?? "").trim());
+  return [...new Set([...goalVols, ...extra])];
+}
+
+export function chosenVolumeInText(text: string, allowed: number[]): number | undefined {
+  const fromUl = [...new Set(ulAmounts(text))].filter((vol) => allowed.includes(vol));
+  if (fromUl.length === 1) return fromUl[0];
+  const bare = [...text.matchAll(/\b(\d+(?:\.\d+)?)\b/g)]
+    .map((match) => Number(match[1]))
+    .filter((vol) => allowed.includes(vol));
+  const unique = [...new Set(bare)];
+  return unique.length === 1 ? unique[0] : undefined;
 }
 
 export function unresolvedGoalNotesConflict(session: SessionState): string | null {
@@ -171,6 +193,7 @@ export function beginGoalNotesConflictAsk(session: SessionState): string | null 
   if (!conflict || session.conflictAskedAt != null) return conflict;
   session.conflictAskedAt = Array.isArray(session.messages) ? session.messages.length : 0;
   session.conflictUserReplied = false;
+  session.conflictReplyText = undefined;
   session.draftConflictResolved = false;
   session.sop = undefined;
   session.code = undefined;
@@ -181,8 +204,17 @@ export function beginGoalNotesConflictAsk(session: SessionState): string | null 
   return conflict;
 }
 
-export function canResolveGoalNotesConflict(session: SessionState): boolean {
-  return Boolean(session.conflictUserReplied) && !session.draftConflictResolved;
+export function canResolveGoalNotesConflict(session: SessionState, incomingGoal?: string): boolean {
+  if (!session.conflictUserReplied || session.draftConflictResolved) return false;
+  const goal = (incomingGoal ?? "").trim();
+  if (!goal) return false;
+  const allowed = conflictChoiceVolumes(session.goal ?? "", session.doc ?? "");
+  if (!allowed.length) return false;
+  const fromGoal = chosenVolumeInText(goal, allowed);
+  if (fromGoal == null) return false;
+  const fromReply = chosenVolumeInText(session.conflictReplyText ?? "", allowed);
+  if (fromReply != null && fromReply !== fromGoal) return false;
+  return true;
 }
 
 /** A later user chat turn — not the start form, not a same-turn follow-up. */
@@ -191,11 +223,13 @@ export function markConflictUserReply(session: SessionState, userText: string): 
   if (session.draftConflictResolved) return;
   if (session.conflictAskedAt == null && !unresolvedGoalNotesConflict(session)) return;
   session.conflictUserReplied = true;
+  session.conflictReplyText = userText.trim();
 }
 
 export function resolveGoalNotesConflict(session: SessionState): void {
   session.draftConflictResolved = true;
   session.conflictUserReplied = true;
+  session.conflictReplyText = undefined;
   session.sop = undefined;
   session.code = undefined;
   session.plan = undefined;
@@ -222,9 +256,11 @@ export function reviewIntent(session: SessionState): string {
   const sop = session.sop?.trim();
   const parts = [
     "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
-    "liha_1000 is the LiHa pipette. Assumed Tecan tips are 200 µL DiTi.",
-    goal,
   ];
+  if (session.robot === "Tecan") {
+    parts.push("liha_1000 is the LiHa pipette. Assumed Tecan tips are 200 µL DiTi.");
+  }
+  parts.push(goal);
   if (sop) parts.push(`Generated SOP:\n${sop}`);
   return parts.filter(Boolean).join("\n\n");
 }
@@ -287,6 +323,7 @@ export function applyForm(
   session.sop = undefined;
   session.conflictAskedAt = undefined;
   session.conflictUserReplied = undefined;
+  session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
   if (selectedRobot) {
     session.robot = selectedRobot;
@@ -345,6 +382,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
     session.hasPassedChecks = undefined;
     session.conflictAskedAt = undefined;
     session.conflictUserReplied = undefined;
+    session.conflictReplyText = undefined;
     session.draftConflictResolved = undefined;
   }
   refreshPhase(session);
@@ -393,6 +431,7 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.hasPassedChecks = undefined;
   session.conflictAskedAt = undefined;
   session.conflictUserReplied = undefined;
+  session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
 }
 
