@@ -182,6 +182,7 @@ class FluentCompiler:
         self.plan = plan
         self.warnings: list[str] = []
         self.worklist: list[str] = []
+        self._pending_a: list[str] = []  # FluentControl: A; D; W; per transfer
         self._mix_count_adjust = 0  # worklist A/D for MIX replace the single XML LihaMix
         self.resources: dict[str, dict[str, Any]] = {}
         self.tipracks: dict[str, dict[str, Any]] = {}
@@ -203,9 +204,10 @@ class FluentCompiler:
             )
         plan_id = str(self.plan.get("plan_id") or self.plan.get("protocol_name") or "plan")
         self.worklist.append(f"C; Plan IR {plan_id} compiled for Tecan FluentControl Load Worklist")
+        self.worklist.append("C; Each A;/D; sequence is terminated by W; (FluentControl: F or W, not B)")
         self.worklist.append("C; WellPos uses alphanumeric form (A1, B1, …). Column-major 96-well: A1=1, B1=2, H1=8, A2=9")
         self.worklist.append(f"C; LiquidClass default: {DEFAULT_LIQUID_CLASS}; TipMask is an 8-channel bitmask (ch0=1, all eight=255)")
-        self.worklist.append("C; MIX steps are expanded to aspirate/dispense cycles")
+        self.worklist.append("C; MIX steps are expanded to aspirate/dispense/W cycles")
 
         fca = self.protocol.fca()
         for index, raw in enumerate(steps, start=1):
@@ -394,7 +396,11 @@ class FluentCompiler:
                 )
             fca.drop_tips()
             self.loaded_channels = []
-            self.worklist.append("B;")
+            if self._pending_a:
+                self.warnings.append(
+                    f"Step {step_no} DROP_TIPS with {len(self._pending_a)} unterminated aspirate(s); "
+                    "FluentControl needs D; then W; after each A;."
+                )
             return
         if primitive == "WAIT":
             duration = raw.get("duration_s")
@@ -507,7 +513,11 @@ class FluentCompiler:
             channel_offset += len(wells)
         for well_index, (resource_id, well) in enumerate(locs):
             well_channels = [channels[well_index]] if well_index < len(channels) else channels
-            self.worklist.append(worklist_line(kind, resource_id, well, volume, liquid, well_channels))
+            line = worklist_line(kind, resource_id, well, volume, liquid, well_channels)
+            if kind == "A":
+                self._pending_a.append(line)
+            else:
+                self._emit_adw(line)
 
     def _mix(self, fca: Any, step_no: int, raw: dict[str, Any]) -> None:
         locs = parse_locs(
@@ -550,8 +560,16 @@ class FluentCompiler:
                 well_channels = [channels[well_index]] if well_index < len(channels) else channels
                 self.worklist.append(worklist_line("A", resource_id, well, volume, liquid, well_channels))
                 self.worklist.append(worklist_line("D", resource_id, well, volume, liquid, well_channels))
+                self.worklist.append("W;")
         # XML counted 1 LihaMix; worklist counts each A and D (one cycle = 2).
         self._mix_count_adjust += 2 * cycles * len(locs) - 1
+
+    def _emit_adw(self, d_line: str) -> None:
+        """FluentControl: every A/D block ends with W; (wash) or F; — never B;."""
+        if self._pending_a:
+            self.worklist.append(self._pending_a.pop(0))
+        self.worklist.append(d_line)
+        self.worklist.append("W;")
 
 
 def load_plan_object(raw_text: str) -> dict[str, Any]:

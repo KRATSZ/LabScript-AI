@@ -56,7 +56,18 @@ DEMO = {
 
 
 def gwl_ops(gwl: str) -> list[str]:
-    return [line for line in gwl.splitlines() if line.startswith(("A;", "D;", "B;"))]
+    return [line for line in gwl.splitlines() if line.startswith(("A;", "D;", "W;"))]
+
+
+def assert_adw(ops: list[str]) -> None:
+    """FluentControl: A; D; W; repeating. Never B;."""
+    assert ops, "expected A/D/W lines"
+    assert "B;" not in ops
+    assert len(ops) % 3 == 0, ops
+    for i in range(0, len(ops), 3):
+        assert ops[i].startswith("A;"), ops[i : i + 3]
+        assert ops[i + 1].startswith("D;"), ops[i : i + 3]
+        assert ops[i + 2] == "W;", ops[i : i + 3]
 
 
 def pick_mix_drop(*, cycles: int | None = 3, volume_ul: float | None = 40) -> dict:
@@ -111,8 +122,9 @@ class CompileFluentTests(unittest.TestCase):
         xml = out["script_xml"]
         self.assertIn("A;plate;;;A1;;50;Water Free Single;;1;", gwl)
         self.assertIn("D;plate;;;B1;;50;Water Free Single;;1;", gwl)
-        self.assertIn("\nB;\n", "\n" + gwl if not gwl.startswith("B;") else gwl)
-        self.assertTrue(any(line.strip() == "B;" for line in gwl.splitlines()))
+        self.assertIn("\nW;\n", "\n" + gwl if not gwl.startswith("W;") else gwl)
+        self.assertNotIn("B;", gwl)
+        assert_adw(gwl_ops(gwl))
         self.assertIn("LihaGetTipsScriptCommandDataV3", xml)
         self.assertIn("LihaAspirateScriptCommandDataV5", xml)
         self.assertIn("LihaDispenseScriptCommandDataV6", xml)
@@ -215,16 +227,24 @@ class CompileFluentTests(unittest.TestCase):
         self.assertTrue(out["ok"], out)
         self.assertIn("LihaMixScriptCommandDataV4", out["script_xml"])
         gwl = out["worklist_gwl"]
-        self.assertIn("MIX steps are expanded to aspirate/dispense cycles", gwl)
-        mix_pair = [
+        self.assertIn("MIX steps are expanded to aspirate/dispense/W cycles", gwl)
+        mix_unit = [
             "A;plate;;;A1;;40;Water Free Single;;1;",
             "D;plate;;;A1;;40;Water Free Single;;1;",
+            "W;",
         ]
         ops = gwl_ops(gwl)
-        self.assertEqual(ops[:1], ["A;plate;;;A1;;40;Water Free Single;;1;"])
-        self.assertEqual(ops[1:11], mix_pair * 5)
-        self.assertEqual(ops[11:], ["D;plate;;;B1;;40;Water Free Single;;1;", "B;"])
-        self.assertNotIn("B;", "".join(ops[1:11]))
+        self.assertEqual(ops[:15], mix_unit * 5)
+        self.assertEqual(
+            ops[15:],
+            [
+                "A;plate;;;A1;;40;Water Free Single;;1;",
+                "D;plate;;;B1;;40;Water Free Single;;1;",
+                "W;",
+            ],
+        )
+        assert_adw(ops)
+        self.assertNotIn("B;", gwl)
         self.assertTrue(any("WAIT" in line for line in gwl.splitlines()))
         joined = " ".join(out["warnings"]).lower()
         self.assertNotIn("mix not supported", joined)
@@ -242,7 +262,7 @@ class CompileFluentTests(unittest.TestCase):
             [
                 "A;plate;;;A1;;25;Water Free Single;;1;",
                 "D;plate;;;A1;;25;Water Free Single;;1;",
-                "B;",
+                "W;",
             ],
         )
         self.assertEqual(out1["command_count"], 1 + 1 + 2 + 1)  # AddLabware + pick + A/D + drop
@@ -251,18 +271,19 @@ class CompileFluentTests(unittest.TestCase):
         out5, _ = run_cli(pick_mix_drop(cycles=5, volume_ul=25))
         self.assertTrue(out5["ok"], out5)
         ops5 = gwl_ops(out5["worklist_gwl"])
-        pair = [
+        unit = [
             "A;plate;;;A1;;25;Water Free Single;;1;",
             "D;plate;;;A1;;25;Water Free Single;;1;",
+            "W;",
         ]
-        self.assertEqual(ops5, pair * 5 + ["B;"])
+        self.assertEqual(ops5, unit * 5)
         self.assertEqual(out5["command_count"], 1 + 1 + 10 + 1)
 
         out_default, _ = run_cli(pick_mix_drop(cycles=None, volume_ul=25))
         self.assertTrue(out_default["ok"], out_default)
-        self.assertEqual(len(gwl_ops(out_default["worklist_gwl"])), 6 + 1)  # 3 cycles + B;
+        self.assertEqual(len(gwl_ops(out_default["worklist_gwl"])), 9)  # 3 cycles × A/D/W
 
-    def test_mix_b_stays_on_drop(self) -> None:
+    def test_mix_w_terminates_ad(self) -> None:
         plan = {
             **DEMO,
             "steps": [
@@ -314,17 +335,21 @@ class CompileFluentTests(unittest.TestCase):
             [
                 "A;plate;;;A1;;50;Water Free Single;;1;",
                 "D;plate;;;B1;;50;Water Free Single;;1;",
+                "W;",
                 "A;plate;;;B1;;50;Water Free Single;;1;",
                 "D;plate;;;B1;;50;Water Free Single;;1;",
+                "W;",
                 "A;plate;;;B1;;50;Water Free Single;;1;",
                 "D;plate;;;B1;;50;Water Free Single;;1;",
+                "W;",
                 "A;plate;;;B1;;50;Water Free Single;;1;",
                 "D;plate;;;B2;;50;Water Free Single;;1;",
-                "B;",
+                "W;",
             ],
         )
-        self.assertEqual(ops.count("B;"), 1)
-        self.assertEqual(ops[-1], "B;")
+        self.assertEqual(ops.count("W;"), 4)
+        self.assertEqual(ops[-1], "W;")
+        self.assertNotIn("B;", out["worklist_gwl"])
         self.assertFalse(any("mix" in w.lower() for w in out["warnings"]))
 
     def test_mix_missing_volume(self) -> None:
@@ -377,6 +402,8 @@ class CompileFluentTests(unittest.TestCase):
         self.assertIn("A;plate;;;B1;;25;Water Free Single;;2;", gwl)
         self.assertIn("D;plate;;;C1;;25;Water Free Single;;1;", gwl)
         self.assertIn("D;plate;;;D1;;25;Water Free Single;;2;", gwl)
+        assert_adw(gwl_ops(gwl))
+        self.assertNotIn("B;", gwl)
         self.assertIn("SelectedWellsString>A1,B1<", out["script_xml"])
         self.assertIn("SelectedWellsString>C1,D1<", out["script_xml"])
 
@@ -396,12 +423,14 @@ class CompileFluentTests(unittest.TestCase):
             self.assertIn(f"D;plate;;;{row}12;;100;", gwl)
         self.assertIn("D;waste;;;A1;;100;", gwl)
         ops = gwl_ops(gwl)
+        assert_adw(ops)
+        self.assertNotIn("B;", gwl)
         mix_a2 = [
             line
             for line in ops
             if line.startswith(("A;plate;;;A2;;100;", "D;plate;;;A2;;100;"))
         ]
-        # MIX col2 = 3 cycles × 2 lines; plus 1 PBS D and 1 transfer D and 1 later A.
+        # MIX col2 = 3 cycles × A+D; plus PBS D and transfer D.
         self.assertGreaterEqual(len(mix_a2), 6)
 
 
