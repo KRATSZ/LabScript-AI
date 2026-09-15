@@ -1,0 +1,198 @@
+---
+import type { CollectionEntry } from "astro:content";
+import BaseHead from "../components/BaseHead.astro";
+import DeckMap from "../components/DeckMap.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import VoteBar from "../components/VoteBar.astro";
+import { labwareLabel, pipetteLabel } from "../lib/labware";
+
+type Props = CollectionEntry<"protocols">["data"] & { postId: string };
+
+const {
+	title,
+	description,
+	device,
+	pipette,
+	deck,
+	sop,
+	script,
+	scriptLang,
+	ranOnHardware,
+	seedUpvotes,
+	seedDownvotes,
+	postId,
+} = Astro.props;
+
+const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(" · ");
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<article>
+				<p class="crumbs"><a href="/">Protocol packs</a></p>
+				<h1>{title}</h1>
+				<p class="flags">
+					<span class="chip">{device}</span>
+					{
+						ranOnHardware ? (
+							<span class="chip ok">Hardware</span>
+						) : (
+							<span class="chip">Sim</span>
+						)
+					}
+				</p>
+				<p class="purpose">{description}</p>
+
+				<section class="needs" aria-label="What you'll need">
+					<div>
+						<span>Robot</span>
+						{device}
+					</div>
+					<div>
+						<span>Pipette</span>
+						{pipetteLabel(pipette)}
+					</div>
+					<div>
+						<span>Labware</span>
+						{labware}
+					</div>
+				</section>
+
+				<section>
+					<h2>Deck</h2>
+					<DeckMap device={device} deck={deck} />
+				</section>
+
+				<div class="sop-and-reports">
+					<section>
+						<h2>Protocol steps</h2>
+						<ol class="steps">
+							{sop.map((step) => <li>{step}</li>)}
+						</ol>
+					</section>
+					<VoteBar
+						postId={postId}
+						seedUpvotes={seedUpvotes}
+						seedReports={seedDownvotes}
+						sop={sop}
+					/>
+				</div>
+
+				<section class="script">
+					<h2>Script</h2>
+					<pre><code class={`language-${scriptLang}`}>{script.trimEnd()}</code></pre>
+				</section>
+			</article>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.crumbs {
+		margin: 0 0 1rem;
+		font-size: 0.85rem;
+	}
+	.crumbs a {
+		color: #8a8f98;
+		text-decoration: none;
+	}
+	.crumbs a:hover {
+		color: #1a1d23;
+	}
+	h1 {
+		font-size: 1.7rem;
+		margin: 0 0 0.65rem;
+		letter-spacing: -0.02em;
+	}
+	.flags {
+		display: flex;
+		gap: 0.4rem;
+		flex-wrap: wrap;
+		margin: 0 0 0.7rem;
+	}
+	.purpose {
+		margin: 0 0 1.5rem;
+		color: #5c6370;
+	}
+	.needs {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 1rem;
+		margin: 0 0 2rem;
+	}
+	.needs span {
+		display: block;
+		font-size: 0.72rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #8a8f98;
+		margin-bottom: 0.25rem;
+	}
+	section {
+		margin-bottom: 2rem;
+	}
+	h2 {
+		font-size: 0.72rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #8a8f98;
+		margin: 0 0 0.7rem;
+	}
+	.sop-and-reports {
+		display: grid;
+		grid-template-columns: minmax(0, 1.15fr) minmax(12rem, 0.85fr);
+		gap: 1.75rem;
+		align-items: start;
+		margin-bottom: 2rem;
+	}
+	.steps {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		counter-reset: step;
+		display: grid;
+		gap: 0.55rem;
+	}
+	.steps li {
+		counter-increment: step;
+		display: grid;
+		grid-template-columns: 1.6rem 1fr;
+		gap: 0.7rem;
+		align-items: start;
+	}
+	.steps li::before {
+		content: counter(step);
+		color: #8a8f98;
+		font-size: 0.85rem;
+		padding-top: 0.1rem;
+	}
+	.script {
+		margin-top: 0.5rem;
+	}
+	.script pre {
+		margin: 0;
+		font-size: 0.8rem;
+		line-height: 1.45;
+		background: #f7f8f9;
+		border-radius: 10px;
+		padding: 1rem 1.1rem;
+		overflow-x: visible;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+	@media (max-width: 640px) {
+		.needs {
+			grid-template-columns: 1fr;
+		}
+		.sop-and-reports {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

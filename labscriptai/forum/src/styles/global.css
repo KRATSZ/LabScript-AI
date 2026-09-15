@@ -1,0 +1,90 @@
+/*
+  Quiet list+detail restyle. Original Bear Blog CSS (MIT):
+  https://github.com/HermanMartinus/bearblog/blob/297026a877bc2ab2b3bdfbd6b9f7961c350917dd/templates/styles/blog/default.css
+ */
+
+:root {
+	--accent: #1a1d23;
+	--accent-dark: #111;
+	--black: 26, 29, 35;
+	--gray: 107, 113, 124;
+	--gray-light: 236, 238, 241;
+	--gray-dark: 26, 29, 35;
+}
+body {
+	font-family: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
+	margin: 0;
+	padding: 0;
+	text-align: left;
+	background: #fff;
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+	color: #1a1d23;
+	font-size: 16px;
+	line-height: 1.55;
+}
+main {
+	width: 760px;
+	max-width: calc(100% - 2.5rem);
+	margin: auto;
+	padding: 2.25rem 0 4rem;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0 0 0.5rem 0;
+	color: #1a1d23;
+	line-height: 1.25;
+	font-weight: 650;
+}
+a {
+	color: #1a1d23;
+}
+p {
+	margin-bottom: 1em;
+}
+code {
+	padding: 1px 5px;
+	background-color: #f4f5f7;
+	border-radius: 4px;
+	font-size: 0.9em;
+}
+pre > code {
+	all: unset;
+}
+.chip {
+	font-size: 0.75rem;
+	padding: 0.12rem 0.5rem;
+	border-radius: 999px;
+	background: #f4f5f7;
+	color: #3d424c;
+}
+.chip.ok {
+	background: #e8f1ef;
+	color: #1f5c52;
+}
+@media (max-width: 720px) {
+	body {
+		font-size: 15px;
+	}
+	main {
+		padding: 1.25rem 0 3rem;
+	}
+}
+
+.sr-only {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	position: absolute !important;
+	height: 1px;
+	width: 1px;
+	overflow: hidden;
+	clip: rect(1px 1px 1px 1px);
+	clip: rect(1px, 1px, 1px, 1px);
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
