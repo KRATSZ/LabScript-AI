@@ -7,7 +7,7 @@
     "dev:server": "tsx watch server/src/index.ts",
     "dev:web": "vite --config web/vite.config.ts",
     "build": "vite build --config web/vite.config.ts",
-    "test": "npx tsc --noEmit && npx tsc --noEmit -p web/tsconfig.json && node --import tsx --test tests/*.test.ts && PYTHONPATH=../.. python3 python/test_eval_logicpass.py && PYTHONPATH=../.. python3 python/test_eval_plan.py && PYTHONPATH=../.. python3 python/test_compile_fluent.py && PYTHONPATH=../.. python3 python/test_compile_hamilton.py && PYTHONPATH=python python3 python/test_pylabrobot_backend.py && PYTHONPATH=python python3 python/test_code_service.py"
+    "test": "npx tsc --noEmit && npx tsc --noEmit -p web/tsconfig.json && node --import tsx --test tests/*.test.ts && PYTHONPATH=../.. python3 python/test_eval_logicpass.py && PYTHONPATH=../.. python3 python/test_eval_plan.py && PYTHONPATH=../.. python3 python/test_compile_fluent.py && PYTHONPATH=../.. python3 python/test_compile_hamilton.py && PYTHONPATH=python python3 python/test_pylabrobot_backend.py && PYTHONPATH=python python3 python/test_code_service.py && PYTHONPATH=python:../.. python3 python/test_plr_visualizer.py"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.85.1",
@@ -15,6 +15,10 @@
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@mui/material": "^5.14.20",
+    "@opentrons/components": "^0.3.18-alpha.0",
+    "@opentrons/protocol-visualization": "^0.3.18-alpha.0",
+    "@opentrons/shared-data": "^0.3.18-alpha.0",
+    "@opentrons/step-generation": "^0.3.18-alpha.0",
     "@popperjs/core": "^2.1.1",
     "@react-spring/types": "^9.6.1",
     "@react-spring/web": "^9.6.1",

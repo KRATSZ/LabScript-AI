@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import time
 import unittest
 
-from code_service import _extract_python, analyze_protocol_code, simulate_protocol_code
+from code_service import (
+    _extract_python,
+    analyze_protocol_code,
+    get_analyze_job,
+    simulate_protocol_code,
+    start_analyze_job,
+)
 
 TINY = """
 from opentrons import protocol_api
@@ -30,6 +37,25 @@ class CodeServiceTests(unittest.TestCase):
         self.assertGreater(len(cmds), 0)
         self.assertTrue(any(c.get("commandType") for c in cmds if isinstance(c, dict)))
         self.assertEqual(analyzed.get("errors") or [], [])
+
+    def test_queued_analyze_start_and_poll(self) -> None:
+        started = start_analyze_job(TINY)
+        self.assertEqual(started["status"], "queued")
+        self.assertTrue(started["id"])
+        deadline = time.time() + 90
+        job = started
+        while time.time() < deadline:
+            polled = get_analyze_job(started["id"])
+            self.assertIsNotNone(polled)
+            job = polled or job
+            if job["status"] in {"succeeded", "failed"}:
+                break
+            time.sleep(0.4)
+        self.assertEqual(job["status"], "succeeded", job)
+        result = job.get("result") or {}
+        cmds = result.get("commands") or []
+        self.assertGreater(len(cmds), 0)
+        self.assertIsNone(get_analyze_job("missing-job"))
 
 
 if __name__ == "__main__":

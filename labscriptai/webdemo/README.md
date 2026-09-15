@@ -10,23 +10,23 @@ Pick a **device card** on the start form (required, with a goal). Five cards:
 
 | Card | Deliverable | Animation |
 | --- | --- | --- |
-| **OT-2** | Python + simulation | Yes (needs 8010 analyze) |
-| **Flex** | Python + simulation | Yes (needs 8010 analyze) |
-| **Hamilton STAR** | Step JSON + PyLabRobot script | No (software Chatterbox) |
-| **Hamilton Vantage** | Step JSON + PyLabRobot script | No (software Chatterbox) |
-| **Tecan Fluent** | Step JSON + `.gwl` worklist | No |
+| **OT-2** | Python + simulation | Official Opentrons deck replay (8010 queued analyze) |
+| **Flex** | Python + simulation | Official Opentrons deck replay (8010 queued analyze) |
+| **Hamilton STAR** | Step JSON + PyLabRobot script | PyLabRobot STARLet visualizer |
+| **Hamilton Vantage** | Step JSON + PyLabRobot script | PyLabRobot Vantage visualizer |
+| **Tecan Fluent** | Step JSON + `.gwl` worklist | PyLabRobot Freedom EVO geometry (Fluent has no PLR deck yet) |
 
 One shell: left chat, right Stage / Artifacts / Trajectory. Trajectory is an append-only turn/step/tool log. Live robots stay with the human.
 
 If 8010 is down, OT-2/Flex fall back to the same step table as Hamilton. Downloads stay available; they are marked when checks did not pass. One automatic patch, then the agent stops and talks.
 
-No live robot, no `bash`. No deck UI — a standard deck is assumed (tip rack, 96-well plate, reservoir).
+No live robot, no `bash`. A standard deck is assumed (tip rack, 96-well plate, reservoir). OT-2/Flex replay is the official Opentrons visualizer embedded in Stage. Other robots use the PyLabRobot scientific visualizer — not a homemade slot sketch.
 
 ## Checks
 
 Three states, never a silent pass:
 
-- **pass** — simulation + LogicPass both good (Tecan also needs Fluent compile). Watch only lights on OT-2/Flex pass with analyze commands.
+- **pass** — simulation + LogicPass both good (Tecan also needs Fluent compile). OT Watch lights on OT-2/Flex pass with analyze commands and embeds the official deck in Stage.
 - **fail** — a check found a real problem (spill, no tips, compile error, …).
 - **cannot verify** — the checker could not run or lacked data (missing PyLabRobot, unknown well capacity, 8010 down, …). Not a pass. Watch stays off.
 
@@ -48,7 +48,11 @@ Open http://127.0.0.1:5173
 
 - UI: `127.0.0.1:5173` (Vite)
 - Agent server: `127.0.0.1:8787`
-- Backend (OT Python + simulate + analyze): `127.0.0.1:8010` (`python/code_service.py`)
+- Backend (OT Python + queued analyze + PyLabRobot viz): `127.0.0.1:8010` (`python/code_service.py`)
+
+Analyze matches production: `POST /api/visualizer/analyze/start` then poll `GET /api/visualizer/jobs/{id}` (and `/jobs/{id}`). Sync `POST /api/visualizer/analyze` stays as a fallback.
+
+Official OT replay is npm `@opentrons/protocol-visualization` (source: [Opentrons/opentrons](https://github.com/Opentrons/opentrons)). Do **not** vendor the ~305MB `opentrons-protocol-visualizer-web-slim` tree. At deploy, hang that checkout with `LABSCRIPTAI_VISUALIZER_ROOT` if you still need the old slim animator path.
 
 ```bash
 cd labscriptai/webdemo && npm test

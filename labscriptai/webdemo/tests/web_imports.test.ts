@@ -119,19 +119,30 @@ describe("AnimationOverlay code-split", () => {
     assert.match(smoke, /simpleAnalysisFile\.json/);
     assert.doesNotMatch(smoke, /mockRobotSideAnalysis/);
     const overlay = readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8");
-    assert.match(overlay, /data-animator-error=\{this\.state\.error\}/);
+    const replay = readFileSync(path.join(webSrc, "OtDeckReplay.tsx"), "utf8");
+    assert.match(replay, /data-animator-error=\{this\.state\.error\}/);
+    assert.match(replay, /ProtocolVisualization/);
+    assert.match(replay, /appType/);
+    assert.match(overlay, /OtDeckReplay/);
     assert.doesNotMatch(overlay, /WatchPlayer/);
+    assert.doesNotMatch(overlay, /ProtocolOperationAnimator/);
   });
 
-  it("vite falls back to local Watch stubs when LabscriptAI_cloud is absent", () => {
+  it("vite uses npm Opentrons viz and optional GitHub hang, not a vendored slim", () => {
     const vite = readFileSync(path.resolve(webSrc, "../vite.config.ts"), "utf8");
     assert.match(vite, /function cloudOrStub/);
     assert.match(vite, /stubRoot/);
+    assert.match(vite, /LABSCRIPTAI_VISUALIZER_ROOT/);
+    assert.match(vite, /@opentrons\/protocol-visualization/);
+    assert.doesNotMatch(vite, /slimRoot, "components\/src\/index.ts"/);
     assert.match(readFileSync(path.join(webSrc, "stubs/normalize-analysis.ts"), "utf8"), /normalizeAnalysisOutput/);
     assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /8010 analyze/);
     const webFiles = readdirSync(webSrc);
     assert.equal(webFiles.includes("DeckPlay.tsx"), false);
     assert.equal(webFiles.includes("WatchPlayer.tsx"), false);
     assert.equal(webFiles.includes("playBeats.ts"), false);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /OtDeckReplay/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /PlrDeckReplay/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/start/);
   });
 });

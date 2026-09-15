@@ -103,7 +103,25 @@ export function padAnalysisForAnimator(
     typeof (rawConfig as { protocolType?: unknown }).protocolType === "string"
       ? rawConfig
       : { protocolType: "python", apiVersion: [2, 15] };
-  return { ...analyze, createdAt, robotType, config, commands: rewriteTrashDropTips(analyze) };
+  const asList = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+  return {
+    ...analyze,
+    createdAt,
+    robotType,
+    config,
+    commands: rewriteTrashDropTips(analyze),
+    liquids: asList(analyze.liquids),
+    labware: asList(analyze.labware),
+    pipettes: asList(analyze.pipettes),
+    modules: asList(analyze.modules),
+    errors: asList(analyze.errors),
+    files: asList(analyze.files).length
+      ? asList(analyze.files)
+      : [{ name: "protocol.py", role: "main" }],
+    metadata: analyze.metadata && typeof analyze.metadata === "object" ? analyze.metadata : {},
+    runTimeParameters: asList(analyze.runTimeParameters),
+    result: typeof analyze.result === "string" ? analyze.result : "ok",
+  };
 }
 
 export function safeNormalizeAnalysis<T>(

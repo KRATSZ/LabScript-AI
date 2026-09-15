@@ -8,10 +8,14 @@ import os
 import subprocess
 import sys
 import tempfile
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Lock
 from typing import Any, Iterator
 
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
@@ -37,6 +41,16 @@ def _load_env_file(path: Path) -> None:
 _load_env_file(WEBDEMO_ROOT / ".env")
 
 app = FastAPI(title="LabscriptAI code service", docs_url=None, redoc_url=None)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+_ANALYZE_JOBS: dict[str, dict[str, Any]] = {}
+_ANALYZE_LOCK = Lock()
+_ANALYZE_POOL = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ot-analyze")
 
 
 class CodeGenRequest(BaseModel):
@@ -238,11 +252,100 @@ def analyze_protocol_code(code: str) -> dict[str, Any]:
         return payload
 
 
+def _job_snapshot(job: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {"id": job["id"], "status": job["status"]}
+    if "result" in job:
+        payload["result"] = job["result"]
+    if "error" in job:
+        payload["error"] = job["error"]
+    return payload
+
+
+def start_analyze_job(code: str) -> dict[str, Any]:
+    job_id = str(uuid.uuid4())
+    job: dict[str, Any] = {"id": job_id, "status": "queued"}
+    with _ANALYZE_LOCK:
+        _ANALYZE_JOBS[job_id] = job
+
+    def run() -> None:
+        with _ANALYZE_LOCK:
+            current = _ANALYZE_JOBS.get(job_id)
+            if current is not None:
+                current["status"] = "running"
+        try:
+            result = analyze_protocol_code(code)
+            with _ANALYZE_LOCK:
+                stored = _ANALYZE_JOBS.get(job_id)
+                if stored is None:
+                    return
+                stored["status"] = "succeeded"
+                stored["result"] = result
+        except Exception as exc:  # noqa: BLE001 — job status, not a crash
+            with _ANALYZE_LOCK:
+                stored = _ANALYZE_JOBS.get(job_id)
+                if stored is None:
+                    return
+                stored["status"] = "failed"
+                stored["error"] = str(exc)
+
+    queued = _job_snapshot(job)
+    _ANALYZE_POOL.submit(run)
+    return queued
+
+
+def get_analyze_job(job_id: str) -> dict[str, Any] | None:
+    with _ANALYZE_LOCK:
+        job = _ANALYZE_JOBS.get(job_id)
+        return _job_snapshot(job) if job else None
+
+
 @app.post("/api/visualizer/analyze")
 async def visualizer_analyze(protocol: UploadFile = File(...)) -> JSONResponse:
     raw = await protocol.read()
     code = raw.decode("utf-8", errors="replace")
     return JSONResponse(analyze_protocol_code(code))
+
+
+@app.post("/api/visualizer/analyze/start")
+async def visualizer_analyze_start(protocol: UploadFile = File(...)) -> dict[str, Any]:
+    raw = await protocol.read()
+    code = raw.decode("utf-8", errors="replace")
+    return start_analyze_job(code)
+
+
+@app.get("/jobs/{job_id}")
+@app.get("/api/visualizer/jobs/{job_id}")
+def visualizer_job(job_id: str) -> dict[str, Any]:
+    job = get_analyze_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="unknown_job")
+    return job
+
+
+class PlrVisualizerRequest(BaseModel):
+    plan: dict[str, Any]
+    robot: str = ""
+
+
+@app.post("/api/plr/visualizer/start")
+def plr_visualizer_start(request: PlrVisualizerRequest) -> dict[str, Any]:
+    from plr_visualizer import start_plr_visualizer
+
+    return start_plr_visualizer(request.plan, request.robot)
+
+
+@app.post("/api/plr/visualizer/stop")
+def plr_visualizer_stop() -> dict[str, Any]:
+    from plr_visualizer import stop_plr_visualizer
+
+    return stop_plr_visualizer()
+
+
+@app.get("/api/plr/visualizer/status")
+def plr_visualizer_status() -> dict[str, Any]:
+    from plr_visualizer import plr_visualizer_status as status
+
+    return status()
 
 
 def main() -> None:

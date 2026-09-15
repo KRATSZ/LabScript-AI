@@ -3,7 +3,9 @@ import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { IssuesPanel } from "./IssuesPanel";
+import { OtDeckReplay } from "./OtDeckReplay";
 import { Pipeline } from "./Pipeline.tsx";
+import { PlrDeckReplay } from "./PlrDeckReplay";
 import type { SessionSnapshot } from "./types";
 
 interface Props {
@@ -42,15 +44,30 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
     session.checks?.status,
     session.analyze ?? null
   );
+  const plrReady =
+    isPlanCodegen(session.robot) &&
+    session.checks?.status === "pass" &&
+    Boolean(session.plan && typeof session.plan === "object");
   return (
     <div className="stage-pane" data-testid="stage-pane">
       <Pipeline session={session} runningTool={runningTool} busy={busy} />
-      <DeckStrip session={session} />
+      {watchReady ? (
+        <OtDeckReplay
+          analyze={session.analyze}
+          robot={session.robot}
+          protocolName={session.goal}
+          appType="web"
+        />
+      ) : plrReady ? (
+        <PlrDeckReplay plan={session.plan} robot={session.robot} />
+      ) : (
+        <DeckStrip session={session} />
+      )}
       {watchReady ? (
         <div className="watch-cta">
           <p className="hint">Watch is a software preview of the run — not the live deck.</p>
           <button type="button" className="primary" onClick={onWatch}>
-            Watch the protocol
+            Expand the deck
           </button>
         </div>
       ) : watchGap ? (
@@ -58,6 +75,7 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
           {watchGap}
         </p>
       ) : null}
+      {watchReady || plrReady ? <DeckStrip session={session} /> : null}
       {steps.length ? (
         <div className="plan-block">
           <div className="plan-heading">Transfer steps</div>

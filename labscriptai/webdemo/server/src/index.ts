@@ -110,6 +110,33 @@ export async function handleRequest(
     return;
   }
 
+  if (
+    (req.method === "POST" &&
+      (path === "/api/plr/visualizer/start" || path === "/api/plr/visualizer/stop")) ||
+    (req.method === "GET" && path === "/api/plr/visualizer/status")
+  ) {
+    const env = loadDemoEnv();
+    const target = `${env.backend}${path}`;
+    try {
+      const body = req.method === "POST" ? await readBody(req) : undefined;
+      const response = await fetch(target, {
+        method: req.method,
+        headers: req.method === "POST" ? { "Content-Type": "application/json" } : undefined,
+        body,
+        signal: AbortSignal.timeout(path.endsWith("/start") ? 60_000 : 8_000),
+      });
+      const text = await response.text();
+      res.writeHead(response.status, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(text);
+    } catch (error) {
+      json(res, 502, {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return;
+  }
+
   if (req.method === "POST" && path === "/api/chat/stream") {
     const raw = await readBody(req);
     const body = raw

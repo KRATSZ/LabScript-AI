@@ -90,9 +90,7 @@ export function App() {
           onChecks: (checks) => {
             setSession((cur) => (cur && checks ? { ...cur, checks } : cur));
           },
-          onAnimation: (allowed) => {
-            if (allowed && robotSupportsWatch(robotRef.current)) setOverlay(true);
-          },
+          onAnimation: () => undefined,
           onError: (message) => setError(message),
           onDone: () => undefined,
         });
@@ -227,7 +225,7 @@ export function App() {
         />
       </div>
 
-      {overlay && canWatch ? (
+      {overlay && canWatch && robotSupportsWatch(robotRef.current) ? (
         <Suspense
           fallback={
             <OverlayChrome onClose={() => setOverlay(false)}>
