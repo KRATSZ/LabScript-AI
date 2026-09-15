@@ -243,7 +243,21 @@ export function deviceForId(id: string): DeviceProfile | undefined {
 
 export function deviceFor(robotOrId: string | undefined): DeviceProfile | undefined {
   if (!robotOrId) return undefined;
-  return deviceForId(robotOrId) ?? DEVICE_REGISTRY.find((d) => d.legacyRobot === robotOrId);
+  const raw = robotOrId.trim();
+  if (!raw) return undefined;
+  const lower = raw.toLowerCase();
+  return (
+    deviceForId(raw) ??
+    DEVICE_REGISTRY.find(
+      (d) => d.legacyRobot === raw || d.label === raw || d.id === raw
+    ) ??
+    DEVICE_REGISTRY.find(
+      (d) =>
+        d.legacyRobot.toLowerCase() === lower ||
+        d.label.toLowerCase() === lower ||
+        d.id.toLowerCase() === lower
+    )
+  );
 }
 
 export function usesFluentCompile(robotOrId: string | undefined): boolean {

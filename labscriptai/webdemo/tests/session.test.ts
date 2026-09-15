@@ -451,6 +451,18 @@ describe("session machine", () => {
     assert.equal(session.deckAssumed, true);
   });
 
+  it("ask_user applies prompt labels Tecan Fluent and Hamilton STAR", () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "", robot: "OT-2" });
+    applyAskUser(session, { robot: "Tecan Fluent" });
+    assert.equal(session.robot, "Tecan");
+    assert.equal(session.hardware.leftPipette, "fca_1000");
+    assert.equal(session.hardware.deck["1"], "tecan_diti_200ul_tiprack");
+    applyAskUser(session, { robot: "Hamilton STAR" });
+    assert.equal(session.robot, "Hamilton");
+    assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
+  });
+
   it("explicit robot wins over a differently named goal", () => {
     const session = createSession();
     applyForm(session, {

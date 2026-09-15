@@ -180,6 +180,29 @@ describe("tools harness", () => {
     assert.equal(parsed.ready, true);
     assert.equal(parsed.phase, "ready");
   });
+
+  it("ask_user schema and execute accept Tecan Fluent and Hamilton STAR labels", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "transfer", doc: "", robot: "OT-2" });
+    const ask = buildTools(session, { write() {}, close() {} }).find((t) => t.name === "ask_user");
+    assert.ok(ask);
+    const schema = JSON.stringify(ask.parameters);
+    assert.match(schema, /Tecan Fluent/);
+    assert.match(schema, /Hamilton STAR/);
+    assert.match(schema, /"Tecan"/);
+    assert.match(schema, /"Hamilton"/);
+
+    const fluent = JSON.parse(toolText(await ask.execute("1", { robot: "Tecan Fluent" })));
+    assert.equal(fluent.ready, true);
+    assert.equal(session.robot, "Tecan");
+    assert.equal(session.hardware.leftPipette, "fca_1000");
+    assert.match(fluent.hardware_config || "", /Tecan Fluent/);
+
+    const star = JSON.parse(toolText(await ask.execute("2", { robot: "Hamilton STAR" })));
+    assert.equal(star.ready, true);
+    assert.equal(session.robot, "Hamilton");
+    assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
+  });
 });
 
 const failChecks = () =>

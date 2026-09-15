@@ -342,7 +342,7 @@ export function applyForm(
 ): SessionState {
   const explicit = input.robot != null && String(input.robot).trim() !== "";
   const selectedRobot = explicit
-    ? deviceFor(String(input.robot).trim())?.legacyRobot
+    ? parseRobot(String(input.robot).trim())
     : undefined;
   if (explicit && !selectedRobot) throw new Error("invalid robot");
   session.goal = input.goal.trim();
@@ -368,6 +368,10 @@ export function applyForm(
   assumeStandardDeck(session);
   refreshPhase(session);
   return session;
+}
+
+export function parseRobot(value: string | undefined): RobotModel | undefined {
+  return deviceFor(value)?.legacyRobot;
 }
 
 export function isRobotModel(value: string | undefined): value is RobotModel {
@@ -420,7 +424,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
 export interface AskUserInput {
   goal?: string;
   doc?: string;
-  robot?: RobotModel;
+  robot?: string;
   preset?: HardwarePresetId;
   left_pipette?: string;
   right_pipette?: string;
@@ -472,11 +476,7 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   if (typeof input.goal === "string" && input.goal.trim()) {
     session.goal = input.goal.trim();
   }
-  const named = isRobotModel(input.robot)
-    ? input.robot
-    : !session.robot
-      ? inferRobotFromText(session.goal ?? "")
-      : undefined;
+  const named = parseRobot(input.robot) ?? (!session.robot ? inferRobotFromText(session.goal ?? "") : undefined);
   if (typeof input.doc === "string") {
     const doc = input.doc.trim();
     session.doc = doc ? doc : "none";

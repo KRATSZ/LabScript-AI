@@ -67,7 +67,9 @@ describe("device registry", () => {
     assert.equal(deviceForId("hamilton_star")?.label, "Hamilton STAR");
     assert.equal(deviceFor("Vantage")?.id, "hamilton_vantage");
     assert.equal(deviceForId("hamilton_vantage")?.label, "Hamilton Vantage");
-    assert.equal(deviceFor("Tecan")?.id, "tecan_fluent");
+    assert.equal(deviceFor("Tecan Fluent")?.id, "tecan_fluent");
+    assert.equal(deviceFor("Hamilton STAR")?.id, "hamilton_star");
+    assert.equal(deviceFor("hamilton_vantage")?.id, "hamilton_vantage");
     assert.equal(deviceFor("tecan_fluent")?.label, "Tecan Fluent");
     assert.equal(deviceFor(undefined), undefined);
     assert.equal(deviceFor(""), undefined);

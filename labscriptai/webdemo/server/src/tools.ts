@@ -72,6 +72,10 @@ function toolGoal(session: SessionState): string {
   return authoringGoal(session);
 }
 
+function robotArgValues(): string[] {
+  return [...new Set(DEVICE_REGISTRY.flatMap((d) => [d.legacyRobot, d.label, d.id]))];
+}
+
 function unionLiterals(values: string[]) {
   return Type.Union(
     values.map((v) => Type.Literal(v)) as [ReturnType<typeof Type.Literal>, ReturnType<typeof Type.Literal>]
@@ -90,7 +94,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
-      robot: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.legacyRobot))),
+      robot: Type.Optional(unionLiterals(robotArgValues())),
       preset: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.hardwarePreset.id))),
       left_pipette: Type.Optional(Type.String()),
       right_pipette: Type.Optional(Type.String()),
