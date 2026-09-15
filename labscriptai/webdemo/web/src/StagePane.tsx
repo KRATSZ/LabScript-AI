@@ -91,7 +91,7 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
             ))}
           </div>
         </div>
-      ) : (
+      ) : watchReady ? null : (
         <p className="hint">
           {isPlanCodegen(session.robot)
             ? "Steps and check results show here after the protocol is written."
