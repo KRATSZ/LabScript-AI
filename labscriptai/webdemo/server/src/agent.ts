@@ -154,24 +154,36 @@ export function withToolEvents(
       sse.write("tool", { name: tool.name, status: "start" });
       emitAgentEvent(sink, sse, { kind: "tool/call", name: tool.name, t: startedAt });
       if (step) emitAgentEvent(sink, sse, { kind: "step/start", name: step, t: startedAt });
-      try {
-        return await tool.execute(...args);
-      } finally {
+      const finish = (ok: boolean) => {
         const duration_ms = Math.max(0, now() - startedAt);
         sse.write("tool", {
           name: tool.name,
           status: "done",
           duration_ms,
+          ok,
         });
         emitAgentEvent(sink, sse, {
           kind: "tool/result",
           name: tool.name,
           t: now(),
-          detail: { duration_ms },
+          detail: { duration_ms, ok },
         });
         if (step) {
-          emitAgentEvent(sink, sse, { kind: "step/end", name: step, t: now(), detail: { duration_ms } });
+          emitAgentEvent(sink, sse, {
+            kind: "step/end",
+            name: step,
+            t: now(),
+            detail: { duration_ms, ok },
+          });
         }
+      };
+      try {
+        const result = await tool.execute(...args);
+        finish(true);
+        return result;
+      } catch (error) {
+        finish(false);
+        throw error;
       }
     },
   }));

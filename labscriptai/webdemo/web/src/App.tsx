@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { sessionCanWatch } from "./analysis";
-import { createSession, streamChat } from "./api";
+import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
@@ -19,7 +19,22 @@ export function App() {
   const [overlay, setOverlay] = useState(false);
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
+  const [health, setHealth] = useState<DemoHealth | null>(null);
   const robotRef = useRef<SessionSnapshot["robot"]>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchHealth()
+      .then((next) => {
+        if (!cancelled) setHealth(next);
+      })
+      .catch(() => {
+        if (!cancelled) setHealth(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.id]);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
     robotRef.current = snap.robot;
@@ -136,8 +151,15 @@ export function App() {
           <div>
             <h1>LabscriptAI</h1>
             <p>Pi-agent shell · software only · 127.0.0.1</p>
+            {health ? (
+              <p className="demo-health" data-testid="demo-health">
+                {health.hasKey ? `Model ${health.model}` : "No DeepSeek key"}
+                {" · "}
+                {health.code_service === "up" ? "8010 up" : "8010 down"}
+              </p>
+            ) : null}
             {session?.code_service === "down" && !planBackend ? (
-              <p className="code-offline">Code service offline — animation unavailable</p>
+              <p className="code-offline">8010 down — OT Watch and Python codegen unavailable</p>
             ) : null}
           </div>
         </div>
@@ -164,16 +186,16 @@ export function App() {
       <div className="workspace" data-testid="shell">
         <section className="chat-column" data-testid="chat-column">
           {!session ? (
-            <>
+            <div className="start-scroll">
               <StartForm busy={busy} onSubmit={start} />
               {error ? (
                 <p className="file" style={{ color: "var(--error)" }}>
                   {error}
                 </p>
               ) : null}
-            </>
+            </div>
           ) : (
-            <>
+            <div className="chat-column-body">
               <ChatPane
                 messages={messages}
                 busy={busy}
@@ -184,7 +206,7 @@ export function App() {
                   {error}
                 </p>
               ) : null}
-            </>
+            </div>
           )}
         </section>
         <RightStage

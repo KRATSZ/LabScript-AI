@@ -42,6 +42,17 @@ describe("HTTP device API", () => {
     else process.env.LABSCRIPTAI_BACKEND = priorBackend;
   });
 
+  it("GET /api/health reports model, key presence, and 8010 without leaking a key", async () => {
+    const response = await fetch(`${baseUrl}/api/health`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as Record<string, unknown>;
+    assert.equal(body.ok, true);
+    assert.equal(typeof body.model, "string");
+    assert.equal(typeof body.hasKey, "boolean");
+    assert.ok(body.code_service === "up" || body.code_service === "down");
+    assert.doesNotMatch(JSON.stringify(body), /sk-/);
+  });
+
   it("GET /api/devices returns five registry entries with capabilities", async () => {
     const response = await fetch(`${baseUrl}/api/devices`);
     assert.equal(response.status, 200);

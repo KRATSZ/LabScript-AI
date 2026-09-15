@@ -213,6 +213,37 @@ describe("agent tool-result handling", () => {
     await pending;
     assert.deepEqual(events, ["sse:start", "handler:start", "handler:end", "sse:done:45"]);
   });
+
+  it("records ok false on tool/result when execute throws", async () => {
+    const frames: Array<{ event: string; data: unknown }> = [];
+    const fakeTool: AgentTool = {
+      name: "generate_sop",
+      label: "SOP",
+      description: "test",
+      parameters: Type.Object({}),
+      execute: async () => {
+        throw new Error("boom");
+      },
+    };
+    const wrapped = withToolEvents(
+      [fakeTool],
+      {
+        write(event, data) {
+          frames.push({ event, data });
+        },
+        close() {},
+      },
+      () => 10
+    )[0];
+    await assert.rejects(() => wrapped.execute("1", {}), /boom/);
+    const result = frames.find(
+      (frame) =>
+        frame.event === "agent_event" &&
+        (frame.data as { kind?: string }).kind === "tool/result"
+    );
+    assert.ok(result);
+    assert.equal((result.data as { detail?: { ok?: boolean } }).detail?.ok, false);
+  });
 });
 
 describe("agent model budget recovery", () => {

@@ -14,6 +14,24 @@ export function sessionCanWatch(
   return robotSupportsWatch(robot) && status === "pass" && isPlayableAnalyze(analyze);
 }
 
+/** Honest OT Watch copy when 8010/analyze cannot light the overlay. Null if Watch is not this robot's path. */
+export function watchUnavailableCopy(
+  robot: RobotModel | null | undefined,
+  codeService: "up" | "down" | undefined,
+  status: CheckStatus | null | undefined,
+  analyze: Record<string, unknown> | null
+): string | null {
+  if (!robotSupportsWatch(robot)) return null;
+  if (sessionCanWatch(robot, status, analyze)) return null;
+  if (codeService === "down") {
+    return "OT Watch needs backend 8010. Analyze is down — Watch stays off. Plan IR fallback still runs.";
+  }
+  if (status === "pass" && !isPlayableAnalyze(analyze)) {
+    return "Checks passed but 8010 did not return analyze commands — Watch stays off.";
+  }
+  return null;
+}
+
 function firstCommandCreatedAt(analyze: Record<string, unknown>): string | undefined {
   const cmds = analyze.commands;
   if (!Array.isArray(cmds) || !cmds[0] || typeof cmds[0] !== "object") return undefined;

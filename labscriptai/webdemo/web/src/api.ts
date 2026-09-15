@@ -32,6 +32,20 @@ function consumeFrames(buffer: string, onEvent: (event: string, data: unknown) =
   return rest;
 }
 
+export interface DemoHealth {
+  ok: boolean;
+  model: string;
+  hasKey: boolean;
+  code_service: "up" | "down";
+  backend: string;
+}
+
+export async function fetchHealth(): Promise<DemoHealth> {
+  const response = await fetch("/api/health");
+  if (!response.ok) throw new Error(`health ${response.status}`);
+  return response.json() as Promise<DemoHealth>;
+}
+
 export async function createSession(input: StartInput): Promise<SessionSnapshot> {
   const response = await fetch("/api/session", {
     method: "POST",

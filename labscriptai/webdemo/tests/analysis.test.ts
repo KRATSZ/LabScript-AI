@@ -6,6 +6,7 @@ import {
   padAnalysisForAnimator,
   safeNormalizeAnalysis,
   sessionCanWatch,
+  watchUnavailableCopy,
 } from "../web/src/analysis.ts";
 
 describe("isPlayableAnalyze", () => {
@@ -31,6 +32,23 @@ describe("sessionCanWatch", () => {
     assert.equal(sessionCanWatch("OT-2", "fail", cmds), false);
     assert.equal(sessionCanWatch("OT-2", "unevaluable", cmds), false);
     assert.equal(sessionCanWatch("OT-2", "pass", null), false);
+  });
+});
+
+describe("watchUnavailableCopy", () => {
+  const cmds = { commands: [{ commandType: "home" }] };
+
+  it("explains 8010 down for OT devices and stays quiet for Hamilton", () => {
+    assert.match(
+      watchUnavailableCopy("OT-2", "down", null, null) ?? "",
+      /8010/
+    );
+    assert.equal(watchUnavailableCopy("Hamilton", "down", "pass", cmds), null);
+    assert.equal(watchUnavailableCopy("OT-2", "up", "pass", cmds), null);
+    assert.match(
+      watchUnavailableCopy("Flex", "up", "pass", null) ?? "",
+      /analyze commands/
+    );
   });
 });
 

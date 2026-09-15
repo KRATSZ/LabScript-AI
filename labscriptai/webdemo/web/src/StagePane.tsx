@@ -1,3 +1,4 @@
+import { watchUnavailableCopy } from "./analysis";
 import { planStepLine, planSteps } from "./artifacts";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { IssuesPanel } from "./IssuesPanel";
@@ -33,6 +34,12 @@ function DeckStrip({ session }: { session: SessionSnapshot }) {
 export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Props) {
   const steps = isPlanCodegen(session.robot) || !session.code?.trim() ? planSteps(session.plan) : [];
   const watchReady = canWatch && robotSupportsWatch(session.robot);
+  const watchGap = watchUnavailableCopy(
+    session.robot,
+    session.code_service,
+    session.checks?.status,
+    session.analyze ?? null
+  );
   return (
     <div className="stage-pane" data-testid="stage-pane">
       <Pipeline session={session} runningTool={runningTool} busy={busy} />
@@ -44,6 +51,10 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
             Watch animation
           </button>
         </div>
+      ) : watchGap ? (
+        <p className="hint" data-testid="watch-unavailable">
+          {watchGap}
+        </p>
       ) : null}
       {steps.length ? (
         <div className="plan-block">

@@ -127,7 +127,7 @@ describe("demo contract lock", () => {
     assert.match(blob, /Tecan/);
     assert.match(read("web/src/App.tsx"), /robot=\{session\?\.robot\}/);
     assert.match(read("web/src/analysis.ts"), /robotHint/);
-    assert.match(read("web/src/App.tsx"), /Code service offline — animation unavailable/);
+    assert.match(read("web/src/App.tsx"), /8010 down — OT Watch and Python codegen unavailable/);
     assert.match(read("web/src/artifacts.ts"), /export function downloadable/);
     assert.match(read("web/src/pipelineLogic.ts"), /Checks passed — step table below/);
     assert.match(read("web/src/pipelineLogic.ts"), /Cannot verify/);

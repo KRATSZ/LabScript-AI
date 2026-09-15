@@ -1,14 +1,7 @@
 import type { AgentEvent } from "./types";
+import { eventClock, eventDetailText } from "./trajectoryLogic";
 
-function detailText(event: AgentEvent): string {
-  const detail = event.detail;
-  if (!detail) return "";
-  const bits: string[] = [];
-  if (typeof detail.duration_ms === "number") bits.push(`${detail.duration_ms} ms`);
-  if (detail.ok === true) bits.push("ok");
-  if (detail.ok === false) bits.push("not ok");
-  return bits.join(" · ");
-}
+export { eventClock, eventDetailText };
 
 export function TrajectoryPane({ events }: { events: AgentEvent[] }) {
   if (!events.length) {
@@ -21,10 +14,11 @@ export function TrajectoryPane({ events }: { events: AgentEvent[] }) {
   return (
     <ol className="trajectory" data-testid="trajectory-log">
       {events.map((event) => (
-        <li key={event.seq} data-kind={event.kind} className="traj-row">
+        <li key={`${event.seq}-${event.kind}`} data-kind={event.kind} className="traj-row">
+          {eventClock(event.t) ? <span className="traj-time">{eventClock(event.t)}</span> : null}
           <span className="traj-kind">{event.kind}</span>
           {event.name ? <span className="traj-name">{event.name}</span> : null}
-          {detailText(event) ? <span className="traj-detail">{detailText(event)}</span> : null}
+          {eventDetailText(event) ? <span className="traj-detail">{eventDetailText(event)}</span> : null}
         </li>
       ))}
     </ol>

@@ -32,7 +32,7 @@ Three states, never a silent pass:
 
 ## Run
 
-Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY`, or the existing `LabscriptAI_cloud/.env` (never copied here). Model: `deepseek-v4-flash`. **8010** is required for OT-2/Flex Python and Watch.
+Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY` (or `DEEPSEEK_API_KEY`) in `labscriptai/webdemo/.env`. Model: **`deepseek-flash`**. Copy `.env.example`. Never commit keys. **8010** is required for OT-2/Flex Python and Watch.
 
 Optional: `pip install pylabrobot` for Hamilton/Tecan and OT step-table simulation. Missing PyLabRobot reports cannot-verify, not pass.
 
@@ -52,4 +52,4 @@ Open http://127.0.0.1:5173
 cd labscriptai/webdemo && npm test
 ```
 
-No `build` script. Frontend-only: `npx vite build --config web/vite.config.ts`. Server-only: `npm run dev:server`.
+No `0.0.0.0`. Frontend-only: `npm run build`. Server-only: `npm run dev:server`.

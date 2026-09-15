@@ -97,6 +97,11 @@ describe("AnimationOverlay code-split", () => {
     assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);
     assert.match(app, /disabled=\{busy\}/);
     assert.match(app, /setOverlay\(false\)/);
+    assert.match(app, /fetchHealth/);
+    assert.match(app, /8010 down/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
+    assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /tabCount/);
+    assert.match(readFileSync(path.join(webSrc, "stageTabs.ts"), "utf8"), /export function tabCount/);
     const issues = readFileSync(path.join(webSrc, "IssuesPanel.tsx"), "utf8");
     assert.match(issues, /statusWord/);
     assert.match(issues, /status-word/);
