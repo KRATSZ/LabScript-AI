@@ -91,6 +91,7 @@ describe("AnimationOverlay code-split", () => {
       "step list must sit above developer JSON"
     );
     assert.match(app, /from ["']\.\/RightStage["']/);
+    assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /session\?\.id/);
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
     assert.match(app, /sessionCanWatch/);
     assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);

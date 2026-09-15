@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArtifactsPane } from "./ArtifactsPane";
 import { StagePane } from "./StagePane";
 import { TrajectoryPane } from "./TrajectoryPane";
@@ -23,6 +23,9 @@ interface Props {
 
 export function RightStage({ session, events, runningTool, busy, canWatch, onWatch }: Props) {
   const [tab, setTab] = useState<StageTab>("stage");
+  useEffect(() => {
+    setTab("stage");
+  }, [session?.id]);
   return (
     <section className="stage-column" data-testid="stage-column">
       <div className="stage-tabs" role="tablist" aria-label="Right stage">
