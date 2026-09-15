@@ -58,7 +58,7 @@ export function ExportsPanel({
       ) : null}
       {steps.length ? (
         <div className="plan-block">
-          <div className="plan-heading">Plan IR (step list)</div>
+          <div className="plan-heading">Transfer steps</div>
           <div className="plan-steps">
             {steps.slice(0, 20).map((step, index) => (
               <p key={index} className="file">

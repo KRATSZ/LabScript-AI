@@ -13,7 +13,7 @@ import {
   wrapChecks,
   type ChecksResult,
 } from "../server/src/gate.ts";
-import { applyForm, createSession, missingList, snapshot } from "../server/src/session.ts";
+import { applyForm, createSession, markIntakeReply, missingList, snapshot } from "../server/src/session.ts";
 import { buildTools } from "../server/src/tools.ts";
 import { nextToolHint } from "../server/src/turn.ts";
 
@@ -122,7 +122,7 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
     assert.match(read("server/src/tools.ts"), /Do not ask which robot/);
   });
 
-  it("Hamilton happy path: SOP → plan → pass → download-ready, zero asks", async () => {
+  it("Hamilton happy path: confirm → SOP → plan → pass → download-ready", async () => {
     const session = createSession();
     applyForm(session, {
       goal: "Hamilton STAR: transfer 50 µL from A1 to B1 on a 96-well plate.",
@@ -130,6 +130,8 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
     });
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
+    assert.equal(nextToolHint(session), "ask_user");
+    markIntakeReply(session, "50 µL A1 to B1, standard deck, no mix");
     assert.equal(nextToolHint(session), "generate_sop");
     session.sop = SOP;
     assert.equal(nextToolHint(session), "emit_plan");

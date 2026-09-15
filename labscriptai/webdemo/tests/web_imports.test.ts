@@ -86,9 +86,10 @@ describe("AnimationOverlay code-split", () => {
     assert.match(artifactsPane, /from ["']\.\/ExportsPanel["']/);
     assert.match(artifactsPane, /<ExportsPanel session=\{session\} filesOnly \/>/);
     assert.match(stagePane, /from ["']\.\/IssuesPanel["']/);
+    assert.match(stagePane, /Transfer steps/);
     assert.ok(
-      stagePane.indexOf("Plan IR") < stagePane.indexOf("<IssuesPanel"),
-      "step list must sit above developer JSON"
+      stagePane.indexOf("Transfer steps") < stagePane.indexOf("<IssuesPanel"),
+      "step list must sit above lab-check JSON"
     );
     assert.match(app, /from ["']\.\/RightStage["']/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /session\?\.id/);
@@ -102,6 +103,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /tabCount/);
     assert.match(readFileSync(path.join(webSrc, "stageTabs.ts"), "utf8"), /export function tabCount/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /react-markdown/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /MarkdownBody/);
     const issues = readFileSync(path.join(webSrc, "IssuesPanel.tsx"), "utf8");
     assert.match(issues, /statusWord/);
     assert.match(issues, /status-word/);

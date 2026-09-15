@@ -20,6 +20,7 @@ import {
   goalNotesVolumeConflict,
   inferRobotFromText,
   markConflictUserReply,
+  markIntakeReply,
   missingList,
   chosenVolumeInText,
   normalizePlanInput,
@@ -67,6 +68,8 @@ describe("session machine", () => {
     assert.equal(session.robot, "Tecan");
     assert.equal(session.phase, "ready");
     assert.equal(session.deckAssumed, true);
+    assert.ok(missingList(session).some((item) => item.includes("confirm volume")));
+    markIntakeReply(session, "50 µL A1 to B1, standard deck");
     assert.deepEqual(missingList(session), []);
     assert.equal(canGenerateSop(session), true);
     assert.equal(shouldCallCompactSop(session), true);
@@ -438,6 +441,8 @@ describe("session machine", () => {
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
     assert.equal(session.deckAssumed, true);
+    assert.ok(missingList(session).some((item) => item.includes("confirm volume")));
+    markIntakeReply(session, "yes, 50 µL A1 to B1");
     assert.deepEqual(missingList(session), []);
     assert.equal(canEmitPlan(session), false);
   });

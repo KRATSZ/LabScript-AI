@@ -151,6 +151,7 @@ describe("phaseLabel", () => {
     assert.equal(phaseLabel("ready", "unevaluable", false, false), "Cannot verify");
     assert.equal(phaseLabel("need_hw_slots", null, false, false), "Missing deck details");
     assert.equal(phaseLabel("ready", null, false, false), "In progress");
+    assert.equal(phaseLabel("ready", null, false, false, null, false, false), "A couple of details first");
     assert.equal(phaseLabel("need_robot", null, false, false), "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?");
   });
 

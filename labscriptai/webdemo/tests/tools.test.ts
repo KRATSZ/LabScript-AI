@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import { applyAskUser, applyForm, createSession, markConflictUserReply, shouldCallCompactSop } from "../server/src/session.ts";
+import { applyAskUser, applyForm, createSession, intakeOpen, markConflictUserReply, markIntakeReply, shouldCallCompactSop } from "../server/src/session.ts";
 import { buildTools } from "../server/src/tools.ts";
 import { compactChecks, PATCH_BUDGET_REFUSAL, wrapChecks } from "../server/src/gate.ts";
 
@@ -171,6 +171,7 @@ describe("tools harness", () => {
   it("ask_user with Flex robot returns assumed_deck true", async () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "" });
+    markIntakeReply(session, "standard deck is fine");
     const tools = buildTools(session, { write() {}, close() {} });
     const ask = tools.find((t) => t.name === "ask_user");
     assert.ok(ask);
@@ -184,6 +185,7 @@ describe("tools harness", () => {
   it("ask_user schema and execute accept Tecan Fluent and Hamilton STAR labels", async () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "", robot: "OT-2" });
+    markIntakeReply(session, "keep OT-2 for now");
     const ask = buildTools(session, { write() {}, close() {} }).find((t) => t.name === "ask_user");
     assert.ok(ask);
     const schema = JSON.stringify(ask.parameters);
@@ -202,6 +204,22 @@ describe("tools harness", () => {
     assert.equal(star.ready, true);
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
+  });
+
+  it("first ask_user and generate_sop wait for a clarifying reply", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1", doc: "", robot: "Tecan" });
+    const asked = JSON.parse(toolText(await tool(session, "ask_user").execute("1", {})));
+    assert.equal(asked.wait, true);
+    assert.equal(asked.intake, true);
+    assert.equal(JSON.parse(toolText(await tool(session, "generate_sop").execute("1", {}))).intake, true);
+
+    markIntakeReply(session, "50 µL from A1 to B1, no mix, standard deck");
+    const after = JSON.parse(toolText(await tool(session, "ask_user").execute("2", {})));
+    assert.equal(after.wait, undefined);
+    assert.equal(after.ready, true);
+    assert.equal(intakeOpen(session), false);
+    assert.equal(shouldCallCompactSop(session), true);
   });
 });
 

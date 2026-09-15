@@ -13,6 +13,7 @@ import {
   POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT,
   POST_RUN_CHECKS_WITHHELD_HINT,
   POST_NOTES_CONFLICT_HINT,
+  POST_INTAKE_HINT,
   promptWithAutoContinue,
   withToolEvents,
   isSuccessfulToolResult,
@@ -174,6 +175,20 @@ describe("agent tool-result handling", () => {
     assert.equal((update.content.at(-1) as { text: string }).text, POST_NOTES_CONFLICT_HINT);
     assert.match(JSON.stringify(update.content), /stop/i);
     assert.match(JSON.stringify(update.content), /ask_user/i);
+  });
+
+  it("adds an intake hint when generate_sop waits for clarifying questions", () => {
+    const update = afterWebdemoToolCall({
+      toolCall: { name: "generate_sop" },
+      result: {
+        content: [{ type: "text", text: '{"wait":true,"intake":true}' }],
+        details: { payload: { wait: true, intake: true, blocked: true } },
+      },
+    });
+    assert.ok(update?.content);
+    assert.equal(update.terminate, true);
+    assert.equal((update.content.at(-1) as { text: string }).text, POST_INTAKE_HINT);
+    assert.match(JSON.stringify(update.content), /1–2 short lab questions/i);
   });
 
   it("emits tool done only after the handler resolves, with duration", async () => {

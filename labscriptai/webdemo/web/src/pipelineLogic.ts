@@ -6,12 +6,12 @@ export type StepState = "wait" | "run" | "ok" | "fail" | "uneval";
 export type StatusTone = "pass" | "fail" | "uneval";
 
 export const PIPELINE_HINTS: Record<string, string> = {
-  ask_user: "Recording hardware…",
-  generate_sop: "Writing SOP…",
-  generate_code: "Writing script…",
-  emit_plan: "Writing plan…",
-  run_checks: "Checking…",
-  open_animation: "Opening animation…",
+  ask_user: "Checking a couple of details…",
+  generate_sop: "Writing the protocol…",
+  generate_code: "Writing the script…",
+  emit_plan: "Laying out the steps…",
+  run_checks: "Checking bench constraints…",
+  open_animation: "Opening the preview…",
 };
 
 const PYTHON_STEPS = ["Goal", "SOP", "Code", "Checks", "Watch"] as const;
@@ -58,7 +58,9 @@ export function phaseLabel(
   status: CheckStatus | null | undefined,
   canWatch: boolean,
   planBackend = false,
-  checks?: ChecksResult | null
+  checks?: ChecksResult | null,
+  intakeDone?: boolean,
+  hasSop?: boolean
 ): string {
   if (canWatch) return "Ready to watch";
   if (status === "pass") {
@@ -67,8 +69,11 @@ export function phaseLabel(
   if (status === "fail") return "Checks failed";
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
   if (phase === "need_hw_slots") return "Missing deck details";
-  if (phase === "ready") return "In progress";
-    return "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?";
+  if (phase === "ready") {
+    if (!hasSop && intakeDone === false) return "A couple of details first";
+    return "In progress";
+  }
+  return "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?";
 }
 
 function goalState(goal: string): StepState {

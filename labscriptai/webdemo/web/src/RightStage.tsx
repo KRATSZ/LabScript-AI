@@ -65,7 +65,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
               onWatch={onWatch}
             />
           ) : (
-            <p className="hint">Pick a device on the left. Stage shows steps, assumed deck, and OT Watch.</p>
+            <p className="hint">Pick a robot on the left. Deck, steps, and Watch show up here.</p>
           )
         ) : null}
         {tab === "artifacts" ? <ArtifactsPane session={session} /> : null}

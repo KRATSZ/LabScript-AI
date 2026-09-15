@@ -97,6 +97,7 @@ export interface SessionSnapshot {
   device_id?: string | null;
   device_label?: string | null;
   device_note?: string | null;
+  intake_done?: boolean;
 }
 
 export interface ChatMessage {

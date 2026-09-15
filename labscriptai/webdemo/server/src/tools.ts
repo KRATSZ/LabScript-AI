@@ -36,6 +36,7 @@ import {
   capSop,
   explainPlanErrors,
   formatHardwareConfig,
+  intakeOpen,
   isOpentrons,
   missingList,
   normalizePlanInput,
@@ -90,7 +91,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "ask_user",
     label: "Ask user / session",
     description:
-      "Persist session fields. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. If notes_conflict, call this, tell the user both volumes, and stop; after they answer, call again with goal set to the chosen volume. Does not generate code. No deck UI.",
+      "Persist session fields. First turn: call this after 1–2 lab questions and stop so a full protocol is not dumped. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. If notes_conflict, call this, tell the user both volumes, and stop; after they answer, call again with goal set to the chosen volume. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
@@ -160,6 +161,42 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (conflictBefore) {
         resolveGoalNotesConflict(session);
       }
+      if (intakeOpen(session)) {
+        const ask =
+          "I want to confirm volume, wells, mix, and the assumed deck before writing the protocol. Please answer in chat — I have not made a SOP or download yet.";
+        sse.write("text", { token: `\n\n${ask}\n` });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  wait: true,
+                  intake: true,
+                  ask,
+                  next_tool: "ask_user",
+                  phase: session.phase,
+                  missing: missingList(session),
+                  ready: false,
+                  hint: "Ask 1–2 short lab questions in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          details: {
+            payload: {
+              wait: true,
+              intake: true,
+              ask,
+              next_tool: "ask_user",
+              ready: false,
+            },
+          },
+          terminate: true,
+        };
+      }
       return ok({
         phase: session.phase,
         missing: missingList(session),
@@ -197,6 +234,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           chars: session.sop?.length ?? 0,
           skipped: true,
           sop_markdown: session.sop,
+        });
+      }
+      if (intakeOpen(session)) {
+        return ok({
+          blocked: true,
+          wait: true,
+          intake: true,
+          missing: missingList(session),
+          hint: "Ask 1–2 lab questions, call ask_user, and stop. Do not generate a protocol yet.",
         });
       }
       if (!shouldCallCompactSop(session, force)) {

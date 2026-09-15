@@ -68,6 +68,8 @@ export interface SessionState {
   conflictReplyText?: string;
   /** True after a later user turn confirmed a volume via ask_user. */
   draftConflictResolved?: boolean;
+  /** True after the user answers the first clarifying round (not the start-form goal). */
+  intakeDone?: boolean;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -254,10 +256,21 @@ export function markConflictUserReply(session: SessionState, userText: string): 
   session.conflictReplyText = userText.trim();
 }
 
+/** Follow-up chat (not the empty first turn) unlocks SOP/plan generation. */
+export function markIntakeReply(session: SessionState, userText: string): void {
+  if (!userText.trim()) return;
+  session.intakeDone = true;
+}
+
+export function intakeOpen(session: SessionState): boolean {
+  return !session.intakeDone && !session.sop?.trim();
+}
+
 export function resolveGoalNotesConflict(session: SessionState): void {
   session.draftConflictResolved = true;
   session.conflictUserReplied = true;
   session.conflictReplyText = undefined;
+  session.intakeDone = true;
   session.sop = undefined;
   session.code = undefined;
   session.plan = undefined;
@@ -315,6 +328,9 @@ export function missingList(session: SessionState): string[] {
   if (conflict) {
     missing.push(`ask_user — ${conflict}; wait for the user to pick one volume`);
   }
+  if (intakeOpen(session)) {
+    missing.push("ask_user — confirm volume, wells, and assumed deck with the user first");
+  }
   return missing;
 }
 
@@ -353,6 +369,7 @@ export function applyForm(
   session.conflictUserReplied = undefined;
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
+  session.intakeDone = undefined;
   if (selectedRobot) {
     session.robot = selectedRobot;
   } else {
@@ -620,6 +637,7 @@ export function snapshot(session: SessionState) {
     device_id: deviceFor(session.robot)?.id ?? null,
     device_label: deviceFor(session.robot)?.label ?? null,
     device_note: deviceFor(session.robot)?.note ?? null,
+    intake_done: Boolean(session.intakeDone),
   };
 }
 

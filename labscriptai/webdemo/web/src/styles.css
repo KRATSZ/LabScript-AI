@@ -3,7 +3,7 @@
   --primary-dark: #1e40af;
   --secondary: #0d9488;
   --accent: #7c3aed;
-  --bg: #f9fafb;
+  --bg: #f3f6f5;
   --paper: #ffffff;
   --text: #111827;
   --muted: #6b7280;
@@ -222,7 +222,10 @@ body {
   box-shadow: 0 0 0 2px rgba(37,99,235,.2);
   background: #eff6ff;
 }
-.device-card:disabled { opacity: .5; cursor: not-allowed; }
+.device-card:hover:not(:disabled):not(.selected) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
 .collapsed .ghost { flex: 0 0 auto; font-size: 12px; color: var(--muted); }
 .issues-human {
   font-size: 13px;
@@ -355,11 +358,26 @@ body {
   padding: 10px 12px;
   line-height: 1.6;
   font-size: 14px;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 .bubble.user { background: var(--primary); color: #fff; }
-.bubble.bot { background: #fff; border: 1px solid var(--line); }
+.bubble.bot {
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.md p { margin: 0.4em 0; }
+.md p:first-child { margin-top: 0; }
+.md p:last-child { margin-bottom: 0; }
+.md ul, .md ol { margin: 0.35em 0; padding-left: 1.2em; }
+.md li { margin: 0.15em 0; }
+.md strong { font-weight: 650; }
+.md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+.md-user a { color: inherit; }
+.device-emoji { margin-right: 2px; }
 .meta {
   font-size: 11px;
   opacity: 0.75;

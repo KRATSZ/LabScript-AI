@@ -13,7 +13,7 @@ import {
   REVIEWER_UNAVAILABLE_DISCLOSURE,
 } from "./gate.ts";
 import { emitAgentEvent, TOOL_STEP } from "./events.ts";
-import { markConflictUserReply, snapshot, type SessionState } from "./session.ts";
+import { markConflictUserReply, markIntakeReply, snapshot, type SessionState } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
@@ -61,11 +61,19 @@ export const POST_RUN_CHECKS_WITHHELD_HINT =
   "SYSTEM HINT: Checks did not pass, so .gwl / worklist / downloadable script is withheld. Do not tell the user those files are ready. Report the bench consequence and ask whether to adjust.";
 export const POST_NOTES_CONFLICT_HINT =
   "SYSTEM HINT: Notes conflict with the goal. Call ask_user, tell the user both volumes, and STOP. Do not generate_sop, emit_plan, run_checks, or say a .gwl is ready until the user answers.";
+export const POST_INTAKE_HINT =
+  "SYSTEM HINT: Confirm volume, wells, mix, and the assumed deck. Ask 1–2 short lab questions in chat, call ask_user, and STOP. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. No tool names in the user-facing message.";
 
 export function isNotesConflictWait(details: unknown): boolean {
   if (!details || typeof details !== "object") return false;
   const payload = (details as { payload?: { wait?: unknown } }).payload;
   return payload?.wait === true;
+}
+
+export function isIntakeWait(details: unknown): boolean {
+  if (!details || typeof details !== "object") return false;
+  const payload = (details as { payload?: { wait?: unknown; intake?: unknown } }).payload;
+  return payload?.wait === true && payload?.intake === true;
 }
 
 export function isSuccessfulToolResult(result: { details?: unknown }): boolean {
@@ -100,6 +108,7 @@ export function afterWebdemoToolCall(
       wait?: unknown;
       blocked?: unknown;
       conflict?: unknown;
+      intake?: unknown;
       missing?: unknown;
     };
   } | undefined;
@@ -115,13 +124,15 @@ export function afterWebdemoToolCall(
     details?.payload?.wait === true ||
     (details?.payload?.blocked === true &&
       (Boolean(details.payload.conflict) ||
+        Boolean(details.payload.intake) ||
         (Array.isArray(details.payload.missing) &&
           details.payload.missing.some((item) => String(item).includes("ask_user")))))
   ) {
+    const hint = details?.payload?.intake === true ? POST_INTAKE_HINT : POST_NOTES_CONFLICT_HINT;
     return {
       content: [
         ...context.result.content,
-        { type: "text", text: POST_NOTES_CONFLICT_HINT },
+        { type: "text", text: hint },
       ],
       ...(details?.payload?.wait === true ? { terminate: true } : {}),
     };
@@ -298,6 +309,7 @@ export async function runChatTurn(
 
   session.patchesUsed = 0;
   markConflictUserReply(session, userText);
+  markIntakeReply(session, userText);
   emitAgentEvent(session, sse, { kind: "turn/start" });
   const tools = withToolEvents(buildTools(session, sse), sse, Date.now, session);
   const prior = Array.isArray(session.messages) ? session.messages : [];

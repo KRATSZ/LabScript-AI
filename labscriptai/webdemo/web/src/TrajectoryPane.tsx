@@ -7,7 +7,7 @@ export function TrajectoryPane({ events }: { events: AgentEvent[] }) {
   if (!events.length) {
     return (
       <p className="hint" data-testid="trajectory-empty">
-        Append-only agent log. Turns, steps, and tool calls show here. Chat stays human-readable.
+        Quiet log of what the assistant did. You can ignore this while chatting.
       </p>
     );
   }

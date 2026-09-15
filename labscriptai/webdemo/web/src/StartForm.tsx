@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
+import { DEVICE_CARDS, DEVICE_EMOJI, canStart, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
 import type { StartInput } from "./types";
 
@@ -32,7 +32,7 @@ export function StartForm({ busy, onSubmit }: Props) {
 
   return (
     <form className="card form" onSubmit={submit}>
-      <label>Device</label>
+      <label>Which robot?</label>
       <p className="hint">Pick a robot first. You can change it later.</p>
       <div className="device-grid">
         {DEVICE_CARDS.map((card) => (
@@ -45,13 +45,18 @@ export function StartForm({ busy, onSubmit }: Props) {
             disabled={busy}
             onClick={() => setDeviceId(card.id)}
           >
-            <strong>{card.label}</strong>
+            <strong>
+              <span className="device-emoji" aria-hidden>
+                {DEVICE_EMOJI[card.id] ?? "•"}
+              </span>{" "}
+              {card.label}
+            </strong>
             <span>{card.blurb}</span>
           </button>
         ))}
       </div>
 
-      <label htmlFor="goal">Experimental goal</label>
+      <label htmlFor="goal">What should we run?</label>
       <textarea
         id="goal"
         required
@@ -61,11 +66,11 @@ export function StartForm({ busy, onSubmit }: Props) {
         onChange={(e) => setGoal(e.target.value)}
       />
 
-      <label htmlFor="doc">Existing notes (optional)</label>
+      <label htmlFor="doc">Notes (optional)</label>
       <textarea
         id="doc"
         rows={3}
-        placeholder="Paste a protocol draft, or leave blank"
+        placeholder="Paste a draft, or leave blank — we will ask a couple of questions first"
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
       />
@@ -98,7 +103,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       </div>
 
       <button className="primary" type="submit" disabled={busy || !canStart(goal, deviceId)}>
-        {busy ? "Starting…" : "Start"}
+        {busy ? "Starting…" : "Let’s go"}
       </button>
     </form>
   );

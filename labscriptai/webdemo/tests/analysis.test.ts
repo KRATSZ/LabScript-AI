@@ -47,7 +47,7 @@ describe("watchUnavailableCopy", () => {
     assert.equal(watchUnavailableCopy("OT-2", "up", "pass", cmds), null);
     assert.match(
       watchUnavailableCopy("Flex", "up", "pass", null) ?? "",
-      /analyze commands/
+      /Watch stays off/
     );
   });
 });

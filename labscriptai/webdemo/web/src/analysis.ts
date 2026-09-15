@@ -24,10 +24,10 @@ export function watchUnavailableCopy(
   if (!robotSupportsWatch(robot)) return null;
   if (sessionCanWatch(robot, status, analyze)) return null;
   if (codeService === "down") {
-    return "OT Watch needs backend 8010. Analyze is down — Watch stays off. Plan IR fallback still runs.";
+    return "Watch needs the local preview service (8010). It stays off until that service is up.";
   }
   if (status === "pass" && !isPlayableAnalyze(analyze)) {
-    return "Checks passed but 8010 did not return analyze commands — Watch stays off.";
+    return "Checks passed but the preview did not return motion commands — Watch stays off.";
   }
   return null;
 }

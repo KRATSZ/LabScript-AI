@@ -150,7 +150,7 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            <p>Pi-agent shell · software only · 127.0.0.1</p>
+            <p>🧪 Local lab copilot · software only · 127.0.0.1</p>
             {health ? (
               <p className="demo-health" data-testid="demo-health">
                 {health.hasKey ? `Model ${health.model}` : "No DeepSeek key"}
@@ -168,7 +168,15 @@ export function App() {
             <div>
               <div>
                 <strong className={tone ? `status-${tone}` : undefined}>
-                  {phaseLabel(session.phase, status, canWatch, planBackend, session.checks)}
+                  {phaseLabel(
+                    session.phase,
+                    status,
+                    canWatch,
+                    planBackend,
+                    session.checks,
+                    session.intake_done,
+                    Boolean(session.sop?.trim())
+                  )}
                 </strong>
               </div>
               <div>

@@ -26,7 +26,7 @@ function DeckStrip({ session }: { session: SessionSnapshot }) {
           {slot}: {labware}
         </p>
       ))}
-      {session.deck_assumed ? <p className="hint">Standard layout — not a live robot.</p> : null}
+      {session.deck_assumed ? <p className="hint">Standard layout — software preview, not a live robot.</p> : null}
       {session.device_note ? <p className="hint">{session.device_note}</p> : null}
     </div>
   );
@@ -47,9 +47,9 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
       <DeckStrip session={session} />
       {watchReady ? (
         <div className="watch-cta">
-          <p className="hint">OT Watch is software animation from 8010 analyze — not a live deck.</p>
+          <p className="hint">Watch is a software preview of the run — not the live deck.</p>
           <button type="button" className="primary" onClick={onWatch}>
-            Watch animation
+            Watch the protocol
           </button>
         </div>
       ) : watchGap ? (
@@ -59,7 +59,7 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
       ) : null}
       {steps.length ? (
         <div className="plan-block">
-          <div className="plan-heading">Plan IR (step list)</div>
+          <div className="plan-heading">Transfer steps</div>
           <div className="plan-steps">
             {steps.slice(0, 20).map((step, index) => (
               <p key={index} className="file">
@@ -71,8 +71,8 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
       ) : (
         <p className="hint">
           {isPlanCodegen(session.robot)
-            ? "Plan IR and sim status show here after emit_plan / run_checks."
-            : "Python Watch uses this pane when checks pass. Otherwise the step table appears."}
+            ? "Steps and check results show here after the protocol is written."
+            : "When checks pass, Watch uses this pane. Otherwise the step list appears."}
         </p>
       )}
       <IssuesPanel checks={session.checks} />
