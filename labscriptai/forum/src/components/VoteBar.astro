@@ -12,8 +12,7 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 
 <section class="votes" data-votes data-post-id={postId} data-seed-up={seedUpvotes} data-seed-down={seedDownvotes}>
 	<p class="counts">
-		<span data-up-count>{seedUpvotes}</span> up ·
-		<span data-down-count>{seedDownvotes}</span> down
+		<span data-up-count>{seedUpvotes}</span> up · <span data-down-count>{seedDownvotes}</span> down
 		<span class="mine" data-mine></span>
 	</p>
 	<div class="actions">
