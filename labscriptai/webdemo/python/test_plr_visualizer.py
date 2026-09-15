@@ -44,6 +44,18 @@ class PlrVisualizerTests(unittest.TestCase):
         self.assertIn("EVO", fluent["deck_name"])
         self.assertIn("Freedom EVO", fluent["note"])
 
+    def test_fluent_places_reservoir_as_tecan_labware(self) -> None:
+        payload = {
+            **DEMO,
+            "resources": [
+                *DEMO["resources"],
+                {"id": "reservoir", "type": "reservoir", "slot": "3"},
+            ],
+        }
+        fluent = build_liquid_handler(load_plan(payload), "Tecan Fluent")
+        self.assertIn("reservoir", fluent["placed"])
+        self.assertLessEqual(max(fluent["rails"].values()), 69)
+
 
 if __name__ == "__main__":
     unittest.main()

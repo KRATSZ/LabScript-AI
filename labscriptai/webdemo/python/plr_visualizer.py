@@ -37,11 +37,8 @@ def _factories(kind: str) -> tuple[Any, Any, Any]:
     if kind == "fluent":
         from pylabrobot.resources.tecan import DiTi_200ul_LiHa, Microplate_96_Well
 
-        try:
-            from pylabrobot.resources import nest_12_troughplate_15000uL_Vb as trough
-        except ImportError:
-            trough = Microplate_96_Well
-        return DiTi_200ul_LiHa, Microplate_96_Well, trough
+        # Tecan decks only accept TecanResource for rail math — NEST troughs are not Tecan types.
+        return DiTi_200ul_LiHa, Microplate_96_Well, Microplate_96_Well
     from pylabrobot.resources.hamilton import hamilton_96_tiprack_300uL_filter
     from pylabrobot.resources import Cor_96_wellplate_360ul_Fb
 
@@ -72,13 +69,14 @@ def _make_deck(kind: str) -> tuple[Any, str, str]:
 
 def _assign_rails(deck: Any, item: Any, rails: int) -> int:
     last_error: Exception | None = None
-    for candidate in range(rails, rails + 80):
+    num_rails = int(getattr(deck, "num_rails", 54) or 54)
+    start = max(1, min(rails, num_rails))
+    for candidate in range(start, num_rails + 1):
         try:
-            kwargs: dict[str, Any] = {"rails": candidate}
             try:
-                deck.assign_child_resource(item, ignore_collision=False, **kwargs)
+                deck.assign_child_resource(item, rails=candidate, ignore_collision=False)
             except TypeError:
-                deck.assign_child_resource(item, **kwargs)
+                deck.assign_child_resource(item, rails=candidate)
             return candidate
         except Exception as exc:  # noqa: BLE001 — try next rail
             last_error = exc
