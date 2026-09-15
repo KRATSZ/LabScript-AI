@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { sanitizeAssistantText } from "./display";
 import type { ChatMessage } from "./types";
 
 const THINK_DISPLAY_CAP = 8000;
@@ -53,7 +54,8 @@ export function ChatPane({ messages, busy, onSend }: Props) {
           if (emptyAssistant && !(busy && last)) return null;
           const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
           const fallback = emptyAssistant ? "Working…" : "";
-          const body = msg.text || fallback;
+          const raw = msg.text || fallback;
+          const body = msg.role === "assistant" ? sanitizeAssistantText(raw) || fallback : raw;
           return (
             <div key={i} className={`bubble-row ${msg.role}`}>
               <div className={`avatar ${msg.role === "user" ? "user" : "bot"}`} aria-hidden>

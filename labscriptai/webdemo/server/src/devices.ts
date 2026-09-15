@@ -233,7 +233,7 @@ export const DEVICE_REGISTRY: DeviceProfile[] = [
     animation: false,
     artifactExt: ".gwl",
     hardwarePreset: { id: "tecan_fluent_standard", ...TECAN_HW },
-    note: "PyLabRobot has no Fluent deck. virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent .gwl for FluentControl, not EVOware.",
+    note: "Simulation reuses Freedom EVO deck geometry (200 µL tips). The download is a FluentControl worklist, not EVOware.",
   },
 ];
 

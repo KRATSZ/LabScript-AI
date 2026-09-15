@@ -4,9 +4,9 @@ import {
   downloadable,
   downloadSuffix,
   downloadText,
-  planStepLine,
   planSteps,
 } from "./artifacts";
+import { planStepDisplay } from "./display";
 import { isPythonCodegen } from "./devices";
 import { statusTone } from "./pipelineLogic";
 import type { SessionSnapshot } from "./types";
@@ -62,7 +62,7 @@ export function ExportsPanel({
           <div className="plan-steps">
             {steps.slice(0, 20).map((step, index) => (
               <p key={index} className="file">
-                {planStepLine(step)}
+                {planStepDisplay(step)}
               </p>
             ))}
           </div>

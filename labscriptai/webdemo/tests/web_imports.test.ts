@@ -63,6 +63,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(prompt, /Never change volumes, wells, counts/);
     assert.match(prompt, /Do not skip generate_code/);
     assert.doesNotMatch(prompt, /Plan IR/);
+    assert.doesNotMatch(SYSTEM_PROMPT, /Confirm assumed_deck=true/);
+    assert.match(SYSTEM_PROMPT, /Confirm the standard deck in one sentence/);
     assert.doesNotMatch(blob, /Robot is asked in chat/);
     assert.match(blob, /DEVICE_CARDS/);
   });
@@ -101,6 +103,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(app, /fetchHealth/);
     assert.match(app, /8010 down/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /tabCount/);
     assert.match(readFileSync(path.join(webSrc, "stageTabs.ts"), "utf8"), /export function tabCount/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /react-markdown/);
@@ -114,8 +118,9 @@ describe("AnimationOverlay code-split", () => {
     const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
     assert.match(smoke, /simpleAnalysisFile\.json/);
     assert.doesNotMatch(smoke, /mockRobotSideAnalysis/);
-    const overlay = readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8");
+    const overlay = readFileSync(path.join(webSrc, "WatchPlayer.tsx"), "utf8");
     assert.match(overlay, /data-animator-error=\{this\.state\.error\}/);
+    assert.match(readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8"), /WatchPlayer/);
   });
 
   it("vite falls back to local Watch stubs when LabscriptAI_cloud is absent", () => {

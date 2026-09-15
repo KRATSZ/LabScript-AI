@@ -61,6 +61,8 @@ describe("demo contract lock", () => {
     assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
     assert.match(SYSTEM_PROMPT, /Tecan Fluent: \.gwl worklist \+ step JSON, no Watch/);
     assert.ok(SYSTEM_PROMPT.trim().split("\n").length <= 32);
+    assert.doesNotMatch(SYSTEM_PROMPT, /Confirm assumed_deck=true/);
+    assert.match(SYSTEM_PROMPT, /Confirm the standard deck in one sentence/);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
     assert.match(SYSTEM_PROMPT, /Patch only mechanical issues/);
