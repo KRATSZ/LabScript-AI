@@ -95,8 +95,27 @@ class CompileHamiltonTests(unittest.TestCase):
         self.assertIn("# DRY-RUN", script)
         self.assertIn("# backend = VantageBackend()", script)
         self.assertNotIn("\nbackend = VantageBackend()", script)
+        self.assertIn("VantageDeck(size=1.3)", script)
         self.assertGreaterEqual(out["command_count"], 4)
         self.assertIsInstance(out["warnings"], list)
+
+    def test_star_family_uses_starlet_deck(self) -> None:
+        raw = json.dumps(DEMO)
+        completed = subprocess.run(
+            [sys.executable, str(SCRIPT), "--family", "star"],
+            input=raw,
+            text=True,
+            capture_output=True,
+            env={**os.environ, "PYTHONPATH": PYTHONPATH},
+            check=False,
+        )
+        out = json.loads(completed.stdout)
+        self.assertTrue(out["ok"], out)
+        script = out["script"]
+        self.assertIn("STARLetDeck()", script)
+        self.assertIn("# backend = STARBackend()", script)
+        self.assertNotIn("VantageDeck", script)
+        self.assertIn("LiquidHandlerChatterboxBackend", script)
 
     def test_mix_cycles_and_wait(self) -> None:
         plan = {

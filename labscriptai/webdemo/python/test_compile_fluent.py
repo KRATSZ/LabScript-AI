@@ -141,6 +141,21 @@ class CompileFluentTests(unittest.TestCase):
         self.assertTrue(out.get("hint"))
         self.assertNotIn("Traceback", completed.stdout)
 
+    def test_tip_positions_with_resource_prefix(self) -> None:
+        plan = {
+            **DEMO,
+            "steps": [
+                {**DEMO["steps"][0], "tip_positions": ["TIPS:A1"]},
+                *DEMO["steps"][1:],
+            ],
+        }
+        out, _ = run_cli(plan)
+        self.assertTrue(out["ok"], out)
+        gwl = out["worklist_gwl"]
+        self.assertNotIn("IPS", gwl)
+        self.assertIn("A;plate;;;A1;;50;Water Free Single;;1;", gwl)
+        self.assertIn("D;plate;;;B1;;50;Water Free Single;;1;", gwl)
+
     def test_empty_steps(self) -> None:
         out, _ = run_cli({**DEMO, "steps": []})
         self.assertFalse(out["ok"])
@@ -380,11 +395,21 @@ class CompileFluentTests(unittest.TestCase):
         self.assertIn("SelectedWellsString>A1,B1<", out["script_xml"])
         self.assertIn("SelectedWellsString>C1,D1<", out["script_xml"])
 
-    def test_over_max_volume_warns(self) -> None:
+    def test_over_max_volume_fails(self) -> None:
         plan = {**DEMO, "initial_volumes_ul": {"plate:A1": 500}}
         out, _ = run_cli(plan)
-        self.assertTrue(out["ok"])
-        self.assertTrue(any("max_volume" in w for w in out["warnings"]))
+        self.assertFalse(out["ok"])
+        self.assertEqual(out.get("stage"), "mapping")
+        self.assertIn("max_volume", out.get("error") or "")
+
+    def test_invalid_tip_well_z9_fails(self) -> None:
+        steps = list(DEMO["steps"])
+        steps[0] = {**steps[0], "tip_positions": ["Z9"]}
+        plan = {**DEMO, "steps": steps}
+        out, _ = run_cli(plan)
+        self.assertFalse(out["ok"])
+        self.assertEqual(out.get("stage"), "mapping")
+        self.assertIn("Z9", out.get("error") or "")
 
     def test_igem_fluorescein_gold_fixture(self) -> None:
         plan = json.loads(FIXTURE.read_text(encoding="utf-8"))

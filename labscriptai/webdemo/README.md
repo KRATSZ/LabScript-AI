@@ -6,14 +6,17 @@ Binds **127.0.0.1 only**. Do not start if localhost cannot bind. Do not listen o
 
 ## Devices
 
-Pick a **device card** on the start form (required, with a goal). Four cards:
+Pick a **device card** on the start form (required, with a goal). Five cards:
 
 | Card | Deliverable | Animation |
 | --- | --- | --- |
 | **OT-2** | Python + simulation | Yes (needs 8010 analyze) |
 | **Flex** | Python + simulation | Yes (needs 8010 analyze) |
-| **Hamilton STAR** | Step JSON | No |
+| **Hamilton STAR** | Step JSON + PyLabRobot script | No (software Chatterbox) |
+| **Hamilton Vantage** | Step JSON + PyLabRobot script | No (software Chatterbox) |
 | **Tecan Fluent** | Step JSON + `.gwl` worklist | No |
+
+One shell: left chat, right Stage / Artifacts / Trajectory. Trajectory is an append-only turn/step/tool log. Live robots stay with the human.
 
 If 8010 is down, OT-2/Flex fall back to the same step table as Hamilton. Downloads stay available; they are marked when checks did not pass. One automatic patch, then the agent stops and talks.
 

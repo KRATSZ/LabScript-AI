@@ -234,9 +234,11 @@ export function attachConsequences(
     consequences?: string[];
   }
 ): ChecksResult {
-  const gated = isReviewMismatch(checks.llmreview)
-    ? { ...checks, fab: { lit: false } }
-    : checks;
+  const llmreview = scrubInventedLihaTipReview(checks.llmreview);
+  const next = llmreview !== undefined ? { ...checks, llmreview } : checks;
+  const gated = isReviewMismatch(next.llmreview)
+    ? { ...next, fab: { lit: false } }
+    : next;
   return {
     ...gated,
     status: checkStatus(gated),
@@ -289,6 +291,34 @@ export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
   return review?.match === false && !isReviewerUnavailable(review);
 }
 
+/** liha_1000 is the pipette. Do not treat it as a required 1000 µL DiTi rack vs 200 µL DiTi. */
+export function isInventedLihaTipSizeFinding(item: LlmReviewFinding): boolean {
+  const blob = [item.claim, item.evidence, item.suggestion]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  if (!blob) return false;
+  const wants1000 =
+    /liha[_\s-]*1000/.test(blob) ||
+    /1000\s*(?:µl|ul|μl)\s*diti/.test(blob) ||
+    /intent specifies 1000/.test(blob);
+  const has200 = /200\s*(?:µl|ul|μl)|200ul|diti_200/.test(blob);
+  const tipTalk = /diti|tip\s*rack|tiprack|tip type/.test(blob);
+  return wants1000 && has200 && tipTalk;
+}
+
+export function scrubInventedLihaTipReview(
+  review?: LlmReviewResult | null
+): LlmReviewResult | undefined {
+  if (!review) return undefined;
+  if (review.match === true || isReviewerUnavailable(review)) return review;
+  const findings = review.findings ?? [];
+  const kept = findings.filter((item) => !isInventedLihaTipSizeFinding(item));
+  if (kept.length === findings.length) return review;
+  if (kept.length === 0) return { ...review, match: true, findings: [] };
+  return { ...review, findings: kept };
+}
+
 /** Iterate when sim/logic/compile fails. Review-only mismatch is reported without auto-patching. */
 export function needsPatch(checks: ChecksResult | null | undefined): boolean {
   if (!checks) return false;
@@ -329,6 +359,8 @@ export function compactChecks(
   review: { match?: boolean; status?: "unavailable"; findings: string[] };
   compile?: { ok: boolean; stage?: string; error?: string; hint?: string; command_count?: number };
   fab: { lit: boolean };
+  status: CheckStatus;
+  download: "ready" | "withheld";
   next: "patch" | "done";
   consequences: string[];
   hint?: string;
@@ -370,6 +402,7 @@ export function compactChecks(
         ? { match: checks.llmreview.match }
         : {}),
   };
+  const withheld = checks.status !== "pass";
   const payload = {
     sim: {
       ok: checks.sim.ok,
@@ -381,6 +414,8 @@ export function compactChecks(
     review,
     ...(compile ? { compile } : {}),
     fab: { lit: checks.fab.lit },
+    status: checks.status,
+    download: (withheld ? "withheld" : "ready") as "ready" | "withheld",
     next: (iterate ? "patch" : "done") as "patch" | "done",
     consequences: consequences.slice(0, 5),
     ...(mismatch
@@ -391,7 +426,11 @@ export function compactChecks(
         }
       : unavailable && checks.status === "pass"
         ? { hint: REVIEWER_UNAVAILABLE_DISCLOSURE }
-      : {}),
+      : withheld
+        ? {
+            hint: "Do not say .gwl, worklist, or a downloadable script is ready. Checks did not pass; those files are withheld.",
+          }
+        : {}),
   };
   if (!mismatch) return payload;
   const { review: reviewFirst, ...rest } = payload;

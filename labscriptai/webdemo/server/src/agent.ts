@@ -12,7 +12,8 @@ import {
   isPatchBudgetRefusal,
   REVIEWER_UNAVAILABLE_DISCLOSURE,
 } from "./gate.ts";
-import { snapshot, type SessionState } from "./session.ts";
+import { emitAgentEvent, TOOL_STEP } from "./events.ts";
+import { markConflictUserReply, snapshot, type SessionState } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
@@ -56,6 +57,16 @@ export const POST_EMIT_PLAN_HINT =
   "SYSTEM HINT: emit_plan succeeded. Call run_checks now before any further planning or patching.";
 export const POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT =
   `SYSTEM HINT: ${REVIEWER_UNAVAILABLE_DISCLOSURE} Disclose this in the final user-facing message.`;
+export const POST_RUN_CHECKS_WITHHELD_HINT =
+  "SYSTEM HINT: Checks did not pass, so .gwl / worklist / downloadable script is withheld. Do not tell the user those files are ready. Report the bench consequence and ask whether to adjust.";
+export const POST_NOTES_CONFLICT_HINT =
+  "SYSTEM HINT: Notes conflict with the goal. Call ask_user, tell the user both volumes, and STOP. Do not generate_sop, emit_plan, run_checks, or say a .gwl is ready until the user answers.";
+
+export function isNotesConflictWait(details: unknown): boolean {
+  if (!details || typeof details !== "object") return false;
+  const payload = (details as { payload?: { wait?: unknown } }).payload;
+  return payload?.wait === true;
+}
 
 export function afterWebdemoToolCall(
   context: {
@@ -71,6 +82,12 @@ export function afterWebdemoToolCall(
       ok?: unknown;
       fab?: { lit?: unknown };
       review?: { status?: unknown };
+      status?: unknown;
+      download?: unknown;
+      wait?: unknown;
+      blocked?: unknown;
+      conflict?: unknown;
+      missing?: unknown;
     };
   } | undefined;
   if (context.toolCall.name === "emit_plan" && details?.payload?.ok === true) {
@@ -78,6 +95,32 @@ export function afterWebdemoToolCall(
       content: [
         ...context.result.content,
         { type: "text", text: POST_EMIT_PLAN_HINT },
+      ],
+    };
+  }
+  if (
+    details?.payload?.wait === true ||
+    (details?.payload?.blocked === true &&
+      (Boolean(details.payload.conflict) ||
+        (Array.isArray(details.payload.missing) &&
+          details.payload.missing.some((item) => String(item).includes("ask_user")))))
+  ) {
+    return {
+      content: [
+        ...context.result.content,
+        { type: "text", text: POST_NOTES_CONFLICT_HINT },
+      ],
+      ...(details?.payload?.wait === true ? { terminate: true } : {}),
+    };
+  }
+  if (
+    context.toolCall.name === "run_checks" &&
+    (details?.payload?.download === "withheld" || details?.payload?.status === "fail")
+  ) {
+    return {
+      content: [
+        ...context.result.content,
+        { type: "text", text: POST_RUN_CHECKS_WITHHELD_HINT },
       ],
     };
   }
@@ -99,21 +142,36 @@ export function afterWebdemoToolCall(
 export function withToolEvents(
   tools: AgentTool[],
   sse: SseWriter,
-  now: () => number = Date.now
+  now: () => number = Date.now,
+  session?: SessionState
 ): AgentTool[] {
+  const sink = session ?? { events: [] };
   return tools.map((tool) => ({
     ...tool,
     execute: async (...args: Parameters<AgentTool["execute"]>) => {
       const startedAt = now();
+      const step = TOOL_STEP[tool.name];
       sse.write("tool", { name: tool.name, status: "start" });
+      emitAgentEvent(sink, sse, { kind: "tool/call", name: tool.name, t: startedAt });
+      if (step) emitAgentEvent(sink, sse, { kind: "step/start", name: step, t: startedAt });
       try {
         return await tool.execute(...args);
       } finally {
+        const duration_ms = Math.max(0, now() - startedAt);
         sse.write("tool", {
           name: tool.name,
           status: "done",
-          duration_ms: Math.max(0, now() - startedAt),
+          duration_ms,
         });
+        emitAgentEvent(sink, sse, {
+          kind: "tool/result",
+          name: tool.name,
+          t: now(),
+          detail: { duration_ms },
+        });
+        if (step) {
+          emitAgentEvent(sink, sse, { kind: "step/end", name: step, t: now(), detail: { duration_ms } });
+        }
       }
     },
   }));
@@ -214,7 +272,9 @@ export async function runChatTurn(
   }
 
   session.patchesUsed = 0;
-  const tools = withToolEvents(buildTools(session, sse), sse);
+  markConflictUserReply(session, userText);
+  emitAgentEvent(session, sse, { kind: "turn/start" });
+  const tools = withToolEvents(buildTools(session, sse), sse, Date.now, session);
   const prior = Array.isArray(session.messages) ? session.messages : [];
   const autoContinue = createAutoContinueState();
   const agent = new Agent({
@@ -232,14 +292,18 @@ export async function runChatTurn(
     afterToolCall: async (context) => afterWebdemoToolCall(context),
     shouldStopAfterTurn: ({ toolResults }) =>
       Boolean(autoContinue.error) ||
-      toolResults.some((r) => isPatchBudgetRefusal(r.details)),
+      toolResults.some(
+        (r) => isPatchBudgetRefusal(r.details) || isNotesConflictWait(r.details)
+      ),
   });
 
-  return promptWithAutoContinue(
+  const ok = await promptWithAutoContinue(
     agent,
     nextUserMessage(session, userText),
     session,
     sse,
     autoContinue
   );
+  emitAgentEvent(session, sse, { kind: "turn/end", detail: { ok } });
+  return ok;
 }

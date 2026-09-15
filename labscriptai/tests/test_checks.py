@@ -71,6 +71,8 @@ def test_review_prompt_forbids_motion_and_uses_no_tools() -> None:
     assert "No tools" in REVIEW_SYSTEM_PROMPT
     assert "not syntax" in REVIEW_SYSTEM_PROMPT
     assert "SimPass error" in REVIEW_SYSTEM_PROMPT
+    assert "liha_1000" in REVIEW_SYSTEM_PROMPT
+    assert "200 µL DiTi" in REVIEW_SYSTEM_PROMPT
     for name in ("bash", "edit", "memory", "skill"):
         assert f'"{name}"' not in REVIEW_SYSTEM_PROMPT
     assert "TOOLS_SCHEMA" not in REVIEW_SYSTEM_PROMPT
