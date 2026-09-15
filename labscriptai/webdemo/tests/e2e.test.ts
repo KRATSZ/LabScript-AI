@@ -130,7 +130,8 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
     });
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
-    assert.deepEqual(missingList(session), []);
+    assert.equal(nextToolHint(session), "generate_sop");
+    session.sop = SOP;
     assert.equal(nextToolHint(session), "emit_plan");
 
     const emitted = await tool(session, "emit_plan").execute("1", { plan: HAPPY_PLAN });
@@ -151,6 +152,7 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
       goal: `Hamilton STAR: dispense ${OVERFLOW_VOL} µL into a 200 µL well.`,
       doc: SOP,
     });
+    session.sop = SOP;
     assert.equal(nextToolHint(session), "emit_plan");
 
     const emitted = await tool(session, "emit_plan").execute("1", { plan: OVERFLOW_PLAN });
@@ -174,6 +176,7 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
       doc: SOP,
     });
     session.codeService = "down";
+    session.sop = SOP;
     assert.equal(session.robot, "OT-2");
     assert.equal(nextToolHint(session), "emit_plan");
 

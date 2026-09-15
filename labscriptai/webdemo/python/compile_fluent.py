@@ -132,6 +132,20 @@ def well_token(raw: Any) -> str:
     return text.strip().upper()
 
 
+def well_on_labware(well: str, rtype: str) -> bool:
+    token = well.strip().upper()
+    if len(token) < 2 or not token[0].isalpha() or not token[1:].isdigit():
+        return False
+    row = token[0]
+    col = int(token[1:])
+    kind = (rtype or "").strip().lower()
+    if kind == "tube_rack":
+        return "A" <= row <= "D" and 1 <= col <= 6
+    if kind in {"plate", "tiprack"}:
+        return "A" <= row <= "H" and 1 <= col <= 12
+    return True
+
+
 def worklist_line(kind: str, rack: str, well: str, volume: float, liquid: str, channels: list[int]) -> str:
     return (
         f"{kind};{rack};;;{well};;{fmt_volume(volume)};{liquid};;{tip_mask(channels)};"
@@ -193,7 +207,7 @@ class FluentCompiler:
 
     def compile(self) -> dict[str, Any]:
         self._parse_resources()
-        self._warn_initial_volumes()
+        self._check_initial_volumes()
         self._add_deck_labware()
         steps = self.plan.get("steps")
         if not isinstance(steps, list) or not steps:
@@ -281,7 +295,7 @@ class FluentCompiler:
             if rtype == "tiprack":
                 self.tipracks[resource_id] = record
 
-    def _warn_initial_volumes(self) -> None:
+    def _check_initial_volumes(self) -> None:
         volumes = self.plan.get("initial_volumes_ul") or self.plan.get("initial_volumes") or {}
         if not volumes:
             return
@@ -308,8 +322,10 @@ class FluentCompiler:
                 except (TypeError, ValueError):
                     continue
                 if amount > limit:
-                    self.warnings.append(
-                        f"initial_volumes_ul {key} is {fmt_volume(amount)} µL, above {resource_id} max_volume_ul {fmt_volume(limit)}."
+                    raise CompileError(
+                        "mapping",
+                        f"initial_volumes_ul {key} is {fmt_volume(amount)} µL, above {resource_id} max_volume_ul {fmt_volume(limit)}.",
+                        "Lower the starting volume or use a well that can hold it.",
                     )
 
     def _add_deck_labware(self) -> None:
@@ -439,6 +455,13 @@ class FluentCompiler:
                 f"Step {step_no} PICK_TIPS needs tip_positions.",
                 "Example: \"tip_positions\": [\"A1\"].",
             )
+        for well in wells:
+            if not well_on_labware(well, "tiprack"):
+                raise CompileError(
+                    "mapping",
+                    f"Step {step_no} PICK_TIPS well {well} is not on a tiprack (A1–H12).",
+                    "Use a tip well that exists (A1–H12).",
+                )
         tip_rack_id = str(raw.get("tip_rack") or "").strip()
         if tip_rack_id:
             rack = self.tipracks.get(tip_rack_id) or self.resources.get(tip_rack_id)
@@ -495,7 +518,14 @@ class FluentCompiler:
         liquid = str(raw.get("liquid_class") or self.liquid_class)
         grouped: list[tuple[str, list[str]]] = []
         for resource_id, well in locs:
-            self._require_resource(resource_id, step_no, action)
+            resource = self._require_resource(resource_id, step_no, action)
+            if not well_on_labware(well, str(resource.get("type") or "")):
+                bounds = "A1–D6" if resource.get("type") == "tube_rack" else "A1–H12"
+                raise CompileError(
+                    "mapping",
+                    f"Step {step_no} {action} well {well} is not on {resource_id} ({bounds}).",
+                    f"Use a well that exists on that labware ({bounds}).",
+                )
             if grouped and grouped[-1][0] == resource_id:
                 grouped[-1][1].append(well)
             else:

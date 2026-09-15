@@ -82,6 +82,10 @@ describe("AnimationOverlay code-split", () => {
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     assert.match(app, /from ["']\.\/ExportsPanel["']/);
     assert.match(app, /<ExportsPanel session=\{session\} \/>/);
+    assert.ok(
+      app.indexOf("<ExportsPanel") < app.indexOf("<IssuesPanel"),
+      "step list and downloads must sit above developer JSON"
+    );
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
     assert.match(app, /sessionCanWatch/);
     assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);
@@ -98,5 +102,13 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(smoke, /mockRobotSideAnalysis/);
     const overlay = readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8");
     assert.match(overlay, /data-animator-error=\{this\.state\.error\}/);
+  });
+
+  it("vite falls back to local Watch stubs when LabscriptAI_cloud is absent", () => {
+    const vite = readFileSync(path.resolve(webSrc, "../vite.config.ts"), "utf8");
+    assert.match(vite, /function cloudOrStub/);
+    assert.match(vite, /stubRoot/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/normalize-analysis.ts"), "utf8"), /normalizeAnalysisOutput/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /Tecan Fluent/);
   });
 });

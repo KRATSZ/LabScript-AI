@@ -60,6 +60,22 @@ def _ok_sim(_plan) -> dict:
     return {"ok": True, "backend": "test"}
 
 
+def test_tip_positions_strip_resource_prefix() -> None:
+    payload = {
+        **DEMO,
+        "backend": "tecan_evo",
+        "steps": [
+            {**DEMO["steps"][0], "tip_positions": ["TIPS:A1"]},
+            *DEMO["steps"][1:],
+        ],
+    }
+    plan = load_plan(payload)
+    assert plan.steps[0].tip_positions == ("A1",)
+    if pylabrobot_available():
+        out = run_plr_sim(plan)
+        assert out["ok"] is True, out
+
+
 def test_load_plan_accepts_demo() -> None:
     plan = load_plan(DEMO)
     assert plan.schema == PLAN_SCHEMA_ID
@@ -98,7 +114,13 @@ def test_virtual_deck_overflow() -> None:
     assert deck.issues[0].code == "LP-OVERFLOW"
 
 
-def test_virtual_deck_empty() -> None:
+def test_virtual_deck_initial_overflow():
+    payload = {**DEMO, "initial_volumes_ul": {"plate:A1": 1000, "plate:B1": 0}}
+    deck = evaluate_virtual_deck(load_plan(payload))
+    assert deck.ok is False
+    assert deck.issues[0].code == "LP-OVERFLOW"
+    assert deck.issues[0].step_id == "initial"
+    assert "already exceeds" in deck.issues[0].detail_text
     payload = {**DEMO, "initial_volumes_ul": {"plate:A1": 10, "plate:B1": 0}}
     payload = {
         **payload,

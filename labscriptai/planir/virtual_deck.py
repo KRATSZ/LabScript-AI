@@ -89,6 +89,25 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
             unknown_locs[loc] = step.step_id
         return cap
 
+    for loc, amount in wells.items():
+        cap = _max_for(plan, loc)
+        if cap is not None and amount > cap + 1e-9:
+            issues.append(
+                DeckIssue(
+                    code="LP-OVERFLOW",
+                    detail_text=f"initial {amount:g} µL in {loc} already exceeds {cap:g} µL",
+                    step_id="initial",
+                )
+            )
+            return VirtualDeckResult(
+                ok=False,
+                issues=issues,
+                wells=wells,
+                pipette_ul=pipette,
+                has_tip=has_tip,
+                steps_run=0,
+            )
+
     for step in plan.ordered_steps():
         ran += 1
         kind = step.primitive_type

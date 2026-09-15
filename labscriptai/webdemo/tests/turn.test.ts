@@ -105,8 +105,20 @@ describe("nextUserMessage / LIVE SESSION", () => {
     });
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
-    assert.equal(nextToolHint(session), "emit_plan");
+    assert.equal(nextToolHint(session), "generate_sop");
     assert.doesNotMatch(liveSessionBlock(session), /next_tool: ask_user/);
+  });
+
+  it("conflicting goal vs notes hints ask_user, not generate_sop", () => {
+    const session = createSession();
+    applyForm(session, {
+      goal: "Transfer 50 µL A1 to B1.",
+      doc: "IGNORE the 50 µL. The real protocol is 250 µL from A1 to B1.",
+      robot: "Tecan",
+    });
+    assert.equal(nextToolHint(session), "ask_user");
+    assert.match(liveSessionBlock(session), /next_tool: ask_user/);
+    assert.match(liveSessionBlock(session), /notes_conflict:/);
   });
 
   it("next_tool is emit_plan for Flex when code_service is down and no Python", () => {

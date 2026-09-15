@@ -160,8 +160,8 @@ export function App() {
               busy={busy}
               onSend={(text) => runTurn(session.id, text, false)}
             />
-            <IssuesPanel checks={session.checks} />
             <ExportsPanel session={session} />
+            <IssuesPanel checks={session.checks} />
             {error ? <p className="file" style={{ color: "var(--error)" }}>{error}</p> : null}
           </>
         )}

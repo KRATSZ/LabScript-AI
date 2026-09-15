@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, searchForWorkspaceRoot } from "vite";
@@ -7,8 +8,13 @@ const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const demoRoot = path.resolve(webRoot, "..");
 const cloudRoot = path.resolve(demoRoot, "../../../LabscriptAI_cloud");
 const slimRoot = path.join(cloudRoot, "web/opentrons-protocol-visualizer-web-slim");
+const stubRoot = path.join(webRoot, "src", "stubs");
 const nm = path.join(demoRoot, "node_modules");
 const fromNm = (pkg: string): string => path.join(nm, pkg);
+
+function cloudOrStub(cloudFile: string, stubName: string): string {
+  return existsSync(cloudFile) ? cloudFile : path.join(stubRoot, stubName);
+}
 
 export default defineConfig({
   root: webRoot,
@@ -26,7 +32,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     fs: {
-      allow: [searchForWorkspaceRoot(webRoot), cloudRoot],
+      allow: [searchForWorkspaceRoot(webRoot), ...(existsSync(cloudRoot) ? [cloudRoot] : [])],
     },
     proxy: {
       "/api": {
@@ -45,13 +51,13 @@ export default defineConfig({
       "@opentrons/components": path.join(slimRoot, "components/src/index.ts"),
       "@opentrons/shared-data": path.join(slimRoot, "shared-data/js/index.ts"),
       "@opentrons/step-generation": path.join(slimRoot, "step-generation/src/index.ts"),
-      "@visualizer/normalize-analysis": path.join(
-        slimRoot,
-        "protocol-visualizer-web/client/src/normalizeAnalysisOutput.ts"
+      "@visualizer/normalize-analysis": cloudOrStub(
+        path.join(slimRoot, "protocol-visualizer-web/client/src/normalizeAnalysisOutput.ts"),
+        "normalize-analysis.ts"
       ),
-      "@visualizer/animator": path.join(
-        cloudRoot,
-        "labscriptAI-frontend/src/components/ProtocolOperationAnimator.tsx"
+      "@visualizer/animator": cloudOrStub(
+        path.join(cloudRoot, "labscriptAI-frontend/src/components/ProtocolOperationAnimator.tsx"),
+        "animator.tsx"
       ),
       "@popperjs/core": fromNm("@popperjs/core"),
       "@react-spring/types": fromNm("@react-spring/types"),

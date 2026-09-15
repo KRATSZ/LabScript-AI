@@ -33,6 +33,18 @@ describe("planStepLine", () => {
   it("handles pick tips without volume", () => {
     assert.equal(planStepLine({ step_id: "pick", primitive_type: "PICK_TIPS" }), "pick PICK_TIPS");
   });
+
+  it("shows tip rack and well after TIPS:A1 was stored as A1", () => {
+    assert.equal(
+      planStepLine({
+        step_id: "1",
+        primitive_type: "PICK_TIPS",
+        tip_rack: "tips",
+        tip_positions: ["A1"],
+      }),
+      "1 PICK_TIPS tips:A1"
+    );
+  });
 });
 
 describe("downloadable", () => {

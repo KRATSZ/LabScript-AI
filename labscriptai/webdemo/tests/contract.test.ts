@@ -16,6 +16,9 @@ describe("demo contract lock", () => {
     assert.match(session, /plan\?:/);
     assert.match(session, /plan: session\.plan/);
     assert.match(session, /diti/);
+    assert.match(session, /export function reviewIntent/);
+    assert.match(session, /Generated SOP/);
+    assert.match(session, /Assumed Tecan tips are 200/);
     assert.match(
       session,
       /if \(isOpentrons\(session\) && session\.code\?\.trim\(\)\) return "opentrons"/
@@ -41,6 +44,8 @@ describe("demo contract lock", () => {
     assert.match(backend, /runHamiltonCompile/);
     assert.match(backend, /compile_hamilton\.py/);
     assert.match(backend, /eval_plan\.py/);
+
+    assert.match(read("server/src/tools.ts"), /reviewIntent\(session\)/);
 
     const types = read("web/src/types.ts");
     assert.match(types, /^\s*plan:/m);
@@ -80,6 +85,12 @@ describe("demo contract lock", () => {
     assert.match(prompt, /Watch\/animation is unavailable/);
     assert.doesNotMatch(prompt, /Default path for EVERY robot/);
 
+    const env = read("server/src/env.ts");
+    assert.match(env, /LABSCRIPTAI_DEEPSEEK_API_KEY/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_API_KEY"/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_MODEL"/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_BASE_URL"/);
+
     const tools = read("server/src/tools.ts");
     assert.match(tools, /Do not ask which robot/);
     assert.match(tools, /Preferred for OT-2 and Flex/);
@@ -97,7 +108,7 @@ describe("demo contract lock", () => {
     assert.match(tools, /mode:"append"/);
     assert.match(tools, /DROP_TIPS must come first/);
     assert.match(tools, /Tecan standard wells: 96-well plate 360/);
-    assert.match(tools, /1000 µL DiTi/);
+    assert.match(tools, /200 µL DiTi/);
     assert.match(tools, /must_call: "emit_plan"/);
     assert.match(tools, /Call emit_plan then run_checks/);
     assert.doesNotMatch(tools, /8010_unreachable/);
