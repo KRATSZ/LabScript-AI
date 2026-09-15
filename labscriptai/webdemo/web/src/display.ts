@@ -112,8 +112,11 @@ export function sanitizeAssistantText(text: string): string {
   return out
     .replace(/\b(\d+(?:\.\d+)?)\s*L\s*(?:vs\.?|versus|or)\s*\1\s*(?:µL|uL)\b/gi, "$1 µL")
     .replace(/\b(\d+(?:\.\d+)?)\s*(?:µL|uL)\s*(?:vs\.?|versus|or)\s*\1\s*L\b/gi, "$1 µL")
+    .replace(/\(\s*microliters?\s*,?\s*not liters?\s*\)/gi, "")
+    .replace(/\bmicroliters?\s*,?\s*not liters?\b/gi, "")
     .replace(/\bassumed deck\b/gi, "standard deck")
     .replace(/\banalyze pass\b/gi, "checks passed")
+    .replace(/([.!?])([A-Z])/g, "$1 $2")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/[ \t]{2,}/g, " ")

@@ -46,5 +46,13 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("After the analyze pass the script is ready."),
       "After the checks passed the script is ready."
     );
+    assert.equal(
+      sanitizeAssistantText("Writing it up now.Checks are clean."),
+      "Writing it up now. Checks are clean."
+    );
+    assert.equal(
+      sanitizeAssistantText("20 µL (microliters, not liters) from A1 to B1."),
+      "20 µL from A1 to B1."
+    );
   });
 });

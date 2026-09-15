@@ -29,7 +29,7 @@ function DeckStrip({ session }: { session: SessionSnapshot }) {
           {slot}: {labwareLabel(labware) || labware}
         </p>
       ))}
-      {session.deck_assumed ? <p className="hint">Standard layout — software preview, not a live robot.</p> : null}
+      {session.deck_assumed ? <p className="hint">Software preview — not a live robot.</p> : null}
       {session.device_note ? <p className="hint">{session.device_note}</p> : null}
     </div>
   );
@@ -89,8 +89,8 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
       ) : !hasDeck ? (
         <p className="hint">
           {isPlanCodegen(session.robot)
-            ? "Steps and check results show here after the protocol is written."
-            : "When checks pass, Watch uses this pane. Otherwise the step list appears."}
+            ? "Steps show here after the protocol is written."
+            : "The deck preview shows here after checks pass."}
         </p>
       ) : null}
       {!hasDeck ? <IssuesPanel checks={session.checks} /> : null}

@@ -64,9 +64,7 @@ export function phaseLabel(
   deckPreview = false
 ): string {
   if (canWatch || deckPreview) return "Ready to watch";
-  if (status === "pass") {
-    return planBackend ? "Checks passed — step table below" : "Checks passed — no animation available";
-  }
+  if (status === "pass") return "Checks passed";
   if (status === "fail") return "Checks failed";
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
   if (phase === "need_hw_slots") return "Missing deck details";

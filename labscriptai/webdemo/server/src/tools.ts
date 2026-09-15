@@ -163,7 +163,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       }
       if (intakeOpen(session)) {
         const ask =
-          "I want to confirm volume, wells, mix, and the standard deck before writing the protocol. Please answer in chat — I have not made a SOP or download yet.";
+          "Confirm volume, wells, mix, and the standard deck — nothing is written yet.";
         sse.write("text", { token: `\n\n${ask}\n` });
         return {
           content: [

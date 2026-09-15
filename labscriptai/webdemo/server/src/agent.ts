@@ -62,7 +62,7 @@ export const POST_RUN_CHECKS_WITHHELD_HINT =
 export const POST_NOTES_CONFLICT_HINT =
   "SYSTEM HINT: Notes conflict with the goal. Call ask_user, tell the user both volumes, and STOP. Do not generate_sop, emit_plan, run_checks, or say a .gwl is ready until the user answers.";
 export const POST_INTAKE_HINT =
-  "SYSTEM HINT: Confirm volume, wells, mix, and the standard deck. Ask 1–2 short lab questions in chat, call ask_user, and STOP. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. No tool names in the user-facing message.";
+  "SYSTEM HINT: Confirm volume, wells, mix, and the standard deck. Ask 1–2 short lab questions in chat, call ask_user, and STOP. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. After they confirm the standard deck, do not ask pipette vs tip size. Do not mention liters unless they wrote liters. No tool names in the user-facing message.";
 
 export function isNotesConflictWait(details: unknown): boolean {
   if (!details || typeof details !== "object") return false;

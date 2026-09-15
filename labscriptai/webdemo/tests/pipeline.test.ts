@@ -144,8 +144,8 @@ describe("pipelineStates", () => {
 describe("phaseLabel", () => {
   it("maps three check states and leaves pre-check phases alone", () => {
     assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
-    assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed — no animation available");
-    assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed — step table below");
+    assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed");
+    assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed");
     assert.equal(
       phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true),
       "Ready to watch"
@@ -208,7 +208,7 @@ describe("robot switch snapshot", () => {
     assert.equal(ham.analyze, null);
     assert.notEqual(ot.sop, ham.sop);
     assert.equal(phaseLabel(ot.phase, ot.checks?.status, true, false), "Ready to watch");
-    assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed — step table below");
+    assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed");
     assert.equal(
       phaseLabel(ham.phase, ham.checks?.status, false, true, undefined, undefined, undefined, true),
       "Ready to watch"

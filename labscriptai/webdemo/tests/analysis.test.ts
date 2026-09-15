@@ -38,16 +38,16 @@ describe("sessionCanWatch", () => {
 describe("watchUnavailableCopy", () => {
   const cmds = { commands: [{ commandType: "home" }] };
 
-  it("explains 8010 down for OT devices and stays quiet for Hamilton", () => {
+  it("explains a down preview service for OT devices and stays quiet for Hamilton", () => {
     assert.match(
       watchUnavailableCopy("OT-2", "down", null, null) ?? "",
-      /8010/
+      /local preview service/
     );
     assert.equal(watchUnavailableCopy("Hamilton", "down", "pass", cmds), null);
     assert.equal(watchUnavailableCopy("OT-2", "up", "pass", cmds), null);
     assert.match(
       watchUnavailableCopy("Flex", "up", "pass", null) ?? "",
-      /Watch stays off/
+      /no motion/
     );
   });
 });
