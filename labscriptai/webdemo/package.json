@@ -7,7 +7,7 @@
     "dev:server": "tsx watch server/src/index.ts",
     "dev:web": "vite --config web/vite.config.ts",
     "build": "vite build --config web/vite.config.ts",
-    "test": "npx tsc --noEmit && npx tsc --noEmit -p web/tsconfig.json && node --import tsx --test tests/*.test.ts && PYTHONPATH=../.. python3 python/test_eval_logicpass.py && PYTHONPATH=../.. python3 python/test_eval_plan.py && PYTHONPATH=../.. python3 python/test_compile_fluent.py && PYTHONPATH=../.. python3 python/test_compile_hamilton.py && PYTHONPATH=python python3 python/test_pylabrobot_backend.py"
+    "test": "npx tsc --noEmit && npx tsc --noEmit -p web/tsconfig.json && node --import tsx --test tests/*.test.ts && PYTHONPATH=../.. python3 python/test_eval_logicpass.py && PYTHONPATH=../.. python3 python/test_eval_plan.py && PYTHONPATH=../.. python3 python/test_compile_fluent.py && PYTHONPATH=../.. python3 python/test_compile_hamilton.py && PYTHONPATH=python python3 python/test_pylabrobot_backend.py && PYTHONPATH=python python3 python/test_code_service.py"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "^0.85.1",

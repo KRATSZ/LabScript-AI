@@ -120,6 +120,6 @@ describe("AnimationOverlay code-split", () => {
     assert.match(vite, /function cloudOrStub/);
     assert.match(vite, /stubRoot/);
     assert.match(readFileSync(path.join(webSrc, "stubs/normalize-analysis.ts"), "utf8"), /normalizeAnalysisOutput/);
-    assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /Tecan Fluent/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /8010 analyze/);
   });
 });

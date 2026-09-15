@@ -12,7 +12,7 @@ _TIP_POSITION_PREFIX = re.compile(r"^([A-Za-z][A-Za-z0-9_]*):([A-Ha-h][0-9]{1,2}
 LH_PRIMITIVES = frozenset(
     {"ASPIRATE", "DISPENSE", "MIX", "PICK_TIPS", "DROP_TIPS", "WAIT"}
 )
-PLR_BACKENDS = frozenset({"serializing", "hamilton", "ot2", "tecan_evo", "auto"})
+PLR_BACKENDS = frozenset({"serializing", "hamilton", "ot2", "tecan_evo", "tecan_fluent", "auto"})
 
 
 class PlanError(ValueError):

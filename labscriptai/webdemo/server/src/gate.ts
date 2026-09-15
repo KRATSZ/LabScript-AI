@@ -291,12 +291,13 @@ export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
   return review?.match === false && !isReviewerUnavailable(review);
 }
 
-/** liha_1000 is the pipette. Do not treat a Tecan claim of 1000 µL DiTi vs 200 µL DiTi as a real mismatch. */
+/** FCA/LiHa 1000 is the pipette. Do not treat a Tecan claim of 1000 µL DiTi vs 200 µL DiTi as a real mismatch. */
 export function isInventedLihaTipSizeFinding(item: LlmReviewFinding): boolean {
   const claim = String(item.claim ?? "").toLowerCase();
   if (!claim) return false;
   const wants1000 =
     /liha[_\s-]*1000/.test(claim) ||
+    /fca[_\s-]*1000/.test(claim) ||
     /1000\s*(?:µl|ul|μl)\s*diti/.test(claim) ||
     /intent specifies 1000/.test(claim);
   const has200 = /200\s*(?:µl|ul|μl)|200ul|diti_200/.test(claim);

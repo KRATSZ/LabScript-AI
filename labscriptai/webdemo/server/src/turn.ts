@@ -1,7 +1,7 @@
 import { assumedCapacityLine } from "./devices.ts";
 import { animationAllowed, compactChecks } from "./gate.ts";
 import { SYSTEM_PROMPT } from "./prompt.ts";
-import { isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
+import { deviceFor, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
 
 export const CONTINUE_STEER =
   "Continue from LIVE SESSION. Run next_tool. Ask only for volumes, wells, sample counts, or labware the assumed deck does not have. Never ask which robot.";
@@ -85,7 +85,7 @@ export function nextUserMessage(session: SessionState, text: string): string {
   return [
     `Goal: ${session.goal ?? ""}`,
     `Doc: ${session.doc === "none" || !session.doc ? "none (agent should write SOP later)" : "SOP draft provided"}`,
-    `Robot: ${session.robot ?? "unset"}`,
+    `Robot: ${deviceFor(session.robot)?.label ?? session.robot ?? "unset"}`,
     capacity ? `Assumed deck: ${capacity}` : "",
     session.doc && session.doc !== "none" ? `\nSOP draft:\n${session.doc}` : "",
   ]

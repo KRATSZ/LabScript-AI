@@ -292,11 +292,11 @@ describe("one-patch budget", () => {
   it("emit_plan strips TIPS:A1, tells the model, and stores A1", async () => {
     const session = createSession();
     applyForm(session, { goal: "Tecan: transfer 50 µL A1 to B1", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "tecan_evo_standard" });
+    applyAskUser(session, { preset: "tecan_fluent_standard" });
     session.sop = "# SOP\n1. A";
     const prefixed = {
       ...DEMO_PLAN,
-      backend: "tecan_evo",
+      backend: "tecan_fluent",
       steps: DEMO_PLAN.steps.map((step, index) =>
         index === 0 ? { ...step, tip_positions: ["TIPS:A1"] } : step
       ),
@@ -591,6 +591,18 @@ describe("goal vs notes conflict gate", () => {
       goal: "Transfer 250 µL A1 to B1.",
     });
     assert.equal(JSON.parse(toolText(notesVolume)).wait, true);
+    assert.equal(session.draftConflictResolved, false);
+    assert.equal(session.goal, GOAL_50);
+  });
+
+  it("does not persist a purely negative incoming goal after a 250 pick", async () => {
+    const session = createSession();
+    applyForm(session, { goal: GOAL_50, doc: conflictDoc, robot: "Tecan" });
+    await tool(session, "ask_user").execute("1", { goal: GOAL_50 });
+    markConflictUserReply(session, "use 250 not 50");
+
+    const negative = await tool(session, "ask_user").execute("2", { goal: "do not use 50" });
+    assert.equal(JSON.parse(toolText(negative)).wait, true);
     assert.equal(session.draftConflictResolved, false);
     assert.equal(session.goal, GOAL_50);
   });

@@ -95,6 +95,8 @@ export interface SessionSnapshot {
   code_service?: "up" | "down";
   events?: AgentEvent[];
   device_id?: string | null;
+  device_label?: string | null;
+  device_note?: string | null;
 }
 
 export interface ChatMessage {

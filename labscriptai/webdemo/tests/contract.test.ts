@@ -18,7 +18,7 @@ describe("demo contract lock", () => {
     assert.match(session, /diti/);
     assert.match(session, /export function reviewIntent/);
     assert.match(session, /Generated SOP/);
-    assert.match(session, /Assumed Tecan tips are 200/);
+    assert.match(session, /Assumed Fluent tips are 200/);
     assert.match(
       session,
       /if \(isOpentrons\(session\) && session\.code\?\.trim\(\)\) return "opentrons"/
@@ -59,7 +59,7 @@ describe("demo contract lock", () => {
     assert.match(SYSTEM_PROMPT, /Hamilton Vantage: step JSON \+ runnable PyLabRobot script \(\.py\)/);
     assert.match(SYSTEM_PROMPT, /Deliverables:/);
     assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
-    assert.match(SYSTEM_PROMPT, /Tecan: \.gwl worklist \+ step JSON, no Watch/);
+    assert.match(SYSTEM_PROMPT, /Tecan Fluent: \.gwl worklist \+ step JSON, no Watch/);
     assert.ok(SYSTEM_PROMPT.trim().split("\n").length <= 32);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);

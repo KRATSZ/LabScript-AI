@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const repoRoot = path.resolve(root, "../..");
+const python = process.env.LABSCRIPTAI_PYTHON || "python3";
 
 function canBind(host, port) {
   return new Promise((resolve) => {
@@ -17,8 +19,8 @@ function canBind(host, port) {
 }
 
 const host = "127.0.0.1";
-const ports = [8787, 5173];
-for (const port of ports) {
+const required = [8787, 5173];
+for (const port of required) {
   if (!(await canBind(host, port))) {
     console.error(`Cannot bind ${host}:${port}. Do not start.`);
     process.exit(1);
@@ -38,6 +40,18 @@ const children = [
   }),
 ];
 
+if (await canBind(host, 8010)) {
+  children.push(
+    spawn(python, ["python/code_service.py"], {
+      cwd: root,
+      stdio: "inherit",
+      env: { ...process.env, PYTHONPATH: `${root}/python${path.delimiter}${repoRoot}` },
+    })
+  );
+} else {
+  console.log("8010 already bound; reusing existing code service");
+}
+
 const stop = () => {
   for (const child of children) {
     if (!child.killed) child.kill("SIGTERM");
@@ -55,4 +69,4 @@ for (const child of children) {
   });
 }
 
-console.log("webdemo: server http://127.0.0.1:8787  ui http://127.0.0.1:5173");
+console.log("webdemo: server http://127.0.0.1:8787  ui http://127.0.0.1:5173  code http://127.0.0.1:8010");

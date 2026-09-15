@@ -100,12 +100,13 @@ describe("device registry", () => {
     assert.equal(vantage.artifactExt, ".py");
     assert.deepEqual(vantage.checks, ["virtual_deck", "plr_sim"]);
     assert.equal(fluent.codegen, "plan_ir");
-    assert.equal(fluent.planBackend, "tecan_evo");
+    assert.equal(fluent.planBackend, "tecan_fluent");
     assert.equal(fluent.animation, false);
     assert.equal(fluent.artifactExt, ".gwl");
     assert.deepEqual(fluent.checks, ["virtual_deck", "plr_sim", "pyfluent_compile"]);
     assert.equal(fluent.label, "Tecan Fluent");
-    assert.equal(fluent.note, undefined);
+    assert.match(fluent.note || "", /FluentControl/);
+    assert.match(fluent.note || "", /Freedom EVO/);
   });
 
   it("hardware presets match the moved OT-2 / Flex / Hamilton / Tecan decks", () => {
@@ -114,7 +115,7 @@ describe("device registry", () => {
       "flex_1000_standard3",
       "hamilton_star_standard",
       "hamilton_vantage_standard",
-      "tecan_evo_standard",
+      "tecan_fluent_standard",
     ]);
     assert.equal(HARDWARE_PRESETS.ot2_p300_standard3.leftPipette, "p300_single_gen2");
     assert.equal(HARDWARE_PRESETS.ot2_p300_standard3.deck["1"], "opentrons_96_tiprack_300ul");
@@ -126,8 +127,8 @@ describe("device registry", () => {
     assert.equal(knownHamiltonWellUl("hamilton_96_tiprack_300ul"), undefined);
     assert.equal(knownHamiltonWellUl("opentrons_96_wellplate_200ul_flat"), undefined);
     assert.equal(knownHamiltonWellUl("mystery_plate"), undefined);
-    assert.equal(HARDWARE_PRESETS.tecan_evo_standard.deck["1"], "tecan_diti_200ul_tiprack");
-    assert.equal(HARDWARE_PRESETS.tecan_evo_standard.leftPipette, "liha_1000");
+    assert.equal(HARDWARE_PRESETS.tecan_fluent_standard.deck["1"], "tecan_diti_200ul_tiprack");
+    assert.equal(HARDWARE_PRESETS.tecan_fluent_standard.leftPipette, "fca_1000");
     assert.equal(knownTecanWellUl("tecan_96_wellplate"), 360);
     assert.equal(knownTecanWellUl("nest_12_reservoir_15ml"), 15_000);
     assert.equal(knownTecanWellUl("TECAN_96_WELLPLATE"), 360);
@@ -161,7 +162,7 @@ describe("device registry", () => {
     assert.equal(isRobotModel("Tecan Fluent"), false);
     assert.equal(planBackendFor("Hamilton"), "hamilton");
     assert.equal(planBackendFor("Vantage"), "hamilton");
-    assert.equal(planBackendFor("Tecan"), "tecan_evo");
+    assert.equal(planBackendFor("Tecan"), "tecan_fluent");
     assert.equal(planBackendFor("OT-2"), "serializing");
     assert.equal(planBackendFor("Flex"), "serializing");
     assert.equal(planBackendFor(undefined), "auto");

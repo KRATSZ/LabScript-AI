@@ -32,21 +32,23 @@ Three states, never a silent pass:
 
 ## Run
 
-Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY` (or `DEEPSEEK_API_KEY`) in `labscriptai/webdemo/.env`. Model: **`deepseek-flash`**. Copy `.env.example`. Never commit keys. **8010** is required for OT-2/Flex Python and Watch.
+Need a DeepSeek key: `LABSCRIPTAI_DEEPSEEK_API_KEY` (or `DEEPSEEK_API_KEY`) in `labscriptai/webdemo/.env`. Model: **`deepseek-flash`**. Copy `.env.example`. Never commit keys. **8010** is the local OT code/analyze service (`python/code_service.py`); `npm run dev` starts it on `127.0.0.1:8010` next to 8787 and 5173. Install `pip install -r python/requirements-code-service.txt` once. If 8010 is down, OT-2/Flex Watch and Python codegen stay off — the UI does not fake them.
 
 Optional: `pip install pylabrobot` for Hamilton/Tecan and OT step-table simulation. Missing PyLabRobot reports cannot-verify, not pass.
 
 ```bash
 cd labscriptai/webdemo
+cp .env.example .env   # set LABSCRIPTAI_DEEPSEEK_* — never commit
+pip install -r python/requirements-code-service.txt
 npm install
-npm run dev
+npm test && npm run dev
 ```
 
 Open http://127.0.0.1:5173
 
 - UI: `127.0.0.1:5173` (Vite)
 - Agent server: `127.0.0.1:8787`
-- Backend: `127.0.0.1:8010`
+- Backend (OT Python + simulate + analyze): `127.0.0.1:8010` (`python/code_service.py`)
 
 ```bash
 cd labscriptai/webdemo && npm test

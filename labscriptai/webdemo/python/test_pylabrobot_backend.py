@@ -11,6 +11,7 @@ from pylabrobot_backend import (
 
 class PylabrobotBackendTests(unittest.TestCase):
     def test_tecan_display_name_is_not_hamilton(self) -> None:
+        self.assertEqual(normalize_robot_model("Tecan"), "tecan_fluent")
         self.assertEqual(normalize_robot_model("Tecan Freedom EVO"), "tecan_evo")
         self.assertEqual(normalize_robot_model("Tecan Fluent"), "tecan_fluent")
         self.assertEqual(normalize_robot_model("Hamilton STAR"), "hamilton_star")
@@ -37,7 +38,8 @@ class PylabrobotBackendTests(unittest.TestCase):
                 {"primitive_type": "DISPENSE", "volume_ul": 5000},
             ]
         }
-        self.assertIsNone(plan_volume_error(small, "Tecan Fluent"))
+        self.assertEqual(plan_volume_error(small, "Tecan Fluent"), None)
+        self.assertIsNone(plan_volume_error(small, "Tecan"))
         err = plan_volume_error(huge, "Tecan Freedom EVO")
         self.assertIsNotNone(err)
         self.assertIn("5000", err or "")

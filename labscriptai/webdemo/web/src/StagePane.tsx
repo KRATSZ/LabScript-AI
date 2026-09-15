@@ -27,6 +27,7 @@ function DeckStrip({ session }: { session: SessionSnapshot }) {
         </p>
       ))}
       {session.deck_assumed ? <p className="hint">Standard layout — not a live robot.</p> : null}
+      {session.device_note ? <p className="hint">{session.device_note}</p> : null}
     </div>
   );
 }

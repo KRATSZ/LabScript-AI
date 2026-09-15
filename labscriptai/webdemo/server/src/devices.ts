@@ -1,7 +1,7 @@
 export type DeviceId = "ot2" | "flex" | "hamilton_star" | "hamilton_vantage" | "tecan_fluent";
 export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Vantage" | "Tecan";
 export type HamiltonFamily = "star" | "vantage";
-export type PlanBackend = "serializing" | "hamilton" | "ot2" | "tecan_evo" | "auto";
+export type PlanBackend = "serializing" | "hamilton" | "ot2" | "tecan_evo" | "tecan_fluent" | "auto";
 export type CodegenKind = "opentrons_python" | "plan_ir";
 
 export interface HardwarePresetBody {
@@ -79,7 +79,7 @@ export const TECAN_STANDARD_WELL_UL: Record<string, number> = {
   nest_12_reservoir_15ml: 15_000,
 };
 
-/** Standard Fluent LiHa DiTi capacity on the assumed deck (tecan_diti_200ul_tiprack). LiHa 1000 is the pipette, not a 1000 µL tip. */
+/** Assumed Fluent FCA DiTi capacity (tecan_diti_200ul_tiprack). fca_1000 is the pipette, not a 1000 µL tip. */
 export const TECAN_STANDARD_TIP_UL = 200;
 
 export function knownTecanWellUl(labware: string | undefined): number | undefined {
@@ -153,7 +153,7 @@ export function assumedCapacityLine(
 }
 
 const TECAN_HW = {
-  leftPipette: "liha_1000",
+  leftPipette: "fca_1000",
   rightPipette: "None",
   apiVersion: "",
   deck: {
@@ -168,7 +168,7 @@ export const HARDWARE_PRESETS = {
   flex_1000_standard3: FLEX_HW,
   hamilton_star_standard: HAMILTON_HW,
   hamilton_vantage_standard: HAMILTON_HW,
-  tecan_evo_standard: TECAN_HW,
+  tecan_fluent_standard: TECAN_HW,
 } as const;
 
 export type HardwarePresetId = keyof typeof HARDWARE_PRESETS;
@@ -228,11 +228,12 @@ export const DEVICE_REGISTRY: DeviceProfile[] = [
     aliases: [/\btecan\b/],
     legacyRobot: "Tecan",
     codegen: "plan_ir",
-    planBackend: "tecan_evo",
+    planBackend: "tecan_fluent",
     checks: ["virtual_deck", "plr_sim", "pyfluent_compile"],
     animation: false,
     artifactExt: ".gwl",
-    hardwarePreset: { id: "tecan_evo_standard", ...TECAN_HW },
+    hardwarePreset: { id: "tecan_fluent_standard", ...TECAN_HW },
+    note: "PyLabRobot has no Fluent deck. virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent .gwl for FluentControl, not EVOware.",
   },
 ];
 

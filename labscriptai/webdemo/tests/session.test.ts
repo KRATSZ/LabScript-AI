@@ -281,7 +281,7 @@ describe("session machine", () => {
   it("Tecan DiTi preset counts as tips", () => {
     const session = createSession();
     applyForm(session, { goal: "transfer", doc: "# SOP\n1. A" });
-    applyAskUser(session, { preset: "tecan_evo_standard" });
+    applyAskUser(session, { preset: "tecan_fluent_standard" });
     assert.equal(session.robot, "Tecan");
     assert.equal(enoughHardware(session), true);
     assert.equal(shouldCallCompactSop(session), true);
@@ -289,7 +289,11 @@ describe("session machine", () => {
     session.sop = "# SOP\n1. A";
     assert.equal(canEmitPlan(session), true);
     assert.equal(canGenerateCode(session), false);
-    assert.match(formatHardwareConfig(session), /Plan backend: tecan_evo/);
+    assert.match(formatHardwareConfig(session), /Robot Model: Tecan Fluent/);
+    assert.match(formatHardwareConfig(session), /Plan backend: tecan_fluent/);
+    assert.match(formatHardwareConfig(session), /fca_1000/);
+    assert.match(formatHardwareConfig(session), /Freedom EVO/);
+    assert.doesNotMatch(formatHardwareConfig(session), /Robot Model: Tecan Evo/);
   });
 
   it("non-Opentrons Plan IR still routes checks to plan", () => {
@@ -661,7 +665,7 @@ describe("goal vs notes volume conflict", () => {
     assert.doesNotMatch(intent50, /PI is happy/);
     assert.doesNotMatch(intent50, /Existing SOP draft/);
     assert.match(intent50, /200 µL DiTi/);
-    assert.match(intent50, /liha_1000 is the LiHa pipette/);
+    assert.match(intent50, /fca_1000 is the FCA pipette/);
 
     session.goal = "Transfer 250 µL A1 to B1.";
     session.sop = "# Transfer 250 µL from A1 to B1\n1. 125 µL then 125 µL";
@@ -682,6 +686,7 @@ describe("goal vs notes volume conflict", () => {
     const intent = reviewIntent(session);
     assert.match(intent, /50/);
     assert.doesNotMatch(intent, /liha_1000/);
+    assert.doesNotMatch(intent, /fca_1000/);
     assert.doesNotMatch(intent, /200 µL DiTi/);
   });
 
@@ -715,5 +720,16 @@ describe("goal vs notes volume conflict", () => {
     assert.equal(canResolveGoalNotesConflict(session), false);
     assert.equal(canResolveGoalNotesConflict(session, "Transfer 50 µL A1 to B1."), false);
     assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), false);
+  });
+
+  it("does not treat a purely negative incoming goal as the leftover volume", () => {
+    assert.equal(chosenVolumeInText("do not use 50", [50, 250]), 250);
+    assert.equal(chosenVolumeInText("do not use 50", [50, 250], { leftover: false }), undefined);
+
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1.", doc: conflictDoc, robot: "Tecan" });
+    markConflictUserReply(session, "use 250 not 50");
+    assert.equal(canResolveGoalNotesConflict(session, "do not use 50"), false);
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), true);
   });
 });

@@ -37,8 +37,10 @@ def normalize_robot_model(raw: Optional[str]) -> str:
     slug = re.sub(r"[^a-z0-9]+", "_", (raw or "").strip().strip("'\"").lower()).strip("_")
     if not slug:
         return ""
-    if "tecan" in slug or "freedom_evo" in slug or "fluent" in slug:
-        return "tecan_fluent" if "fluent" in slug else "tecan_evo"
+    if "fluent" in slug or slug == "tecan":
+        return "tecan_fluent"
+    if "tecan" in slug or "freedom_evo" in slug:
+        return "tecan_evo"
     if "vantage" in slug:
         return "hamilton_vantage"
     if "hamilton" in slug or slug in {"star", "starlet"}:

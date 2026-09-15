@@ -4,12 +4,12 @@ function andList(names: string[]): string {
   return names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 }
 
-const ROBOT_NAMES = DEVICE_REGISTRY.map((d) => d.legacyRobot);
-const PYTHON_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "opentrons_python").map((d) => d.legacyRobot);
-const PLAN_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "plan_ir").map((d) => d.legacyRobot);
+const ROBOT_NAMES = DEVICE_REGISTRY.map((d) => d.label);
+const PYTHON_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "opentrons_python").map((d) => d.label);
+const PLAN_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "plan_ir").map((d) => d.label);
 
 function deliverable(d: DeviceProfile): string {
-  if (d.id === "tecan_fluent") return "Tecan: .gwl worklist + step JSON, no Watch";
+  if (d.id === "tecan_fluent") return "Tecan Fluent: .gwl worklist + step JSON, no Watch";
   if (d.id === "hamilton_star") return "Hamilton STAR: step JSON + runnable PyLabRobot script (.py), no Watch";
   if (d.id === "hamilton_vantage") return "Hamilton Vantage: step JSON + runnable PyLabRobot script (.py), no Watch";
   const kind = d.codegen === "opentrons_python" ? `Python (${d.artifactExt})` : `step-table JSON (${d.artifactExt})`;

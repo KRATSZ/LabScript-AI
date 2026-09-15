@@ -194,13 +194,17 @@ function rejectedVolumesInText(text: string, allowed: number[]): number[] {
 }
 
 /** Unique allowed volume the text picks. µL and unit-less numbers count; rejected volumes do not. */
-export function chosenVolumeInText(text: string, allowed: number[]): number | undefined {
+export function chosenVolumeInText(
+  text: string,
+  allowed: number[],
+  opts?: { leftover?: boolean }
+): number | undefined {
   if (!text.trim() || !allowed.length) return undefined;
   const mentioned = allowedNumbersInText(text, allowed);
   const rejected = rejectedVolumesInText(text, allowed);
   const positive = mentioned.filter((vol) => !rejected.includes(vol));
   if (positive.length === 1) return positive[0];
-  if (rejected.length && positive.length === 0) {
+  if (opts?.leftover !== false && rejected.length && positive.length === 0) {
     const leftover = allowed.filter((vol) => !rejected.includes(vol));
     if (leftover.length === 1) return leftover[0];
   }
@@ -237,7 +241,7 @@ export function canResolveGoalNotesConflict(session: SessionState, incomingGoal?
   if (!allowed.length) return false;
   const fromReply = chosenVolumeInText(session.conflictReplyText ?? "", allowed);
   if (fromReply == null) return false;
-  const fromGoal = chosenVolumeInText(goal, allowed);
+  const fromGoal = chosenVolumeInText(goal, allowed, { leftover: false });
   return fromGoal === fromReply;
 }
 
@@ -282,7 +286,7 @@ export function reviewIntent(session: SessionState): string {
     "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
   ];
   if (session.robot === "Tecan") {
-    parts.push("liha_1000 is the LiHa pipette. Assumed Tecan tips are 200 µL DiTi.");
+    parts.push("fca_1000 is the FCA pipette (Fluent Channel Arm). Assumed Fluent tips are 200 µL DiTi.");
   }
   parts.push(goal);
   if (sop) parts.push(`Generated SOP:\n${sop}`);
@@ -566,8 +570,8 @@ export function capSop(text: string, max = SOP_CHAR_CAP): string {
 }
 
 export function formatHardwareConfig(session: SessionState): string {
-  const robot = session.robot ?? "unset";
   const device = deviceFor(session.robot);
+  const robot = device?.label ?? session.robot ?? "unset";
   const api =
     session.hardware.apiVersion ??
     (device?.codegen === "opentrons_python" ? device.hardwarePreset.apiVersion : "unset");
@@ -575,16 +579,21 @@ export function formatHardwareConfig(session: SessionState): string {
   const deck = deckEntries.length
     ? deckEntries.map(([slot, labware]) => `  ${slot}: ${labware}`).join("\n")
     : "  (No labware configured)";
-  return [
+  const lines = [
     `Robot Model: ${robot}`,
     `API Version: ${api}`,
     `Left Pipette: ${session.hardware.leftPipette || "None"}`,
     `Right Pipette: ${session.hardware.rightPipette || "None"}`,
     `Use Gripper: ${session.hardware.useGripper ?? false}`,
     `Plan backend: ${planBackendFor(session.robot)}`,
-    "Deck Layout:",
-    deck,
-  ].join("\n");
+  ];
+  if (device?.id === "tecan_fluent") {
+    lines.push(
+      "PLR sim: PyLabRobot has no Fluent deck — virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent FluentControl .gwl, not EVOware."
+    );
+  }
+  lines.push("Deck Layout:", deck);
+  return lines.join("\n");
 }
 
 export function snapshot(session: SessionState) {
@@ -609,6 +618,8 @@ export function snapshot(session: SessionState) {
     code_service: session.codeService ?? "down",
     events: session.events ?? [],
     device_id: deviceFor(session.robot)?.id ?? null,
+    device_label: deviceFor(session.robot)?.label ?? null,
+    device_note: deviceFor(session.robot)?.note ?? null,
   };
 }
 

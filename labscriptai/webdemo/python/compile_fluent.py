@@ -65,9 +65,9 @@ def tip_mask(channels: list[int]) -> int:
 def infer_tip_type(resource: dict[str, Any]) -> str:
     max_vol = resource.get("max_volume_ul")
     try:
-        volume = float(max_vol) if max_vol is not None else 1000.0
+        volume = float(max_vol) if max_vol is not None else 200.0
     except (TypeError, ValueError):
-        volume = 1000.0
+        volume = 200.0
     if volume <= 10:
         return "10ul"
     if volume <= 50:

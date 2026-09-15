@@ -172,7 +172,7 @@ export function App() {
                 </strong>
               </div>
               <div>
-                {session.robot} · {session.goal}
+                {session.device_label ?? session.robot} · {session.goal}
               </div>
               <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
             </div>

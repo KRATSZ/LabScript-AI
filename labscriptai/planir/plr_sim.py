@@ -52,7 +52,7 @@ def _resource_factories(backend: str) -> tuple[Any, Any]:
         from pylabrobot.resources import Cor_96_wellplate_360ul_Fb
 
         return hamilton_96_tiprack_300uL_filter, Cor_96_wellplate_360ul_Fb
-    if backend == "tecan_evo":
+    if backend in {"tecan_evo", "tecan_fluent"}:
         from pylabrobot.resources.tecan import DiTi_200ul_LiHa, Microplate_96_Well
 
         return DiTi_200ul_LiHa, Microplate_96_Well
