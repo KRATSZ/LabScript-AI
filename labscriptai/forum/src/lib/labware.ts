@@ -1,5 +1,16 @@
 export type LabwareKind = "tips" | "plate" | "reservoir" | "other";
 
+export function pipetteLabel(id: string | undefined): string {
+	if (!id) return "—";
+	const names: Record<string, string> = {
+		p300_single_gen2: "P300 Single GEN2",
+		star_1000: "STAR 1000 µL",
+		liha_1000: "LiHa 1000 µL",
+		flex_1channel_1000: "Flex 1-Channel 1000 µL",
+	};
+	return names[id] ?? id.replaceAll("_", " ");
+}
+
 export function labwareKind(name: string): LabwareKind {
 	const n = name.toLowerCase();
 	if (/tip\s*rack|tiprack|diti/.test(n)) return "tips";

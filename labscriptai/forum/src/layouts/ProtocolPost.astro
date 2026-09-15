@@ -5,7 +5,7 @@ import DeckMap from "../components/DeckMap.astro";
 import Footer from "../components/Footer.astro";
 import Header from "../components/Header.astro";
 import VoteBar from "../components/VoteBar.astro";
-import { labwareLabel } from "../lib/labware";
+import { labwareLabel, pipetteLabel } from "../lib/labware";
 
 type Props = CollectionEntry<"protocols">["data"] & { postId: string };
 
@@ -35,7 +35,7 @@ const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(
 		<Header />
 		<main>
 			<article>
-				<p class="crumbs"><a href="/">Protocols</a></p>
+				<p class="crumbs"><a href="/">Protocol packs</a></p>
 				<h1>{title}</h1>
 				<p class="flags">
 					<span class="chip">{device}</span>
@@ -56,7 +56,7 @@ const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(
 					</div>
 					<div>
 						<span>Pipette</span>
-						{pipette ?? "—"}
+						{pipetteLabel(pipette)}
 					</div>
 					<div>
 						<span>Labware</span>
@@ -66,27 +66,28 @@ const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(
 
 				<section>
 					<h2>Deck</h2>
-					<DeckMap deck={deck} />
+					<DeckMap device={device} deck={deck} />
 				</section>
 
-				<section>
-					<h2>Protocol steps</h2>
-					<ol class="steps">
-						{sop.map((step) => <li>{step}</li>)}
-					</ol>
-				</section>
+				<div class="sop-and-reports">
+					<section>
+						<h2>Protocol steps</h2>
+						<ol class="steps">
+							{sop.map((step) => <li>{step}</li>)}
+						</ol>
+					</section>
+					<VoteBar
+						postId={postId}
+						seedUpvotes={seedUpvotes}
+						seedReports={seedDownvotes}
+						sop={sop}
+					/>
+				</div>
 
 				<section class="script">
 					<h2>Script</h2>
 					<pre><code class={`language-${scriptLang}`}>{script.trimEnd()}</code></pre>
 				</section>
-
-				<VoteBar
-					postId={postId}
-					seedUpvotes={seedUpvotes}
-					seedReports={seedDownvotes}
-					sop={sop}
-				/>
 			</article>
 		</main>
 		<Footer />
@@ -144,6 +145,13 @@ const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(
 		color: #8a8f98;
 		margin: 0 0 0.7rem;
 	}
+	.sop-and-reports {
+		display: grid;
+		grid-template-columns: minmax(0, 1.15fr) minmax(12rem, 0.85fr);
+		gap: 1.75rem;
+		align-items: start;
+		margin-bottom: 2rem;
+	}
 	.steps {
 		margin: 0;
 		padding: 0;
@@ -165,6 +173,9 @@ const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(
 		font-size: 0.85rem;
 		padding-top: 0.1rem;
 	}
+	.script {
+		margin-top: 0.5rem;
+	}
 	.script pre {
 		margin: 0;
 		font-size: 0.8rem;
@@ -172,10 +183,15 @@ const labware = [...new Set(deck.map((row) => labwareLabel(row.labware)))].join(
 		background: #f7f8f9;
 		border-radius: 10px;
 		padding: 1rem 1.1rem;
-		overflow-x: auto;
+		overflow-x: visible;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
 	}
 	@media (max-width: 640px) {
 		.needs {
+			grid-template-columns: 1fr;
+		}
+		.sop-and-reports {
 			grid-template-columns: 1fr;
 		}
 	}

@@ -1,14 +1,6 @@
----
-import { SITE_TITLE } from "../consts";
-import HeaderLink from "./HeaderLink.astro";
----
-
 <header>
 	<nav>
-		<h2><a href="/">{SITE_TITLE}</a></h2>
-		<div class="internal-links">
-			<HeaderLink href="/">Library</HeaderLink>
-		</div>
+		<a class="wordmark" href="/">LabScript-AI</a>
 		<p class="badge">sample · 127.0.0.1</p>
 	</nav>
 </header>
@@ -19,36 +11,21 @@ import HeaderLink from "./HeaderLink.astro";
 		background: #fff;
 		border-bottom: 1px solid #eceef1;
 	}
-	h2 {
-		margin: 0;
-		font-size: 0.92rem;
-		font-weight: 650;
-		letter-spacing: -0.01em;
-	}
-	h2 a,
-	h2 a.active {
-		text-decoration: none;
-		border: 0;
-		padding-left: 0;
-	}
 	nav {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1em;
-		max-width: 680px;
+		max-width: 760px;
 		margin: 0 auto;
+		min-height: 2.8rem;
 	}
-	nav a {
-		padding: 0.9rem 0.45rem;
+	.wordmark {
+		font-size: 0.92rem;
+		font-weight: 650;
+		letter-spacing: -0.01em;
+		text-decoration: none;
 		color: #1a1d23;
-		border-bottom: 2px solid transparent;
-		text-decoration: none;
-		font-size: 0.9rem;
-	}
-	nav a.active {
-		text-decoration: none;
-		border-bottom-color: #1a1d23;
 	}
 	.badge {
 		margin: 0;

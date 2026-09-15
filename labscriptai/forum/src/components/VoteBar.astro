@@ -23,7 +23,9 @@ const config = JSON.stringify({ postId, seedUpvotes, seedReports, sop });
 			) : (
 				seedReports.map((report) => (
 					<li>
-						{report.reason} · step {report.step} · {sop[report.step - 1] ?? `step ${report.step}`}
+						<span class="tag">{report.reason}</span>
+						<span class="meta">step {report.step}</span>
+						<span class="detail">{sop[report.step - 1] ?? `step ${report.step}`}</span>
 					</li>
 				))
 			)
@@ -105,19 +107,14 @@ const config = JSON.stringify({ postId, seedUpvotes, seedReports, sop });
 		localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(store));
 	}
 
-	function lineFor(report: FailureReport, sop: string[], suffix = ""): string {
-		const stepText = sop[report.step - 1] ?? `step ${report.step}`;
-		return `${report.reason} · step ${report.step} · ${stepText}${suffix}`;
-	}
-
 	function paint(root: HTMLElement, cfg: Config) {
 		const mine = readStore()[cfg.postId];
-		const reports: { report: FailureReport; suffix: string }[] = cfg.seedReports.map((report) => ({
+		const reports: { report: FailureReport; you: boolean }[] = cfg.seedReports.map((report) => ({
 			report,
-			suffix: "",
+			you: false,
 		}));
 		if (mine?.kind === "down" && mine.reason && mine.step) {
-			reports.push({ report: { reason: mine.reason, step: mine.step }, suffix: " (you)" });
+			reports.push({ report: { reason: mine.reason, step: mine.step }, you: true });
 		}
 		const list = root.querySelector("[data-reports]");
 		if (list) {
@@ -130,7 +127,16 @@ const config = JSON.stringify({ postId, seedUpvotes, seedReports, sop });
 			} else {
 				for (const item of reports) {
 					const li = document.createElement("li");
-					li.textContent = lineFor(item.report, cfg.sop, item.suffix);
+					const tag = document.createElement("span");
+					tag.className = "tag";
+					tag.textContent = item.report.reason;
+					const meta = document.createElement("span");
+					meta.className = "meta";
+					meta.textContent = item.you ? `step ${item.report.step} · you` : `step ${item.report.step}`;
+					const detail = document.createElement("span");
+					detail.className = "detail";
+					detail.textContent = cfg.sop[item.report.step - 1] ?? `step ${item.report.step}`;
+					li.append(tag, meta, detail);
 					list.append(li);
 				}
 			}
@@ -198,9 +204,8 @@ const config = JSON.stringify({ postId, seedUpvotes, seedReports, sop });
 
 <style>
 	.votes {
-		margin: 2.5rem 0 0;
-		padding: 1.25rem 0 0;
-		border-top: 1px solid #eceef1;
+		margin: 0;
+		padding: 0;
 	}
 	.votes > h2 {
 		font-size: 0.92rem;
@@ -222,10 +227,24 @@ const config = JSON.stringify({ postId, seedUpvotes, seedReports, sop });
 		gap: 0.45rem;
 	}
 	.reports :global(li) {
-		font-size: 0.92rem;
-		padding: 0.55rem 0.7rem;
+		font-size: 0.88rem;
+		padding: 0.55rem 0.65rem;
 		border-radius: 8px;
 		background: #f7f8f9;
+		display: grid;
+		gap: 0.15rem;
+	}
+	.reports :global(.tag) {
+		font-weight: 650;
+		text-transform: lowercase;
+	}
+	.reports :global(.meta) {
+		white-space: nowrap;
+		color: #6b717c;
+		font-size: 0.78rem;
+	}
+	.reports :global(.detail) {
+		color: #3d424c;
 	}
 	.reports :global(li.empty) {
 		color: #8a8f98;

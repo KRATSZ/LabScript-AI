@@ -6,7 +6,7 @@ Local **sample** of a protocol-pack board. Not production. No extra auth. Not wi
 
 [Astro official Blog starter](https://github.com/withastro/astro/tree/main/examples/blog) (`npm create astro@latest -- --template blog`).
 
-Skin: [Opentrons Protocol Library](https://library.opentrons.com/) cards + detail (title, robot chip, sim/hardware, one-line purpose, deck graphic, numbered SOP, script last). Downvote copies [protocols.io](https://www.protocols.io/) troubleshooting: **crash / leak / error** plus **which step**, pinned on the post. Quiet Linear-style list+detail. Votes stay in `localStorage`.
+Skin: [Opentrons Protocol Library](https://library.opentrons.com/) cards + detail. Deck is a **robot-shaped slot map** (empty slots visible; OT-2, STAR, and Fluent look different). Failure reports sit next to the SOP. Downvote copies [protocols.io](https://www.protocols.io/) troubleshooting: **crash / leak / error** plus **which step**. Quiet Linear-style list+detail. Votes stay in `localStorage`.
 
 ## Run locally
 
