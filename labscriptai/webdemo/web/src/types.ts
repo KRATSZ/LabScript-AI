@@ -1,4 +1,4 @@
-export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
+export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Vantage" | "Tecan";
 export type CodegenKind = "opentrons_python" | "plan_ir";
 
 export interface DeviceCard {
@@ -17,6 +17,22 @@ export interface StartInput {
 }
 
 export type CheckStatus = "pass" | "fail" | "unevaluable";
+
+export type AgentEventKind =
+  | "turn/start"
+  | "turn/end"
+  | "step/start"
+  | "step/end"
+  | "tool/call"
+  | "tool/result";
+
+export interface AgentEvent {
+  seq: number;
+  t: number;
+  kind: AgentEventKind;
+  name?: string;
+  detail?: Record<string, unknown>;
+}
 
 export interface ChecksResult {
   status: CheckStatus;
@@ -68,7 +84,7 @@ export interface SessionSnapshot {
   code: string;
   plan: Record<string, unknown> | null;
   analyze: Record<string, unknown> | null;
-    artifacts?: {
+  artifacts?: {
     worklistGwl?: string;
     scriptXml?: string;
     hamiltonScript?: string;
@@ -77,6 +93,11 @@ export interface SessionSnapshot {
   fab: { lit: boolean };
   deck_assumed?: boolean;
   code_service?: "up" | "down";
+  events?: AgentEvent[];
+  device_id?: string | null;
+  device_label?: string | null;
+  device_note?: string | null;
+  intake_done?: boolean;
 }
 
 export interface ChatMessage {

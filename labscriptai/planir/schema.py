@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping
 
 PLAN_SCHEMA_ID = "bpl.plan_ir.lh.v0"
+# Same rule as webdemo session.ts: TIPS:A1 → A1
+_TIP_POSITION_PREFIX = re.compile(r"^([A-Za-z][A-Za-z0-9_]*):([A-Ha-h][0-9]{1,2})$")
 LH_PRIMITIVES = frozenset(
     {"ASPIRATE", "DISPENSE", "MIX", "PICK_TIPS", "DROP_TIPS", "WAIT"}
 )
-PLR_BACKENDS = frozenset({"serializing", "hamilton", "ot2", "tecan_evo", "auto"})
+PLR_BACKENDS = frozenset({"serializing", "hamilton", "ot2", "tecan_evo", "tecan_fluent", "auto"})
 
 
 class PlanError(ValueError):
@@ -62,6 +65,15 @@ def split_locs(value: str | None) -> tuple[str, ...]:
     if not value:
         return ()
     return tuple(part.strip() for part in value.split(",") if part.strip())
+
+
+def _tip_position(value: Any) -> str:
+    """Bare well after an optional resource prefix, e.g. TIPS:A1 → A1."""
+    text = _as_str(value)
+    match = _TIP_POSITION_PREFIX.match(text)
+    if match:
+        return match.group(2).upper()
+    return text.upper()
 
 
 def _public_loc(value: str | None) -> str | list[str] | None:
@@ -211,9 +223,9 @@ def _parse_step(raw: Mapping[str, Any], *, seen: set[str]) -> PlanStep:
             raise PlanError(f"{step_id}: volume_ul must be > 0")
     tips_raw = raw.get("tip_positions") or ()
     if isinstance(tips_raw, str):
-        tips = (tips_raw.strip().upper(),) if tips_raw.strip() else ()
+        tips = (_tip_position(tips_raw),) if _as_str(tips_raw) else ()
     elif isinstance(tips_raw, Iterable):
-        tips = tuple(_as_str(item).upper() for item in tips_raw if _as_str(item))
+        tips = tuple(_tip_position(item) for item in tips_raw if _as_str(item))
     else:
         raise PlanError(f"{step_id}: tip_positions must be a list")
 

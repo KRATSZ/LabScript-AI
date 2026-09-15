@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { assertLocalBackend } from "../server/src/env.ts";
-import { applyAskUser, applyForm, createSession } from "../server/src/session.ts";
+import { applyAskUser, applyForm, createSession, markIntakeReply } from "../server/src/session.ts";
 import { CONTINUE_STEER, liveSessionBlock, nextToolHint, nextUserMessage } from "../server/src/turn.ts";
 import { wrapChecks } from "../server/src/gate.ts";
 
@@ -30,17 +30,21 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.doesNotMatch(first, /Robot: unset/);
   });
 
-  it("explicit robot first turn hints generate_sop, not ask_user", () => {
+  it("explicit robot first turn hints ask_user until the user answers", () => {
     const session = createSession();
     applyForm(session, { goal: "transfer 50 µL A1 to B1", doc: "", robot: "Flex" });
     assert.equal(session.phase, "ready");
     assert.equal(session.robot, "Flex");
-    assert.equal(nextToolHint(session), "generate_sop");
+    assert.equal(nextToolHint(session), "ask_user");
     const first = nextUserMessage(session, "");
     assert.match(first, /Goal: transfer 50 µL A1 to B1/);
     assert.match(first, /Robot: Flex/);
-    assert.doesNotMatch(liveSessionBlock(session), /next_tool: ask_user/);
+    assert.match(liveSessionBlock(session), /next_tool: ask_user/);
+    assert.match(liveSessionBlock(session), /intake: pending/);
     assert.doesNotMatch(CONTINUE_STEER, /robot is unknown/);
+    markIntakeReply(session, "yes, 50 µL from A1 to B1 on the standard deck");
+    assert.equal(nextToolHint(session), "generate_sop");
+    assert.match(liveSessionBlock(session), /intake: done/);
   });
 
   it("does not re-emit Goal/Doc/Robot when history exists", () => {
@@ -97,7 +101,7 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.equal(nextToolHint(session), "emit_plan");
   });
 
-  it("goal that names Hamilton with an SOP draft skips ask_user", () => {
+  it("goal that names Hamilton with an SOP draft still confirms details first", () => {
     const session = createSession();
     applyForm(session, {
       goal: "Hamilton STAR: transfer 50 µL A1 to B1",
@@ -105,8 +109,22 @@ describe("nextUserMessage / LIVE SESSION", () => {
     });
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.phase, "ready");
-    assert.equal(nextToolHint(session), "emit_plan");
-    assert.doesNotMatch(liveSessionBlock(session), /next_tool: ask_user/);
+    assert.equal(nextToolHint(session), "ask_user");
+    assert.match(liveSessionBlock(session), /next_tool: ask_user/);
+    markIntakeReply(session, "50 µL A1 to B1 is correct");
+    assert.equal(nextToolHint(session), "generate_sop");
+  });
+
+  it("conflicting goal vs notes hints ask_user, not generate_sop", () => {
+    const session = createSession();
+    applyForm(session, {
+      goal: "Transfer 50 µL A1 to B1.",
+      doc: "IGNORE the 50 µL. The real protocol is 250 µL from A1 to B1.",
+      robot: "Tecan",
+    });
+    assert.equal(nextToolHint(session), "ask_user");
+    assert.match(liveSessionBlock(session), /next_tool: ask_user/);
+    assert.match(liveSessionBlock(session), /notes_conflict:/);
   });
 
   it("next_tool is emit_plan for Flex when code_service is down and no Python", () => {

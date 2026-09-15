@@ -46,12 +46,13 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(start, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
   });
 
-  it("scientist-facing copy names four robots and prompt supports emit_plan", () => {
-    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts"];
+  it("scientist-facing copy names five robots and prompt supports emit_plan", () => {
+    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts", "RightStage.tsx"];
     const blob = files.map((name) => readFileSync(path.join(webSrc, name), "utf8")).join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);
-    assert.match(blob, /Hamilton/);
+    assert.match(blob, /Hamilton STAR/);
+    assert.match(blob, /Hamilton Vantage/);
     assert.match(blob, /Tecan/);
     const prompt = readFileSync(path.resolve(webSrc, "../../server/src/prompt.ts"), "utf8");
     assert.doesNotMatch(SYSTEM_PROMPT, /Which robot/);
@@ -62,6 +63,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(prompt, /Never change volumes, wells, counts/);
     assert.match(prompt, /Do not skip generate_code/);
     assert.doesNotMatch(prompt, /Plan IR/);
+    assert.doesNotMatch(SYSTEM_PROMPT, /Confirm assumed_deck=true/);
+    assert.match(SYSTEM_PROMPT, /Confirm the standard deck in one sentence/);
     assert.doesNotMatch(blob, /Robot is asked in chat/);
     assert.match(blob, /DEVICE_CARDS/);
   });
@@ -80,13 +83,33 @@ describe("AnimationOverlay code-split", () => {
     assert.match(panel, /DOWNLOAD_LABELS/);
     assert.match(panel, /export-hint/);
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
-    assert.match(app, /from ["']\.\/ExportsPanel["']/);
-    assert.match(app, /<ExportsPanel session=\{session\} \/>/);
+    const artifactsPane = readFileSync(path.join(webSrc, "ArtifactsPane.tsx"), "utf8");
+    const stagePane = readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8");
+    assert.match(artifactsPane, /from ["']\.\/ExportsPanel["']/);
+    assert.match(artifactsPane, /<ExportsPanel session=\{session\} filesOnly \/>/);
+    assert.match(stagePane, /from ["']\.\/IssuesPanel["']/);
+    assert.match(stagePane, /Transfer steps/);
+    assert.ok(
+      stagePane.indexOf("Transfer steps") < stagePane.indexOf("<IssuesPanel"),
+      "step list must sit above lab-check JSON"
+    );
+    assert.match(app, /from ["']\.\/RightStage["']/);
+    assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /session\?\.id/);
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
     assert.match(app, /sessionCanWatch/);
     assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);
     assert.match(app, /disabled=\{busy\}/);
     assert.match(app, /setOverlay\(false\)/);
+    assert.match(app, /fetchHealth/);
+    assert.match(app, /8010 down/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
+    assert.doesNotMatch(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay|WatchPlayer|Run preview/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /busy && msg\.role === "assistant"/);
+    assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /tabCount/);
+    assert.match(readFileSync(path.join(webSrc, "stageTabs.ts"), "utf8"), /export function tabCount/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /react-markdown/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /MarkdownBody/);
     const issues = readFileSync(path.join(webSrc, "IssuesPanel.tsx"), "utf8");
     assert.match(issues, /statusWord/);
     assert.match(issues, /status-word/);
@@ -97,6 +120,31 @@ describe("AnimationOverlay code-split", () => {
     assert.match(smoke, /simpleAnalysisFile\.json/);
     assert.doesNotMatch(smoke, /mockRobotSideAnalysis/);
     const overlay = readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8");
-    assert.match(overlay, /data-animator-error=\{this\.state\.error\}/);
+    const replay = readFileSync(path.join(webSrc, "OtDeckReplay.tsx"), "utf8");
+    assert.match(replay, /data-animator-error=\{this\.state\.error\}/);
+    assert.match(replay, /ProtocolVisualization/);
+    assert.match(replay, /appType/);
+    assert.match(overlay, /OtDeckReplay/);
+    assert.doesNotMatch(overlay, /WatchPlayer/);
+    assert.doesNotMatch(overlay, /ProtocolOperationAnimator/);
+  });
+
+  it("vite uses npm Opentrons viz and optional GitHub hang, not a vendored slim", () => {
+    const vite = readFileSync(path.resolve(webSrc, "../vite.config.ts"), "utf8");
+    assert.match(vite, /function cloudOrStub/);
+    assert.match(vite, /stubRoot/);
+    assert.match(vite, /LABSCRIPTAI_VISUALIZER_ROOT/);
+    assert.match(vite, /@opentrons\/protocol-visualization/);
+    assert.doesNotMatch(vite, /slimRoot, "components\/src\/index.ts"/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/normalize-analysis.ts"), "utf8"), /normalizeAnalysisOutput/);
+    assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /8010 analyze/);
+    const webFiles = readdirSync(webSrc);
+    assert.equal(webFiles.includes("DeckPlay.tsx"), false);
+    assert.equal(webFiles.includes("WatchPlayer.tsx"), false);
+    assert.equal(webFiles.includes("playBeats.ts"), false);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /OtDeckReplay/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /PlrDeckReplay/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /appType="desktop"/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/start/);
   });
 });

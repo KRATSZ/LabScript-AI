@@ -1,30 +1,45 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { sessionCanWatch } from "./analysis";
-import { createSession, streamChat } from "./api";
+import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
-import { robotSupportsWatch } from "./devices";
-import { ExportsPanel } from "./ExportsPanel";
-import { IssuesPanel } from "./IssuesPanel";
+import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
-import { Pipeline } from "./Pipeline.tsx";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
+import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
-import type { ChatMessage, SessionSnapshot, StartInput } from "./types";
+import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
 
 export function App() {
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [events, setEvents] = useState<AgentEvent[]>([]);
   const [busy, setBusy] = useState(false);
   const [overlay, setOverlay] = useState(false);
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
+  const [health, setHealth] = useState<DemoHealth | null>(null);
   const robotRef = useRef<SessionSnapshot["robot"]>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchHealth()
+      .then((next) => {
+        if (!cancelled) setHealth(next);
+      })
+      .catch(() => {
+        if (!cancelled) setHealth(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.id]);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
     robotRef.current = snap.robot;
     setSession(snap);
+    if (Array.isArray(snap.events)) setEvents(snap.events);
   }, []);
 
   useEffect(() => {
@@ -65,13 +80,17 @@ export function App() {
           onTool: (name, status) => {
             setRunningTool(status === "start" ? name : status === "done" ? null : name);
           },
+          onEvent: (event) => {
+            setEvents((prev) => {
+              if (prev.some((item) => item.seq === event.seq && item.kind === event.kind)) return prev;
+              return [...prev, event].sort((a, b) => a.seq - b.seq);
+            });
+          },
           onSnapshot: applySnapshot,
           onChecks: (checks) => {
             setSession((cur) => (cur && checks ? { ...cur, checks } : cur));
           },
-          onAnimation: (allowed) => {
-            if (allowed && robotSupportsWatch(robotRef.current)) setOverlay(true);
-          },
+          onAnimation: () => undefined,
           onError: (message) => setError(message),
           onDone: () => undefined,
         });
@@ -89,6 +108,7 @@ export function App() {
     setOverlay(false);
     setSession(null);
     setMessages([]);
+    setEvents([]);
     setError("");
     setRunningTool(null);
   };
@@ -96,10 +116,12 @@ export function App() {
   const start = async (input: StartInput) => {
     setBusy(true);
     setError("");
+    setEvents([]);
     try {
       const snap = await createSession(input);
       robotRef.current = snap.robot;
       setSession(snap);
+      if (Array.isArray(snap.events)) setEvents(snap.events);
       setMessages([
         {
           role: "user",
@@ -116,63 +138,99 @@ export function App() {
 
   const status = session?.checks?.status;
   const canWatch = sessionCanWatch(session?.robot, status, session?.analyze ?? null);
-  const planBackend = session?.robot === "Hamilton" || session?.robot === "Tecan";
+  const planBackend = isPlanCodegen(session?.robot);
+  const deckPreview =
+    planBackend &&
+    status === "pass" &&
+    Boolean(session?.plan && typeof session.plan === "object");
   const tone = headerTone(status, canWatch);
 
   return (
     <div className="app">
-      <div className="shell">
+      <header className="workspace-header">
         <div className="brand">
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            <p>Local chat demo · 127.0.0.1</p>
+            <p>🧪 Local lab copilot · software only · 127.0.0.1</p>
+            {health ? (
+              <p className="demo-health" data-testid="demo-health">
+                {health.hasKey ? `Model ${health.model}` : "No DeepSeek key"}
+                {" · "}
+                {health.code_service === "up" ? "8010 up" : "8010 down"}
+              </p>
+            ) : null}
             {session?.code_service === "down" && !planBackend ? (
-              <p className="code-offline">Code service offline — animation unavailable</p>
+              <p className="code-offline">8010 down — OT Watch and Python codegen unavailable</p>
             ) : null}
           </div>
         </div>
-
-        {!session ? (
-          <>
-            <StartForm busy={busy} onSubmit={start} />
-            {error ? <p className="file" style={{ color: "var(--error)" }}>{error}</p> : null}
-          </>
-        ) : (
-          <>
-            <div className="card collapsed">
+        {session ? (
+          <div className="card collapsed header-status">
+            <div>
               <div>
-                <div>
-                  <strong className={tone ? `status-${tone}` : undefined}>
-                    {phaseLabel(session.phase, status, canWatch, planBackend, session.checks)}
-                  </strong>
-                </div>
-                <div>{session.goal}</div>
-                <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
+                <strong className={tone ? `status-${tone}` : undefined}>
+                  {phaseLabel(
+                    session.phase,
+                    status,
+                    canWatch,
+                    planBackend,
+                    session.checks,
+                    session.intake_done,
+                    Boolean(session.sop?.trim()),
+                    deckPreview
+                  )}
+                </strong>
               </div>
-              <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
-                Change device
-              </button>
+              <div>
+                {session.device_label ?? session.robot} · {session.goal}
+              </div>
+              <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
             </div>
-            <Pipeline session={session} runningTool={runningTool} busy={busy} />
-            <ChatPane
-              messages={messages}
-              busy={busy}
-              onSend={(text) => runTurn(session.id, text, false)}
-            />
-            <IssuesPanel checks={session.checks} />
-            <ExportsPanel session={session} />
-            {error ? <p className="file" style={{ color: "var(--error)" }}>{error}</p> : null}
-          </>
-        )}
+            <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
+              Change device
+            </button>
+          </div>
+        ) : null}
+      </header>
+
+      <div className="workspace" data-testid="shell">
+        <section className="chat-column" data-testid="chat-column">
+          {!session ? (
+            <div className="start-scroll">
+              <StartForm busy={busy} onSubmit={start} />
+              {error ? (
+                <p className="file" style={{ color: "var(--error)" }}>
+                  {error}
+                </p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="chat-column-body">
+              <ChatPane
+                messages={messages}
+                busy={busy}
+                onSend={(text) => runTurn(session.id, text, false)}
+              />
+              {error ? (
+                <p className="file" style={{ color: "var(--error)" }}>
+                  {error}
+                </p>
+              ) : null}
+            </div>
+          )}
+        </section>
+        <RightStage
+          session={session}
+          events={events}
+          runningTool={runningTool}
+          busy={busy}
+          canWatch={canWatch}
+          onWatch={() => setOverlay(true)}
+        />
       </div>
 
-      {canWatch ? (
-        <button className="fab lit" title="Watch animation" onClick={() => setOverlay(true)}>
-          Watch animation
-        </button>
-      ) : null}
-      {overlay && canWatch ? (
+      {overlay && canWatch && robotSupportsWatch(robotRef.current) ? (
         <Suspense
           fallback={
             <OverlayChrome onClose={() => setOverlay(false)}>

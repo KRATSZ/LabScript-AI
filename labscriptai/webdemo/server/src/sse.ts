@@ -3,6 +3,35 @@ export interface SseWriter {
   close(): void;
 }
 
+export type TrackedSse = SseWriter & { hasUserText: () => boolean };
+
+function textToken(data: unknown): string {
+  if (!data || typeof data !== "object" || !("token" in data)) return "";
+  const token = (data as { token?: unknown }).token;
+  return typeof token === "string" ? token : "";
+}
+
+/** Same SSE stream, plus whether any non-empty chat text already went out this turn. */
+export function trackUserText(sse: SseWriter): TrackedSse {
+  let sent = false;
+  return {
+    write(event, data) {
+      if (event === "text" && textToken(data).trim()) sent = true;
+      sse.write(event, data);
+    },
+    close() {
+      sse.close();
+    },
+    hasUserText() {
+      return sent;
+    },
+  };
+}
+
+export function sseHasUserText(sse: SseWriter): boolean {
+  return typeof (sse as TrackedSse).hasUserText === "function" && (sse as TrackedSse).hasUserText();
+}
+
 export function createSseWriter(res: {
   writeHead: (code: number, headers: Record<string, string>) => void;
   write: (chunk: string) => boolean;

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { ChecksResult } from "./gate.ts";
+import type { ChecksResult, LogicPassResult } from "./gate.ts";
 import {
   DEVICE_REGISTRY,
   HARDWARE_PRESETS,
@@ -12,7 +12,7 @@ import {
 } from "./devices.ts";
 
 export type { HardwarePresetId, PlanBackend, RobotModel };
-export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile } from "./devices.ts";
+export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
 export type { DeviceProfile } from "./devices.ts";
 
 export type Phase =
@@ -58,6 +58,18 @@ export interface SessionState {
   deckAssumed?: boolean;
   codeService?: "up" | "down";
   messages: unknown[];
+  /** Append-only turn/step/tool facts for the Trajectory pane. */
+  events?: import("./events.ts").AgentEvent[];
+  /** messages.length when ask_user first recorded a goal/notes volume conflict. */
+  conflictAskedAt?: number;
+  /** True after a later chat turn (non-empty user text) while a conflict is open. */
+  conflictUserReplied?: boolean;
+  /** The later user message that answered the volume question. */
+  conflictReplyText?: string;
+  /** True after a later user turn confirmed a volume via ask_user. */
+  draftConflictResolved?: boolean;
+  /** True after the user answers the first clarifying round (not the start-form goal). */
+  intakeDone?: boolean;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -68,6 +80,7 @@ export function createSession(): SessionState {
     phase: "need_goal",
     hardware: { deck: {} },
     messages: [],
+    events: [],
   };
   sessions.set(session.id, session);
   return session;
@@ -106,6 +119,193 @@ export function inferRobotFromText(text: string): RobotModel | undefined {
   return found.length === 1 ? found[0].legacyRobot : undefined;
 }
 
+const UL_AMOUNT = /(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/gi;
+const TRANSFER_UL =
+  /\b(?:transfer(?:red|s|ing)?|aspirate[ds]?|dispense[ds]?)\s+(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/gi;
+const REAL_UL =
+  /\b(?:real(?:ly)?|actual(?:ly)?)\b[\s\S]{0,48}?(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/i;
+const CAPACITY_CTX =
+  /\b(hold|holds|capacity|max(?:imum)?|already|contains|start(?:s|ing)?|initial|tiprack|diti|reservoir|\d+-well|well plate)\b/;
+
+function ulAmounts(text: string): number[] {
+  return [...(text || "").matchAll(UL_AMOUNT)].map((match) => Number(match[1]));
+}
+
+function contextAt(text: string, index: number, span = 40): string {
+  return text.slice(Math.max(0, index - span), Math.min(text.length, index + span)).toLowerCase();
+}
+
+function competingNoteVolumes(goal = "", notes = ""): { goalVols: number[]; extra: number[]; ignoreGoal: boolean } {
+  const goalVols = [...new Set(ulAmounts(goal))];
+  const ignoreGoal = goalVols.some((vol) =>
+    new RegExp(`\\bignore(?:\\s+the)?\\s+${vol}\\b`, "i").test(notes)
+  );
+  const competing: number[] = [];
+  const real = notes.match(REAL_UL);
+  if (real && !goalVols.includes(Number(real[1]))) competing.push(Number(real[1]));
+  for (const match of notes.matchAll(TRANSFER_UL)) {
+    const vol = Number(match[1]);
+    if (!goalVols.includes(vol)) competing.push(vol);
+  }
+  for (const match of notes.matchAll(UL_AMOUNT)) {
+    const vol = Number(match[1]);
+    if (goalVols.includes(vol)) continue;
+    const ctx = contextAt(notes, match.index ?? 0);
+    if (CAPACITY_CTX.test(ctx)) continue;
+    if (/\b(?:do not|don't|not)\s+clamp\b/.test(ctx)) continue;
+    competing.push(vol);
+  }
+  return { goalVols, extra: [...new Set(competing)], ignoreGoal };
+}
+
+/** Goal vs notes transfer-volume fight. Capacity / initial-fill numbers are not a fight. */
+export function goalNotesVolumeConflict(goal = "", doc = ""): string | null {
+  const notes = doc.trim();
+  if (!notes || notes === "none") return null;
+  const { goalVols, extra, ignoreGoal } = competingNoteVolumes(goal, notes);
+  if (!goalVols.length) return null;
+  if (!ignoreGoal && extra.length === 0) return null;
+  return `goal ${goalVols.join("/")} µL vs notes ${extra.length ? extra.join("/") : "override"} µL`;
+}
+
+export function conflictChoiceVolumes(goal = "", doc = ""): number[] {
+  if (!goalNotesVolumeConflict(goal, doc)) return [];
+  const { goalVols, extra } = competingNoteVolumes(goal, (doc ?? "").trim());
+  return [...new Set([...goalVols, ...extra])];
+}
+
+const REJECTED_VOLUME =
+  /(?:(?:do\s+)?not|don't|dont|no|ignore|except|instead\s+of|rather\s+than|skip)\s+(?:use\s+|the\s+)?(\d+(?:\.\d+)?)/gi;
+
+function allowedNumbersInText(text: string, allowed: number[]): number[] {
+  const fromUl = ulAmounts(text).filter((vol) => allowed.includes(vol));
+  const bare = [...text.matchAll(/\b(\d+(?:\.\d+)?)\b/g)]
+    .map((match) => Number(match[1]))
+    .filter((vol) => allowed.includes(vol));
+  return [...new Set([...fromUl, ...bare])];
+}
+
+function rejectedVolumesInText(text: string, allowed: number[]): number[] {
+  return [
+    ...new Set(
+      [...text.matchAll(REJECTED_VOLUME)]
+        .map((match) => Number(match[1]))
+        .filter((vol) => allowed.includes(vol))
+    ),
+  ];
+}
+
+/** Unique allowed volume the text picks. µL and unit-less numbers count; rejected volumes do not. */
+export function chosenVolumeInText(
+  text: string,
+  allowed: number[],
+  opts?: { leftover?: boolean }
+): number | undefined {
+  if (!text.trim() || !allowed.length) return undefined;
+  const mentioned = allowedNumbersInText(text, allowed);
+  const rejected = rejectedVolumesInText(text, allowed);
+  const positive = mentioned.filter((vol) => !rejected.includes(vol));
+  if (positive.length === 1) return positive[0];
+  if (opts?.leftover !== false && rejected.length && positive.length === 0) {
+    const leftover = allowed.filter((vol) => !rejected.includes(vol));
+    if (leftover.length === 1) return leftover[0];
+  }
+  return undefined;
+}
+
+export function unresolvedGoalNotesConflict(session: SessionState): string | null {
+  if (session.draftConflictResolved) return null;
+  return goalNotesVolumeConflict(session.goal ?? "", session.doc ?? "");
+}
+
+/** First ask_user during a conflict: record the question, do not take a side. */
+export function beginGoalNotesConflictAsk(session: SessionState): string | null {
+  const conflict = unresolvedGoalNotesConflict(session);
+  if (!conflict || session.conflictAskedAt != null) return conflict;
+  session.conflictAskedAt = Array.isArray(session.messages) ? session.messages.length : 0;
+  session.conflictUserReplied = false;
+  session.conflictReplyText = undefined;
+  session.draftConflictResolved = false;
+  session.sop = undefined;
+  session.code = undefined;
+  session.plan = undefined;
+  session.artifacts = undefined;
+  session.lastChecks = undefined;
+  session.hasPassedChecks = undefined;
+  return conflict;
+}
+
+export function canResolveGoalNotesConflict(session: SessionState, incomingGoal?: string): boolean {
+  if (!session.conflictUserReplied || session.draftConflictResolved) return false;
+  const goal = (incomingGoal ?? "").trim();
+  if (!goal) return false;
+  const allowed = conflictChoiceVolumes(session.goal ?? "", session.doc ?? "");
+  if (!allowed.length) return false;
+  const fromReply = chosenVolumeInText(session.conflictReplyText ?? "", allowed);
+  if (fromReply == null) return false;
+  const fromGoal = chosenVolumeInText(goal, allowed, { leftover: false });
+  return fromGoal === fromReply;
+}
+
+/** A later user chat turn — not the start form, not a same-turn follow-up. */
+export function markConflictUserReply(session: SessionState, userText: string): void {
+  if (!userText.trim()) return;
+  if (session.draftConflictResolved) return;
+  if (session.conflictAskedAt == null && !unresolvedGoalNotesConflict(session)) return;
+  session.conflictUserReplied = true;
+  session.conflictReplyText = userText.trim();
+}
+
+/** Follow-up chat (not the empty first turn) unlocks SOP/plan generation. */
+export function markIntakeReply(session: SessionState, userText: string): void {
+  if (!userText.trim()) return;
+  session.intakeDone = true;
+}
+
+export function intakeOpen(session: SessionState): boolean {
+  return !session.intakeDone && !session.sop?.trim();
+}
+
+export function resolveGoalNotesConflict(session: SessionState): void {
+  session.draftConflictResolved = true;
+  session.conflictUserReplied = true;
+  session.conflictReplyText = undefined;
+  session.intakeDone = true;
+  session.sop = undefined;
+  session.code = undefined;
+  session.plan = undefined;
+  session.analyze = undefined;
+  session.artifacts = undefined;
+  session.lastChecks = undefined;
+  session.hasPassedChecks = undefined;
+}
+
+/** Goal (+ intern notes) for SOP authoring. After a volume pick, notes are dropped. */
+export function authoringGoal(session: SessionState): string {
+  const goal = session.goal ?? "";
+  if (session.draftConflictResolved) return goal;
+  if (session.doc && session.doc !== "none") {
+    return `${goal}\n\nExisting SOP draft:\n${session.doc}`;
+  }
+  return goal;
+}
+
+/** llmreview intent: chosen volume + generated SOP, never stale conflicting notes. */
+export function reviewIntent(session: SessionState): string {
+  if (!session.draftConflictResolved) return authoringGoal(session);
+  const goal = (session.goal ?? "").trim();
+  const sop = session.sop?.trim();
+  const parts = [
+    "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
+  ];
+  if (session.robot === "Tecan") {
+    parts.push("fca_1000 is the FCA pipette (Fluent Channel Arm). Assumed Fluent tips are 200 µL DiTi.");
+  }
+  parts.push(goal);
+  if (sop) parts.push(`Generated SOP:\n${sop}`);
+  return parts.filter(Boolean).join("\n\n");
+}
+
 export function missingList(session: SessionState): string[] {
   const missing: string[] = [];
   if (!session.goal?.trim()) missing.push("goal");
@@ -123,6 +323,13 @@ export function missingList(session: SessionState): string[] {
   if (!values.some((v) => /tip\s*rack|tiprack|diti/i.test(v))) missing.push("tips/tiprack slot");
   if (!values.some((v) => /plate|reservoir|tube/i.test(v))) {
     missing.push("plate or reservoir slot");
+  }
+  const conflict = unresolvedGoalNotesConflict(session);
+  if (conflict) {
+    missing.push(`ask_user — ${conflict}; wait for the user to pick one volume`);
+  }
+  if (intakeOpen(session)) {
+    missing.push("ask_user — confirm volume, wells, and assumed deck with the user first");
   }
   return missing;
 }
@@ -151,13 +358,18 @@ export function applyForm(
 ): SessionState {
   const explicit = input.robot != null && String(input.robot).trim() !== "";
   const selectedRobot = explicit
-    ? deviceFor(String(input.robot).trim())?.legacyRobot
+    ? parseRobot(String(input.robot).trim())
     : undefined;
   if (explicit && !selectedRobot) throw new Error("invalid robot");
   session.goal = input.goal.trim();
   const doc = (input.doc ?? "").trim();
   session.doc = doc ? doc : "none";
-  session.sop = session.doc !== "none" ? session.doc : undefined;
+  session.sop = undefined;
+  session.conflictAskedAt = undefined;
+  session.conflictUserReplied = undefined;
+  session.conflictReplyText = undefined;
+  session.draftConflictResolved = undefined;
+  session.intakeDone = undefined;
   if (selectedRobot) {
     session.robot = selectedRobot;
   } else {
@@ -173,6 +385,10 @@ export function applyForm(
   assumeStandardDeck(session);
   refreshPhase(session);
   return session;
+}
+
+export function parseRobot(value: string | undefined): RobotModel | undefined {
+  return deviceFor(value)?.legacyRobot;
 }
 
 export function isRobotModel(value: string | undefined): value is RobotModel {
@@ -206,13 +422,17 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
   session.hardware.deck = { ...preset.deck };
   session.deckAssumed = true;
   if (switching) {
-    session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
+    session.sop = undefined;
     session.code = undefined;
     session.plan = undefined;
     session.analyze = undefined;
     session.artifacts = undefined;
     session.lastChecks = undefined;
     session.hasPassedChecks = undefined;
+    session.conflictAskedAt = undefined;
+    session.conflictUserReplied = undefined;
+    session.conflictReplyText = undefined;
+    session.draftConflictResolved = undefined;
   }
   refreshPhase(session);
   return session;
@@ -221,7 +441,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
 export interface AskUserInput {
   goal?: string;
   doc?: string;
-  robot?: RobotModel;
+  robot?: string;
   preset?: HardwarePresetId;
   left_pipette?: string;
   right_pipette?: string;
@@ -251,13 +471,17 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.hardware.useGripper = undefined;
   session.hardware.apiVersion = deviceFor(robot)?.hardwarePreset.apiVersion ?? "";
   session.deckAssumed = undefined;
-  session.sop = session.doc && session.doc !== "none" ? session.doc : undefined;
+  session.sop = undefined;
   session.code = undefined;
   session.plan = undefined;
   session.analyze = undefined;
   session.artifacts = undefined;
   session.lastChecks = undefined;
   session.hasPassedChecks = undefined;
+  session.conflictAskedAt = undefined;
+  session.conflictUserReplied = undefined;
+  session.conflictReplyText = undefined;
+  session.draftConflictResolved = undefined;
 }
 
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {
@@ -269,17 +493,10 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   if (typeof input.goal === "string" && input.goal.trim()) {
     session.goal = input.goal.trim();
   }
-  const named = isRobotModel(input.robot)
-    ? input.robot
-    : !session.robot
-      ? inferRobotFromText(session.goal ?? "")
-      : undefined;
+  const named = parseRobot(input.robot) ?? (!session.robot ? inferRobotFromText(session.goal ?? "") : undefined);
   if (typeof input.doc === "string") {
     const doc = input.doc.trim();
     session.doc = doc ? doc : "none";
-    if (session.doc !== "none" && !session.sop?.trim()) {
-      session.sop = session.doc;
-    }
   } else if ((hardwareTouched(input) || Boolean(named)) && session.doc === undefined) {
     session.doc = "none";
   }
@@ -342,11 +559,16 @@ export function checksRoute(
 }
 
 export function canGenerateCode(session: SessionState): boolean {
-  return canRunPipeline(session) && Boolean(session.sop?.trim()) && isOpentrons(session);
+  return (
+    canRunPipeline(session) &&
+    Boolean(session.sop?.trim()) &&
+    isOpentrons(session) &&
+    !unresolvedGoalNotesConflict(session)
+  );
 }
 
 export function canEmitPlan(session: SessionState): boolean {
-  return canRunPipeline(session) && Boolean(session.sop?.trim());
+  return canRunPipeline(session) && Boolean(session.sop?.trim()) && !unresolvedGoalNotesConflict(session);
 }
 
 export function shouldReuseSop(session: SessionState, force?: boolean): boolean {
@@ -354,7 +576,7 @@ export function shouldReuseSop(session: SessionState, force?: boolean): boolean 
 }
 
 export function shouldCallCompactSop(session: SessionState, force?: boolean): boolean {
-  return canGenerateSop(session) && !shouldReuseSop(session, force);
+  return canGenerateSop(session) && !shouldReuseSop(session, force) && !unresolvedGoalNotesConflict(session);
 }
 
 export const SOP_CHAR_CAP = 1200;
@@ -365,8 +587,8 @@ export function capSop(text: string, max = SOP_CHAR_CAP): string {
 }
 
 export function formatHardwareConfig(session: SessionState): string {
-  const robot = session.robot ?? "unset";
   const device = deviceFor(session.robot);
+  const robot = device?.label ?? session.robot ?? "unset";
   const api =
     session.hardware.apiVersion ??
     (device?.codegen === "opentrons_python" ? device.hardwarePreset.apiVersion : "unset");
@@ -374,16 +596,21 @@ export function formatHardwareConfig(session: SessionState): string {
   const deck = deckEntries.length
     ? deckEntries.map(([slot, labware]) => `  ${slot}: ${labware}`).join("\n")
     : "  (No labware configured)";
-  return [
+  const lines = [
     `Robot Model: ${robot}`,
     `API Version: ${api}`,
     `Left Pipette: ${session.hardware.leftPipette || "None"}`,
     `Right Pipette: ${session.hardware.rightPipette || "None"}`,
     `Use Gripper: ${session.hardware.useGripper ?? false}`,
     `Plan backend: ${planBackendFor(session.robot)}`,
-    "Deck Layout:",
-    deck,
-  ].join("\n");
+  ];
+  if (device?.id === "tecan_fluent") {
+    lines.push(
+      "PLR sim: PyLabRobot has no Fluent deck — virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent FluentControl .gwl, not EVOware."
+    );
+  }
+  lines.push("Deck Layout:", deck);
+  return lines.join("\n");
 }
 
 export function snapshot(session: SessionState) {
@@ -406,6 +633,11 @@ export function snapshot(session: SessionState) {
     fab: { lit: Boolean(checks?.fab.lit) },
     deck_assumed: Boolean(session.deckAssumed),
     code_service: session.codeService ?? "down",
+    events: session.events ?? [],
+    device_id: deviceFor(session.robot)?.id ?? null,
+    device_label: deviceFor(session.robot)?.label ?? null,
+    device_note: deviceFor(session.robot)?.note ?? null,
+    intake_done: Boolean(session.intakeDone),
   };
 }
 
@@ -508,4 +740,95 @@ export function explainPlanErrors(errors: string[]): string[] {
     }
     return text;
   });
+}
+
+const WELL_TOKEN = /^([A-H])(\d{1,2})$/i;
+
+function expandWellRange(start: string, end: string): string[] {
+  const parse = (well: string) => {
+    const match = well.toUpperCase().match(WELL_TOKEN);
+    if (!match) return null;
+    return { row: match[1].charCodeAt(0), col: Number(match[2]) };
+  };
+  const from = parse(start);
+  const to = parse(end);
+  if (!from || !to) {
+    return [...new Set([start.toUpperCase(), end.toUpperCase()])];
+  }
+  const rowLo = Math.min(from.row, to.row);
+  const rowHi = Math.max(from.row, to.row);
+  const colLo = Math.min(from.col, to.col);
+  const colHi = Math.max(from.col, to.col);
+  const out: string[] = [];
+  for (let row = rowLo; row <= rowHi; row += 1) {
+    for (let col = colLo; col <= colHi; col += 1) {
+      out.push(`${String.fromCharCode(row)}${col}`);
+    }
+  }
+  return out;
+}
+
+function bareWell(raw: string): string {
+  const text = raw.trim();
+  const idx = text.lastIndexOf(":");
+  return (idx >= 0 ? text.slice(idx + 1) : text).trim().toUpperCase();
+}
+
+/** Unique tip wells named in goal/notes, e.g. TIPS:A1 through TIPS:H1. */
+export function requestedTipWells(intent: string): string[] {
+  const found = new Set<string>();
+  const text = intent ?? "";
+  const rangeRe = /TIPS:([A-H]\d{1,2})\s*(?:through|to|-|–|—)\s*TIPS:([A-H]\d{1,2})/gi;
+  for (const match of text.matchAll(rangeRe)) {
+    for (const well of expandWellRange(match[1], match[2])) found.add(well);
+  }
+  const wellRe = /TIPS:([A-H]\d{1,2})/gi;
+  for (const match of text.matchAll(wellRe)) {
+    found.add(match[1].toUpperCase());
+  }
+  return [...found];
+}
+
+export function planPickTipWells(plan: Record<string, unknown>): string[] {
+  const steps = Array.isArray(plan.steps) ? plan.steps : [];
+  const wells = new Set<string>();
+  for (const step of steps) {
+    if (!step || typeof step !== "object") continue;
+    const rec = step as Record<string, unknown>;
+    const kind = String(rec.primitive_type ?? rec.type ?? "").toUpperCase().replace("-", "_");
+    if (kind !== "PICK_TIPS") continue;
+    const pos = rec.tip_positions;
+    const list = Array.isArray(pos) ? pos : pos != null ? [pos] : [];
+    for (const item of list) {
+      const well = bareWell(String(item ?? ""));
+      if (well) wells.add(well);
+    }
+  }
+  return [...wells];
+}
+
+export function applyTipCountOverlay(
+  logicpass: LogicPassResult,
+  plan: Record<string, unknown>,
+  userIntent: string
+): LogicPassResult {
+  const requested = requestedTipWells(userIntent);
+  if (requested.length <= 1) return logicpass;
+  const have = new Set(planPickTipWells(plan));
+  const missing = requested.filter((well) => !have.has(well));
+  if (missing.length === 0) return logicpass;
+  const haveLabel = [...have].join(", ") || "none";
+  const issue = {
+    code: "LP-TIP-COUNT",
+    detail_text: `requested tip wells ${requested.join(", ")} but plan PICK_TIPS only has ${haveLabel}`,
+    step_id: "pick_tips",
+  };
+  return {
+    outcome: "fail",
+    logic_pass: false,
+    final_pass_v2: false,
+    issues: [...(logicpass.issues ?? []), issue],
+    coverage: logicpass.coverage,
+    reason: logicpass.outcome === "fail" ? logicpass.reason : "LP-TIP-COUNT",
+  };
 }

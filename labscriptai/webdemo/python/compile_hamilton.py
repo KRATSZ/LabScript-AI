@@ -80,8 +80,9 @@ def slot_key(slot: Any) -> tuple[int, int]:
 
 
 class HamiltonCompiler:
-    def __init__(self, plan: dict[str, Any]) -> None:
+    def __init__(self, plan: dict[str, Any], family: str = "vantage") -> None:
         self.plan = plan
+        self.family = family if family in {"star", "vantage"} else "vantage"
         self.warnings: list[str] = []
         self.resources: dict[str, dict[str, Any]] = {}
         self.tipracks: dict[str, dict[str, Any]] = {}
@@ -161,7 +162,8 @@ class HamiltonCompiler:
             return self._pick(n, raw)
         if p == "DROP_TIPS":
             if raw.get("to_waste") is False:
-                self.warnings.append(f"Step {n} DROP_TIPS to_waste=false; script still drops to Vantage trash.")
+                trash = "STAR" if self.family == "star" else "Vantage"
+                self.warnings.append(f"Step {n} DROP_TIPS to_waste=false; script still drops to {trash} trash.")
             self.command_count += 1
             n_tips = max(1, self.tips_on)
             self.tips_on = 0
@@ -237,19 +239,30 @@ class HamiltonCompiler:
             v = self.var_of[r["id"]]
             assigns += [f"    {v} = {r['factory'][0]}({r['id']!r})", f"    deck.assign_child_resource({v}, rails={r['rails']})"]
         res_line = f"from pylabrobot.resources import {', '.join(res)}\n" if res else ""
-        ham_imp = ", ".join(["VantageDeck", *ham])
+        if self.family == "star":
+            ham_imp = ", ".join(["STARLetDeck", *ham])
+            live_backend = "STARBackend"
+            deck_line = "    deck = STARLetDeck()"
+            deck_note = "STARLetDeck; trash is built-in."
+            device_line = "Device: Hamilton STAR via PyLabRobot LiquidHandler."
+        else:
+            ham_imp = ", ".join(["VantageDeck", *ham])
+            live_backend = "VantageBackend"
+            deck_line = "    deck = VantageDeck(size=1.3)"
+            deck_note = "Vantage 1.3 m; trash is built-in."
+            device_line = "Device: Hamilton Vantage via PyLabRobot LiquidHandler."
         head = f'''\
 """LabscriptAI Plan IR → PyLabRobot (Hamilton STAR / Vantage).
 
-Device: Hamilton STAR/Vantage via PyLabRobot LiquidHandler.
+{device_line}
 THIS FILE DEFAULTS TO DRY-RUN (LiquidHandlerChatterboxBackend — no robot motion).
-Live Vantage: comment the ChatterboxBackend line, uncomment VantageBackend.
+Live {self.family}: comment the ChatterboxBackend line, uncomment {live_backend}.
 
 Run:
   pip install pylabrobot
   python this_file.py
 
-Deck: Vantage 1.3 m; trash is built-in. Labware: {layout}.
+Deck: {deck_note} Labware: {layout}.
 Plan: {plan_id}
 """
 from __future__ import annotations
@@ -258,13 +271,13 @@ import asyncio
 
 from pylabrobot.liquid_handling import LiquidHandler
 from pylabrobot.liquid_handling.backends import LiquidHandlerChatterboxBackend
-# from pylabrobot.liquid_handling.backends import VantageBackend
+# from pylabrobot.liquid_handling.backends import {live_backend}
 from pylabrobot.resources.hamilton import {ham_imp}
 {res_line}
 async def main() -> None:
     backend = LiquidHandlerChatterboxBackend(num_channels=8)  # DRY-RUN
-    # backend = VantageBackend()  # LIVE — robot will move
-    deck = VantageDeck(size=1.3)
+    # backend = {live_backend}()  # LIVE — robot will move
+{deck_line}
 '''
         tail = "\n".join(
             [*assigns, "    lh = LiquidHandler(backend=backend, deck=deck)", "    await lh.setup()", *body, "    await lh.stop()", "", "", 'if __name__ == "__main__":', "    asyncio.run(main())", ""]
@@ -285,13 +298,26 @@ def load_plan(raw_text: str) -> dict[str, Any]:
     return payload
 
 
-def compile_text(raw_text: str) -> dict[str, Any]:
-    return HamiltonCompiler(load_plan(raw_text)).compile()
+def parse_family(argv: list[str]) -> str:
+    family = "vantage"
+    i = 1
+    while i < len(argv):
+        if argv[i] == "--family" and i + 1 < len(argv):
+            family = argv[i + 1].strip().lower()
+            i += 2
+            continue
+        i += 1
+    return family if family in {"star", "vantage"} else "vantage"
+
+
+def compile_text(raw_text: str, family: str = "vantage") -> dict[str, Any]:
+    return HamiltonCompiler(load_plan(raw_text), family).compile()
 
 
 def main() -> int:
+    family = parse_family(sys.argv)
     try:
-        result = compile_text(sys.stdin.read())
+        result = compile_text(sys.stdin.read(), family)
     except CompileError as exc:
         result = fail(exc.stage, exc.error, exc.hint)
     except Exception:

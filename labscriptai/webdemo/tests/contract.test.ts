@@ -9,13 +9,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel: string) => readFileSync(path.join(root, rel), "utf8");
 
 describe("demo contract lock", () => {
-  it("four robots, seven tools, Plan IR fallback for OT when 8010 down", () => {
+  it("five robots, seven tools, Plan IR fallback for OT when 8010 down", () => {
     const session = read("server/src/session.ts");
     assert.match(session, /canEmitPlan/);
     assert.match(session, /planBackendFor/);
     assert.match(session, /plan\?:/);
     assert.match(session, /plan: session\.plan/);
     assert.match(session, /diti/);
+    assert.match(session, /export function reviewIntent/);
+    assert.match(session, /Generated SOP/);
+    assert.match(session, /Assumed Fluent tips are 200/);
     assert.match(
       session,
       /if \(isOpentrons\(session\) && session\.code\?\.trim\(\)\) return "opentrons"/
@@ -42,6 +45,8 @@ describe("demo contract lock", () => {
     assert.match(backend, /compile_hamilton\.py/);
     assert.match(backend, /eval_plan\.py/);
 
+    assert.match(read("server/src/tools.ts"), /reviewIntent\(session\)/);
+
     const types = read("web/src/types.ts");
     assert.match(types, /^\s*plan:/m);
 
@@ -50,11 +55,14 @@ describe("demo contract lock", () => {
     assert.doesNotMatch(SYSTEM_PROMPT, /If robot is unset/);
     assert.match(SYSTEM_PROMPT, /Never ask which machine/);
     assert.match(SYSTEM_PROMPT, /volumes, wells, sample counts/);
-    assert.match(SYSTEM_PROMPT, /Hamilton: step JSON \+ runnable PyLabRobot script \(\.py\)/);
+    assert.match(SYSTEM_PROMPT, /Hamilton STAR: step JSON \+ runnable PyLabRobot script \(\.py\)/);
+    assert.match(SYSTEM_PROMPT, /Hamilton Vantage: step JSON \+ runnable PyLabRobot script \(\.py\)/);
     assert.match(SYSTEM_PROMPT, /Deliverables:/);
     assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
-    assert.match(SYSTEM_PROMPT, /Tecan: \.gwl worklist \+ step JSON, no Watch/);
+    assert.match(SYSTEM_PROMPT, /Tecan Fluent: \.gwl worklist \+ step JSON, no Watch/);
     assert.ok(SYSTEM_PROMPT.trim().split("\n").length <= 32);
+    assert.doesNotMatch(SYSTEM_PROMPT, /Confirm assumed_deck=true/);
+    assert.match(SYSTEM_PROMPT, /Confirm the standard deck in one sentence/);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
     assert.match(SYSTEM_PROMPT, /Patch only mechanical issues/);
@@ -80,6 +88,19 @@ describe("demo contract lock", () => {
     assert.match(prompt, /Watch\/animation is unavailable/);
     assert.doesNotMatch(prompt, /Default path for EVERY robot/);
 
+    const env = read("server/src/env.ts");
+    assert.match(read("server/src/backend.ts"), /analyze\/start/);
+    assert.match(read("server/src/backend.ts"), /visualizer\/jobs/);
+    assert.match(read("python/code_service.py"), /analyze\/start/);
+    assert.match(read("python/code_service.py"), /\/jobs\/\{job_id\}/);
+    assert.match(read("python/plr_visualizer.py"), /STARLetDeck/);
+    assert.match(read("python/plr_visualizer.py"), /VantageDeck/);
+    assert.match(read("python/plr_visualizer.py"), /EVO200Deck/);
+    assert.match(env, /LABSCRIPTAI_DEEPSEEK_API_KEY/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_API_KEY"/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_MODEL"/);
+    assert.match(env, /fill\("DEEPSEEK_REVIEW_BASE_URL"/);
+
     const tools = read("server/src/tools.ts");
     assert.match(tools, /Do not ask which robot/);
     assert.match(tools, /Preferred for OT-2 and Flex/);
@@ -97,26 +118,27 @@ describe("demo contract lock", () => {
     assert.match(tools, /mode:"append"/);
     assert.match(tools, /DROP_TIPS must come first/);
     assert.match(tools, /Tecan standard wells: 96-well plate 360/);
-    assert.match(tools, /1000 µL DiTi/);
+    assert.match(tools, /200 µL DiTi/);
     assert.match(tools, /must_call: "emit_plan"/);
     assert.match(tools, /Call emit_plan then run_checks/);
     assert.doesNotMatch(tools, /8010_unreachable/);
     assert.doesNotMatch(tools, /Preferred path for every robot/);
   });
 
-  it("scientist-facing copy names all four robots", () => {
+  it("scientist-facing copy names OT-2, Flex, STAR, Vantage, and Fluent", () => {
     const blob = ["web/src/App.tsx", "web/src/StartForm.tsx", "web/src/ChatPane.tsx", "web/src/startExamples.ts"]
       .map(read)
       .join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);
-    assert.match(blob, /Hamilton/);
+    assert.match(blob, /Hamilton STAR/);
+    assert.match(blob, /Hamilton Vantage/);
     assert.match(blob, /Tecan/);
     assert.match(read("web/src/App.tsx"), /robot=\{session\?\.robot\}/);
     assert.match(read("web/src/analysis.ts"), /robotHint/);
-    assert.match(read("web/src/App.tsx"), /Code service offline — animation unavailable/);
+    assert.match(read("web/src/App.tsx"), /8010 down — OT Watch and Python codegen unavailable/);
     assert.match(read("web/src/artifacts.ts"), /export function downloadable/);
-    assert.match(read("web/src/pipelineLogic.ts"), /Checks passed — step table below/);
+    assert.match(read("web/src/pipelineLogic.ts"), /Checks passed/);
     assert.match(read("web/src/pipelineLogic.ts"), /Cannot verify/);
     assert.doesNotMatch(read("web/src/ExportsPanel.tsx"), /Watch is Opentrons-only/);
     assert.match(read("web/src/StartForm.tsx"), /DEVICE_CARDS/);
@@ -128,5 +150,12 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/api.ts"), /StartInput/);
     assert.match(read("server/src/index.ts"), /invalid robot/);
     assert.match(read("server/src/index.ts"), /robot: body\.robot/);
+    assert.match(read("web/src/App.tsx"), /RightStage/);
+    assert.match(read("web/src/RightStage.tsx"), /id: "stage"/);
+    assert.match(read("web/src/RightStage.tsx"), /id: "artifacts"/);
+    assert.match(read("web/src/RightStage.tsx"), /id: "trajectory"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Stage"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Artifacts"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Trajectory"/);
   });
 });

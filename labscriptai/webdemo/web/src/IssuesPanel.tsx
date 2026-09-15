@@ -35,7 +35,7 @@ export function IssuesPanel({ checks }: { checks: ChecksResult | null }) {
         ))}
       </div>
       <details className="issues">
-        <summary>Developer details</summary>
+        <summary>Lab-check details</summary>
         <pre>
           {JSON.stringify(
             {

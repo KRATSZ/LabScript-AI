@@ -4,6 +4,7 @@ web/dist/
 *.log
 .env
 .env.*
+!.env.example
 .DS_Store
 .pytest_cache/
 __pycache__/

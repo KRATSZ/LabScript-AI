@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { sanitizeAssistantText } from "./display";
 import type { ChatMessage } from "./types";
 
 const THINK_DISPLAY_CAP = 8000;
@@ -7,6 +9,14 @@ interface Props {
   messages: ChatMessage[];
   busy: boolean;
   onSend: (text: string) => void;
+}
+
+function MarkdownBody({ text, className }: { text: string; className?: string }) {
+  return (
+    <div className={className}>
+      <ReactMarkdown>{text}</ReactMarkdown>
+    </div>
+  );
 }
 
 export function ChatPane({ messages, busy, onSend }: Props) {
@@ -39,24 +49,30 @@ export function ChatPane({ messages, busy, onSend }: Props) {
       <div className="history" ref={historyRef}>
         {messages.map((msg, i) => {
           const last = i === messages.length - 1;
-          const showThinking = msg.role === "assistant" && Boolean(msg.thinking);
+          const showThinking =
+            last && busy && msg.role === "assistant" && Boolean(msg.thinking) && !msg.text;
           const emptyAssistant = msg.role === "assistant" && !msg.text && !msg.thinking;
           if (emptyAssistant && !(busy && last)) return null;
           const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
+          const fallback = emptyAssistant ? "Working…" : "";
+          const raw = msg.text || fallback;
+          const body = msg.role === "assistant" ? sanitizeAssistantText(raw) || fallback : raw;
           return (
             <div key={i} className={`bubble-row ${msg.role}`}>
-              <div className={`avatar ${msg.role === "user" ? "user" : "bot"}`}>
-                {msg.role === "user" ? "U" : "A"}
+              <div className={`avatar ${msg.role === "user" ? "user" : "bot"}`} aria-hidden>
+                {msg.role === "user" ? "👤" : "🧪"}
               </div>
               <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
                 {msg.meta ? <div className="meta">{msg.meta}</div> : null}
                 {showThinking ? (
                   <details className="thinking-box">
-                    <summary>Reasoning</summary>
+                    <summary>Thinking</summary>
                     <div className="thinking">{shown}</div>
                   </details>
                 ) : null}
-                {msg.text || (emptyAssistant ? "Working…" : "")}
+                {body ? (
+                  <MarkdownBody text={body} className={msg.role === "user" ? "md md-user" : "md"} />
+                ) : null}
               </div>
             </div>
           );
@@ -66,7 +82,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
         <textarea
           ref={areaRef}
           rows={1}
-          placeholder="Add details or answer the agent…"
+          placeholder="Reply with a volume, wells, or other details…"
           value={text}
           disabled={busy}
           onChange={(e) => {
@@ -80,7 +96,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
             }
           }}
         />
-        <button className="send" type="submit" disabled={busy || !text.trim()}>
+        <button className="send" type="submit" disabled={busy || !text.trim()} aria-label="Send">
           ➤
         </button>
       </form>
