@@ -1,7 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { labwareLabel, planStepDisplay, sanitizeAssistantText } from "../web/src/display.ts";
-import { playBeatsFromAnalyze, playBeatsFromSteps } from "../web/src/playBeats.ts";
 
 describe("labwareLabel", () => {
   it("maps standard deck ids to short names", () => {
@@ -37,39 +36,6 @@ describe("sanitizeAssistantText", () => {
     assert.doesNotMatch(
       sanitizeAssistantText("next_tool=generate_sop after code_service=up"),
       /generate_sop|code_service|next_tool/
-    );
-  });
-});
-
-describe("playBeatsFromSteps", () => {
-  it("walks pick → aspirate → dispense", () => {
-    const beats = playBeatsFromSteps([
-      { primitive_type: "PICK_TIPS", tip_positions: ["A1"] },
-      { primitive_type: "ASPIRATE", volume_ul: 50, source: "reservoir:A1" },
-      { primitive_type: "DISPENSE", volume_ul: 50, destination: "plate:B1" },
-      { primitive_type: "DROP_TIPS" },
-    ]);
-    assert.deepEqual(
-      beats.map((b) => b.slot),
-      ["tips", "reservoir", "plate", "tips"]
-    );
-    assert.match(beats[0].label, /Pick tips/);
-  });
-});
-
-describe("playBeatsFromAnalyze", () => {
-  it("maps 8010 command types without inventing Watch", () => {
-    const beats = playBeatsFromAnalyze({
-      commands: [
-        { commandType: "pickUpTip" },
-        { commandType: "aspirate" },
-        { commandType: "dispense" },
-        { commandType: "dropTip" },
-      ],
-    });
-    assert.deepEqual(
-      beats.map((b) => b.slot),
-      ["tips", "reservoir", "plate", "tips"]
     );
   });
 });

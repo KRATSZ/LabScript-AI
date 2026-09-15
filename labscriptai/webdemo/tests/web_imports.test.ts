@@ -103,7 +103,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(app, /fetchHealth/);
     assert.match(app, /8010 down/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
-    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay/);
+    assert.doesNotMatch(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay|WatchPlayer|Run preview/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /tabCount/);
     assert.match(readFileSync(path.join(webSrc, "stageTabs.ts"), "utf8"), /export function tabCount/);
@@ -118,9 +118,9 @@ describe("AnimationOverlay code-split", () => {
     const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
     assert.match(smoke, /simpleAnalysisFile\.json/);
     assert.doesNotMatch(smoke, /mockRobotSideAnalysis/);
-    const overlay = readFileSync(path.join(webSrc, "WatchPlayer.tsx"), "utf8");
+    const overlay = readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8");
     assert.match(overlay, /data-animator-error=\{this\.state\.error\}/);
-    assert.match(readFileSync(path.join(webSrc, "AnimationOverlay.tsx"), "utf8"), /WatchPlayer/);
+    assert.doesNotMatch(overlay, /WatchPlayer/);
   });
 
   it("vite falls back to local Watch stubs when LabscriptAI_cloud is absent", () => {
@@ -129,5 +129,9 @@ describe("AnimationOverlay code-split", () => {
     assert.match(vite, /stubRoot/);
     assert.match(readFileSync(path.join(webSrc, "stubs/normalize-analysis.ts"), "utf8"), /normalizeAnalysisOutput/);
     assert.match(readFileSync(path.join(webSrc, "stubs/animator.tsx"), "utf8"), /8010 analyze/);
+    const webFiles = readdirSync(webSrc);
+    assert.equal(webFiles.includes("DeckPlay.tsx"), false);
+    assert.equal(webFiles.includes("WatchPlayer.tsx"), false);
+    assert.equal(webFiles.includes("playBeats.ts"), false);
   });
 });
