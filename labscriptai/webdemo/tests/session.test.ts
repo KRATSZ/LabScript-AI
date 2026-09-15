@@ -21,6 +21,7 @@ import {
   inferRobotFromText,
   markConflictUserReply,
   missingList,
+  chosenVolumeInText,
   normalizePlanInput,
   normalizePlanTipPositions,
   planPickTipWells,
@@ -692,5 +693,27 @@ describe("goal vs notes volume conflict", () => {
     assert.equal(canResolveGoalNotesConflict(session), false);
     assert.equal(canResolveGoalNotesConflict(session, "Transfer 50 µL A1 to B1."), false);
     assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), true);
+  });
+
+  it("picks the unit-less notes volume when the reply rejects the goal volume", () => {
+    assert.equal(chosenVolumeInText("use 250 not 50", [50, 250]), 250);
+    assert.equal(chosenVolumeInText("use 250 not 50 µL", [50, 250]), 250);
+    assert.equal(chosenVolumeInText("not 50, use 250", [50, 250]), 250);
+    assert.equal(chosenVolumeInText("use 50 not 250", [50, 250]), 50);
+
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1.", doc: conflictDoc, robot: "Tecan" });
+    markConflictUserReply(session, "use 250 not 50");
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 50 µL A1 to B1."), false);
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), true);
+  });
+
+  it("does not resolve a goal_notes conflict from a reply with no unique volume pick", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1.", doc: conflictDoc, robot: "Tecan" });
+    markConflictUserReply(session, "ok");
+    assert.equal(canResolveGoalNotesConflict(session), false);
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 50 µL A1 to B1."), false);
+    assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), false);
   });
 });

@@ -557,4 +557,41 @@ describe("goal vs notes conflict gate", () => {
     assert.equal(session.draftConflictResolved, true);
     assert.equal(session.goal, "Transfer 250 µL A1 to B1.");
   });
+
+  it("does not persist the rejected volume after use 250 not 50", async () => {
+    const session = createSession();
+    applyForm(session, { goal: GOAL_50, doc: conflictDoc, robot: "Tecan" });
+    await tool(session, "ask_user").execute("1", { goal: GOAL_50 });
+    markConflictUserReply(session, "use 250 not 50");
+
+    const rejected = await tool(session, "ask_user").execute("2", { goal: GOAL_50 });
+    assert.equal(JSON.parse(toolText(rejected)).wait, true);
+    assert.equal(session.draftConflictResolved, false);
+    assert.equal(session.goal, GOAL_50);
+
+    const confirm = await tool(session, "ask_user").execute("3", {
+      goal: "Transfer 250 µL A1 to B1.",
+    });
+    assert.equal(JSON.parse(toolText(confirm)).wait, undefined);
+    assert.equal(session.draftConflictResolved, true);
+    assert.equal(session.goal, "Transfer 250 µL A1 to B1.");
+  });
+
+  it("does not resolve from an ok reply plus any allowed goal", async () => {
+    const session = createSession();
+    applyForm(session, { goal: GOAL_50, doc: conflictDoc, robot: "Tecan" });
+    await tool(session, "ask_user").execute("1", { goal: GOAL_50 });
+    markConflictUserReply(session, "ok");
+
+    const original = await tool(session, "ask_user").execute("2", { goal: GOAL_50 });
+    assert.equal(JSON.parse(toolText(original)).wait, true);
+    assert.equal(session.draftConflictResolved, false);
+
+    const notesVolume = await tool(session, "ask_user").execute("3", {
+      goal: "Transfer 250 µL A1 to B1.",
+    });
+    assert.equal(JSON.parse(toolText(notesVolume)).wait, true);
+    assert.equal(session.draftConflictResolved, false);
+    assert.equal(session.goal, GOAL_50);
+  });
 });

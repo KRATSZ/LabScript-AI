@@ -172,14 +172,39 @@ export function conflictChoiceVolumes(goal = "", doc = ""): number[] {
   return [...new Set([...goalVols, ...extra])];
 }
 
-export function chosenVolumeInText(text: string, allowed: number[]): number | undefined {
-  const fromUl = [...new Set(ulAmounts(text))].filter((vol) => allowed.includes(vol));
-  if (fromUl.length === 1) return fromUl[0];
+const REJECTED_VOLUME =
+  /(?:(?:do\s+)?not|don't|dont|no|ignore|except|instead\s+of|rather\s+than|skip)\s+(?:use\s+|the\s+)?(\d+(?:\.\d+)?)/gi;
+
+function allowedNumbersInText(text: string, allowed: number[]): number[] {
+  const fromUl = ulAmounts(text).filter((vol) => allowed.includes(vol));
   const bare = [...text.matchAll(/\b(\d+(?:\.\d+)?)\b/g)]
     .map((match) => Number(match[1]))
     .filter((vol) => allowed.includes(vol));
-  const unique = [...new Set(bare)];
-  return unique.length === 1 ? unique[0] : undefined;
+  return [...new Set([...fromUl, ...bare])];
+}
+
+function rejectedVolumesInText(text: string, allowed: number[]): number[] {
+  return [
+    ...new Set(
+      [...text.matchAll(REJECTED_VOLUME)]
+        .map((match) => Number(match[1]))
+        .filter((vol) => allowed.includes(vol))
+    ),
+  ];
+}
+
+/** Unique allowed volume the text picks. µL and unit-less numbers count; rejected volumes do not. */
+export function chosenVolumeInText(text: string, allowed: number[]): number | undefined {
+  if (!text.trim() || !allowed.length) return undefined;
+  const mentioned = allowedNumbersInText(text, allowed);
+  const rejected = rejectedVolumesInText(text, allowed);
+  const positive = mentioned.filter((vol) => !rejected.includes(vol));
+  if (positive.length === 1) return positive[0];
+  if (rejected.length && positive.length === 0) {
+    const leftover = allowed.filter((vol) => !rejected.includes(vol));
+    if (leftover.length === 1) return leftover[0];
+  }
+  return undefined;
 }
 
 export function unresolvedGoalNotesConflict(session: SessionState): string | null {
@@ -210,11 +235,10 @@ export function canResolveGoalNotesConflict(session: SessionState, incomingGoal?
   if (!goal) return false;
   const allowed = conflictChoiceVolumes(session.goal ?? "", session.doc ?? "");
   if (!allowed.length) return false;
-  const fromGoal = chosenVolumeInText(goal, allowed);
-  if (fromGoal == null) return false;
   const fromReply = chosenVolumeInText(session.conflictReplyText ?? "", allowed);
-  if (fromReply != null && fromReply !== fromGoal) return false;
-  return true;
+  if (fromReply == null) return false;
+  const fromGoal = chosenVolumeInText(goal, allowed);
+  return fromGoal === fromReply;
 }
 
 /** A later user chat turn — not the start form, not a same-turn follow-up. */
