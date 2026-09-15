@@ -1,5 +1,6 @@
-export type DeviceId = "ot2" | "flex" | "hamilton_star" | "tecan_fluent";
-export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Tecan";
+export type DeviceId = "ot2" | "flex" | "hamilton_star" | "hamilton_vantage" | "tecan_fluent";
+export type RobotModel = "OT-2" | "Flex" | "Hamilton" | "Vantage" | "Tecan";
+export type HamiltonFamily = "star" | "vantage";
 export type PlanBackend = "serializing" | "hamilton" | "ot2" | "tecan_evo" | "auto";
 export type CodegenKind = "opentrons_python" | "plan_ir";
 
@@ -166,6 +167,7 @@ export const HARDWARE_PRESETS = {
   ot2_p300_standard3: OT2_HW,
   flex_1000_standard3: FLEX_HW,
   hamilton_star_standard: HAMILTON_HW,
+  hamilton_vantage_standard: HAMILTON_HW,
   tecan_evo_standard: TECAN_HW,
 } as const;
 
@@ -199,7 +201,7 @@ export const DEVICE_REGISTRY: DeviceProfile[] = [
   {
     id: "hamilton_star",
     label: "Hamilton STAR",
-    aliases: [/\bhamilton\b/],
+    aliases: [/\bhamilton\s+star\b/, /\bstar\b/, /\bhamilton\b(?!\s+vantage)/],
     legacyRobot: "Hamilton",
     codegen: "plan_ir",
     planBackend: "hamilton",
@@ -207,6 +209,18 @@ export const DEVICE_REGISTRY: DeviceProfile[] = [
     animation: false,
     artifactExt: ".py",
     hardwarePreset: { id: "hamilton_star_standard", ...HAMILTON_HW },
+  },
+  {
+    id: "hamilton_vantage",
+    label: "Hamilton Vantage",
+    aliases: [/\bvantage\b/, /\bhamilton\s+vantage\b/],
+    legacyRobot: "Vantage",
+    codegen: "plan_ir",
+    planBackend: "hamilton",
+    checks: ["virtual_deck", "plr_sim"],
+    animation: false,
+    artifactExt: ".py",
+    hardwarePreset: { id: "hamilton_vantage_standard", ...HAMILTON_HW },
   },
   {
     id: "tecan_fluent",
@@ -235,8 +249,15 @@ export function usesFluentCompile(robotOrId: string | undefined): boolean {
   return deviceFor(robotOrId)?.id === "tecan_fluent";
 }
 
+export function hamiltonFamily(robotOrId: string | undefined): HamiltonFamily | undefined {
+  const id = deviceFor(robotOrId)?.id;
+  if (id === "hamilton_star") return "star";
+  if (id === "hamilton_vantage") return "vantage";
+  return undefined;
+}
+
 export function usesHamiltonCompile(robotOrId: string | undefined): boolean {
-  return deviceFor(robotOrId)?.id === "hamilton_star";
+  return hamiltonFamily(robotOrId) != null;
 }
 
 export const ROBOT_PRESET = Object.fromEntries(

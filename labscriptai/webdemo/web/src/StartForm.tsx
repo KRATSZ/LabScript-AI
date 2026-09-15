@@ -41,6 +41,7 @@ export function StartForm({ busy, onSubmit }: Props) {
             type="button"
             className={deviceId === card.id ? "device-card selected" : "device-card"}
             aria-pressed={deviceId === card.id}
+            data-device={card.id}
             disabled={busy}
             onClick={() => setDeviceId(card.id)}
           >

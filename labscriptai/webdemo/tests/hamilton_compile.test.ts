@@ -71,8 +71,9 @@ describe("parseHamiltonCompileStdout", () => {
 
 describe("runHamiltonCompile", () => {
   it("uses the injected spawn and never throws", async () => {
-    const spawnFn: StdinJsonSpawn = async ({ stdin }) => {
+    const spawnFn: StdinJsonSpawn = async ({ stdin, argv }) => {
       assert.match(stdin, /bpl\.plan_ir/);
+      assert.ok(argv.includes("--family"));
       return { stdout: JSON.stringify({ ok: true, script: SCRIPT, command_count: 1, warnings: [] }) };
     };
     const ok = await runHamiltonCompile(PLAN, spawnFn);

@@ -12,7 +12,7 @@ import {
 } from "./devices.ts";
 
 export type { HardwarePresetId, PlanBackend, RobotModel };
-export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile } from "./devices.ts";
+export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
 export type { DeviceProfile } from "./devices.ts";
 
 export type Phase =
@@ -58,6 +58,8 @@ export interface SessionState {
   deckAssumed?: boolean;
   codeService?: "up" | "down";
   messages: unknown[];
+  /** Append-only turn/step/tool facts for the Trajectory pane. */
+  events?: import("./events.ts").AgentEvent[];
   /** messages.length when ask_user first recorded a goal/notes volume conflict. */
   conflictAskedAt?: number;
   /** True after a later chat turn (non-empty user text) while a conflict is open. */
@@ -74,6 +76,7 @@ export function createSession(): SessionState {
     phase: "need_goal",
     hardware: { deck: {} },
     messages: [],
+    events: [],
   };
   sessions.set(session.id, session);
   return session;
@@ -541,6 +544,8 @@ export function snapshot(session: SessionState) {
     fab: { lit: Boolean(checks?.fab.lit) },
     deck_assumed: Boolean(session.deckAssumed),
     code_service: session.codeService ?? "down",
+    events: session.events ?? [],
+    device_id: deviceFor(session.robot)?.id ?? null,
   };
 }
 

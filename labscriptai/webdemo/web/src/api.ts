@@ -4,6 +4,7 @@ export interface StreamHandlers {
   onThinking: (token: string, source: string) => void;
   onText: (token: string) => void;
   onTool: (name: string, status: string) => void;
+  onEvent?: (event: import("./types").AgentEvent) => void;
   onSnapshot: (snap: SessionSnapshot) => void;
   onChecks: (checks: SessionSnapshot["checks"]) => void;
   onAnimation?: (allowed: boolean) => void;
@@ -67,6 +68,8 @@ export async function streamChat(
       handlers.onText(String(rec.token || ""));
     } else if (event === "tool") {
       handlers.onTool(String(rec.name || ""), String(rec.status || ""));
+    } else if (event === "agent_event") {
+      handlers.onEvent?.(data as import("./types").AgentEvent);
     } else if (event === "snapshot") {
       handlers.onSnapshot(data as SessionSnapshot);
     } else if (event === "checks") {

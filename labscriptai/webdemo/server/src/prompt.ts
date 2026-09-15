@@ -10,7 +10,8 @@ const PLAN_ROBOTS = DEVICE_REGISTRY.filter((d) => d.codegen === "plan_ir").map((
 
 function deliverable(d: DeviceProfile): string {
   if (d.id === "tecan_fluent") return "Tecan: .gwl worklist + step JSON, no Watch";
-  if (d.id === "hamilton_star") return "Hamilton: step JSON + runnable PyLabRobot script (.py), no Watch";
+  if (d.id === "hamilton_star") return "Hamilton STAR: step JSON + runnable PyLabRobot script (.py), no Watch";
+  if (d.id === "hamilton_vantage") return "Hamilton Vantage: step JSON + runnable PyLabRobot script (.py), no Watch";
   const kind = d.codegen === "opentrons_python" ? `Python (${d.artifactExt})` : `step-table JSON (${d.artifactExt})`;
   const watch = d.animation ? "Watch/animation" : "no Watch/animation";
   return `${d.legacyRobot}: ${kind}, ${watch}${d.note ? ` — ${d.note}` : ""}`;

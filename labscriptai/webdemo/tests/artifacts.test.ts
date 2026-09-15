@@ -104,6 +104,16 @@ describe("downloadable", () => {
     );
     assert.deepEqual(
       downloadable({
+        robot: "Vantage",
+        sop: "# VAN SOP",
+        code: "def leftover(): pass",
+        plan: { steps: [{ step_id: "1" }] },
+        artifacts: { hamiltonScript: "async def main():\n    pass\n" },
+      }),
+      ["sop", "plan", "plr"]
+    );
+    assert.deepEqual(
+      downloadable({
         robot: "Tecan",
         sop: "# SOP",
         code: "",
@@ -148,7 +158,8 @@ describe("downloadHint", () => {
     assert.match(downloadHint("python", "OT-2"), /opentrons_simulate/);
     assert.match(downloadHint("gwl", "Tecan"), /FluentControl/);
     assert.match(downloadHint("plan", "Hamilton"), /PyLabRobot/);
-    assert.match(downloadHint("plr", "Hamilton"), /Vantage-connected PC/);
+    assert.match(downloadHint("plr", "Hamilton"), /STAR-connected PC/);
+    assert.match(downloadHint("plr", "Vantage"), /Vantage-connected PC/);
     assert.equal(DOWNLOAD_LABELS.plan, "Step JSON");
     assert.equal(DOWNLOAD_LABELS.gwl, ".gwl worklist");
     assert.equal(DOWNLOAD_LABELS.plr, "PyLabRobot script");

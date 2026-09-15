@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const read = (rel: string) => readFileSync(path.join(root, rel), "utf8");
 
 describe("demo contract lock", () => {
-  it("four robots, seven tools, Plan IR fallback for OT when 8010 down", () => {
+  it("five robots, seven tools, Plan IR fallback for OT when 8010 down", () => {
     const session = read("server/src/session.ts");
     assert.match(session, /canEmitPlan/);
     assert.match(session, /planBackendFor/);
@@ -55,7 +55,8 @@ describe("demo contract lock", () => {
     assert.doesNotMatch(SYSTEM_PROMPT, /If robot is unset/);
     assert.match(SYSTEM_PROMPT, /Never ask which machine/);
     assert.match(SYSTEM_PROMPT, /volumes, wells, sample counts/);
-    assert.match(SYSTEM_PROMPT, /Hamilton: step JSON \+ runnable PyLabRobot script \(\.py\)/);
+    assert.match(SYSTEM_PROMPT, /Hamilton STAR: step JSON \+ runnable PyLabRobot script \(\.py\)/);
+    assert.match(SYSTEM_PROMPT, /Hamilton Vantage: step JSON \+ runnable PyLabRobot script \(\.py\)/);
     assert.match(SYSTEM_PROMPT, /Deliverables:/);
     assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
     assert.match(SYSTEM_PROMPT, /Tecan: \.gwl worklist \+ step JSON, no Watch/);
@@ -115,13 +116,14 @@ describe("demo contract lock", () => {
     assert.doesNotMatch(tools, /Preferred path for every robot/);
   });
 
-  it("scientist-facing copy names all four robots", () => {
+  it("scientist-facing copy names OT-2, Flex, STAR, Vantage, and Fluent", () => {
     const blob = ["web/src/App.tsx", "web/src/StartForm.tsx", "web/src/ChatPane.tsx", "web/src/startExamples.ts"]
       .map(read)
       .join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);
-    assert.match(blob, /Hamilton/);
+    assert.match(blob, /Hamilton STAR/);
+    assert.match(blob, /Hamilton Vantage/);
     assert.match(blob, /Tecan/);
     assert.match(read("web/src/App.tsx"), /robot=\{session\?\.robot\}/);
     assert.match(read("web/src/analysis.ts"), /robotHint/);
@@ -139,5 +141,12 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/api.ts"), /StartInput/);
     assert.match(read("server/src/index.ts"), /invalid robot/);
     assert.match(read("server/src/index.ts"), /robot: body\.robot/);
+    assert.match(read("web/src/App.tsx"), /RightStage/);
+    assert.match(read("web/src/RightStage.tsx"), /id: "stage"/);
+    assert.match(read("web/src/RightStage.tsx"), /id: "artifacts"/);
+    assert.match(read("web/src/RightStage.tsx"), /id: "trajectory"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Stage"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Artifacts"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Trajectory"/);
   });
 });

@@ -69,8 +69,11 @@ export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): str
   if (kind === "sop") return "Human-readable protocol write-up";
   if (kind === "python") return "Run with opentrons_simulate or upload to OT App";
   if (kind === "gwl") return "Import into FluentControl via Load Worklist";
-  if (kind === "plr") return "Runnable PyLabRobot script — run on the Vantage-connected PC";
-  if (robot === "Hamilton") return "Step table alongside the PyLabRobot script";
+  if (kind === "plr") {
+    if (robot === "Hamilton") return "Runnable PyLabRobot script — run on the STAR-connected PC";
+    return "Runnable PyLabRobot script — run on the Vantage-connected PC";
+  }
+  if (robot === "Hamilton" || robot === "Vantage") return "Step table alongside the PyLabRobot script";
   if (robot === "Tecan") return "Step table alongside the Fluent worklist";
   return "Step table as JSON";
 }
@@ -86,7 +89,7 @@ export function downloadable(session: DownloadSource): DownloadKind[] {
   const allowPython = !robot || pythonDevice;
   const allowPlan = !robot || planDevice || (pythonDevice && !session.code?.trim());
   const allowGwl = !robot || robot === "Tecan";
-  const allowPlr = !robot || robot === "Hamilton";
+  const allowPlr = !robot || robot === "Hamilton" || robot === "Vantage";
 
   const out: DownloadKind[] = [];
   if (session.sop?.trim()) out.push("sop");

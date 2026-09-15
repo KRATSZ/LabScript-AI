@@ -68,7 +68,7 @@ export function phaseLabel(
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
   if (phase === "need_hw_slots") return "Missing deck details";
   if (phase === "ready") return "In progress";
-  return "Which robot — OT-2, Flex, Hamilton, or Tecan?";
+    return "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?";
 }
 
 function goalState(goal: string): StepState {

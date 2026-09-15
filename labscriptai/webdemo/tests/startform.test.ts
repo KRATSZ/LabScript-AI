@@ -48,7 +48,8 @@ describe("StartForm device cards", () => {
     assert.equal(DEVICE_CARDS[0].blurb, "Python script + simulation + animation");
     assert.equal(DEVICE_CARDS[1].blurb, "Python script + simulation + animation");
     assert.equal(DEVICE_CARDS[2].blurb, "Step JSON + runnable PyLabRobot script");
-    assert.equal(DEVICE_CARDS[3].blurb, "Tecan Fluent .gwl worklist");
+    assert.equal(DEVICE_CARDS[3].blurb, "Step JSON + runnable PyLabRobot script");
+    assert.equal(DEVICE_CARDS[4].blurb, "Tecan Fluent .gwl worklist");
   });
 
   it("Start requires a selected device and a goal", () => {
@@ -62,6 +63,7 @@ describe("StartForm device cards", () => {
 
   it("example chips select a card only when they name exactly one device", () => {
     assert.equal(matchDeviceFromText("Hamilton STAR: transfer 50 µL A1 to B1"), "hamilton_star");
+    assert.equal(matchDeviceFromText("Hamilton Vantage transfer"), "hamilton_vantage");
     assert.equal(matchDeviceFromText("Flex PCR mix"), "flex");
     assert.equal(matchDeviceFromText("OT-2: transfer"), "ot2");
     assert.equal(matchDeviceFromText("Tecan Fluent .gwl"), "tecan_fluent");

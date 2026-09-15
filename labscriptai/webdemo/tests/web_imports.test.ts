@@ -46,12 +46,13 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(start, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
   });
 
-  it("scientist-facing copy names four robots and prompt supports emit_plan", () => {
-    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts"];
+  it("scientist-facing copy names five robots and prompt supports emit_plan", () => {
+    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts", "RightStage.tsx"];
     const blob = files.map((name) => readFileSync(path.join(webSrc, name), "utf8")).join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);
-    assert.match(blob, /Hamilton/);
+    assert.match(blob, /Hamilton STAR/);
+    assert.match(blob, /Hamilton Vantage/);
     assert.match(blob, /Tecan/);
     const prompt = readFileSync(path.resolve(webSrc, "../../server/src/prompt.ts"), "utf8");
     assert.doesNotMatch(SYSTEM_PROMPT, /Which robot/);
@@ -80,12 +81,16 @@ describe("AnimationOverlay code-split", () => {
     assert.match(panel, /DOWNLOAD_LABELS/);
     assert.match(panel, /export-hint/);
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
-    assert.match(app, /from ["']\.\/ExportsPanel["']/);
-    assert.match(app, /<ExportsPanel session=\{session\} \/>/);
+    const artifactsPane = readFileSync(path.join(webSrc, "ArtifactsPane.tsx"), "utf8");
+    const stagePane = readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8");
+    assert.match(artifactsPane, /from ["']\.\/ExportsPanel["']/);
+    assert.match(artifactsPane, /<ExportsPanel session=\{session\} filesOnly \/>/);
+    assert.match(stagePane, /from ["']\.\/IssuesPanel["']/);
     assert.ok(
-      app.indexOf("<ExportsPanel") < app.indexOf("<IssuesPanel"),
-      "step list and downloads must sit above developer JSON"
+      stagePane.indexOf("Plan IR") < stagePane.indexOf("<IssuesPanel"),
+      "step list must sit above developer JSON"
     );
+    assert.match(app, /from ["']\.\/RightStage["']/);
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
     assert.match(app, /sessionCanWatch/);
     assert.match(app, /robotSupportsWatch\(robotRef\.current\)/);

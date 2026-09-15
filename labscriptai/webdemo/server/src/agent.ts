@@ -12,6 +12,7 @@ import {
   isPatchBudgetRefusal,
   REVIEWER_UNAVAILABLE_DISCLOSURE,
 } from "./gate.ts";
+import { emitAgentEvent, TOOL_STEP } from "./events.ts";
 import { markConflictUserReply, snapshot, type SessionState } from "./session.ts";
 import type { SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
@@ -141,21 +142,36 @@ export function afterWebdemoToolCall(
 export function withToolEvents(
   tools: AgentTool[],
   sse: SseWriter,
-  now: () => number = Date.now
+  now: () => number = Date.now,
+  session?: SessionState
 ): AgentTool[] {
+  const sink = session ?? { events: [] };
   return tools.map((tool) => ({
     ...tool,
     execute: async (...args: Parameters<AgentTool["execute"]>) => {
       const startedAt = now();
+      const step = TOOL_STEP[tool.name];
       sse.write("tool", { name: tool.name, status: "start" });
+      emitAgentEvent(sink, sse, { kind: "tool/call", name: tool.name, t: startedAt });
+      if (step) emitAgentEvent(sink, sse, { kind: "step/start", name: step, t: startedAt });
       try {
         return await tool.execute(...args);
       } finally {
+        const duration_ms = Math.max(0, now() - startedAt);
         sse.write("tool", {
           name: tool.name,
           status: "done",
-          duration_ms: Math.max(0, now() - startedAt),
+          duration_ms,
         });
+        emitAgentEvent(sink, sse, {
+          kind: "tool/result",
+          name: tool.name,
+          t: now(),
+          detail: { duration_ms },
+        });
+        if (step) {
+          emitAgentEvent(sink, sse, { kind: "step/end", name: step, t: now(), detail: { duration_ms } });
+        }
       }
     },
   }));
@@ -257,7 +273,8 @@ export async function runChatTurn(
 
   session.patchesUsed = 0;
   markConflictUserReply(session, userText);
-  const tools = withToolEvents(buildTools(session, sse), sse);
+  emitAgentEvent(session, sse, { kind: "turn/start" });
+  const tools = withToolEvents(buildTools(session, sse), sse, Date.now, session);
   const prior = Array.isArray(session.messages) ? session.messages : [];
   const autoContinue = createAutoContinueState();
   const agent = new Agent({
@@ -280,11 +297,13 @@ export async function runChatTurn(
       ),
   });
 
-  return promptWithAutoContinue(
+  const ok = await promptWithAutoContinue(
     agent,
     nextUserMessage(session, userText),
     session,
     sse,
     autoContinue
   );
+  emitAgentEvent(session, sse, { kind: "turn/end", detail: { ok } });
+  return ok;
 }

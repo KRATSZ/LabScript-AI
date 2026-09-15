@@ -15,13 +15,22 @@ function downloadFor(session: SessionSnapshot, kind: ReturnType<typeof downloada
   if (kind === "sop") downloadText("sop.md", session.sop, "text/markdown");
   else if (kind === "python") downloadText("protocol.py", session.code, "text/x-python");
   else if (kind === "gwl") downloadText("worklist.gwl", session.artifacts?.worklistGwl ?? "", "text/plain");
-  else if (kind === "plr") downloadText("vantage.py", session.artifacts?.hamiltonScript ?? "", "text/x-python");
+  else if (kind === "plr") {
+    const name = session.robot === "Hamilton" ? "star.py" : "vantage.py";
+    downloadText(name, session.artifacts?.hamiltonScript ?? "", "text/x-python");
+  }
   else downloadText("plan.json", JSON.stringify(session.plan, null, 2), "application/json");
 }
 
-export function ExportsPanel({ session }: { session: SessionSnapshot }) {
+export function ExportsPanel({
+  session,
+  filesOnly = false,
+}: {
+  session: SessionSnapshot;
+  filesOnly?: boolean;
+}) {
   const files = downloadable(session);
-  const showPlanTable = !isPythonCodegen(session.robot) || !session.code?.trim();
+  const showPlanTable = !filesOnly && (!isPythonCodegen(session.robot) || !session.code?.trim());
   const steps = showPlanTable ? planSteps(session.plan) : [];
   const marker = downloadSuffix(session.checks?.status);
   const tone = statusTone(session.checks?.status);

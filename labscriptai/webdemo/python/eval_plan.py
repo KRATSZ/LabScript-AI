@@ -25,6 +25,32 @@ def fail(reason: str, errors: list[str] | None = None) -> dict[str, Any]:
     }
 
 
+def attach_volume_gate(result: dict[str, Any], plan: Any, robot: str) -> dict[str, Any]:
+    """PR #4 backend: Chatterbox does not model over-volume; fail those plans here."""
+    try:
+        from pylabrobot_backend import plan_volume_error
+    except ImportError:
+        return result
+    if not isinstance(plan, dict):
+        return result
+    error = plan_volume_error(plan, robot)
+    if not error:
+        return result
+    logic = result.get("logicpass") if isinstance(result.get("logicpass"), dict) else {}
+    if logic.get("outcome") == "fail":
+        return result
+    out = dict(result)
+    out["logicpass"] = {
+        "outcome": "fail",
+        "logic_pass": False,
+        "final_pass_v2": False,
+        "issues": [{"code": "LP-VOLUME", "detail_text": error}],
+        "reason": error,
+    }
+    out["fab"] = {"lit": False}
+    return out
+
+
 def attach_virtual_deck_if_sim_failed(result: dict[str, Any], plan: Any) -> dict[str, Any]:
     """webdemo-only: run virtual_deck when PLR fails so overflow is not swallowed.
 
@@ -96,6 +122,7 @@ def main() -> int:
         skip_review=True,
     )
     result = attach_virtual_deck_if_sim_failed(result, plan)
+    result = attach_volume_gate(result, plan, str(payload.get("robot") or ""))
     print(json.dumps(result, ensure_ascii=False, default=str))
     return 0
 

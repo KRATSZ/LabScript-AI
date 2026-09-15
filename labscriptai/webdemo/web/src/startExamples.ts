@@ -11,7 +11,7 @@ export const EXAMPLES: Array<{ label: string; goal: string; doc: string }> = [
   },
   {
     label: "No protocol — common deck",
-    goal: "I have no written protocol; use a common deck (tip rack, 96-well plate, reagent reservoir) on OT-2, Flex, Hamilton, or Tecan.",
+    goal: "I have no written protocol; use a common deck (tip rack, 96-well plate, reagent reservoir) on OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan.",
     doc: "",
   },
 ];

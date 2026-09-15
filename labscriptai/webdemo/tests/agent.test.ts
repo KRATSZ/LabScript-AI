@@ -197,7 +197,8 @@ describe("agent tool-result handling", () => {
     const wrapped = withToolEvents(
       [fakeTool],
       {
-        write(_event, data) {
+        write(event, data) {
+          if (event !== "tool") return;
           const payload = data as { status: string; duration_ms?: number };
           events.push(`sse:${payload.status}${payload.duration_ms == null ? "" : `:${payload.duration_ms}`}`);
         },
