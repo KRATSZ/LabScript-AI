@@ -1,0 +1,29 @@
+{
+  "name": "labscriptai-forum",
+  "private": true,
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1 --port 4321",
+    "build": "astro build",
+    "preview": "astro preview --host 127.0.0.1 --port 4321",
+    "astro": "astro",
+    "test": "node --experimental-strip-types --test tests/*.test.ts && astro check"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^8.0.1",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.2",
+    "sharp": "^0.35.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3"
+  }
+}

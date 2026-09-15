@@ -1,0 +1,202 @@
+---
+import { DOWNVOTE_LABELS, DOWNVOTE_REASONS } from "../lib/votes";
+
+interface Props {
+	postId: string;
+	seedUpvotes: number;
+	seedDownvotes: number;
+}
+
+const { postId, seedUpvotes, seedDownvotes } = Astro.props;
+---
+
+<section class="votes" data-votes data-post-id={postId} data-seed-up={seedUpvotes} data-seed-down={seedDownvotes}>
+	<p class="counts">
+		<span data-up-count>{seedUpvotes}</span> up ·
+		<span data-down-count>{seedDownvotes}</span> down
+		<span class="mine" data-mine></span>
+	</p>
+	<div class="actions">
+		<button type="button" data-up>Upvote</button>
+		<button type="button" data-open-down>Downvote</button>
+	</div>
+	<dialog data-dialog>
+		<form method="dialog" data-down-form>
+			<h2>Why did this protocol fail?</h2>
+			<p class="hint">A downvote needs a category. Pick one.</p>
+			<p class="err" data-error hidden></p>
+			<fieldset>
+				<legend class="sr-only">Failure category</legend>
+				{
+					DOWNVOTE_REASONS.map((reason) => (
+						<label>
+							<input type="radio" name="reason" value={reason} />
+							{DOWNVOTE_LABELS[reason]}
+						</label>
+					))
+				}
+			</fieldset>
+			<label class="note">
+				Optional note
+				<input type="text" name="note" maxlength="200" placeholder="Which step?" />
+			</label>
+			<div class="actions">
+				<button type="submit" value="save">Save downvote</button>
+				<button type="submit" value="cancel">Cancel</button>
+			</div>
+		</form>
+	</dialog>
+</section>
+
+<script>
+	import { validateDownvote, VOTE_STORAGE_KEY, type StoredVote } from "../lib/votes";
+
+	type Store = Record<string, StoredVote>;
+
+	function readStore(): Store {
+		try {
+			const raw = localStorage.getItem(VOTE_STORAGE_KEY);
+			if (!raw) return {};
+			const parsed = JSON.parse(raw) as Store;
+			return parsed && typeof parsed === "object" ? parsed : {};
+		} catch {
+			return {};
+		}
+	}
+
+	function writeStore(store: Store) {
+		localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(store));
+	}
+
+	function paint(root: HTMLElement) {
+		const postId = root.dataset.postId ?? "";
+		const seedUp = Number(root.dataset.seedUp ?? "0");
+		const seedDown = Number(root.dataset.seedDown ?? "0");
+		const mine = readStore()[postId];
+		const up = seedUp + (mine?.kind === "up" ? 1 : 0);
+		const down = seedDown + (mine?.kind === "down" ? 1 : 0);
+		const upEl = root.querySelector("[data-up-count]");
+		const downEl = root.querySelector("[data-down-count]");
+		const mineEl = root.querySelector("[data-mine]");
+		if (upEl) upEl.textContent = String(up);
+		if (downEl) downEl.textContent = String(down);
+		if (mineEl) {
+			if (mine?.kind === "up") mineEl.textContent = " · you upvoted";
+			else if (mine?.kind === "down" && mine.reason) {
+				mineEl.textContent = ` · you downvoted (${mine.reason})`;
+			} else mineEl.textContent = "";
+		}
+	}
+
+	for (const root of document.querySelectorAll<HTMLElement>("[data-votes]")) {
+		const postId = root.dataset.postId ?? "";
+		const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]");
+		const form = root.querySelector<HTMLFormElement>("[data-down-form]");
+		const errorEl = root.querySelector<HTMLElement>("[data-error]");
+		paint(root);
+
+		root.querySelector("[data-up]")?.addEventListener("click", () => {
+			const store = readStore();
+			store[postId] = { kind: "up" };
+			writeStore(store);
+			paint(root);
+		});
+
+		root.querySelector("[data-open-down]")?.addEventListener("click", () => {
+			if (errorEl) {
+				errorEl.hidden = true;
+				errorEl.textContent = "";
+			}
+			form?.reset();
+			dialog?.showModal();
+		});
+
+		form?.addEventListener("submit", (event) => {
+			const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+			if (submitter?.value === "cancel") return;
+			event.preventDefault();
+			const data = new FormData(form);
+			const result = validateDownvote({
+				reason: data.get("reason"),
+				note: data.get("note"),
+			});
+			if (!result.ok) {
+				if (errorEl) {
+					errorEl.hidden = false;
+					errorEl.textContent = result.error;
+				}
+				return;
+			}
+			const store = readStore();
+			store[postId] = { kind: "down", reason: result.reason, note: result.note };
+			writeStore(store);
+			paint(root);
+			dialog?.close();
+		});
+	}
+</script>
+
+<style>
+	.votes {
+		margin: 1.5rem 0;
+		padding: 1rem 0 0;
+		border-top: 1px solid rgb(var(--gray-light));
+	}
+	.counts {
+		margin: 0 0 0.75rem;
+		color: rgb(var(--gray));
+		font-size: 0.95rem;
+	}
+	.actions {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+	button {
+		font: inherit;
+		font-size: 0.95rem;
+		padding: 0.35rem 0.8rem;
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 6px;
+		background: #fff;
+		cursor: pointer;
+	}
+	button:hover {
+		border-color: var(--accent);
+	}
+	dialog {
+		border: 1px solid rgb(var(--gray-light));
+		border-radius: 8px;
+		padding: 1.25rem;
+		max-width: 28rem;
+	}
+	dialog h2 {
+		font-size: 1.15rem;
+		margin: 0 0 0.35rem;
+	}
+	.hint,
+	.err {
+		margin: 0 0 0.75rem;
+		font-size: 0.95rem;
+	}
+	.err {
+		color: #9f1239;
+	}
+	fieldset {
+		border: 0;
+		margin: 0 0 0.75rem;
+		padding: 0;
+		display: grid;
+		gap: 0.4rem;
+	}
+	.note {
+		display: grid;
+		gap: 0.25rem;
+		margin-bottom: 1rem;
+		font-size: 0.95rem;
+	}
+	.note input {
+		font: inherit;
+		padding: 0.35rem 0.5rem;
+	}
+</style>

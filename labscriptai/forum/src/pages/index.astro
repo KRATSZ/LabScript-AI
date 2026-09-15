@@ -1,0 +1,94 @@
+---
+import { getCollection } from "astro:content";
+import BaseHead from "../components/BaseHead.astro";
+import Footer from "../components/Footer.astro";
+import FormattedDate from "../components/FormattedDate.astro";
+import Header from "../components/Header.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+
+const posts = (await getCollection("protocols")).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<h1>Protocol packs</h1>
+			<p class="lede">
+				Sample board. Each post is a full pack: <strong>device</strong>, <strong>deck</strong>,
+				<strong>SOP</strong>, and <strong>script</strong>. Downvote needs a reason (crash / leak /
+				error). No login. Local only. Not wired into the webdemo.
+			</p>
+			<ul>
+				{
+					posts.map((post) => (
+						<li>
+							<a href={`/p/${post.id}/`}>
+								<h2>{post.data.title}</h2>
+								<p class="meta">
+									{post.data.device}
+									{post.data.ranOnHardware ? " · ran on hardware" : " · sim / not run"} ·
+									<FormattedDate date={post.data.pubDate} />
+								</p>
+								<p>{post.data.description}</p>
+								<p class="votes">
+									{post.data.seedUpvotes} up · {post.data.seedDownvotes.length} down
+									{post.data.seedDownvotes[0]
+										? ` (${post.data.seedDownvotes[0].reason})`
+										: ""}
+								</p>
+							</a>
+						</li>
+					))
+				}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	h1 {
+		font-size: 2rem;
+	}
+	.lede {
+		color: rgb(var(--gray-dark));
+	}
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 1rem;
+	}
+	li a {
+		display: block;
+		padding: 1rem 0;
+		border-top: 1px solid rgb(var(--gray-light));
+		text-decoration: none;
+		color: inherit;
+	}
+	li h2 {
+		font-size: 1.25rem;
+		margin: 0 0 0.25rem;
+		color: rgb(var(--black));
+	}
+	.meta,
+	.votes {
+		margin: 0;
+		color: rgb(var(--gray));
+		font-size: 0.9rem;
+	}
+	li p {
+		margin: 0.35rem 0 0;
+	}
+	li a:hover h2 {
+		color: var(--accent);
+	}
+</style>

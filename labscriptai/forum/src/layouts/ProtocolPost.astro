@@ -1,0 +1,152 @@
+---
+import type { CollectionEntry } from "astro:content";
+import BaseHead from "../components/BaseHead.astro";
+import Footer from "../components/Footer.astro";
+import FormattedDate from "../components/FormattedDate.astro";
+import Header from "../components/Header.astro";
+import VoteBar from "../components/VoteBar.astro";
+
+type Props = CollectionEntry<"protocols">["data"] & { postId: string };
+
+const {
+	title,
+	description,
+	pubDate,
+	author,
+	device,
+	pipette,
+	deck,
+	sop,
+	script,
+	scriptLang,
+	ranOnHardware,
+	seedUpvotes,
+	seedDownvotes,
+	postId,
+} = Astro.props;
+---
+
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<article>
+				<p class="meta">
+					<FormattedDate date={pubDate} />
+					· {author}
+				</p>
+				<h1>{title}</h1>
+				<p class="flags">
+					<span class="chip">{device}</span>
+					{
+						ranOnHardware ? (
+							<span class="chip ok">ran on hardware</span>
+						) : (
+							<span class="chip">sim / not run</span>
+						)
+					}
+				</p>
+
+				<section>
+					<h2>Device</h2>
+					<p>{device}{pipette ? ` · ${pipette}` : ""}</p>
+				</section>
+
+				<section>
+					<h2>Deck</h2>
+					<table>
+						<thead>
+							<tr><th>Slot</th><th>Labware</th></tr>
+						</thead>
+						<tbody>
+							{
+								deck.map((row) => (
+									<tr>
+										<td>{row.slot}</td>
+										<td><code>{row.labware}</code></td>
+									</tr>
+								))
+							}
+						</tbody>
+					</table>
+				</section>
+
+				<section>
+					<h2>SOP</h2>
+					<ol>
+						{sop.map((step) => <li>{step}</li>)}
+					</ol>
+				</section>
+
+				<section>
+					<h2>Script</h2>
+					<pre><code class={`language-${scriptLang}`}>{script.trimEnd()}</code></pre>
+				</section>
+
+				<slot />
+
+				<VoteBar
+					postId={postId}
+					seedUpvotes={seedUpvotes}
+					seedDownvotes={seedDownvotes.length}
+				/>
+			</article>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	h1 {
+		font-size: 2rem;
+		margin: 0 0 0.5rem;
+	}
+	.meta {
+		color: rgb(var(--gray));
+		margin: 0 0 0.35rem;
+		font-size: 0.95rem;
+	}
+	.flags {
+		display: flex;
+		gap: 0.4rem;
+		flex-wrap: wrap;
+		margin: 0 0 1.5rem;
+	}
+	.chip {
+		font-size: 0.8rem;
+		padding: 0.15rem 0.55rem;
+		border-radius: 999px;
+		background: rgb(var(--gray-light));
+	}
+	.chip.ok {
+		background: #d1fae5;
+	}
+	section {
+		margin-bottom: 1.5rem;
+	}
+	h2 {
+		font-size: 1.1rem;
+		margin-bottom: 0.4rem;
+	}
+	table {
+		border-collapse: collapse;
+		font-size: 0.95rem;
+	}
+	th,
+	td {
+		text-align: left;
+		padding: 0.25rem 0.6rem 0.25rem 0;
+		border-bottom: 1px solid rgb(var(--gray-light));
+	}
+	ol {
+		margin: 0;
+		padding-left: 1.2rem;
+	}
+	pre {
+		font-size: 0.85rem;
+		overflow-x: auto;
+	}
+</style>
