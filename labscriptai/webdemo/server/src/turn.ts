@@ -4,7 +4,7 @@ import { SYSTEM_PROMPT } from "./prompt.ts";
 import { deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
 
 export const CONTINUE_STEER =
-  "Continue from LIVE SESSION. If next_tool is ask_user, ask 1–2 short lab questions and stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
+  "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm of volume, wells, mix, and the standard deck, then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
 
 export function nextToolHint(session: SessionState): string {
   const snap = snapshot(session);

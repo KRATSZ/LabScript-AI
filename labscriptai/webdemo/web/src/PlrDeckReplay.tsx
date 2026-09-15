@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
+function fluentChrome(robot?: string | null, deck?: string): string {
+  if (!deck) return "";
+  if (robot && /tecan|fluent/i.test(robot) && /evo/i.test(deck)) return "Tecan Fluent";
+  return deck;
+}
+
 interface StartResponse {
   ok?: boolean;
   url?: string;
@@ -40,7 +46,7 @@ export function PlrDeckReplay({
           return;
         }
         setUrl(body.url);
-        setDeck(body.deck || "");
+        setDeck(fluentChrome(robot, body.deck || ""));
         setNote(body.note || "");
       })
       .catch((err: unknown) => {

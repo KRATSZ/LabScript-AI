@@ -14,7 +14,7 @@ import {
 } from "./gate.ts";
 import { emitAgentEvent, TOOL_STEP } from "./events.ts";
 import { markConflictUserReply, markIntakeReply, snapshot, type SessionState } from "./session.ts";
-import type { SseWriter } from "./sse.ts";
+import { trackUserText, type SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
 
@@ -62,7 +62,7 @@ export const POST_RUN_CHECKS_WITHHELD_HINT =
 export const POST_NOTES_CONFLICT_HINT =
   "SYSTEM HINT: Notes conflict with the goal. Call ask_user, tell the user both volumes, and STOP. Do not generate_sop, emit_plan, run_checks, or say a .gwl is ready until the user answers.";
 export const POST_INTAKE_HINT =
-  "SYSTEM HINT: Confirm volume, wells, mix, and the standard deck. Ask 1–2 short lab questions in chat, call ask_user, and STOP. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. After they confirm the standard deck, do not ask pipette vs tip size. Do not mention liters unless they wrote liters. No tool names in the user-facing message.";
+  "SYSTEM HINT: One short confirm of volume, wells, mix, and the standard deck. Ask in chat, call ask_user, and STOP. Do not quiz starting volume in A1. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. After they confirm the standard deck, do not ask pipette vs tip size. Do not mention liters unless they wrote liters. No tool names in the user-facing message.";
 
 export function isNotesConflictWait(details: unknown): boolean {
   if (!details || typeof details !== "object") return false;
@@ -310,8 +310,9 @@ export async function runChatTurn(
   session.patchesUsed = 0;
   markConflictUserReply(session, userText);
   markIntakeReply(session, userText);
-  emitAgentEvent(session, sse, { kind: "turn/start" });
-  const tools = withToolEvents(buildTools(session, sse), sse, Date.now, session);
+  const tracked = trackUserText(sse);
+  emitAgentEvent(session, tracked, { kind: "turn/start" });
+  const tools = withToolEvents(buildTools(session, tracked), tracked, Date.now, session);
   const prior = Array.isArray(session.messages) ? session.messages : [];
   const autoContinue = createAutoContinueState();
   const agent = new Agent({
@@ -338,9 +339,9 @@ export async function runChatTurn(
     agent,
     nextUserMessage(session, userText),
     session,
-    sse,
+    tracked,
     autoContinue
   );
-  emitAgentEvent(session, sse, { kind: "turn/end", detail: { ok } });
+  emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok } });
   return ok;
 }

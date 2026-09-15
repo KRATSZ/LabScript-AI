@@ -59,7 +59,7 @@ def _make_deck(kind: str) -> tuple[Any, str, str]:
 
         return (
             EVO200Deck(),
-            "Tecan Freedom EVO 200",
+            "Tecan Fluent",
             "Fluent has no PLR deck model yet — this preview reuses Freedom EVO geometry.",
         )
     from pylabrobot.resources.hamilton import STARLetDeck

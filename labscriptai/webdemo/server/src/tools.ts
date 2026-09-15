@@ -50,7 +50,7 @@ import {
   type AskUserInput,
   type SessionState,
 } from "./session.ts";
-import type { SseWriter } from "./sse.ts";
+import { sseHasUserText, type SseWriter } from "./sse.ts";
 
 type ToolResult = AgentToolResult<Record<string, unknown>>;
 
@@ -164,7 +164,9 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (intakeOpen(session)) {
         const ask =
           "Confirm volume, wells, mix, and the standard deck — nothing is written yet.";
-        sse.write("text", { token: `\n\n${ask}\n` });
+        if (!sseHasUserText(sse)) {
+          sse.write("text", { token: `\n\n${ask}\n` });
+        }
         return {
           content: [
             {
@@ -178,7 +180,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
                   phase: session.phase,
                   missing: missingList(session),
                   ready: false,
-                  hint: "Ask 1–2 short lab questions in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
+                  hint: "One short confirm in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
                 },
                 null,
                 2

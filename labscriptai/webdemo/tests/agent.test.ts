@@ -188,7 +188,7 @@ describe("agent tool-result handling", () => {
     assert.ok(update?.content);
     assert.equal(update.terminate, true);
     assert.equal((update.content.at(-1) as { text: string }).text, POST_INTAKE_HINT);
-    assert.match(JSON.stringify(update.content), /1–2 short lab questions/i);
+    assert.match(JSON.stringify(update.content), /one short confirm/i);
   });
 
   it("emits tool done only after the handler resolves, with duration", async () => {

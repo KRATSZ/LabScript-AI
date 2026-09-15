@@ -74,18 +74,20 @@ export function StartForm({ busy, onSubmit }: Props) {
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
       />
-      <div className="row">
-        <input
-          type="file"
-          accept=".md,.txt,.py,.json"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            setFileName(file.name);
-            setDoc(await file.text());
-          }}
-        />
-        <span className="file">{fileName || "No file selected"}</span>
+      <div className="row file-pick">
+        <label className="file-label">
+          <input
+            type="file"
+            accept=".md,.txt,.py,.json"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setFileName(file.name);
+              setDoc(await file.text());
+            }}
+          />
+          {fileName || "Add a notes file"}
+        </label>
       </div>
 
       <div className="chips">

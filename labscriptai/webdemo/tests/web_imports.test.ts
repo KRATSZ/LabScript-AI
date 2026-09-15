@@ -105,6 +105,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
     assert.doesNotMatch(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay|WatchPlayer|Run preview/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);
+    assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /busy && msg\.role === "assistant"/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /tabCount/);
     assert.match(readFileSync(path.join(webSrc, "stageTabs.ts"), "utf8"), /export function tabCount/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /react-markdown/);

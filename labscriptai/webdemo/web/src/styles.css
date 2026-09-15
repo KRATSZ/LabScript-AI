@@ -269,8 +269,27 @@ body {
   border-color: var(--primary);
 }
 .row { display: flex; gap: 8px; align-items: center; }
-.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.file-pick { position: relative; }
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.file-label input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
 .file { font-size: 12px; color: var(--muted); }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip {
   border: 0.5px solid var(--line);

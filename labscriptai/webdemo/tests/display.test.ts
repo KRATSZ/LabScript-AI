@@ -54,5 +54,17 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("20 µL (microliters, not liters) from A1 to B1."),
       "20 µL from A1 to B1."
     );
+    assert.equal(
+      sanitizeAssistantText("Checks passed — sim clean, logic pass, review matches your ask."),
+      "Checks passed — the run matches what you asked."
+    );
+    assert.equal(
+      sanitizeAssistantText("Building the SOP now. Checks pass — clean run."),
+      "Checks pass — clean run."
+    );
+    assert.equal(
+      sanitizeAssistantText("15 mL reservoir on slot 3."),
+      "12-well reservoir on slot 3."
+    );
   });
 });

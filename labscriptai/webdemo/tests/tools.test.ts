@@ -221,6 +221,26 @@ describe("tools harness", () => {
     assert.equal(intakeOpen(session), false);
     assert.equal(shouldCallCompactSop(session), true);
   });
+
+  it("ask_user skips canned closer when chat already asked", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1", doc: "", robot: "Tecan" });
+    const tokens: string[] = [];
+    const sse = {
+      write(event: string, data: unknown) {
+        if (event === "text") tokens.push(String((data as { token?: string }).token ?? ""));
+      },
+      close() {},
+      hasUserText() {
+        return tokens.some((line) => line.trim().length > 0);
+      },
+    };
+    sse.write("text", { token: "Standard deck as above — good as is?" });
+    const ask = buildTools(session, sse).find((t) => t.name === "ask_user");
+    assert.ok(ask);
+    await ask.execute("1", {});
+    assert.equal(tokens.some((line) => /nothing is written yet/.test(line)), false);
+  });
 });
 
 const failChecks = () =>

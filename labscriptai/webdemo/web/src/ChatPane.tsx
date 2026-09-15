@@ -49,7 +49,8 @@ export function ChatPane({ messages, busy, onSend }: Props) {
       <div className="history" ref={historyRef}>
         {messages.map((msg, i) => {
           const last = i === messages.length - 1;
-          const showThinking = msg.role === "assistant" && Boolean(msg.thinking);
+          const showThinking =
+            last && busy && msg.role === "assistant" && Boolean(msg.thinking) && !msg.text;
           const emptyAssistant = msg.role === "assistant" && !msg.text && !msg.thinking;
           if (emptyAssistant && !(busy && last)) return null;
           const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
