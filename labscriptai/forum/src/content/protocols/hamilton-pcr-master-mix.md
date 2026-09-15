@@ -1,6 +1,6 @@
 ---
-title: "Hamilton STAR: 20 µL PCR mix × 8"
-description: "Dispense master mix from the reservoir into eight sample wells. Fake pack."
+title: "20 µL PCR mix × 8"
+description: "Dispense master mix from the reservoir into eight sample wells."
 pubDate: 2026-09-12
 author: "mix-tech"
 device: "Hamilton STAR"
@@ -27,7 +27,7 @@ scriptLang: python
 ranOnHardware: false
 seedUpvotes: 1
 seedDownvotes:
-  - { reason: leak }
+  - { reason: leak, step: 3 }
 ---
 
 Simulation-only sample. One seeded downvote is a **leak** on the reservoir aspirate — that is why a reason category is required.

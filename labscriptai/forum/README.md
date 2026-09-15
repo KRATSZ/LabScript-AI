@@ -4,9 +4,9 @@ Local **sample** of a protocol-pack board. Not production. No extra auth. Not wi
 
 ## Framework
 
-[Astro official Blog starter](https://github.com/withastro/astro/tree/main/examples/blog) (`npm create astro@latest -- --template blog`), which is based on [Bear Blog](https://github.com/HermanMartinus/bearblog/) CSS (MIT).
+[Astro official Blog starter](https://github.com/withastro/astro/tree/main/examples/blog) (`npm create astro@latest -- --template blog`).
 
-Posts are Astro [content collections](https://docs.astro.build/en/guides/content-collections/). Votes are stored in the browser (`localStorage`). Downvote must pick **crash**, **leak**, or **error**.
+Skin: [Opentrons Protocol Library](https://library.opentrons.com/) cards + detail (title, robot chip, sim/hardware, one-line purpose, deck graphic, numbered SOP, script last). Downvote copies [protocols.io](https://www.protocols.io/) troubleshooting: **crash / leak / error** plus **which step**, pinned on the post. Quiet Linear-style list+detail. Votes stay in `localStorage`.
 
 ## Run locally
 

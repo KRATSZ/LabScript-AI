@@ -1,6 +1,6 @@
 ---
-title: "OT-2: 50 µL A1 → B1"
-description: "Single-channel transfer on the assumed three-slot deck. Fake pack for the sample board."
+title: "50 µL A1 → B1"
+description: "Move 50 µL from plate A1 to B1 on the assumed OT-2 deck."
 pubDate: 2026-09-10
 author: "bench-bot"
 device: "OT-2"

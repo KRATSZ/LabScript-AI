@@ -1,28 +1,46 @@
 ---
-import { DOWNVOTE_LABELS, DOWNVOTE_REASONS } from "../lib/votes";
+import { DOWNVOTE_LABELS, DOWNVOTE_REASONS, type FailureReport } from "../lib/votes";
 
 interface Props {
 	postId: string;
 	seedUpvotes: number;
-	seedDownvotes: number;
+	seedReports: FailureReport[];
+	sop: string[];
 }
 
-const { postId, seedUpvotes, seedDownvotes } = Astro.props;
+const { postId, seedUpvotes, seedReports, sop } = Astro.props;
+const config = JSON.stringify({ postId, seedUpvotes, seedReports, sop });
 ---
 
-<section class="votes" data-votes data-post-id={postId} data-seed-up={seedUpvotes} data-seed-down={seedDownvotes}>
+<section class="votes" data-votes>
+	<script is:inline type="application/json" data-vote-config set:html={config} />
+	<h2>Troubleshooting</h2>
+	<p class="hint">Failure reports stay on the pack. A downvote needs a category and a step.</p>
+	<ul class="reports" data-reports>
+		{
+			seedReports.length === 0 ? (
+				<li class="empty">No failure reports yet.</li>
+			) : (
+				seedReports.map((report) => (
+					<li>
+						{report.reason} · step {report.step} · {sop[report.step - 1] ?? `step ${report.step}`}
+					</li>
+				))
+			)
+		}
+	</ul>
 	<p class="counts">
-		<span data-up-count>{seedUpvotes}</span> up · <span data-down-count>{seedDownvotes}</span> down
+		<span data-up-count>{seedUpvotes}</span> useful
 		<span class="mine" data-mine></span>
 	</p>
 	<div class="actions">
-		<button type="button" data-up>Upvote</button>
-		<button type="button" data-open-down>Downvote</button>
+		<button type="button" data-up>Mark useful</button>
+		<button type="button" data-open-down>Report failure</button>
 	</div>
 	<dialog data-dialog>
 		<form method="dialog" data-down-form>
-			<h2>Why did this protocol fail?</h2>
-			<p class="hint">A downvote needs a category. Pick one.</p>
+			<h2>What went wrong?</h2>
+			<p class="hint">Pick crash, leak, or error, and the SOP step.</p>
 			<p class="err" data-error hidden></p>
 			<fieldset>
 				<legend class="sr-only">Failure category</legend>
@@ -36,11 +54,20 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 				}
 			</fieldset>
 			<label class="note">
-				Optional note
-				<input type="text" name="note" maxlength="200" placeholder="Which step?" />
+				Which step
+				<select name="step">
+					<option value="">Select a step</option>
+					{
+						sop.map((text, i) => (
+							<option value={String(i + 1)}>
+								{i + 1}. {text}
+							</option>
+						))
+					}
+				</select>
 			</label>
 			<div class="actions">
-				<button type="submit" value="save">Save downvote</button>
+				<button type="submit" value="save">Save report</button>
 				<button type="submit" value="cancel">Cancel</button>
 			</div>
 		</form>
@@ -48,9 +75,20 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 </section>
 
 <script>
-	import { validateDownvote, VOTE_STORAGE_KEY, type StoredVote } from "../lib/votes";
+	import {
+		validateDownvote,
+		VOTE_STORAGE_KEY,
+		type FailureReport,
+		type StoredVote,
+	} from "../lib/votes";
 
 	type Store = Record<string, StoredVote>;
+	type Config = {
+		postId: string;
+		seedUpvotes: number;
+		seedReports: FailureReport[];
+		sop: string[];
+	};
 
 	function readStore(): Store {
 		try {
@@ -67,38 +105,60 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 		localStorage.setItem(VOTE_STORAGE_KEY, JSON.stringify(store));
 	}
 
-	function paint(root: HTMLElement) {
-		const postId = root.dataset.postId ?? "";
-		const seedUp = Number(root.dataset.seedUp ?? "0");
-		const seedDown = Number(root.dataset.seedDown ?? "0");
-		const mine = readStore()[postId];
-		const up = seedUp + (mine?.kind === "up" ? 1 : 0);
-		const down = seedDown + (mine?.kind === "down" ? 1 : 0);
+	function lineFor(report: FailureReport, sop: string[], suffix = ""): string {
+		const stepText = sop[report.step - 1] ?? `step ${report.step}`;
+		return `${report.reason} · step ${report.step} · ${stepText}${suffix}`;
+	}
+
+	function paint(root: HTMLElement, cfg: Config) {
+		const mine = readStore()[cfg.postId];
+		const reports: { report: FailureReport; suffix: string }[] = cfg.seedReports.map((report) => ({
+			report,
+			suffix: "",
+		}));
+		if (mine?.kind === "down" && mine.reason && mine.step) {
+			reports.push({ report: { reason: mine.reason, step: mine.step }, suffix: " (you)" });
+		}
+		const list = root.querySelector("[data-reports]");
+		if (list) {
+			list.replaceChildren();
+			if (reports.length === 0) {
+				const empty = document.createElement("li");
+				empty.className = "empty";
+				empty.textContent = "No failure reports yet.";
+				list.append(empty);
+			} else {
+				for (const item of reports) {
+					const li = document.createElement("li");
+					li.textContent = lineFor(item.report, cfg.sop, item.suffix);
+					list.append(li);
+				}
+			}
+		}
+		const up = cfg.seedUpvotes + (mine?.kind === "up" ? 1 : 0);
 		const upEl = root.querySelector("[data-up-count]");
-		const downEl = root.querySelector("[data-down-count]");
 		const mineEl = root.querySelector("[data-mine]");
 		if (upEl) upEl.textContent = String(up);
-		if (downEl) downEl.textContent = String(down);
 		if (mineEl) {
-			if (mine?.kind === "up") mineEl.textContent = " · you upvoted";
-			else if (mine?.kind === "down" && mine.reason) {
-				mineEl.textContent = ` · you downvoted (${mine.reason})`;
-			} else mineEl.textContent = "";
+			if (mine?.kind === "up") mineEl.textContent = " · you marked useful";
+			else if (mine?.kind === "down") mineEl.textContent = " · you reported a failure";
+			else mineEl.textContent = "";
 		}
 	}
 
 	for (const root of document.querySelectorAll<HTMLElement>("[data-votes]")) {
-		const postId = root.dataset.postId ?? "";
+		const raw = root.querySelector("[data-vote-config]")?.textContent ?? "{}";
+		const cfg = JSON.parse(raw) as Config;
 		const dialog = root.querySelector<HTMLDialogElement>("[data-dialog]");
 		const form = root.querySelector<HTMLFormElement>("[data-down-form]");
 		const errorEl = root.querySelector<HTMLElement>("[data-error]");
-		paint(root);
+		paint(root, cfg);
 
 		root.querySelector("[data-up]")?.addEventListener("click", () => {
 			const store = readStore();
-			store[postId] = { kind: "up" };
+			store[cfg.postId] = { kind: "up" };
 			writeStore(store);
-			paint(root);
+			paint(root, cfg);
 		});
 
 		root.querySelector("[data-open-down]")?.addEventListener("click", () => {
@@ -117,7 +177,8 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 			const data = new FormData(form);
 			const result = validateDownvote({
 				reason: data.get("reason"),
-				note: data.get("note"),
+				step: data.get("step"),
+				stepCount: cfg.sop.length,
 			});
 			if (!result.ok) {
 				if (errorEl) {
@@ -127,9 +188,9 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 				return;
 			}
 			const store = readStore();
-			store[postId] = { kind: "down", reason: result.reason, note: result.note };
+			store[cfg.postId] = { kind: "down", reason: result.reason, step: result.step };
 			writeStore(store);
-			paint(root);
+			paint(root, cfg);
 			dialog?.close();
 		});
 	}
@@ -137,14 +198,44 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 
 <style>
 	.votes {
-		margin: 1.5rem 0;
-		padding: 1rem 0 0;
-		border-top: 1px solid rgb(var(--gray-light));
+		margin: 2.5rem 0 0;
+		padding: 1.25rem 0 0;
+		border-top: 1px solid #eceef1;
+	}
+	.votes > h2 {
+		font-size: 0.92rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #8a8f98;
+		margin: 0 0 0.35rem;
+	}
+	.hint {
+		margin: 0 0 0.85rem;
+		color: #6b717c;
+		font-size: 0.9rem;
+	}
+	.reports {
+		list-style: none;
+		margin: 0 0 1rem;
+		padding: 0;
+		display: grid;
+		gap: 0.45rem;
+	}
+	.reports :global(li) {
+		font-size: 0.92rem;
+		padding: 0.55rem 0.7rem;
+		border-radius: 8px;
+		background: #f7f8f9;
+	}
+	.reports :global(li.empty) {
+		color: #8a8f98;
+		background: transparent;
+		padding-left: 0;
 	}
 	.counts {
 		margin: 0 0 0.75rem;
-		color: rgb(var(--gray));
-		font-size: 0.95rem;
+		color: #6b717c;
+		font-size: 0.9rem;
 	}
 	.actions {
 		display: flex;
@@ -153,32 +244,33 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 	}
 	button {
 		font: inherit;
-		font-size: 0.95rem;
-		padding: 0.35rem 0.8rem;
-		border: 1px solid rgb(var(--gray-light));
-		border-radius: 6px;
+		font-size: 0.9rem;
+		padding: 0.4rem 0.85rem;
+		border: 1px solid #e4e6ea;
+		border-radius: 8px;
 		background: #fff;
 		cursor: pointer;
 	}
 	button:hover {
-		border-color: var(--accent);
+		background: #f7f8f9;
 	}
 	dialog {
-		border: 1px solid rgb(var(--gray-light));
-		border-radius: 8px;
+		border: 1px solid #e4e6ea;
+		border-radius: 12px;
 		padding: 1.25rem;
 		max-width: 28rem;
+		width: calc(100% - 2rem);
 	}
 	dialog h2 {
-		font-size: 1.15rem;
+		font-size: 1.05rem;
 		margin: 0 0 0.35rem;
+		text-transform: none;
+		letter-spacing: 0;
+		color: #1a1d23;
 	}
-	.hint,
 	.err {
 		margin: 0 0 0.75rem;
-		font-size: 0.95rem;
-	}
-	.err {
+		font-size: 0.9rem;
 		color: #9f1239;
 	}
 	fieldset {
@@ -190,12 +282,15 @@ const { postId, seedUpvotes, seedDownvotes } = Astro.props;
 	}
 	.note {
 		display: grid;
-		gap: 0.25rem;
+		gap: 0.3rem;
 		margin-bottom: 1rem;
-		font-size: 0.95rem;
+		font-size: 0.9rem;
 	}
-	.note input {
+	.note select {
 		font: inherit;
-		padding: 0.35rem 0.5rem;
+		padding: 0.4rem 0.5rem;
+		border: 1px solid #e4e6ea;
+		border-radius: 8px;
+		background: #fff;
 	}
 </style>

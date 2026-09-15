@@ -7,7 +7,7 @@ import HeaderLink from "./HeaderLink.astro";
 	<nav>
 		<h2><a href="/">{SITE_TITLE}</a></h2>
 		<div class="internal-links">
-			<HeaderLink href="/">Protocols</HeaderLink>
+			<HeaderLink href="/">Library</HeaderLink>
 		</div>
 		<p class="badge">sample · 127.0.0.1</p>
 	</nav>
@@ -15,38 +15,45 @@ import HeaderLink from "./HeaderLink.astro";
 <style>
 	header {
 		margin: 0;
-		padding: 0 1em;
-		background: white;
-		box-shadow: 0 2px 8px rgba(var(--black), 5%);
+		padding: 0 1.25rem;
+		background: #fff;
+		border-bottom: 1px solid #eceef1;
 	}
 	h2 {
 		margin: 0;
-		font-size: 1em;
+		font-size: 0.92rem;
+		font-weight: 650;
+		letter-spacing: -0.01em;
 	}
 	h2 a,
 	h2 a.active {
 		text-decoration: none;
+		border: 0;
+		padding-left: 0;
 	}
 	nav {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1em;
+		max-width: 680px;
+		margin: 0 auto;
 	}
 	nav a {
-		padding: 1em 0.5em;
-		color: var(--black);
-		border-bottom: 4px solid transparent;
+		padding: 0.9rem 0.45rem;
+		color: #1a1d23;
+		border-bottom: 2px solid transparent;
 		text-decoration: none;
+		font-size: 0.9rem;
 	}
 	nav a.active {
 		text-decoration: none;
-		border-bottom-color: var(--accent);
+		border-bottom-color: #1a1d23;
 	}
 	.badge {
 		margin: 0;
-		font-size: 0.8rem;
-		color: rgb(var(--gray));
+		font-size: 0.75rem;
+		color: #8a8f98;
 		white-space: nowrap;
 	}
 </style>

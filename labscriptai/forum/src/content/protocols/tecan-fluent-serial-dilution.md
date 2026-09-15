@@ -1,6 +1,6 @@
 ---
-title: "Tecan Fluent: 50 µL serial dilution"
-description: "LiHa worklist-style serial dilution across row A. Fake pack."
+title: "50 µL serial dilution"
+description: "Serial dilution across row A, then a Fluent worklist sketch."
 pubDate: 2026-09-14
 author: "fluent-notes"
 device: "Tecan Fluent"

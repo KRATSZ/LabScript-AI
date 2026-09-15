@@ -27,6 +27,7 @@ const protocols = defineCollection({
 			.array(
 				z.object({
 					reason: z.enum(DOWNVOTE_REASONS),
+					step: z.number().int().positive(),
 				}),
 			)
 			.default([]),

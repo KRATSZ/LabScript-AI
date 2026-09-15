@@ -1,0 +1,68 @@
+---
+import { labwareKind, labwareLabel } from "../lib/labware";
+
+interface Slot {
+	slot: string;
+	labware: string;
+}
+
+interface Props {
+	deck: Slot[];
+}
+
+const { deck } = Astro.props;
+---
+
+<div class="deck" role="img" aria-label="Deck layout">
+	{
+		deck.map((row) => (
+			<div class:list={["cell", labwareKind(row.labware)]}>
+				<span class="slot">{row.slot}</span>
+				<span class="name">{labwareLabel(row.labware)}</span>
+			</div>
+		))
+	}
+</div>
+
+<style>
+	.deck {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.6rem;
+	}
+	.cell {
+		min-height: 5.5rem;
+		padding: 0.7rem 0.75rem;
+		border-radius: 10px;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		background: #f4f5f7;
+	}
+	.cell.tips {
+		background: #e8f1ef;
+	}
+	.cell.plate {
+		background: #eef0f4;
+	}
+	.cell.reservoir {
+		background: #f3efe6;
+	}
+	.slot {
+		font-size: 0.72rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #8a8f98;
+	}
+	.name {
+		font-size: 0.92rem;
+		font-weight: 600;
+		color: #1a1d23;
+		line-height: 1.3;
+	}
+	@media (max-width: 560px) {
+		.deck {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
