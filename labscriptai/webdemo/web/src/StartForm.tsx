@@ -85,7 +85,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       <textarea
         id="doc"
         rows={3}
-        placeholder="Paste a draft, or leave blank — we will ask a couple of questions first"
+        placeholder="Paste a draft, or leave blank — we'll confirm the run first"
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
       />

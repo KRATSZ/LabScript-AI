@@ -19,5 +19,9 @@ export function tabVisible(
   events: AgentEvent[]
 ): boolean {
   if (tab === "stage") return true;
-  return (tabCount(tab, session, events) ?? 0) > 0;
+  const files = tabCount("artifacts", session, events) ?? 0;
+  if (tab === "artifacts") return files > 0;
+  // Keep the first confirm on Stage only — the internal log waits until there is a file.
+  if (tab === "trajectory") return files > 0 && (tabCount("trajectory", session, events) ?? 0) > 0;
+  return false;
 }

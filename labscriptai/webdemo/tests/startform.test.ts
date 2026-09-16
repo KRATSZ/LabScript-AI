@@ -82,6 +82,8 @@ describe("StartForm device cards", () => {
     assert.match(src, /canStart\(goal, deviceId\)/);
     assert.match(src, /matchDeviceFromText/);
     assert.match(src, /Pick a robot first/);
+    assert.match(src, /we'll confirm the run first/);
+    assert.doesNotMatch(src, /couple of questions/);
     assert.doesNotMatch(src, /Robot is asked in chat/);
     assert.match(src, /aria-pressed=\{deviceId === card\.id\}/);
     assert.match(readWeb("App.tsx"), /Change robot/);

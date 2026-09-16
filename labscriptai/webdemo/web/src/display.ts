@@ -156,6 +156,10 @@ export function headerGoalPreview(label: string, goal: string): string {
   text = text.replace(/\bStandard deck\b[\s\S]*/i, "").trim();
   const first = text.split(/(?<=[.!?])\s+/)[0] || text;
   text = first.replace(/[.\s]+$/g, "").trim();
+  for (const name of names) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(`\\s+on(?:\\s+the)?\\s+${escaped}$`, "i"), "").trim();
+  }
   if (!text) text = goal.replace(/\s+/g, " ").trim();
   if (text.length > 88) return `${text.slice(0, 85).trim()}…`;
   return text;

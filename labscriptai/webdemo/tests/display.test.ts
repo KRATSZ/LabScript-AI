@@ -96,5 +96,9 @@ describe("headerGoalPreview", () => {
       headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1. One sample. No mix."),
       "Transfer 20 µL from well A1 to B1"
     );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to well B1 on the OT-2"),
+      "Transfer 20 µL from well A1 to well B1"
+    );
   });
 });

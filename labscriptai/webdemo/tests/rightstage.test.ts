@@ -31,6 +31,9 @@ describe("right stage tabs", () => {
     assert.equal(tabVisible("trajectory", null, []), false);
     assert.equal(tabVisible("artifacts", session, events), true);
     assert.equal(tabVisible("trajectory", session, events), true);
+    const clarify = { robot: "OT-2", sop: "", code: "" } as unknown as SessionSnapshot;
+    assert.equal(tabVisible("artifacts", clarify, events), false);
+    assert.equal(tabVisible("trajectory", clarify, events), false);
   });
 });
 
