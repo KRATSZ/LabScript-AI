@@ -338,6 +338,33 @@ function pipetteUnset(value: string | undefined): boolean {
   return !value || value === "None";
 }
 
+const DECK_SLOT_LABELS: Record<string, string> = {
+  opentrons_96_tiprack_300ul: "300 µL tips",
+  opentrons_flex_96_tiprack_1000ul: "1000 µL tips",
+  nest_96_wellplate_200ul_flat: "96-well plate",
+  nest_12_reservoir_15ml: "12-well reservoir",
+  tecan_diti_200ul_tiprack: "200 µL DiTi tips",
+  tecan_96_wellplate: "96-well plate",
+  hamilton_96_tiprack_300ul: "300 µL tips",
+  corning_96_wellplate_360ul_flat: "96-well plate",
+};
+
+function deckSlotLabel(labware: string): string {
+  return DECK_SLOT_LABELS[labware] ?? DECK_SLOT_LABELS[labware.toLowerCase()] ?? labware.replace(/_/g, " ");
+}
+
+/** One-line first-turn confirm. Never “nothing is written yet.” */
+export function intakeConfirmLine(session: SessionState): string {
+  const label = deviceFor(session.robot)?.label ?? "this robot";
+  const slots = Object.entries(session.hardware.deck).sort((a, b) =>
+    a[0].localeCompare(b[0], undefined, { numeric: true })
+  );
+  const deck = slots.length
+    ? slots.map(([slot, labware]) => `${deckSlotLabel(labware)} in slot ${slot}`).join(", ")
+    : "tips, 96-well plate, 12-well reservoir";
+  return `${label}, standard deck: ${deck}. Reply if that matches.`;
+}
+
 export function assumeStandardDeck(session: SessionState): void {
   if (!session.robot) return;
   if (Object.keys(session.hardware.deck).length > 0) return;

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { labwareLabel, planStepDisplay, sanitizeAssistantText } from "../web/src/display.ts";
+import { labwareLabel, planStepDisplay, sanitizeAssistantText, headerGoalPreview } from "../web/src/display.ts";
 
 describe("labwareLabel", () => {
   it("maps standard deck ids to short names", () => {
@@ -48,7 +48,7 @@ describe("sanitizeAssistantText", () => {
     );
     assert.equal(
       sanitizeAssistantText("Writing it up now.Checks are clean."),
-      "Writing it up now. Checks are clean."
+      "Checks are clean."
     );
     assert.equal(
       sanitizeAssistantText("20 µL (microliters, not liters) from A1 to B1."),
@@ -65,6 +65,36 @@ describe("sanitizeAssistantText", () => {
     assert.equal(
       sanitizeAssistantText("15 mL reservoir on slot 3."),
       "12-well reservoir on slot 3."
+    );
+    assert.equal(
+      sanitizeAssistantText(
+        "Confirm volume, wells, mix, and the standard deck — nothing is written yet."
+      ),
+      ""
+    );
+    assert.equal(
+      sanitizeAssistantText("Done — script is ready. Want me to open the run animation?"),
+      "Done — script is ready."
+    );
+    assert.equal(
+      sanitizeAssistantText("Writing it up now. Deck confirmed. Checks pass."),
+      "Checks pass."
+    );
+  });
+});
+
+describe("headerGoalPreview", () => {
+  it("drops a duplicated robot name and a standard-deck recap", () => {
+    assert.equal(
+      headerGoalPreview(
+        "Tecan Fluent",
+        "Tecan Fluent. Transfer 50 µL from plate well A1 to plate well B1. One sample, no mix. Standard deck: slot 1 200 µL DiTi tiprack, slot 2 96-well plate, slot 3 12-well reservoir."
+      ),
+      "Transfer 50 µL from plate well A1 to plate well B1"
+    );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1. One sample. No mix."),
+      "Transfer 20 µL from well A1 to B1"
     );
   });
 });

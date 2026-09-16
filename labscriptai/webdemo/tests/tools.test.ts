@@ -241,6 +241,30 @@ describe("tools harness", () => {
     await ask.execute("1", {});
     assert.equal(tokens.some((line) => /nothing is written yet/.test(line)), false);
   });
+
+  it("ask_user fallback names the standard deck instead of a canned closer", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 20 µL A1 to B1", doc: "", robot: "OT-2" });
+    const tokens: string[] = [];
+    const sse = {
+      write(event: string, data: unknown) {
+        if (event === "text") tokens.push(String((data as { token?: string }).token ?? ""));
+      },
+      close() {},
+      hasUserText() {
+        return tokens.some((line) => line.trim().length > 0);
+      },
+    };
+    const ask = buildTools(session, sse).find((t) => t.name === "ask_user");
+    assert.ok(ask);
+    await ask.execute("1", {});
+    const text = tokens.join("");
+    assert.match(text, /OT-2, standard deck/);
+    assert.match(text, /12-well reservoir in slot 3/);
+    assert.match(text, /Reply if that matches/);
+    assert.doesNotMatch(text, /nothing is written yet/);
+    assert.doesNotMatch(text, /Confirm volume, wells, mix/);
+  });
 });
 
 const failChecks = () =>

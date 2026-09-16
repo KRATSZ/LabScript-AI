@@ -36,6 +36,7 @@ import {
   capSop,
   explainPlanErrors,
   formatHardwareConfig,
+  intakeConfirmLine,
   intakeOpen,
   isOpentrons,
   missingList,
@@ -162,8 +163,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         resolveGoalNotesConflict(session);
       }
       if (intakeOpen(session)) {
-        const ask =
-          "Confirm volume, wells, mix, and the standard deck — nothing is written yet.";
+        const ask = intakeConfirmLine(session);
         if (!sseHasUserText(sse)) {
           sse.write("text", { token: `\n\n${ask}\n` });
         }

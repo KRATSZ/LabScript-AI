@@ -16,6 +16,7 @@ import {
   createSession,
   enoughHardware,
   formatHardwareConfig,
+  intakeConfirmLine,
   explainPlanErrors,
   goalNotesVolumeConflict,
   inferRobotFromText,
@@ -73,6 +74,18 @@ describe("session machine", () => {
     assert.deepEqual(missingList(session), []);
     assert.equal(canGenerateSop(session), true);
     assert.equal(shouldCallCompactSop(session), true);
+  });
+
+  it("intakeConfirmLine names OT-2 slots without a canned closer", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 20 µL A1 to B1", doc: "", robot: "OT-2" });
+    const line = intakeConfirmLine(session);
+    assert.match(line, /^OT-2, standard deck:/);
+    assert.match(line, /300 µL tips in slot 1/);
+    assert.match(line, /96-well plate in slot 2/);
+    assert.match(line, /12-well reservoir in slot 3/);
+    assert.match(line, /Reply if that matches/);
+    assert.doesNotMatch(line, /nothing is written yet/);
   });
 
   it("form notes stay in doc; generate_sop is still required", () => {
