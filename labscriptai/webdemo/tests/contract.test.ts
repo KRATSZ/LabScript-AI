@@ -58,7 +58,8 @@ describe("demo contract lock", () => {
     assert.match(SYSTEM_PROMPT, /Hamilton STAR: step JSON \+ runnable PyLabRobot script \(\.py\)/);
     assert.match(SYSTEM_PROMPT, /Hamilton Vantage: step JSON \+ runnable PyLabRobot script \(\.py\)/);
     assert.match(SYSTEM_PROMPT, /Deliverables:/);
-    assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), Watch\/animation/);
+    assert.match(SYSTEM_PROMPT, /OT-2: Python \(\.py\), on-screen deck/);
+    assert.match(SYSTEM_PROMPT, /Never say Watch/);
     assert.match(SYSTEM_PROMPT, /Tecan Fluent: \.gwl worklist \+ step JSON, no Watch/);
     assert.ok(SYSTEM_PROMPT.trim().split("\n").length <= 32);
     assert.doesNotMatch(SYSTEM_PROMPT, /Confirm assumed_deck=true/);
@@ -85,7 +86,7 @@ describe("demo contract lock", () => {
     assert.match(SYSTEM_PROMPT, /never aspirate without a just-picked tip/);
     assert.match(prompt, /Do not skip generate_code/);
     assert.match(prompt, /emit_plan → run_checks/);
-    assert.match(prompt, /Watch\/animation is unavailable/);
+    assert.match(prompt, /on-screen deck is unavailable/);
     assert.doesNotMatch(prompt, /Default path for EVERY robot/);
 
     const env = read("server/src/env.ts");

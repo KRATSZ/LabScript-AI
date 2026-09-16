@@ -102,7 +102,20 @@ describe("sanitizeAssistantText", () => {
     );
     assert.equal(
       sanitizeAssistantText("Watch is open too if you want to see the run."),
-      ""
+      "The deck is on Stage."
+    );
+    assert.equal(
+      sanitizeAssistantText("Done. Watch/animation is ready for this run too."),
+      "Done. The deck is on Stage."
+    );
+    assert.equal(sanitizeAssistantText("Watch is up."), "The deck is on Stage.");
+    assert.equal(
+      sanitizeAssistantText("Done. 20 µL moved from A1 to B1 — script is available for download. Watch is up."),
+      "Done. 20 µL moved from A1 to B1 — script is available for download. The deck is on Stage."
+    );
+    assert.equal(
+      sanitizeAssistantText("Done. Watch is up. Watch/animation is ready for this run too."),
+      "Done. The deck is on Stage."
     );
   });
 });
@@ -159,6 +172,14 @@ describe("headerGoalPreview", () => {
         "Transfer 50 µL from plate well A1 to plate well B1 on the Tecan Fluent, 1 sample, no mix"
       ),
       /on(?: the)? Tecan Fluent/i
+    );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to well B1, using the OT-2"),
+      "Transfer 20 µL from well A1 to well B1"
+    );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to well B1, using the"),
+      "Transfer 20 µL from well A1 to well B1"
     );
   });
 });

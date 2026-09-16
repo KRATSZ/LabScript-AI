@@ -128,11 +128,14 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\s*Want me to tweak anything[^?\n]*\??/gi, "")
     .replace(/\s*Say the word if you want it swapped\.?/gi, "")
     .replace(/\s*Want me to open(?: the)?(?: run)? animation\??/gi, "")
-    .replace(/\s*Watch animation is up\.?/gi, "")
-    .replace(/\s*Watch is open(?: too)?(?: if you want to see the run)?\.?/gi, "")
+    .replace(
+      /\bWatch(?:\/animation)?(?: animation)? is (?:up|ready|open)(?: too)?(?: if you want to see the run)?(?: for this run(?: too)?)?\.?/gi,
+      "The deck is on Stage."
+    )
     .replace(/\bno watch for \w+\.?/gi, "")
     .replace(/\s+and the deck animation are ready/gi, " is ready")
     .replace(/\bthe deck animation are ready\b/gi, "the deck is ready")
+    .replace(/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. ")
     .replace(/\s*Nothing runs on hardware from here\.?/gi, "")
     .replace(/\bFluentControl\.gwl\b/gi, "Fluent worklist")
     .replace(/\bStep JSON\b/gi, "steps")
@@ -176,11 +179,13 @@ export function headerGoalPreview(label: string, goal: string): string {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     text = text.replace(new RegExp(`\\s*\\(${escaped}\\)`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s+using(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
   }
   text = text.replace(/\s+on(?:\s+the|\s+a)?\s+\d+-well plate\b/gi, "").trim();
   text = text.replace(/,?\s*(?:one|\d+)\s+samples?\b/gi, "").trim();
   text = text.replace(/,?\s*no mix\b/gi, "").trim();
   text = text.replace(/,?\s*OT-2\s+p300(?:\s+single)?\b/gi, "").trim();
+  text = text.replace(/,?\s*using the(?:\s+[\w-]+)*$/i, "").trim();
   text = text.replace(/[,\s]+$/g, "").replace(/\s{2,}/g, " ").trim();
   if (!text) text = goal.replace(/\s+/g, " ").trim();
   if (text.length > 72) return `${text.slice(0, 69).trim()}…`;
