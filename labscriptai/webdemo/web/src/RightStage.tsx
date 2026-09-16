@@ -3,6 +3,7 @@ import { ArtifactsPane } from "./ArtifactsPane";
 import { StagePane } from "./StagePane";
 import { tabCount, tabVisible, type StageTab } from "./stageTabs";
 import { TrajectoryPane } from "./TrajectoryPane";
+import type { ActivityLive } from "./trajectoryLogic";
 import type { AgentEvent, SessionSnapshot } from "./types";
 
 export type { StageTab };
@@ -21,9 +22,10 @@ interface Props {
   busy: boolean;
   canWatch: boolean;
   onWatch: () => void;
+  live?: ActivityLive;
 }
 
-export function RightStage({ session, events, runningTool, busy, canWatch, onWatch }: Props) {
+export function RightStage({ session, events, runningTool, busy, canWatch, onWatch, live = {} }: Props) {
   const [tab, setTab] = useState<StageTab>("stage");
   const visible = TABS.filter((item) => tabVisible(item.id, session, events));
   const filesOpen = tabVisible("artifacts", session, events);
@@ -40,7 +42,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
       {session && visible.length > 1 ? (
         <div className="stage-tabs" role="tablist" aria-label="Right stage">
           {visible.map((item) => {
-            const count = tabCount(item.id, session, events);
+            const count = tabCount(item.id, session, events, live);
             return (
               <button
                 key={item.id}
@@ -75,6 +77,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
             />
           ) : (
             <div className="stage-empty" data-testid="stage-empty">
+              <div className="brand-mark stage-empty-mark" aria-hidden />
               <h2>Deck</h2>
               <p>Pick a robot on the left. After checks pass, the bench shows here.</p>
             </div>
@@ -82,7 +85,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
         ) : null}
         {tab === "artifacts" ? <ArtifactsPane session={session} /> : null}
         {tab === "trajectory" ? (
-          <TrajectoryPane events={events} runningTool={runningTool} />
+          <TrajectoryPane events={events} runningTool={runningTool} live={live} />
         ) : null}
       </div>
     </section>

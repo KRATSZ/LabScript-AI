@@ -1,5 +1,5 @@
 import { downloadable } from "./artifacts";
-import { activitySteps } from "./trajectoryLogic";
+import { activitySteps, type ActivityLive } from "./trajectoryLogic";
 import type { AgentEvent, SessionSnapshot } from "./types";
 
 export type StageTab = "stage" | "artifacts" | "trajectory";
@@ -7,10 +7,11 @@ export type StageTab = "stage" | "artifacts" | "trajectory";
 export function tabCount(
   tab: StageTab,
   session: SessionSnapshot | null,
-  events: AgentEvent[]
+  events: AgentEvent[],
+  live: ActivityLive = {}
 ): number | null {
   if (tab === "artifacts") return session ? downloadable(session).length : 0;
-  if (tab === "trajectory") return activitySteps(events, null).length;
+  if (tab === "trajectory") return activitySteps(events, null, live).length;
   return null;
 }
 

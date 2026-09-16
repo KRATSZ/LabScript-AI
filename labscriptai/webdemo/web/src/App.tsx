@@ -8,6 +8,7 @@ import { headerGoalPreview, hasAttachedNotes } from "./display";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
+import { thoughtTurnsFromChat } from "./trajectoryLogic";
 import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
@@ -148,6 +149,13 @@ export function App() {
     status === "pass" &&
     Boolean(session?.plan && typeof session.plan === "object");
   const tone = headerTone(status, canWatch && !busy);
+  const lastMessage = messages[messages.length - 1];
+  const thinkingLive =
+    busy &&
+    lastMessage?.role === "assistant" &&
+    Boolean(lastMessage.thinking) &&
+    !lastMessage.text &&
+    !runningTool;
 
   return (
     <div className="app">
@@ -232,6 +240,11 @@ export function App() {
           busy={busy}
           canWatch={canWatch}
           onWatch={() => setOverlay(true)}
+          live={{
+            thinking: thinkingLive,
+            thoughtTurns: thoughtTurnsFromChat(messages),
+            thinkingNote: thinkingLive ? lastMessage?.thinking : "",
+          }}
         />
       </div>
 

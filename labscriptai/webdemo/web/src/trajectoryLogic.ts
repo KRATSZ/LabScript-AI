@@ -1,7 +1,15 @@
 import { PIPELINE_HINTS } from "./pipelineLogic";
-import type { AgentEvent } from "./types";
+import type { AgentEvent, ChatMessage } from "./types";
 
 export type ActivityStatus = "run" | "ok" | "fail";
+
+export const THINK_STEP = "_think";
+
+export interface ActivityLive {
+  thinking?: boolean;
+  thoughtTurns?: number[];
+  thinkingNote?: string;
+}
 
 export interface ActivityStep {
   key: string;
@@ -10,6 +18,7 @@ export interface ActivityStep {
   label: string;
   status: ActivityStatus;
   durationMs: number | null;
+  note?: string;
 }
 
 const DONE_LABELS: Record<string, string> = {
@@ -19,6 +28,7 @@ const DONE_LABELS: Record<string, string> = {
   emit_plan: "Laid out the steps",
   run_checks: "Checked bench constraints",
   open_animation: "Deck is on Stage",
+  [THINK_STEP]: "Thought it through",
 };
 
 function foldDeckIntoChecks(steps: ActivityStep[], status: ActivityStatus): boolean {
@@ -34,6 +44,7 @@ function titleTool(name: string): string {
 }
 
 export function activityLabel(name: string, status: ActivityStatus): string {
+  if (name === THINK_STEP) return status === "run" ? "Thinking it through…" : "Thought it through";
   if (status === "run") return PIPELINE_HINTS[name] || `${titleTool(name)}…`;
   return DONE_LABELS[name] || titleTool(name);
 }
@@ -47,11 +58,75 @@ export function formatDuration(ms: number | null): string {
 export function activityStatusWord(status: ActivityStatus): string {
   if (status === "ok") return "Passed";
   if (status === "fail") return "Failed";
-  return "Running";
+  return "Still going";
+}
+
+/** Last readable slice of reasoning — lab note, not a JSON dump. */
+export function labThinkNote(text: string | undefined | null): string {
+  if (!text) return "";
+  const clipped = text.replace(/\s+/g, " ").trim();
+  if (!clipped || clipped.startsWith("{") || clipped.startsWith("[")) return "";
+  return clipped.length > 140 ? `…${clipped.slice(-140)}` : clipped;
+}
+
+/** One thought row per user turn that streamed reasoning. */
+export function thoughtTurnsFromChat(messages: ChatMessage[]): number[] {
+  let turn = 0;
+  const turns: number[] = [];
+  for (const msg of messages) {
+    if (msg.role === "user") turn += 1;
+    else if (msg.thinking && turn > 0 && turns[turns.length - 1] !== turn) turns.push(turn);
+  }
+  return turns;
+}
+
+function currentTurn(events: AgentEvent[], steps: ActivityStep[], live: ActivityLive): number {
+  const fromEvents = events.filter((event) => event.kind === "turn/start").length;
+  const fromSteps = steps.reduce((max, step) => Math.max(max, step.turn), 0);
+  const fromThought = live.thoughtTurns?.reduce((max, turn) => Math.max(max, turn), 0) ?? 0;
+  return Math.max(fromEvents, fromSteps, fromThought, live.thinking ? 1 : 0);
+}
+
+function insertThinkRows(steps: ActivityStep[], events: AgentEvent[], live: ActivityLive): ActivityStep[] {
+  const thought = [...new Set(live.thoughtTurns || [])].filter((turn) => turn > 0);
+  if (!thought.length && !live.thinking) return steps;
+  const turnNow = currentTurn(events, steps, live) || 1;
+  const turns = new Set(thought);
+  if (live.thinking) turns.add(turnNow);
+  const thinkRows: ActivityStep[] = [...turns]
+    .sort((a, b) => a - b)
+    .map((turn) => {
+      const liveThis = Boolean(live.thinking) && turn === turnNow;
+      return {
+        key: `think-${turn}`,
+        turn,
+        name: THINK_STEP,
+        label: activityLabel(THINK_STEP, liveThis ? "run" : "ok"),
+        status: liveThis ? "run" : "ok",
+        durationMs: null,
+        note: liveThis ? labThinkNote(live.thinkingNote) : undefined,
+      };
+    });
+  const byTurn = new Map<number, ActivityStep[]>();
+  for (const row of [...thinkRows, ...steps]) {
+    const list = byTurn.get(row.turn) || [];
+    list.push(row);
+    byTurn.set(row.turn, list);
+  }
+  const out: ActivityStep[] = [];
+  for (const turn of [...byTurn.keys()].sort((a, b) => a - b)) {
+    const rows = byTurn.get(turn) || [];
+    out.push(...rows.filter((row) => row.name === THINK_STEP), ...rows.filter((row) => row.name !== THINK_STEP));
+  }
+  return out;
 }
 
 /** Fold raw tool/call + tool/result into one lab row per step. Skip developer kinds. */
-export function activitySteps(events: AgentEvent[], runningTool: string | null = null): ActivityStep[] {
+export function activitySteps(
+  events: AgentEvent[],
+  runningTool: string | null = null,
+  live: ActivityLive = {}
+): ActivityStep[] {
   const steps: ActivityStep[] = [];
   let turn = 0;
   for (const event of events) {
@@ -95,9 +170,9 @@ export function activitySteps(events: AgentEvent[], runningTool: string | null =
     }
   }
   if (runningTool === "open_animation" && foldDeckIntoChecks(steps, "run")) {
-    return steps;
+    return insertThinkRows(steps, events, live);
   }
-  if (runningTool && !steps.some((step) => step.name === runningTool && step.status === "run")) {
+  if (runningTool && runningTool !== THINK_STEP && !steps.some((step) => step.name === runningTool && step.status === "run")) {
     steps.push({
       key: `running-${runningTool}`,
       turn: turn || 1,
@@ -107,7 +182,7 @@ export function activitySteps(events: AgentEvent[], runningTool: string | null =
       durationMs: null,
     });
   }
-  return steps;
+  return insertThinkRows(steps, events, live);
 }
 
 export function activitySummary(steps: ActivityStep[]): string {
@@ -116,7 +191,7 @@ export function activitySummary(steps: ActivityStep[]): string {
   const running = steps.filter((step) => step.status === "run").length;
   const passed = steps.filter((step) => step.status === "ok").length;
   const bits = [`${steps.length} step${steps.length === 1 ? "" : "s"}`];
-  if (running) bits.push(`${running} running`);
+  if (running) bits.push(`${running} still going`);
   else if (failed) bits.push(`${failed} failed`);
   else if (passed === steps.length) bits.push("all passed");
   else bits.push(`${passed} passed`);

@@ -1,7 +1,15 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { tabCount, tabVisible } from "../web/src/stageTabs.ts";
-import { activitySteps, activitySummary, eventDetailText, formatDuration } from "../web/src/trajectoryLogic.ts";
+import {
+  activitySteps,
+  activityStatusWord,
+  activitySummary,
+  eventDetailText,
+  formatDuration,
+  labThinkNote,
+  thoughtTurnsFromChat,
+} from "../web/src/trajectoryLogic.ts";
 import type { AgentEvent, SessionSnapshot } from "../web/src/types.ts";
 
 const event = (partial: Partial<AgentEvent> & Pick<AgentEvent, "kind">): AgentEvent => ({
@@ -72,6 +80,21 @@ describe("activity steps", () => {
     const running = activitySteps(events.slice(0, 5), "run_checks");
     assert.equal(running[1].status, "run");
     assert.equal(running[1].label, "Checking bench constraints…");
+    const thinking = activitySteps(events.slice(0, 4), null, {
+      thinking: true,
+      thoughtTurns: [1],
+      thinkingNote: "Need volume and wells before writing the protocol.",
+    });
+    assert.equal(thinking[0].name, "_think");
+    assert.equal(thinking[0].label, "Thinking it through…");
+    assert.equal(thinking[0].status, "run");
+    assert.match(thinking[0].note || "", /volume and wells/);
+    assert.equal(thinking[1].label, "Asked you to confirm");
+    const thought = activitySteps(events, null, { thoughtTurns: [1] });
+    assert.equal(thought[0].label, "Thought it through");
+    assert.equal(thought[0].status, "ok");
+    assert.equal(thought[0].note, undefined);
+    assert.equal(activitySummary(thinking), "2 steps · 1 still going");
     const asked = activitySteps(
       [
         event({ seq: 1, kind: "tool/call", name: "ask_user" }),
@@ -97,5 +120,13 @@ describe("activity steps", () => {
       withDeck.some((step) => /opened the preview/i.test(step.label)),
       false
     );
+    assert.equal(activityStatusWord("run"), "Still going");
+    assert.equal(labThinkNote("{ok:true}"), "");
+    assert.equal(thoughtTurnsFromChat([
+      { role: "user", text: "go" },
+      { role: "assistant", text: "", thinking: "plan the wells" },
+      { role: "user", text: "20 µL" },
+      { role: "assistant", text: "ok", thinking: "write it" },
+    ]).join(","), "1,2");
   });
 });

@@ -1,9 +1,11 @@
 import type { AgentEvent } from "./types";
 import {
+  THINK_STEP,
   activityStatusWord,
   activitySteps,
   activitySummary,
   formatDuration,
+  type ActivityLive,
 } from "./trajectoryLogic";
 
 export { eventClock, eventDetailText } from "./trajectoryLogic";
@@ -11,10 +13,11 @@ export { eventClock, eventDetailText } from "./trajectoryLogic";
 interface Props {
   events: AgentEvent[];
   runningTool?: string | null;
+  live?: ActivityLive;
 }
 
-export function TrajectoryPane({ events, runningTool = null }: Props) {
-  const steps = activitySteps(events, runningTool);
+export function TrajectoryPane({ events, runningTool = null, live = {} }: Props) {
+  const steps = activitySteps(events, runningTool, live);
   if (!steps.length) {
     return (
       <div className="stage-empty" data-testid="trajectory-empty">
@@ -39,24 +42,27 @@ export function TrajectoryPane({ events, runningTool = null }: Props) {
               <ol className="activity-list">
                 {rows.map((step) => {
                   const time = step.status === "run" ? "" : formatDuration(step.durationMs);
-                  const status = step.status === "ok" ? "" : activityStatusWord(step.status);
+                  const status = activityStatusWord(step.status);
+                  const think = step.name === THINK_STEP;
                   return (
                     <li
                       key={step.key}
-                      className={`activity-row ${step.status}`}
+                      className={`activity-row ${step.status}${think ? " think" : ""}`}
                       data-kind={step.name}
-                      aria-label={`${step.label}, ${activityStatusWord(step.status)}`}
+                      aria-label={`${step.label}, ${status}`}
                     >
-                      <span className={`activity-dot ${step.status}`} aria-hidden />
-                      <span className="activity-label">{step.label}</span>
-                      {status || time ? (
-                        <span className="activity-meta">
-                          {status ? (
-                            <span className={`activity-status status-${step.status}`}>{status}</span>
-                          ) : null}
-                          {time ? <span className="activity-time">{time}</span> : null}
-                        </span>
-                      ) : null}
+                      <span
+                        className={`activity-dot ${step.status}${think ? " think" : ""}`}
+                        aria-hidden
+                      />
+                      <span className="activity-copy">
+                        <span className="activity-label">{step.label}</span>
+                        {step.note ? <span className="activity-note">{step.note}</span> : null}
+                      </span>
+                      <span className="activity-meta">
+                        <span className={`activity-status status-${step.status}`}>{status}</span>
+                        {time ? <span className="activity-time">{time}</span> : null}
+                      </span>
                     </li>
                   );
                 })}
