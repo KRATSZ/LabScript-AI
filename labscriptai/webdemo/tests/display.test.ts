@@ -193,6 +193,11 @@ describe("headerGoalPreview", () => {
       headerGoalPreview("Tecan Fluent", "Transfer 50 µL from well A1 to B1 (Tecan Fluent, 1 sample)"),
       /\(\s*\)/
     );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1;"),
+      "Transfer 20 µL from well A1 to B1"
+    );
+    assert.doesNotMatch(headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1;"), /;$/);
   });
 });
 
