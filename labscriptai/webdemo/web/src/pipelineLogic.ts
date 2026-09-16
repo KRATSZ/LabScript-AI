@@ -14,8 +14,8 @@ export const PIPELINE_HINTS: Record<string, string> = {
   open_animation: "Opening the preview…",
 };
 
-const PYTHON_STEPS = ["Goal", "SOP", "Code", "Checks", "Watch"] as const;
-const PLAN_STEPS = ["Goal", "SOP", "Plan", "Checks", "Export"] as const;
+const PYTHON_STEPS = ["Run", "Protocol", "Script", "Checks", "Preview"] as const;
+const PLAN_STEPS = ["Run", "Protocol", "Steps", "Checks", "Files"] as const;
 
 export function pipelineSteps(robot: RobotModel | null | undefined): readonly string[] {
   return isPlanCodegen(robot) ? PLAN_STEPS : PYTHON_STEPS;
@@ -69,7 +69,7 @@ export function phaseLabel(
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
   if (phase === "need_hw_slots") return "Missing deck details";
   if (phase === "ready") {
-    if (!hasSop && intakeDone === false) return "A couple of details first";
+    if (!hasSop && intakeDone === false) return "Quick check";
     return "In progress";
   }
   return "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?";

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { tabCount } from "../web/src/stageTabs.ts";
+import { tabCount, tabVisible } from "../web/src/stageTabs.ts";
 import { eventDetailText } from "../web/src/trajectoryLogic.ts";
 import type { AgentEvent, SessionSnapshot } from "../web/src/types.ts";
 
@@ -26,6 +26,11 @@ describe("right stage tabs", () => {
     assert.equal(tabCount("artifacts", session, events), 3);
     assert.equal(tabCount("trajectory", session, events), 2);
     assert.equal(tabCount("artifacts", null, []), 0);
+    assert.equal(tabVisible("stage", null, []), true);
+    assert.equal(tabVisible("artifacts", null, []), false);
+    assert.equal(tabVisible("trajectory", null, []), false);
+    assert.equal(tabVisible("artifacts", session, events), true);
+    assert.equal(tabVisible("trajectory", session, events), true);
   });
 });
 

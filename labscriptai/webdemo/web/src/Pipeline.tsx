@@ -26,7 +26,7 @@ export function Pipeline({ session, runningTool, busy, compact = false }: Props)
       {hint ? <p className="pipeline-hint">{hint}</p> : null}
       {!compact && session.sop.trim() ? (
         <details className="preview">
-          <summary>SOP</summary>
+          <summary>Protocol</summary>
           <pre>{preview(session.sop)}</pre>
         </details>
       ) : null}

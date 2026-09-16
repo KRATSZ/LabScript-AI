@@ -12,3 +12,12 @@ export function tabCount(
   if (tab === "trajectory") return events.length;
   return null;
 }
+
+export function tabVisible(
+  tab: StageTab,
+  session: SessionSnapshot | null,
+  events: AgentEvent[]
+): boolean {
+  if (tab === "stage") return true;
+  return (tabCount(tab, session, events) ?? 0) > 0;
+}

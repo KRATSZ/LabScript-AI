@@ -155,7 +155,7 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/RightStage.tsx"), /id: "artifacts"/);
     assert.match(read("web/src/RightStage.tsx"), /id: "trajectory"/);
     assert.match(read("web/src/RightStage.tsx"), /label: "Stage"/);
-    assert.match(read("web/src/RightStage.tsx"), /label: "Files"/);
-    assert.match(read("web/src/RightStage.tsx"), /label: "Log"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Artifacts"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Trajectory"/);
   });
 });

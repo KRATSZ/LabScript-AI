@@ -7,7 +7,7 @@ export function TrajectoryPane({ events }: { events: AgentEvent[] }) {
   if (!events.length) {
     return (
       <p className="hint" data-testid="trajectory-empty">
-        Quiet log of what the assistant did. You can ignore this while chatting.
+        Quiet log of what happened.
       </p>
     );
   }
