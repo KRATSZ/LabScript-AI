@@ -10,8 +10,8 @@ export { tabCount, tabVisible };
 
 const TABS: Array<{ id: StageTab; label: string }> = [
   { id: "stage", label: "Stage" },
-  { id: "artifacts", label: "Files" },
   { id: "trajectory", label: "Activity" },
+  { id: "artifacts", label: "Files" },
 ];
 
 interface Props {

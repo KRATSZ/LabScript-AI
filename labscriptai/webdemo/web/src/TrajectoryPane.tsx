@@ -30,11 +30,11 @@ export function TrajectoryPane({ events, runningTool = null }: Props) {
         <h2>Activity</h2>
         <p>{activitySummary(steps)}</p>
       </div>
-      {turns.map((turn) => {
+          {turns.map((turn) => {
         const rows = steps.filter((step) => step.turn === turn);
         return (
           <section key={turn} className="activity-turn">
-            <h3>Reply {turn}</h3>
+            {turns.length > 1 ? <h3>{turn === 1 ? "Start" : "After you replied"}</h3> : null}
             <ol className="activity-list">
               {rows.map((step) => (
                 <li key={step.key} className={`activity-row ${step.status}`} data-kind={step.name}>

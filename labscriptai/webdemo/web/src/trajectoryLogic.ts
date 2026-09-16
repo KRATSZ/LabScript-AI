@@ -31,7 +31,7 @@ export function activityLabel(name: string, status: ActivityStatus): string {
 }
 
 export function formatDuration(ms: number | null): string {
-  if (ms == null || !Number.isFinite(ms) || ms < 0) return "";
+  if (ms == null || !Number.isFinite(ms) || ms < 80) return "";
   if (ms < 1000) return `${Math.round(ms)} ms`;
   return `${(ms / 1000).toFixed(1)} s`;
 }
@@ -64,7 +64,7 @@ export function activitySteps(events: AgentEvent[], runningTool: string | null =
     }
     if (event.kind === "tool/result" && event.name) {
       const open = [...steps].reverse().find((step) => step.name === event.name && step.status === "run");
-      const ok = event.detail?.ok !== false;
+      const ok = event.name === "ask_user" ? true : event.detail?.ok !== false;
       const duration = typeof event.detail?.duration_ms === "number" ? event.detail.duration_ms : null;
       const status: ActivityStatus = ok ? "ok" : "fail";
       if (open) {

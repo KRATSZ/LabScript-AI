@@ -72,6 +72,15 @@ describe("activity steps", () => {
     const running = activitySteps(events.slice(0, 5), "run_checks");
     assert.equal(running[1].status, "run");
     assert.equal(running[1].label, "Checking bench constraints…");
-    assert.doesNotMatch(steps.map((s) => s.label).join(" "), /generate_sop|tool\/call|Log/);
+    const asked = activitySteps(
+      [
+        event({ seq: 1, kind: "tool/call", name: "ask_user" }),
+        event({ seq: 2, kind: "tool/result", name: "ask_user", detail: { duration_ms: 1, ok: false } }),
+      ],
+      null
+    );
+    assert.equal(asked[0].status, "ok");
+    assert.equal(asked[0].label, "Asked you to confirm");
+    assert.equal(formatDuration(1), "");
   });
 });
