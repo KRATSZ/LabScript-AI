@@ -117,6 +117,22 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("Done. Watch is up. Watch/animation is ready for this run too."),
       "Done. The deck is on Stage."
     );
+    assert.equal(
+      sanitizeAssistantText("Deck confirmed: 300 µL tips in slot 1, 96-well plate in slot 2."),
+      "Standard deck — 300 µL tips in slot 1, 96-well plate in slot 2."
+    );
+    assert.equal(
+      sanitizeAssistantText(": 300 µL tips in slot 1, 96-well plate in slot 2, 12-well reservoir in slot 3."),
+      "Standard deck — 300 µL tips in slot 1, 96-well plate in slot 2, 12-well reservoir in slot 3."
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("Watch is up: 300 µL tips in slot 1."),
+      /^:|\bWatch\b/i
+    );
+    assert.equal(
+      sanitizeAssistantText("Watch is up: 300 µL tips in slot 1."),
+      "The deck is on Stage. 300 µL tips in slot 1."
+    );
   });
 });
 

@@ -119,18 +119,18 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\bsim clean,?\s*logic pass(?:,?\s*review matches your ask)?/gi, "the run matches what you asked")
     .replace(/\breview matches your ask\b/gi, "it matches what you asked")
     .replace(/\b15\s*mL reservoir\b/gi, "12-well reservoir")
-    .replace(/\bBuilding the SOP now\.?\s*/gi, "")
-    .replace(/\bWriting the SOP now\.?\s*/gi, "")
-    .replace(/\bWriting it up now\.?\s*/gi, "")
-    .replace(/\bDeck confirmed\.?\s*/gi, "")
+    .replace(/\bBuilding the SOP now\.?:?\s*/gi, "")
+    .replace(/\bWriting the SOP now\.?:?\s*/gi, "")
+    .replace(/\bWriting it up now\.?:?\s*/gi, "")
+    .replace(/\bDeck confirmed\.?:?\s*/gi, "")
     .replace(/\bConfirm volume, wells, mix, and the standard deck[^.]*\.?/gi, "")
     .replace(/\bnothing is written yet\.?/gi, "")
     .replace(/\s*Want me to tweak anything[^?\n]*\??/gi, "")
     .replace(/\s*Say the word if you want it swapped\.?/gi, "")
     .replace(/\s*Want me to open(?: the)?(?: run)? animation\??/gi, "")
     .replace(
-      /\bWatch(?:\/animation)?(?: animation)? is (?:up|ready|open)(?: too)?(?: if you want to see the run)?(?: for this run(?: too)?)?\.?/gi,
-      "The deck is on Stage."
+      /\bWatch(?:\/animation)?(?: animation)? is (?:up|ready|open)(?: too)?(?: if you want to see the run)?(?: for this run(?: too)?)?\.?:?\s*/gi,
+      "The deck is on Stage. "
     )
     .replace(/\bno watch for \w+\.?/gi, "")
     .replace(/\s+and the deck animation are ready/gi, " is ready")
@@ -147,7 +147,8 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\btipracks?\b/gi, "tip rack")
     .replace(/\.gwl\b/gi, " worklist")
     .replace(/\bworklist\s+worklist\b/gi, "worklist")
-    .replace(/^[\s—–-]+/, "")
+    .replace(/^[:\s—–-]+/, "")
+    .replace(/^(?=\d[\d.]*\s*µL\s+tips\b)/i, "Standard deck — ")
     .replace(/([.!?])([A-Z])/g, "$1 $2")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
