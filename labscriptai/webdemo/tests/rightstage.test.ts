@@ -140,7 +140,15 @@ describe("activity steps", () => {
       "First turn: confirm volumes, wells, sample counts, mix, standard deck. Name the three slots in one sentence."
     );
     assert.match(mixed, /confirm volumes/);
-    assert.doesNotMatch(mixed, /three slots in one sentence/i);
+    assert.doesNotMatch(mixed, /three slots in one sentence|one sentence/i);
+    assert.doesNotMatch(
+      labThinkNote("Confirm volumes and the standard deck. One sentence naming three slots."),
+      /one sentence|naming three slots/i
+    );
+    assert.doesNotMatch(
+      labThinkNote("User confirmed the standard deck. Must include # objective, bullets robot/pipettes."),
+      /Must include|# objective/i
+    );
     const afterReply = labThinkNote(
       "Deck confirmed. Need comply constraints. Need write compact liquid-handling SOP in English markdown. No Phase/Action/Tool. No essay."
     );

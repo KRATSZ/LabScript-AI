@@ -84,7 +84,11 @@ function isHomeworkThought(sentence: string): boolean {
     /phase\s*\/\s*action\s*\/\s*tool/i.test(text) ||
     /action\s*\/\s*tool/i.test(text) ||
     /name the three slots/i.test(text) ||
+    /naming three slots/i.test(text) ||
     /in one sentence/i.test(text) ||
+    /one sentence/i.test(text) ||
+    /must include/i.test(text) ||
+    /#\s*objective/i.test(text) ||
     /no essay/i.test(text) ||
     /english markdown/i.test(text) ||
     /\bmarkdown\b/i.test(text) ||
