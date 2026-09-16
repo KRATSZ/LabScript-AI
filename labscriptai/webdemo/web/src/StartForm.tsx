@@ -66,16 +66,9 @@ export function StartForm({ busy, onSubmit }: Props) {
         onChange={(e) => setGoal(e.target.value)}
       />
 
-      <label htmlFor="doc">Notes (optional)</label>
-      <textarea
-        id="doc"
-        rows={3}
-        placeholder="Paste a draft, or leave blank — we will ask a couple of questions first"
-        value={doc}
-        onChange={(e) => setDoc(e.target.value)}
-      />
-      <div className="row file-pick">
-        <label className="file-label">
+      <label htmlFor="doc" className="notes-head">
+        <span>Notes (optional)</span>
+        <span className="file-label">
           <input
             type="file"
             accept=".md,.txt,.py,.json"
@@ -86,9 +79,16 @@ export function StartForm({ busy, onSubmit }: Props) {
               setDoc(await file.text());
             }}
           />
-          {fileName || "Add a notes file"}
-        </label>
-      </div>
+          {fileName || "or attach a file"}
+        </span>
+      </label>
+      <textarea
+        id="doc"
+        rows={3}
+        placeholder="Paste a draft, or leave blank — we will ask a couple of questions first"
+        value={doc}
+        onChange={(e) => setDoc(e.target.value)}
+      />
 
       <div className="chips">
         {EXAMPLES.map((item) => (

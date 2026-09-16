@@ -4,6 +4,7 @@ import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
+import { headerGoalPreview } from "./display";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
@@ -126,7 +127,7 @@ export function App() {
         {
           role: "user",
           text: input.goal,
-          meta: input.doc.trim() ? "Notes: draft" : "Notes: none",
+          meta: input.doc.trim() ? "Notes attached" : undefined,
         },
       ]);
       await runTurn(snap.id, "", true);
@@ -152,16 +153,16 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            <p>🧪 Local lab copilot · software only · 127.0.0.1</p>
+            <p>Local lab copilot — on-screen preview only</p>
             {health ? (
               <p className="demo-health" data-testid="demo-health">
                 {health.hasKey ? `Model ${health.model}` : "No DeepSeek key"}
                 {" · "}
-                {health.code_service === "up" ? "8010 up" : "8010 down"}
+                {health.code_service === "up" ? "preview ready" : "preview down"}
               </p>
             ) : null}
             {session?.code_service === "down" && !planBackend ? (
-              <p className="code-offline">8010 down — OT Watch and Python codegen unavailable</p>
+              <p className="code-offline">Preview service down — OT-2 and Flex scripts stay off</p>
             ) : null}
           </div>
         </div>
@@ -183,12 +184,15 @@ export function App() {
                 </strong>
               </div>
               <div>
-                {session.device_label ?? session.robot} · {session.goal}
+                {session.device_label ?? session.robot}
+                {session.goal
+                  ? ` · ${headerGoalPreview(session.device_label ?? session.robot ?? "", session.goal)}`
+                  : ""}
               </div>
-              <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
+              {session.doc && session.doc !== "none" ? <div>Notes attached</div> : null}
             </div>
             <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
-              Change device
+              Change robot
             </button>
           </div>
         ) : null}

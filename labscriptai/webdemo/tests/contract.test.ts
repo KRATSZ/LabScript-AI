@@ -136,7 +136,7 @@ describe("demo contract lock", () => {
     assert.match(blob, /Tecan/);
     assert.match(read("web/src/App.tsx"), /robot=\{session\?\.robot\}/);
     assert.match(read("web/src/analysis.ts"), /robotHint/);
-    assert.match(read("web/src/App.tsx"), /8010 down — OT Watch and Python codegen unavailable/);
+    assert.match(read("web/src/App.tsx"), /Preview service down — OT-2 and Flex scripts stay off/);
     assert.match(read("web/src/artifacts.ts"), /export function downloadable/);
     assert.match(read("web/src/pipelineLogic.ts"), /Checks passed/);
     assert.match(read("web/src/pipelineLogic.ts"), /Cannot verify/);
@@ -144,7 +144,7 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/StartForm.tsx"), /DEVICE_CARDS/);
     assert.match(read("web/src/StartForm.tsx"), /Pick a robot first/);
     assert.doesNotMatch(read("web/src/StartForm.tsx"), /Robot is asked in chat/);
-    assert.match(read("web/src/App.tsx"), /Change device/);
+    assert.match(read("web/src/App.tsx"), /Change robot/);
     assert.match(read("web/src/types.ts"), /export interface StartInput/);
     assert.match(read("web/src/types.ts"), /export interface DeviceCard/);
     assert.match(read("web/src/api.ts"), /StartInput/);
@@ -155,7 +155,7 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/RightStage.tsx"), /id: "artifacts"/);
     assert.match(read("web/src/RightStage.tsx"), /id: "trajectory"/);
     assert.match(read("web/src/RightStage.tsx"), /label: "Stage"/);
-    assert.match(read("web/src/RightStage.tsx"), /label: "Artifacts"/);
-    assert.match(read("web/src/RightStage.tsx"), /label: "Trajectory"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Files"/);
+    assert.match(read("web/src/RightStage.tsx"), /label: "Log"/);
   });
 });

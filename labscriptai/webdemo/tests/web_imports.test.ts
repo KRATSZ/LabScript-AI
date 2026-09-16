@@ -101,7 +101,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(app, /disabled=\{busy\}/);
     assert.match(app, /setOverlay\(false\)/);
     assert.match(app, /fetchHealth/);
-    assert.match(app, /8010 down/);
+    assert.match(app, /Preview service down/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
     assert.doesNotMatch(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay|WatchPlayer|Run preview/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);

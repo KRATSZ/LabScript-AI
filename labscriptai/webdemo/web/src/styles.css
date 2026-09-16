@@ -253,6 +253,13 @@ body {
 
 .form { display: flex; flex-direction: column; gap: 12px; }
 .form label { font-size: 13px; font-weight: 600; }
+.notes-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.notes-head .file-label { font-weight: 500; }
 .form textarea, .form input[type="text"] {
   width: 100%;
   border: 0.5px solid var(--line);
