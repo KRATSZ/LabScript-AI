@@ -141,9 +141,11 @@ describe("activity steps", () => {
     );
     assert.match(mixed, /confirm volumes/);
     assert.doesNotMatch(mixed, /three slots in one sentence|one sentence/i);
-    assert.doesNotMatch(
-      labThinkNote("Confirm volumes and the standard deck. One sentence naming three slots."),
-      /one sentence|naming three slots/i
+    assert.equal(
+      labThinkNote(
+        "Need to give the one-sentence ask naming the three slots and stop. The user said \"Confirm the standard deck.\""
+      ),
+      ""
     );
     assert.doesNotMatch(
       labThinkNote("User confirmed the standard deck. Must include # objective, bullets robot/pipettes."),
