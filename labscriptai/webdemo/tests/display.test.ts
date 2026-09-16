@@ -217,6 +217,18 @@ describe("headerGoalPreview", () => {
       "Transfer 20 µL from well A1 to B1"
     );
     assert.doesNotMatch(headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1;"), /;$/);
+    assert.equal(
+      headerGoalPreview("Tecan Fluent", "Transfer 50 µL from plate A1 to B1, Tecan Fluent"),
+      "Transfer 50 µL from plate A1 to B1"
+    );
+    assert.doesNotMatch(
+      headerGoalPreview("Tecan Fluent", "Transfer 50 µL from plate A1 to B1, Tecan Fluent"),
+      /, Tecan Fluent/i
+    );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1, OT-2"),
+      "Transfer 20 µL from well A1 to B1"
+    );
   });
 });
 

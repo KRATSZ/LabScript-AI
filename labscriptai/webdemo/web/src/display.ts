@@ -184,6 +184,7 @@ export function headerGoalPreview(label: string, goal: string): string {
     text = text.replace(new RegExp(`\\s*\\(\\s*${escaped}\\s*\\)`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+using(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
+    text = text.replace(new RegExp(`[,;]\\s*(?:the\\s+|a\\s+)?${escaped}\\b`, "gi"), "").trim();
   }
   text = text.replace(/\s+on(?:\s+the|\s+a)?\s+\d+-well plate\b/gi, "").trim();
   text = text.replace(/,?\s*(?:one|\d+)\s+samples?\b/gi, "").trim();
