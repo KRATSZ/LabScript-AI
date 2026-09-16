@@ -8,7 +8,7 @@ import { headerGoalPreview, hasAttachedNotes } from "./display";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
-import { thoughtTurnsFromChat } from "./trajectoryLogic";
+import { thoughtNotesFromChat, thoughtTurnsFromChat } from "./trajectoryLogic";
 import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
@@ -243,7 +243,8 @@ export function App() {
           live={{
             thinking: thinkingLive,
             thoughtTurns: thoughtTurnsFromChat(messages),
-            thinkingNote: thinkingLive ? lastMessage?.thinking : "",
+            thoughtNotes: thoughtNotesFromChat(messages),
+            thinkingNote: lastMessage?.thinking,
           }}
         />
       </div>

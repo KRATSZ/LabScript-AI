@@ -8,6 +8,7 @@ export const THINK_STEP = "_think";
 export interface ActivityLive {
   thinking?: boolean;
   thoughtTurns?: number[];
+  thoughtNotes?: Record<number, string>;
   thinkingNote?: string;
 }
 
@@ -61,23 +62,44 @@ export function activityStatusWord(status: ActivityStatus): string {
   return "Still going";
 }
 
-/** Last readable slice of reasoning — lab note, not a JSON dump. */
+const TOOLISH =
+  /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
+
+/** Short Harness-like excerpt: first lab sentences, not a tool-call tail. */
 export function labThinkNote(text: string | undefined | null): string {
   if (!text) return "";
   const clipped = text.replace(/\s+/g, " ").trim();
   if (!clipped || clipped.startsWith("{") || clipped.startsWith("[")) return "";
-  return clipped.length > 140 ? `…${clipped.slice(-140)}` : clipped;
+  const sentences = clipped.split(/(?<=[.!?])\s+/).filter(Boolean);
+  const lab = sentences.filter((sentence) => !TOOLISH.test(sentence));
+  const joined = (lab.length ? lab : sentences)
+    .join(" ")
+    .replace(
+      /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/gi,
+      ""
+    )
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[,;:\s]+/, "")
+    .trim();
+  if (!joined) return "";
+  if (joined.length <= 160) return joined;
+  return `${joined.slice(0, 159).replace(/\s+\S*$/, "")}…`;
 }
 
 /** One thought row per user turn that streamed reasoning. */
 export function thoughtTurnsFromChat(messages: ChatMessage[]): number[] {
+  return Object.keys(thoughtNotesFromChat(messages)).map(Number);
+}
+
+/** Raw thinking text keyed by 1-based user turn — kept after the turn ends. */
+export function thoughtNotesFromChat(messages: ChatMessage[]): Record<number, string> {
   let turn = 0;
-  const turns: number[] = [];
+  const notes: Record<number, string> = {};
   for (const msg of messages) {
     if (msg.role === "user") turn += 1;
-    else if (msg.thinking && turn > 0 && turns[turns.length - 1] !== turn) turns.push(turn);
+    else if (msg.thinking && turn > 0) notes[turn] = msg.thinking;
   }
-  return turns;
+  return notes;
 }
 
 function currentTurn(events: AgentEvent[], steps: ActivityStep[], live: ActivityLive): number {
@@ -97,6 +119,7 @@ function insertThinkRows(steps: ActivityStep[], events: AgentEvent[], live: Acti
     .sort((a, b) => a - b)
     .map((turn) => {
       const liveThis = Boolean(live.thinking) && turn === turnNow;
+      const raw = live.thoughtNotes?.[turn] || (liveThis ? live.thinkingNote : "");
       return {
         key: `think-${turn}`,
         turn,
@@ -104,7 +127,7 @@ function insertThinkRows(steps: ActivityStep[], events: AgentEvent[], live: Acti
         label: activityLabel(THINK_STEP, liveThis ? "run" : "ok"),
         status: liveThis ? "run" : "ok",
         durationMs: null,
-        note: liveThis ? labThinkNote(live.thinkingNote) : undefined,
+        note: labThinkNote(raw) || undefined,
       };
     });
   const byTurn = new Map<number, ActivityStep[]>();

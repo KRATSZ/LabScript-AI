@@ -8,6 +8,7 @@ import {
   eventDetailText,
   formatDuration,
   labThinkNote,
+  thoughtNotesFromChat,
   thoughtTurnsFromChat,
 } from "../web/src/trajectoryLogic.ts";
 import type { AgentEvent, SessionSnapshot } from "../web/src/types.ts";
@@ -90,10 +91,14 @@ describe("activity steps", () => {
     assert.equal(thinking[0].status, "run");
     assert.match(thinking[0].note || "", /volume and wells/);
     assert.equal(thinking[1].label, "Asked you to confirm");
-    const thought = activitySteps(events, null, { thoughtTurns: [1] });
+    const thought = activitySteps(events, null, {
+      thoughtTurns: [1],
+      thoughtNotes: { 1: "Need volume and wells before writing the protocol. Call ask_user and stop." },
+    });
     assert.equal(thought[0].label, "Thought it through");
     assert.equal(thought[0].status, "ok");
-    assert.equal(thought[0].note, undefined);
+    assert.match(thought[0].note || "", /volume and wells/);
+    assert.doesNotMatch(thought[0].note || "", /ask_user/);
     assert.equal(activitySummary(thinking), "2 steps · 1 still going");
     const asked = activitySteps(
       [
@@ -122,6 +127,18 @@ describe("activity steps", () => {
     );
     assert.equal(activityStatusWord("run"), "Still going");
     assert.equal(labThinkNote("{ok:true}"), "");
+    assert.doesNotMatch(
+      labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."),
+      /ask_user/
+    );
+    assert.match(labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."), /20 µL/);
+    assert.equal(
+      thoughtNotesFromChat([
+        { role: "user", text: "go" },
+        { role: "assistant", text: "ok", thinking: "plan the wells" },
+      ])[1],
+      "plan the wells"
+    );
     assert.equal(thoughtTurnsFromChat([
       { role: "user", text: "go" },
       { role: "assistant", text: "", thinking: "plan the wells" },
