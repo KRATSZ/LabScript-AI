@@ -97,8 +97,7 @@ describe("activity steps", () => {
     });
     assert.equal(thought[0].label, "Thought it through");
     assert.equal(thought[0].status, "ok");
-    assert.match(thought[0].note || "", /volumes and wells/);
-    assert.doesNotMatch(thought[0].note || "", /ask_user/);
+    assert.equal(thought[0].note, undefined);
     assert.equal(activitySummary(thinking), "2 steps · 1 still going");
     const asked = activitySteps(
       [
@@ -127,49 +126,70 @@ describe("activity steps", () => {
     );
     assert.equal(activityStatusWord("run"), "Still going");
     assert.equal(labThinkNote("{ok:true}"), "");
-    assert.doesNotMatch(
-      labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."),
-      /ask_user/
-    );
-    assert.match(labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."), /20 µL/);
-    assert.doesNotMatch(
+    assert.match(labThinkNote("Confirm 20 µL on the standard deck."), /20 µL/);
+    assert.equal(labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."), "");
+    assert.equal(
       labThinkNote("User confirms the deck. Need compact SOP 400-800 chars. Output only specified."),
-      /400-800|Output only|compact SOP/i
+      ""
     );
-    const mixed = labThinkNote(
-      "First turn: confirm volumes, wells, sample counts, mix, standard deck. Name the three slots in one sentence."
+    assert.equal(
+      labThinkNote(
+        "First turn: confirm volumes, wells, sample counts, mix, standard deck. Name the three slots in one sentence."
+      ),
+      ""
     );
-    assert.match(mixed, /confirm volumes/);
-    assert.doesNotMatch(mixed, /three slots in one sentence|one sentence/i);
     assert.equal(
       labThinkNote(
         "Need to give the one-sentence ask naming the three slots and stop. The user said \"Confirm the standard deck.\""
       ),
       ""
     );
-    const outline = labThinkNote(
-      "The user confirmed. Slot 3 is a 12-well reservoir. Standard deck confirmed. Bullets robot/pipettes, deck, reagents, numbered steps. Need from Goal volumes and wells."
+    assert.equal(
+      labThinkNote(
+        "The user confirmed. Slot 3 is a 12-well reservoir. Standard deck confirmed. Bullets robot/pipettes, deck, reagents, numbered steps. Need from Goal volumes and wells."
+      ),
+      ""
     );
-    assert.match(outline, /user confirmed/i);
-    assert.match(outline, /12-well reservoir/);
-    assert.match(outline, /Standard deck confirmed/i);
-    assert.doesNotMatch(outline, /Bullets|numbered steps|from Goal/i);
-    const spec = labThinkNote(
-      "User confirmed. mix only if needed new tip vs reuse - Assume: one line if you guessed Stop when technician can run. No summary, no repeated deck. Need include the volumes."
+    assert.equal(
+      labThinkNote(
+        "User confirmed. mix only if needed new tip vs reuse - Assume: one line if you guessed Stop when technician can run. No summary, no repeated deck. Need include the volumes."
+      ),
+      ""
     );
-    assert.match(spec, /User confirmed/i);
-    assert.doesNotMatch(spec, /Assume:|technician|No summary|repeated deck|Need include|only if needed/i);
     assert.equal(labThinkNote("Name the three slots in one sentence. No essay."), "");
-    const toolWait = labThinkNote(
-      "The tool returned a wait. The user confirmed the standard deck. Do not ask. Then stop."
+    assert.equal(
+      labThinkNote(
+        "The tool returned a wait. The user confirmed the standard deck. Do not ask. Then stop."
+      ),
+      ""
     );
-    assert.match(toolWait, /confirmed the standard deck/i);
-    assert.doesNotMatch(toolWait, /tool returned|Do not ask|Then stop/i);
-    const promptLeak = labThinkNote(
-      "First turn: confirm volumes, wells, mix, standard deck. But the instruction says \"At most one question\". Hardware: OT-2, API 2.15, left p300_single_gen2, gripper false."
+    assert.equal(
+      labThinkNote(
+        "First turn: confirm volumes, wells, mix, standard deck. But the instruction says \"At most one question\". Hardware: OT-2, API 2.15, left p300_single_gen2, gripper false."
+      ),
+      ""
     );
-    assert.match(promptLeak, /confirm volumes/);
-    assert.doesNotMatch(promptLeak, /instruction says|At most one|API 2|p300_single|gripper/i);
+    assert.equal(
+      labThinkNote(
+        "Confirmed. Goal transfer 20 µL from plate A1 to B1. Reservoir slot3 not used? Reagents: sample in plate slot 2 well A1, volume? Could list sample, slot 2 A1,"
+      ),
+      ""
+    );
+    assert.equal(
+      labThinkNote("one short confirm on volumes, wells, sample counts, mix, standard deck"),
+      ""
+    );
+    const labOnly = labThinkNote(
+      "User confirmed. 20 µL from plate A1 to B1. Reservoir slot 3 not used."
+    );
+    assert.match(labOnly, /User confirmed/i);
+    assert.match(labOnly, /20 µL/);
+    assert.match(labOnly, /slot 3/i);
+    assert.doesNotMatch(labOnly, /Reagents:|Could list|volume\?/i);
+    assert.match(
+      labThinkNote("confirm volumes, wells, sample counts, mix, standard deck"),
+      /confirm volumes/
+    );
     assert.equal(
       thoughtNotesFromChat([
         { role: "user", text: "go" },

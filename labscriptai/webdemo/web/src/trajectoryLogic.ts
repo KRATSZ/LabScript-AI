@@ -64,36 +64,53 @@ export function activityStatusWord(status: ActivityStatus): string {
 
 const TOOLISH =
   /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
-const WRITING_SPEC =
-  /^(assume|need|stop|no|don't|do not|must|include|write|output)\b|if you guessed|technician can run|no summary|repeated deck|need include|only if needed|vs reuse|\bbullets?\b|robot\/pipettes|numbered steps|\bfrom goal\b|#\s*objective|must include|compact.{0,48}\bsop\b|\bmarkdown\b|one[- ]sentence|nam(?:e|ing)(?:\s+the)?\s+three slots|instruction says|at most one|p300_single|\bapi\s*2\.\d+|\bgripper\b|the tool returned|\bthe tool\b|user's last message|user (said|message)|do not (ask|write)|then stop/i;
+
+/** SOP outline / writing-spec. plate/slot in these clauses is not a lab fact. */
+const SOP_OUTLINE =
+  /\breagents\s*:|\bcould list\b|\bvolumes?\s*\?|\bwells?\s*\?|one short confirm|\bassume\s*:|need include|stop when|technician can run|no summary|repeated deck|\bbullets?\b|robot\/pipettes|numbered steps|\bfrom goal\b|#\s*objective|must include|compact.{0,48}\bsop\b|\bmarkdown\b|one[- ]sentence|nam(?:e|ing)(?:\s+the)?\s+three slots|no essay|if you guessed|instruction says|at most one|p300_single|\bapi\s*2\.\d+|the tool returned|\bthe tool\b|last message from user|user's last message|user (said|message)|do not (ask|write)|then stop|need from|output only|comply constraints|no phase|only if needed|vs reuse|(?:^|[.!?]\s+)(?:reagents|pipettes?|robot|objective|steps?|protocol|sop|materials|methods|notes|samples?)\s*:/i;
+
 const LAB_FACT =
-  /\bconfirm(?:ed|s)?\b|\b(?:µL|ul)\b|\bslot\s*\d|\b(?:reservoir|plate)\b|\bstandard deck\b|\bvolumes?\b.{0,40}\bwells?\b|\bnew tip\b|\bmix\b/i;
+  /\bconfirm(?:ed|s)?\b|\d+\s*(?:µL|ul)\b|\bstandard deck\b|\bno mix\b|\bnew tip\b|\bslot\s*\d.{0,48}\b(?:tip|reservoir|plate|well)|\b(?:tip|reservoir|plate|well).{0,48}\bslot\s*\d/i;
 
 function thoughtClauses(text: string): string[] {
   const marked = text
     .replace(/^first turn:\s*/i, "")
     .replace(/\s+[—–-]\s+/g, ". ")
-    .replace(/(?=\b(?:Assume:|Need include|Need from|Stop when|No summary|no repeated))/gi, ". ");
+    .replace(
+      /(?=\b(?:Reagents:|Could list|Assume:|Need include|Need from|Stop when|No summary|no repeated|one short confirm))/gi,
+      ". "
+    );
   return marked
     .split(/(?<=[.!?])\s+|;\s+/)
     .map((part) => part.trim())
     .filter(Boolean);
 }
 
+function isOutline(sentence: string): boolean {
+  const text = sentence.trim();
+  if (!text) return false;
+  if (SOP_OUTLINE.test(text) || TOOLISH.test(text)) return true;
+  if (/^[A-Za-z][\w /]{0,24}:/.test(text)) return true;
+  if (/\bcould\b/i.test(text)) return true;
+  return false;
+}
+
 function isLabFact(sentence: string): boolean {
   const text = sentence.trim();
   if (!text || text.startsWith("{") || text.startsWith("[")) return false;
-  if (TOOLISH.test(text) || WRITING_SPEC.test(text)) return false;
+  if (isOutline(text)) return false;
   return LAB_FACT.test(text);
 }
 
-/** Short lab thought. Hide if only writing-spec / homework remains. */
+/** Short lab thought. Mixed SOP-outline + lab → hide the whole excerpt. */
 export function labThinkNote(text: string | undefined | null): string {
   if (!text) return "";
   const clipped = text.replace(/\s+/g, " ").trim();
   if (!clipped || clipped.startsWith("{") || clipped.startsWith("[")) return "";
-  const joined = thoughtClauses(clipped)
-    .filter(isLabFact)
+  if (SOP_OUTLINE.test(clipped)) return "";
+  const clauses = thoughtClauses(clipped);
+  if (!clauses.length || !clauses.every(isLabFact)) return "";
+  const joined = clauses
     .join(" ")
     .replace(/\btipracks?\b/gi, "tip rack")
     .replace(/\s{2,}/g, " ")
