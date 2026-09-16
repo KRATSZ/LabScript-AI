@@ -64,6 +64,7 @@ export function activityStatusWord(status: ActivityStatus): string {
 
 const TOOLISH =
   /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
+const PROMPTISH = /\b(400-800 chars|output only specified|follow constraints|compact sop)\b/i;
 
 /** Short Harness-like excerpt: first lab sentences, not a tool-call tail. */
 export function labThinkNote(text: string | undefined | null): string {
@@ -71,7 +72,7 @@ export function labThinkNote(text: string | undefined | null): string {
   const clipped = text.replace(/\s+/g, " ").trim();
   if (!clipped || clipped.startsWith("{") || clipped.startsWith("[")) return "";
   const sentences = clipped.split(/(?<=[.!?])\s+/).filter(Boolean);
-  const lab = sentences.filter((sentence) => !TOOLISH.test(sentence));
+  const lab = sentences.filter((sentence) => !TOOLISH.test(sentence) && !PROMPTISH.test(sentence));
   const joined = (lab.length ? lab : sentences)
     .join(" ")
     .replace(

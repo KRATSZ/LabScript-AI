@@ -132,6 +132,10 @@ describe("activity steps", () => {
       /ask_user/
     );
     assert.match(labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."), /20 µL/);
+    assert.doesNotMatch(
+      labThinkNote("User confirms the deck. Need compact SOP 400-800 chars. Output only specified."),
+      /400-800|Output only/
+    );
     assert.equal(
       thoughtNotesFromChat([
         { role: "user", text: "go" },
