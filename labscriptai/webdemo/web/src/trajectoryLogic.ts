@@ -64,63 +64,37 @@ export function activityStatusWord(status: ActivityStatus): string {
 
 const TOOLISH =
   /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
-const LAB_SIGNAL =
-  /\b(µL|ul|volume|volumes|well|wells|mix|deck|slot|slots|tips?|plate|reservoir|confirm(?:ed|s)?|sample|transfer|pipette|standard deck)\b/i;
-const SOP_OUTLINE =
-  /\bbullets?\b|\brobot\/pipettes\b|numbered steps|\bfrom goal\b|^need from\b|\breagents\b.{0,40}\bsteps\b|must include|#\s*objective/i;
+const WRITING_SPEC =
+  /^(assume|need|stop|no|don't|do not|must|include|write|output)\b|if you guessed|technician can run|no summary|repeated deck|need include|only if needed|vs reuse|\bbullets?\b|robot\/pipettes|numbered steps|\bfrom goal\b|#\s*objective|must include|compact.{0,48}\bsop\b|\bmarkdown\b|one[- ]sentence|nam(?:e|ing)(?:\s+the)?\s+three slots|instruction says|at most one|p300_single|\bapi\s*2\.\d+|\bgripper\b|the tool returned|\bthe tool\b|user's last message|user (said|message)|do not (ask|write)|then stop/i;
+const LAB_FACT =
+  /\bconfirm(?:ed|s)?\b|\b(?:µL|ul)\b|\bslot\s*\d|\b(?:reservoir|plate)\b|\bstandard deck\b|\bvolumes?\b.{0,40}\bwells?\b|\bnew tip\b|\bmix\b/i;
 
-function isHomeworkThought(sentence: string): boolean {
-  const text = sentence.trim();
-  if (!text) return true;
-  if (TOOLISH.test(text)) return true;
-  if (SOP_OUTLINE.test(text)) return true;
-  if (!LAB_SIGNAL.test(text)) return true;
-  return (
-    /compact.{0,48}\bsop\b/i.test(text) ||
-    /\bsop\b.{0,40}(markdown|english|compact)/i.test(text) ||
-    /liquid-handling sop/i.test(text) ||
-    /comply constraints/i.test(text) ||
-    /follow constraints/i.test(text) ||
-    /^need (comply|write|follow|compact|infer)\b/i.test(text) ||
-    /need write compact/i.test(text) ||
-    /no phase/i.test(text) ||
-    /phase\s*\/\s*action\s*\/\s*tool/i.test(text) ||
-    /action\s*\/\s*tool/i.test(text) ||
-    /nam(?:e|ing)(?:\s+the)?\s+three slots/i.test(text) ||
-    /in one sentence/i.test(text) ||
-    /one[- ]sentence/i.test(text) ||
-    /user (said|message)/i.test(text) ||
-    /^need to give\b/i.test(text) ||
-    /no essay/i.test(text) ||
-    /english markdown/i.test(text) ||
-    /\bmarkdown\b/i.test(text) ||
-    /400-800/i.test(text) ||
-    /output only/i.test(text) ||
-    /instruction says/i.test(text) ||
-    /at most one/i.test(text) ||
-    /do not write/i.test(text) ||
-    /do not ask/i.test(text) ||
-    /then stop/i.test(text) ||
-    /the tool returned/i.test(text) ||
-    /\bthe tool\b/i.test(text) ||
-    /user's last message/i.test(text) ||
-    /p300_single/i.test(text) ||
-    /\bapi\s*2\.\d+/i.test(text) ||
-    /\bgripper\b/i.test(text) ||
-    /^no\b[\s.…]*$/i.test(text)
-  );
+function thoughtClauses(text: string): string[] {
+  const marked = text
+    .replace(/^first turn:\s*/i, "")
+    .replace(/\s+[—–-]\s+/g, ". ")
+    .replace(/(?=\b(?:Assume:|Need include|Need from|Stop when|No summary|no repeated))/gi, ". ");
+  return marked
+    .split(/(?<=[.!?])\s+|;\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
 }
 
-/** Short Harness-like excerpt: lab sentences only. Hide if only homework remains. */
+function isLabFact(sentence: string): boolean {
+  const text = sentence.trim();
+  if (!text || text.startsWith("{") || text.startsWith("[")) return false;
+  if (TOOLISH.test(text) || WRITING_SPEC.test(text)) return false;
+  return LAB_FACT.test(text);
+}
+
+/** Short lab thought. Hide if only writing-spec / homework remains. */
 export function labThinkNote(text: string | undefined | null): string {
   if (!text) return "";
   const clipped = text.replace(/\s+/g, " ").trim();
   if (!clipped || clipped.startsWith("{") || clipped.startsWith("[")) return "";
-  const sentences = clipped.split(/(?<=[.!?])\s+|;\s+/).filter(Boolean);
-  const lab = sentences.filter((sentence) => !isHomeworkThought(sentence));
-  const joined = lab
+  const joined = thoughtClauses(clipped)
+    .filter(isLabFact)
     .join(" ")
-    .replace(/\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/gi, "")
     .replace(/\btipracks?\b/gi, "tip rack")
     .replace(/\s{2,}/g, " ")
     .replace(/^[,;:\s]+/, "")

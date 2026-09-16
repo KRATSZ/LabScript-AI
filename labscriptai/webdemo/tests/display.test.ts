@@ -135,10 +135,7 @@ describe("sanitizeAssistantText", () => {
     );
     assert.doesNotMatch(sanitizeAssistantText("Python.py is ready to download."), /Python\.py/);
     assert.match(sanitizeAssistantText("Python.py is ready to download."), /Python file is ready to download/);
-    assert.doesNotMatch(
-      sanitizeAssistantText("Download: Python (.py) protocol — the deck is on Stage."),
-      /Python\.py|\(\.py\)/
-    );
+    assert.equal(sanitizeAssistantText("Python (.py) is ready to download."), "Python file is ready to download.");
   });
 });
 

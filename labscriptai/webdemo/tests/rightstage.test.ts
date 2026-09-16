@@ -84,20 +84,20 @@ describe("activity steps", () => {
     const thinking = activitySteps(events.slice(0, 4), null, {
       thinking: true,
       thoughtTurns: [1],
-      thinkingNote: "Need volume and wells before writing the protocol.",
+      thinkingNote: "Confirm volumes and wells on the standard deck.",
     });
     assert.equal(thinking[0].name, "_think");
     assert.equal(thinking[0].label, "Thinking it through…");
     assert.equal(thinking[0].status, "run");
-    assert.match(thinking[0].note || "", /volume and wells/);
+    assert.match(thinking[0].note || "", /volumes and wells/);
     assert.equal(thinking[1].label, "Asked you to confirm");
     const thought = activitySteps(events, null, {
       thoughtTurns: [1],
-      thoughtNotes: { 1: "Need volume and wells before writing the protocol. Call ask_user and stop." },
+      thoughtNotes: { 1: "Confirm volumes and wells on the standard deck. Call ask_user and stop." },
     });
     assert.equal(thought[0].label, "Thought it through");
     assert.equal(thought[0].status, "ok");
-    assert.match(thought[0].note || "", /volume and wells/);
+    assert.match(thought[0].note || "", /volumes and wells/);
     assert.doesNotMatch(thought[0].note || "", /ask_user/);
     assert.equal(activitySummary(thinking), "2 steps · 1 still going");
     const asked = activitySteps(
@@ -154,11 +154,11 @@ describe("activity steps", () => {
     assert.match(outline, /12-well reservoir/);
     assert.match(outline, /Standard deck confirmed/i);
     assert.doesNotMatch(outline, /Bullets|numbered steps|from Goal/i);
-    const afterReply = labThinkNote(
-      "Deck confirmed. Need comply constraints. Need write compact liquid-handling SOP in English markdown. No Phase/Action/Tool. No essay."
+    const spec = labThinkNote(
+      "User confirmed. mix only if needed new tip vs reuse - Assume: one line if you guessed Stop when technician can run. No summary, no repeated deck. Need include the volumes."
     );
-    assert.match(afterReply, /Deck confirmed/i);
-    assert.doesNotMatch(afterReply, /comply constraints|compact|SOP|Phase\/Action|No essay|markdown/i);
+    assert.match(spec, /User confirmed/i);
+    assert.doesNotMatch(spec, /Assume:|technician|No summary|repeated deck|Need include|only if needed/i);
     assert.equal(labThinkNote("Name the three slots in one sentence. No essay."), "");
     const toolWait = labThinkNote(
       "The tool returned a wait. The user confirmed the standard deck. Do not ask. Then stop."
