@@ -147,10 +147,13 @@ describe("activity steps", () => {
       ),
       ""
     );
-    assert.doesNotMatch(
-      labThinkNote("User confirmed the standard deck. Must include # objective, bullets robot/pipettes."),
-      /Must include|# objective/i
+    const outline = labThinkNote(
+      "The user confirmed. Slot 3 is a 12-well reservoir. Standard deck confirmed. Bullets robot/pipettes, deck, reagents, numbered steps. Need from Goal volumes and wells."
     );
+    assert.match(outline, /user confirmed/i);
+    assert.match(outline, /12-well reservoir/);
+    assert.match(outline, /Standard deck confirmed/i);
+    assert.doesNotMatch(outline, /Bullets|numbered steps|from Goal/i);
     const afterReply = labThinkNote(
       "Deck confirmed. Need comply constraints. Need write compact liquid-handling SOP in English markdown. No Phase/Action/Tool. No essay."
     );

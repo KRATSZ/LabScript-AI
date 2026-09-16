@@ -66,11 +66,14 @@ const TOOLISH =
   /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
 const LAB_SIGNAL =
   /\b(µL|ul|volume|volumes|well|wells|mix|deck|slot|slots|tips?|plate|reservoir|confirm(?:ed|s)?|sample|transfer|pipette|standard deck)\b/i;
+const SOP_OUTLINE =
+  /\bbullets?\b|\brobot\/pipettes\b|numbered steps|\bfrom goal\b|^need from\b|\breagents\b.{0,40}\bsteps\b|must include|#\s*objective/i;
 
 function isHomeworkThought(sentence: string): boolean {
   const text = sentence.trim();
   if (!text) return true;
   if (TOOLISH.test(text)) return true;
+  if (SOP_OUTLINE.test(text)) return true;
   if (!LAB_SIGNAL.test(text)) return true;
   return (
     /compact.{0,48}\bsop\b/i.test(text) ||
@@ -88,8 +91,6 @@ function isHomeworkThought(sentence: string): boolean {
     /one[- ]sentence/i.test(text) ||
     /user (said|message)/i.test(text) ||
     /^need to give\b/i.test(text) ||
-    /must include/i.test(text) ||
-    /#\s*objective/i.test(text) ||
     /no essay/i.test(text) ||
     /english markdown/i.test(text) ||
     /\bmarkdown\b/i.test(text) ||
