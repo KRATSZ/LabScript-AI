@@ -147,6 +147,11 @@ describe("activity steps", () => {
     assert.match(afterReply, /Deck confirmed/i);
     assert.doesNotMatch(afterReply, /comply constraints|compact|SOP|Phase\/Action|No essay|markdown/i);
     assert.equal(labThinkNote("Name the three slots in one sentence. No essay."), "");
+    const toolWait = labThinkNote(
+      "The tool returned a wait. The user confirmed the standard deck. Do not ask. Then stop."
+    );
+    assert.match(toolWait, /confirmed the standard deck/i);
+    assert.doesNotMatch(toolWait, /tool returned|Do not ask|Then stop/i);
     assert.equal(
       thoughtNotesFromChat([
         { role: "user", text: "go" },

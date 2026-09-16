@@ -88,6 +88,11 @@ function isHomeworkThought(sentence: string): boolean {
     /400-800/i.test(text) ||
     /output only/i.test(text) ||
     /output only specified/i.test(text) ||
+    /then stop/i.test(text) ||
+    /the tool returned/i.test(text) ||
+    /\bthe tool\b/i.test(text) ||
+    /user's last message/i.test(text) ||
+    /\bdo not ask\b/i.test(text) ||
     /^no\b[\s.…]*$/i.test(text)
   );
 }
@@ -101,10 +106,8 @@ export function labThinkNote(text: string | undefined | null): string {
   const lab = sentences.filter((sentence) => !isHomeworkThought(sentence));
   const joined = lab
     .join(" ")
-    .replace(
-      /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/gi,
-      ""
-    )
+    .replace(/\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/gi, "")
+    .replace(/\btipracks?\b/gi, "tip rack")
     .replace(/\s{2,}/g, " ")
     .replace(/^[,;:\s]+/, "")
     .replace(/[.,;:\s]+$/, "")
