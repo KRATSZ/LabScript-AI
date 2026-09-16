@@ -146,7 +146,7 @@ body {
 }
 .stage-tab.selected .stage-tab-count { color: var(--primary-dark); }
 .traj-time { color: var(--muted); font-variant-numeric: tabular-nums; }
-.demo-health { margin-top: 4px; font-size: 11px; color: var(--muted); }
+.demo-health { margin-top: 0; font-size: 11px; letter-spacing: 0.01em; color: var(--muted); }
 .stage-body {
   flex: 1;
   min-height: 0;
@@ -166,7 +166,7 @@ body {
 }
 .stage-body:has(.artifacts-pane),
 .stage-body:has(.activity-pane) {
-  padding: 20px 24px 28px;
+  padding: 16px 20px 24px;
   overflow: auto;
 }
 .stage-body:has(.has-deck) {
@@ -184,12 +184,6 @@ body {
 .stage-empty {
   text-align: center;
   max-width: 320px;
-}
-.stage-empty-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  margin: 0 auto 14px;
 }
 .stage-empty h2 {
   margin: 0 0 8px;
@@ -323,21 +317,25 @@ body {
 .activity-pane {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  max-width: 560px;
+  gap: 14px;
+  width: min(520px, 100%);
+  background: var(--paper);
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px 20px;
 }
 .activity-head h2 {
   margin: 0;
-  font-size: 20px;
-  line-height: 28px;
+  font-size: 18px;
+  line-height: 24px;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text);
 }
 .activity-head p {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 20px;
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 18px;
   color: var(--muted);
 }
 .activity-timeline {
@@ -346,14 +344,14 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 .activity-turn h3 {
-  margin: 0 0 6px 22px;
+  margin: 0 0 4px 22px;
   font-size: 11px;
   line-height: 16px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -377,9 +375,9 @@ body {
 .activity-row {
   display: grid;
   grid-template-columns: 16px minmax(0, 1fr) auto;
-  gap: 8px 12px;
+  gap: 6px 12px;
   align-items: baseline;
-  padding: 7px 0;
+  padding: 6px 0;
   font-size: 14px;
   line-height: 20px;
   position: relative;
@@ -390,7 +388,7 @@ body {
   margin-top: 5px;
   border-radius: 50%;
   background: #c5ccd3;
-  box-shadow: 0 0 0 3px var(--stage);
+  box-shadow: 0 0 0 3px var(--paper);
   justify-self: center;
   align-self: start;
   z-index: 1;
@@ -403,19 +401,19 @@ body {
 }
 .activity-dot.think {
   background: transparent;
-  box-shadow: 0 0 0 1.5px var(--primary), 0 0 0 3px var(--stage);
+  box-shadow: 0 0 0 1.5px var(--primary), 0 0 0 3px var(--paper);
 }
 .activity-dot.think.ok {
   background: var(--primary);
-  box-shadow: 0 0 0 3px var(--stage);
+  box-shadow: 0 0 0 3px var(--paper);
 }
 .activity-dot.think.run {
   background: var(--primary);
-  box-shadow: 0 0 0 3px var(--stage);
+  box-shadow: 0 0 0 3px var(--paper);
 }
 @keyframes activity-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px var(--stage); }
-  50% { box-shadow: 0 0 0 3px var(--stage), 0 0 0 7px rgba(13, 148, 136, 0.22); }
+  0%, 100% { box-shadow: 0 0 0 3px var(--paper); }
+  50% { box-shadow: 0 0 0 3px var(--paper), 0 0 0 7px rgba(13, 148, 136, 0.22); }
 }
 .activity-copy { min-width: 0; }
 .activity-label { color: var(--text); min-width: 0; font-weight: 500; display: block; }
@@ -428,6 +426,7 @@ body {
   font-size: 12px;
   line-height: 18px;
   font-weight: 400;
+  font-style: italic;
   color: var(--muted);
 }
 .activity-meta {
@@ -544,10 +543,14 @@ body {
   border: 0.5px solid var(--line);
   background: #fff;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 5px 11px;
   font-size: 13px;
-  line-height: 20px;
+  line-height: 18px;
   cursor: pointer;
+}
+.chip:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 .chip:disabled { opacity: .5; cursor: not-allowed; }
 .device-grid {
@@ -719,8 +722,8 @@ body {
 .bubble {
   max-width: 86%;
   border-radius: 12px;
-  padding: 10px 14px;
-  line-height: 24px;
+  padding: 9px 13px;
+  line-height: 22px;
   font-size: 15px;
   word-break: break-word;
 }
