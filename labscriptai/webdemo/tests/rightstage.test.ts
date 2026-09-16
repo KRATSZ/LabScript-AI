@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { tabCount, tabVisible } from "../web/src/stageTabs.ts";
-import { eventDetailText } from "../web/src/trajectoryLogic.ts";
+import { activitySteps, activitySummary, eventDetailText, formatDuration } from "../web/src/trajectoryLogic.ts";
 import type { AgentEvent, SessionSnapshot } from "../web/src/types.ts";
 
 const event = (partial: Partial<AgentEvent> & Pick<AgentEvent, "kind">): AgentEvent => ({
@@ -24,16 +24,16 @@ describe("right stage tabs", () => {
     ];
     assert.equal(tabCount("stage", session, events), null);
     assert.equal(tabCount("artifacts", session, events), 3);
-    assert.equal(tabCount("trajectory", session, events), 2);
+    assert.equal(tabCount("trajectory", session, events), 0);
     assert.equal(tabCount("artifacts", null, []), 0);
     assert.equal(tabVisible("stage", null, []), true);
     assert.equal(tabVisible("artifacts", null, []), false);
     assert.equal(tabVisible("trajectory", null, []), false);
     assert.equal(tabVisible("artifacts", session, events), true);
-    assert.equal(tabVisible("trajectory", session, events), false);
+    assert.equal(tabVisible("trajectory", session, events), true);
     const clarify = { robot: "OT-2", sop: "", code: "" } as unknown as SessionSnapshot;
     assert.equal(tabVisible("artifacts", clarify, events), false);
-    assert.equal(tabVisible("trajectory", clarify, events), false);
+    assert.equal(tabVisible("trajectory", clarify, events), true);
   });
 });
 
@@ -48,5 +48,30 @@ describe("trajectory details", () => {
       eventDetailText(event({ kind: "tool/result", detail: { duration_ms: 8, ok: false } })),
       "8 ms · not ok"
     );
+  });
+});
+
+describe("activity steps", () => {
+  it("folds tool call+result into lab language and skips developer kinds", () => {
+    const events = [
+      event({ seq: 1, kind: "turn/start" }),
+      event({ seq: 2, kind: "tool/call", name: "ask_user" }),
+      event({ seq: 3, kind: "step/start", name: "ask" }),
+      event({ seq: 4, kind: "tool/result", name: "ask_user", detail: { duration_ms: 40, ok: true } }),
+      event({ seq: 5, kind: "tool/call", name: "run_checks" }),
+      event({ seq: 6, kind: "tool/result", name: "run_checks", detail: { duration_ms: 1200, ok: true } }),
+      event({ seq: 7, kind: "turn/end", detail: { ok: true } }),
+    ];
+    const steps = activitySteps(events, null);
+    assert.equal(steps.length, 2);
+    assert.equal(steps[0].label, "Asked you to confirm");
+    assert.equal(steps[0].status, "ok");
+    assert.equal(steps[1].label, "Checked bench constraints");
+    assert.equal(formatDuration(1200), "1.2 s");
+    assert.equal(activitySummary(steps), "2 steps · 2 passed");
+    const running = activitySteps(events.slice(0, 5), "run_checks");
+    assert.equal(running[1].status, "run");
+    assert.equal(running[1].label, "Checking bench constraints…");
+    assert.doesNotMatch(steps.map((s) => s.label).join(" "), /generate_sop|tool\/call|Log/);
   });
 });

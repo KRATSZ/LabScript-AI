@@ -11,7 +11,7 @@ export { tabCount, tabVisible };
 const TABS: Array<{ id: StageTab; label: string }> = [
   { id: "stage", label: "Stage" },
   { id: "artifacts", label: "Files" },
-  { id: "trajectory", label: "Log" },
+  { id: "trajectory", label: "Activity" },
 ];
 
 interface Props {
@@ -81,7 +81,9 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
           )
         ) : null}
         {tab === "artifacts" ? <ArtifactsPane session={session} /> : null}
-        {tab === "trajectory" ? <TrajectoryPane events={events} /> : null}
+        {tab === "trajectory" ? (
+          <TrajectoryPane events={events} runningTool={runningTool} />
+        ) : null}
       </div>
     </section>
   );
