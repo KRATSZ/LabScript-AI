@@ -11,7 +11,7 @@ export const PIPELINE_HINTS: Record<string, string> = {
   generate_code: "Writing the script…",
   emit_plan: "Laying out the steps…",
   run_checks: "Checking bench constraints…",
-  open_animation: "Opening the preview…",
+  open_animation: "Putting the deck on Stage…",
 };
 
 const PYTHON_STEPS = ["Run", "Protocol", "Script", "Checks", "Deck"] as const;

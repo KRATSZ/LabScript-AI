@@ -92,6 +92,18 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("the FluentControl.gwl worklist is ready."),
       "the Fluent worklist is ready."
     );
+    assert.doesNotMatch(
+      sanitizeAssistantText("Done. The protocol and the deck animation are ready. No Watch for Fluent."),
+      /deck animation are ready|No Watch for Fluent/i
+    );
+    assert.equal(
+      sanitizeAssistantText("The protocol and the deck animation are ready."),
+      "The protocol is ready."
+    );
+    assert.equal(
+      sanitizeAssistantText("Watch is open too if you want to see the run."),
+      ""
+    );
   });
 });
 
@@ -102,7 +114,7 @@ describe("headerGoalPreview", () => {
         "Tecan Fluent",
         "Tecan Fluent. Transfer 50 µL from plate well A1 to plate well B1. One sample, no mix. Standard deck: slot 1 200 µL DiTi tiprack, slot 2 96-well plate, slot 3 12-well reservoir."
       ),
-      "Transfer 50 µL from plate well A1 to plate well B1"
+      "Transfer 50 µL from well A1 to well B1"
     );
     assert.equal(
       headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1. One sample. No mix."),
@@ -117,7 +129,7 @@ describe("headerGoalPreview", () => {
         "Tecan Fluent",
         "Transfer 50 µL from plate well A1 to plate well B1. One sample, no mix (Tecan Fluent)."
       ),
-      "Transfer 50 µL from plate well A1 to plate well B1"
+      "Transfer 50 µL from well A1 to well B1"
     );
     assert.equal(
       headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1 on the 96-well plate"),
@@ -126,6 +138,27 @@ describe("headerGoalPreview", () => {
     assert.equal(
       headerGoalPreview("Tecan Fluent", "Transfer 50 µL from well A1 to B1 on a Tecan Fluent"),
       "Transfer 50 µL from well A1 to B1"
+    );
+    assert.equal(
+      headerGoalPreview(
+        "Tecan Fluent",
+        "Transfer 50 µL from plate well A1 to plate well B1 on Tecan Fluent, 1 sample, no mix"
+      ),
+      "Transfer 50 µL from well A1 to well B1"
+    );
+    assert.equal(
+      headerGoalPreview(
+        "Tecan Fluent",
+        "Transfer 50 µL from well A1 to B1 on the Tecan Fluent, one sample"
+      ),
+      "Transfer 50 µL from well A1 to B1"
+    );
+    assert.doesNotMatch(
+      headerGoalPreview(
+        "Tecan Fluent",
+        "Transfer 50 µL from plate well A1 to plate well B1 on the Tecan Fluent, 1 sample, no mix"
+      ),
+      /on(?: the)? Tecan Fluent/i
     );
   });
 });

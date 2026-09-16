@@ -18,8 +18,16 @@ const DONE_LABELS: Record<string, string> = {
   generate_code: "Wrote the script",
   emit_plan: "Laid out the steps",
   run_checks: "Checked bench constraints",
-  open_animation: "Opened the preview",
+  open_animation: "Deck is on Stage",
 };
+
+function foldDeckIntoChecks(steps: ActivityStep[], status: ActivityStatus): boolean {
+  const checks = [...steps].reverse().find((step) => step.name === "run_checks");
+  if (!checks) return false;
+  if (status === "ok" || checks.status === "ok") checks.label = "Checked the bench — deck is up";
+  else checks.label = "Checking the bench — deck next…";
+  return true;
+}
 
 function titleTool(name: string): string {
   return name.replace(/_/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
@@ -52,6 +60,7 @@ export function activitySteps(events: AgentEvent[], runningTool: string | null =
       continue;
     }
     if (event.kind === "tool/call" && event.name) {
+      if (event.name === "open_animation" && foldDeckIntoChecks(steps, "run")) continue;
       steps.push({
         key: `${event.seq}-${event.name}`,
         turn: turn || 1,
@@ -67,10 +76,12 @@ export function activitySteps(events: AgentEvent[], runningTool: string | null =
       const ok = event.name === "ask_user" ? true : event.detail?.ok !== false;
       const duration = typeof event.detail?.duration_ms === "number" ? event.detail.duration_ms : null;
       const status: ActivityStatus = ok ? "ok" : "fail";
+      if (event.name === "open_animation" && !open && foldDeckIntoChecks(steps, status)) continue;
       if (open) {
         open.status = status;
         open.durationMs = duration;
         open.label = activityLabel(event.name, status);
+        if (event.name === "open_animation") foldDeckIntoChecks(steps, status);
       } else {
         steps.push({
           key: `${event.seq}-${event.name}`,
@@ -82,6 +93,9 @@ export function activitySteps(events: AgentEvent[], runningTool: string | null =
         });
       }
     }
+  }
+  if (runningTool === "open_animation" && foldDeckIntoChecks(steps, "run")) {
+    return steps;
   }
   if (runningTool && !steps.some((step) => step.name === runningTool && step.status === "run")) {
     steps.push({

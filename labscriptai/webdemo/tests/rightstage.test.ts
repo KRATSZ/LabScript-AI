@@ -82,5 +82,20 @@ describe("activity steps", () => {
     assert.equal(asked[0].status, "ok");
     assert.equal(asked[0].label, "Asked you to confirm");
     assert.equal(formatDuration(1), "");
+    const withDeck = activitySteps(
+      [
+        event({ seq: 1, kind: "tool/call", name: "run_checks" }),
+        event({ seq: 2, kind: "tool/result", name: "run_checks", detail: { duration_ms: 900, ok: true } }),
+        event({ seq: 3, kind: "tool/call", name: "open_animation" }),
+        event({ seq: 4, kind: "tool/result", name: "open_animation", detail: { duration_ms: 200, ok: true } }),
+      ],
+      null
+    );
+    assert.equal(withDeck.length, 1);
+    assert.equal(withDeck[0].label, "Checked the bench — deck is up");
+    assert.equal(
+      withDeck.some((step) => /opened the preview/i.test(step.label)),
+      false
+    );
   });
 });

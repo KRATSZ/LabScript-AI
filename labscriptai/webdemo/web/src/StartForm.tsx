@@ -55,7 +55,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       <textarea
         id="goal"
         required
-        rows={3}
+        rows={2}
         placeholder="e.g. Transfer 50 µL from well A1 to B1"
         value={goal}
         onChange={(e) => setGoal(e.target.value)}
@@ -79,7 +79,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       </label>
       <textarea
         id="doc"
-        rows={3}
+        rows={2}
         placeholder="Paste a draft, or leave blank — we'll confirm the run first"
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
