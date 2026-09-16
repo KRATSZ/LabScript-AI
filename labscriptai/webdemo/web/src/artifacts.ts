@@ -6,9 +6,9 @@ export type DownloadKind = "sop" | "python" | "plan" | "gwl" | "plr";
 export const DOWNLOAD_LABELS: Record<DownloadKind, string> = {
   sop: "SOP",
   python: "Python",
-  plan: "Step JSON",
-  gwl: ".gwl worklist",
-  plr: "PyLabRobot script",
+  plan: "Steps",
+  gwl: "Fluent worklist",
+  plr: "Robot script",
 };
 
 export interface PlanStepLike {
@@ -70,10 +70,10 @@ export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): str
   if (kind === "python") return "Run with opentrons_simulate or upload to OT App";
   if (kind === "gwl") return "Import into FluentControl via Load Worklist";
   if (kind === "plr") {
-    if (robot === "Hamilton") return "Runnable PyLabRobot script — run on the STAR-connected PC";
-    return "Runnable PyLabRobot script — run on the Vantage-connected PC";
+    if (robot === "Hamilton") return "Runnable script — run on the STAR-connected PC";
+    return "Runnable script — run on the Vantage-connected PC";
   }
-  if (robot === "Hamilton" || robot === "Vantage") return "Step table alongside the PyLabRobot script";
+  if (robot === "Hamilton" || robot === "Vantage") return "Step table alongside the robot script";
   if (robot === "Tecan") return "Step table alongside the Fluent worklist";
   return "Step table as JSON";
 }

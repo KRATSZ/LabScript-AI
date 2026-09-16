@@ -157,12 +157,12 @@ describe("downloadHint", () => {
   it("explains each file next to the download", () => {
     assert.match(downloadHint("python", "OT-2"), /opentrons_simulate/);
     assert.match(downloadHint("gwl", "Tecan"), /FluentControl/);
-    assert.match(downloadHint("plan", "Hamilton"), /PyLabRobot/);
+    assert.match(downloadHint("plan", "Hamilton"), /robot script/);
     assert.match(downloadHint("plr", "Hamilton"), /STAR-connected PC/);
     assert.match(downloadHint("plr", "Vantage"), /Vantage-connected PC/);
-    assert.equal(DOWNLOAD_LABELS.plan, "Step JSON");
-    assert.equal(DOWNLOAD_LABELS.gwl, ".gwl worklist");
-    assert.equal(DOWNLOAD_LABELS.plr, "PyLabRobot script");
+    assert.equal(DOWNLOAD_LABELS.plan, "Steps");
+    assert.equal(DOWNLOAD_LABELS.gwl, "Fluent worklist");
+    assert.equal(DOWNLOAD_LABELS.plr, "Robot script");
   });
 });
 

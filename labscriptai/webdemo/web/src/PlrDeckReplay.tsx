@@ -1,11 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-function fluentChrome(robot?: string | null, deck?: string): string {
-  if (!deck) return "";
-  if (robot && /tecan|fluent/i.test(robot) && /evo/i.test(deck)) return "Tecan Fluent";
-  return deck;
-}
-
 interface StartResponse {
   ok?: boolean;
   url?: string;
@@ -22,8 +16,6 @@ export function PlrDeckReplay({
   robot?: string | null;
 }) {
   const [url, setUrl] = useState("");
-  const [note, setNote] = useState("");
-  const [deck, setDeck] = useState("");
   const [error, setError] = useState("");
   const key = useMemo(() => JSON.stringify({ robot: robot ?? "", plan: plan ?? null }), [plan, robot]);
 
@@ -32,7 +24,6 @@ export function PlrDeckReplay({
     let cancelled = false;
     setUrl("");
     setError("");
-    setNote("");
     fetch("/api/plr/visualizer/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,8 +37,6 @@ export function PlrDeckReplay({
           return;
         }
         setUrl(body.url);
-        setDeck(fluentChrome(robot, body.deck || ""));
-        setNote(body.note || "");
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -60,16 +49,19 @@ export function PlrDeckReplay({
 
   return (
     <div className="plr-deck-embed" data-testid="plr-deck-replay">
-      {deck ? <p className="hint">{deck} software preview — not a live robot.</p> : null}
-      {note ? <p className="hint">{note}</p> : null}
       {error ? (
         <p className="file" style={{ color: "var(--error)" }}>
           {error}
         </p>
       ) : url ? (
-        <iframe className="plr-deck-frame" title="PyLabRobot deck preview" src={url} />
+        <div className="plr-deck-viewport">
+          <iframe className="plr-deck-frame" title="Deck preview" src={url} />
+        </div>
       ) : (
-        <p className="hint">Opening the scientific deck preview…</p>
+        <div className="stage-empty">
+          <h2>Deck</h2>
+          <p>Opening the bench preview…</p>
+        </div>
       )}
     </div>
   );

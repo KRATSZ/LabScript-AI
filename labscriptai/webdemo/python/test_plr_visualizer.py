@@ -43,7 +43,7 @@ class PlrVisualizerTests(unittest.TestCase):
         self.assertEqual(fluent["kind"], "fluent")
         self.assertIn("Fluent", fluent["deck_name"])
         self.assertNotIn("EVO 200", fluent["deck_name"])
-        self.assertIn("Freedom EVO", fluent["note"])
+        self.assertEqual(fluent["note"], "")
 
     def test_fluent_places_reservoir_as_tecan_labware(self) -> None:
         payload = {

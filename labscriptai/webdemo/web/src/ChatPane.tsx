@@ -54,14 +54,12 @@ export function ChatPane({ messages, busy, onSend }: Props) {
           const emptyAssistant = msg.role === "assistant" && !msg.text && !msg.thinking;
           if (emptyAssistant && !(busy && last)) return null;
           const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
-          const fallback = emptyAssistant ? "Working…" : "";
-          const raw = msg.text || fallback;
-          const body = msg.role === "assistant" ? sanitizeAssistantText(raw) || fallback : raw;
+          const emptyBusy = emptyAssistant && busy && last;
+          const raw = msg.text || "";
+          const body = msg.role === "assistant" ? sanitizeAssistantText(raw) : raw;
           return (
             <div key={i} className={`bubble-row ${msg.role}`}>
-              <div className={`avatar ${msg.role === "user" ? "user" : "bot"}`} aria-hidden>
-                {msg.role === "user" ? "👤" : "🧪"}
-              </div>
+              <div className={`avatar ${msg.role === "user" ? "user" : "bot"}`} aria-hidden />
               <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
                 {msg.meta ? <div className="meta">{msg.meta}</div> : null}
                 {showThinking ? (
@@ -70,6 +68,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
                     <div className="thinking">{shown}</div>
                   </details>
                 ) : null}
+                {emptyBusy && !showThinking ? <div className="typing" aria-label="Writing" /> : null}
                 {body ? (
                   <MarkdownBody text={body} className={msg.role === "user" ? "md md-user" : "md"} />
                 ) : null}
@@ -97,7 +96,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
           }}
         />
         <button className="send" type="submit" disabled={busy || !text.trim()} aria-label="Send">
-          ➤
+          Send
         </button>
       </form>
     </div>

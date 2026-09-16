@@ -4,7 +4,7 @@ import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
-import { headerGoalPreview } from "./display";
+import { headerGoalPreview, hasAttachedNotes } from "./display";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
@@ -127,7 +127,7 @@ export function App() {
         {
           role: "user",
           text: input.goal,
-          meta: input.doc.trim() ? "Notes attached" : undefined,
+          meta: hasAttachedNotes(input.doc) ? "Notes attached" : undefined,
         },
       ]);
       await runTurn(snap.id, "", true);
@@ -144,7 +144,7 @@ export function App() {
     planBackend &&
     status === "pass" &&
     Boolean(session?.plan && typeof session.plan === "object");
-  const tone = headerTone(status, canWatch);
+  const tone = headerTone(status, canWatch && !busy);
 
   return (
     <div className="app">
@@ -153,48 +153,46 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            <p>Local lab copilot — on-screen preview only</p>
-            {health ? (
-              <p className="demo-health" data-testid="demo-health">
-                {health.hasKey ? `Model ${health.model}` : "No DeepSeek key"}
-                {" · "}
-                {health.code_service === "up" ? "preview ready" : "preview down"}
-              </p>
-            ) : null}
-            {session?.code_service === "down" && !planBackend ? (
-              <p className="code-offline">Preview service down — OT-2 and Flex scripts stay off</p>
-            ) : null}
+            {!session ? <p>Local lab copilot — on-screen preview only</p> : null}
           </div>
         </div>
         {session ? (
-          <div className="card collapsed header-status">
-            <div>
-              <div>
-                <strong className={tone ? `status-${tone}` : undefined}>
-                  {phaseLabel(
-                    session.phase,
-                    status,
-                    canWatch,
-                    planBackend,
-                    session.checks,
-                    session.intake_done,
-                    Boolean(session.sop?.trim()),
-                    deckPreview
-                  )}
-                </strong>
-              </div>
-              <div>
-                {session.device_label ?? session.robot}
-                {session.goal
-                  ? ` · ${headerGoalPreview(session.device_label ?? session.robot ?? "", session.goal)}`
-                  : ""}
-              </div>
-              {session.doc && session.doc !== "none" ? <div>Notes attached</div> : null}
-            </div>
+          <div className="header-status">
+            <strong className={tone ? `status-${tone}` : undefined}>
+              {phaseLabel(
+                session.phase,
+                status,
+                canWatch,
+                planBackend,
+                session.checks,
+                session.intake_done,
+                Boolean(session.sop?.trim()),
+                deckPreview,
+                busy
+              )}
+            </strong>
+            <span>
+              {session.device_label ?? session.robot}
+              {session.goal
+                ? ` · ${headerGoalPreview(session.device_label ?? session.robot ?? "", session.goal)}`
+                : ""}
+            </span>
+            {hasAttachedNotes(session.doc) ? <span>Notes attached</span> : null}
+            {session.code_service === "down" && !planBackend ? (
+              <span className="code-offline">Preview service down — OT-2 and Flex scripts stay off</span>
+            ) : null}
             <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
               Change robot
             </button>
           </div>
+        ) : health && (!health.hasKey || health.code_service !== "up") ? (
+          <p className="demo-health" data-testid="demo-health">
+            {health.hasKey ? "preview down" : "No DeepSeek key"}
+          </p>
+        ) : health ? (
+          <p className="demo-health" data-testid="demo-health">
+            preview ready
+          </p>
         ) : null}
       </header>
 

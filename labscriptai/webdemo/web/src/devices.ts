@@ -8,7 +8,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "OT-2",
     codegen: "opentrons_python",
     animation: true,
-    blurb: "Opentrons · script + on-screen preview",
+    blurb: "Opentrons · on-screen deck",
   },
   {
     id: "flex",
@@ -16,7 +16,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Flex",
     codegen: "opentrons_python",
     animation: true,
-    blurb: "Opentrons Flex · script + on-screen preview",
+    blurb: "Opentrons Flex · on-screen deck",
   },
   {
     id: "hamilton_star",
@@ -40,17 +40,9 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Tecan",
     codegen: "plan_ir",
     animation: false,
-    blurb: "FluentControl worklist (.gwl)",
+    blurb: "FluentControl worklist",
   },
 ];
-
-export const DEVICE_EMOJI: Record<string, string> = {
-  ot2: "🧫",
-  flex: "🧬",
-  hamilton_star: "⭐",
-  hamilton_vantage: "🔭",
-  tecan_fluent: "💧",
-};
 
 export function deviceByRobot(robot: RobotModel | null | undefined): DeviceCard | undefined {
   if (!robot) return undefined;

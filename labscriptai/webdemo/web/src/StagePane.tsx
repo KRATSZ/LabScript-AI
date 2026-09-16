@@ -1,6 +1,7 @@
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
+import { deckLabware, deckSketchRows } from "./deckSketch";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { IssuesPanel } from "./IssuesPanel";
 import { OtDeckReplay } from "./OtDeckReplay";
@@ -16,26 +17,34 @@ interface Props {
   onWatch: () => void;
 }
 
-function DeckStrip({ session }: { session: SessionSnapshot }) {
-  const slots = Object.entries(session.hardware?.deck ?? {});
-  if (!slots.length) {
-    return <p className="hint">Standard deck appears after a device is chosen.</p>;
-  }
+function DeckSketch({ session }: { session: SessionSnapshot }) {
+  const deck = session.hardware?.deck ?? {};
+  const rows = deckSketchRows(session.robot, deck);
   return (
-    <div className="deck-strip" data-testid="deck-strip">
-      <div className="plan-heading">Standard deck</div>
-      {slots.map(([slot, labware]) => (
-        <p key={slot} className="file">
-          {slot}: {labwareLabel(labware) || labware}
-        </p>
+    <div className="deck-sketch" data-testid="deck-strip">
+      {rows.map((row) => (
+        <div
+          key={row.join("-")}
+          className="deck-sketch-row"
+          style={{ gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))` }}
+        >
+          {row.map((slot) => {
+            const labware = deckLabware(deck, slot);
+            const filled = Boolean(labware);
+            return (
+              <div key={slot} className={filled ? "deck-cell filled" : "deck-cell empty"}>
+                <span className="deck-cell-slot">{slot === "trash" ? "Trash" : slot}</span>
+                {filled ? <span className="deck-cell-labware">{labwareLabel(labware) || labware}</span> : null}
+              </div>
+            );
+          })}
+        </div>
       ))}
-      {session.deck_assumed ? <p className="hint">Software preview — not a live robot.</p> : null}
-      {session.device_note ? <p className="hint">{session.device_note}</p> : null}
     </div>
   );
 }
 
-export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Props) {
+export function StagePane({ session, runningTool, busy, canWatch }: Props) {
   const steps = isPlanCodegen(session.robot) || !session.code?.trim() ? planSteps(session.plan) : [];
   const watchReady = canWatch && robotSupportsWatch(session.robot);
   const watchGap = watchUnavailableCopy(
@@ -51,7 +60,6 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
   const hasDeck = watchReady || plrReady;
   return (
     <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
-      <Pipeline session={session} runningTool={runningTool} busy={busy} compact={hasDeck} />
       {watchReady ? (
         <OtDeckReplay
           analyze={session.analyze}
@@ -62,38 +70,37 @@ export function StagePane({ session, runningTool, busy, canWatch, onWatch }: Pro
       ) : plrReady ? (
         <PlrDeckReplay plan={session.plan} robot={session.robot} />
       ) : (
-        <DeckStrip session={session} />
-      )}
-      {watchReady ? (
-        <div className="watch-cta">
-          <button type="button" className="ghost" onClick={onWatch}>
-            Expand
-          </button>
-        </div>
-      ) : watchGap ? (
-        <p className="hint" data-testid="watch-unavailable">
-          {watchGap}
-        </p>
-      ) : null}
-      {!hasDeck && steps.length ? (
-        <div className="plan-block">
-          <div className="plan-heading">Transfer steps</div>
-          <div className="plan-steps">
-            {steps.slice(0, 20).map((step, index) => (
-              <p key={index} className="file">
-                {planStepDisplay(step)}
-              </p>
-            ))}
+        <div className="stage-wait">
+          <div className="stage-wait-copy">
+            <h2>Standard deck</h2>
+            <p>
+              {isPlanCodegen(session.robot)
+                ? "The bench preview fills this pane after checks pass."
+                : "The deck preview fills this pane after checks pass."}
+            </p>
           </div>
+          <DeckSketch session={session} />
+          <Pipeline session={session} runningTool={runningTool} busy={busy} compact />
+          {watchGap ? (
+            <p className="hint" data-testid="watch-unavailable">
+              {watchGap}
+            </p>
+          ) : null}
+          {steps.length ? (
+            <div className="plan-block">
+              <div className="plan-heading">Transfer steps</div>
+              <div className="plan-steps">
+                {steps.slice(0, 20).map((step, index) => (
+                  <p key={index} className="file">
+                    {planStepDisplay(step)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <IssuesPanel checks={session.checks} />
         </div>
-      ) : !hasDeck ? (
-        <p className="hint">
-          {isPlanCodegen(session.robot)
-            ? "Steps show here after the protocol is written."
-            : "The deck preview shows here after checks pass."}
-        </p>
-      ) : null}
-      {!hasDeck ? <IssuesPanel checks={session.checks} /> : null}
+      )}
     </div>
   );
 }

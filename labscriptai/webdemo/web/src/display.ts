@@ -130,6 +130,16 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\s*Want me to open(?: the)?(?: run)? animation\??/gi, "")
     .replace(/\s*Watch animation is up\.?/gi, "")
     .replace(/\s*Nothing runs on hardware from here\.?/gi, "")
+    .replace(/\bFluentControl\.gwl\b/gi, "Fluent worklist")
+    .replace(/\bStep JSON\b/gi, "steps")
+    .replace(/\bPyLabRobot\b/gi, "")
+    .replace(/\bFreedom EVO\b/gi, "")
+    .replace(/\bResourceHolder\b/gi, "")
+    .replace(/\bWorkcell Tree\b/gi, "")
+    .replace(/\bPLR\b/g, "")
+    .replace(/\btipracks?\b/gi, "tip rack")
+    .replace(/\.gwl\b/gi, " worklist")
+    .replace(/^[\s—–-]+/, "")
     .replace(/([.!?])([A-Z])/g, "$1 $2")
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
@@ -158,9 +168,19 @@ export function headerGoalPreview(label: string, goal: string): string {
   text = first.replace(/[.\s]+$/g, "").trim();
   for (const name of names) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(`\\s*\\(${escaped}\\)`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+on(?:\\s+the)?\\s+${escaped}$`, "i"), "").trim();
   }
+  text = text.replace(/\s+on(?:\s+the|\s+a)?\s+\d+-well plate$/i, "").trim();
   if (!text) text = goal.replace(/\s+/g, " ").trim();
   if (text.length > 88) return `${text.slice(0, 85).trim()}…`;
   return text;
+}
+
+/** True only for a real notes draft — not empty, "none", or a placeholder. */
+export function hasAttachedNotes(doc: string | null | undefined): boolean {
+  const text = (doc ?? "").trim();
+  if (!text) return false;
+  if (/^(none|n\/a|na|null|undefined|-)$/i.test(text)) return false;
+  return true;
 }

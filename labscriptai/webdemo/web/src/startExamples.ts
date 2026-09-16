@@ -10,7 +10,7 @@ export const EXAMPLES: Array<{ label: string; goal: string; doc: string }> = [
     doc: "Dispense 20 µL of master mix into 8 sample wells.",
   },
   {
-    label: "No protocol — common deck",
+    label: "Typical deck",
     goal: "I have no written protocol; use a common deck (tip rack, 96-well plate, reagent reservoir) on OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan.",
     doc: "",
   },

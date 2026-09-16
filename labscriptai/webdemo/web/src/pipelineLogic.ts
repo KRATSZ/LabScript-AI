@@ -14,7 +14,7 @@ export const PIPELINE_HINTS: Record<string, string> = {
   open_animation: "Opening the preview…",
 };
 
-const PYTHON_STEPS = ["Run", "Protocol", "Script", "Checks", "Preview"] as const;
+const PYTHON_STEPS = ["Run", "Protocol", "Script", "Checks", "Deck"] as const;
 const PLAN_STEPS = ["Run", "Protocol", "Steps", "Checks", "Files"] as const;
 
 export function pipelineSteps(robot: RobotModel | null | undefined): readonly string[] {
@@ -61,9 +61,11 @@ export function phaseLabel(
   checks?: ChecksResult | null,
   intakeDone?: boolean,
   hasSop?: boolean,
-  deckPreview = false
+  deckPreview = false,
+  busy = false
 ): string {
-  if (canWatch || deckPreview) return "Ready to watch";
+  if ((canWatch || deckPreview) && !busy) return "Ready to watch";
+  if (canWatch || deckPreview) return "In progress";
   if (status === "pass") return "Checks passed";
   if (status === "fail") return "Checks failed";
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";

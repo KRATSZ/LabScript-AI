@@ -37,7 +37,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
   }, [tab, filesOpen, logOpen]);
   return (
     <section className="stage-column" data-testid="stage-column">
-      {session ? (
+      {session && visible.length > 1 ? (
         <div className="stage-tabs" role="tablist" aria-label="Right stage">
           {visible.map((item) => {
             const count = tabCount(item.id, session, events);
@@ -74,7 +74,10 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
               onWatch={onWatch}
             />
           ) : (
-            <p className="hint">Pick a robot on the left. The deck shows up here.</p>
+            <div className="stage-empty" data-testid="stage-empty">
+              <h2>Deck</h2>
+              <p>Pick a robot on the left. After checks pass, the bench shows here.</p>
+            </div>
           )
         ) : null}
         {tab === "artifacts" ? <ArtifactsPane session={session} /> : null}

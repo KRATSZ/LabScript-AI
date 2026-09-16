@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { labwareLabel, planStepDisplay, sanitizeAssistantText, headerGoalPreview } from "../web/src/display.ts";
+import { labwareLabel, planStepDisplay, sanitizeAssistantText, headerGoalPreview, hasAttachedNotes } from "../web/src/display.ts";
 
 describe("labwareLabel", () => {
   it("maps standard deck ids to short names", () => {
@@ -80,6 +80,14 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("Writing it up now. Deck confirmed. Checks pass."),
       "Checks pass."
     );
+    assert.equal(
+      sanitizeAssistantText("— slot 1 tiprack. Writing it now."),
+      "slot 1 tip rack. Writing it now."
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("Download the FluentControl.gwl and Step JSON."),
+      /FluentControl\.gwl|Step JSON|\.gwl/
+    );
   });
 });
 
@@ -100,5 +108,26 @@ describe("headerGoalPreview", () => {
       headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to well B1 on the OT-2"),
       "Transfer 20 µL from well A1 to well B1"
     );
+    assert.equal(
+      headerGoalPreview(
+        "Tecan Fluent",
+        "Transfer 50 µL from plate well A1 to plate well B1. One sample, no mix (Tecan Fluent)."
+      ),
+      "Transfer 50 µL from plate well A1 to plate well B1"
+    );
+    assert.equal(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1 on the 96-well plate"),
+      "Transfer 20 µL from well A1 to B1"
+    );
+  });
+});
+
+describe("hasAttachedNotes", () => {
+  it("treats none/empty as no notes", () => {
+    assert.equal(hasAttachedNotes(""), false);
+    assert.equal(hasAttachedNotes("none"), false);
+    assert.equal(hasAttachedNotes("None"), false);
+    assert.equal(hasAttachedNotes("  n/a  "), false);
+    assert.equal(hasAttachedNotes("Use 50 µL master mix"), true);
   });
 });

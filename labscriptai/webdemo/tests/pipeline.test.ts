@@ -48,9 +48,9 @@ const unevalChecks = {
 };
 
 describe("pipelineSteps", () => {
-  it("names the python path Run→Protocol→Script→Checks→Preview", () => {
-    assert.deepEqual(pipelineSteps("OT-2"), ["Run", "Protocol", "Script", "Checks", "Preview"]);
-    assert.deepEqual(pipelineSteps("Flex"), ["Run", "Protocol", "Script", "Checks", "Preview"]);
+  it("names the python path Run→Protocol→Script→Checks→Deck", () => {
+    assert.deepEqual(pipelineSteps("OT-2"), ["Run", "Protocol", "Script", "Checks", "Deck"]);
+    assert.deepEqual(pipelineSteps("Flex"), ["Run", "Protocol", "Script", "Checks", "Deck"]);
   });
 
   it("names the plan path Run→Protocol→Steps→Checks→Files and never says Code or Watch", () => {
@@ -144,6 +144,7 @@ describe("pipelineStates", () => {
 describe("phaseLabel", () => {
   it("maps three check states and leaves pre-check phases alone", () => {
     assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
+    assert.equal(phaseLabel("ready", "pass", true, false, undefined, undefined, undefined, false, true), "In progress");
     assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed");
     assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed");
     assert.equal(
@@ -214,7 +215,7 @@ describe("robot switch snapshot", () => {
       "Ready to watch"
     );
     assert.deepEqual(pipelineStates(ham, null).slice(0, 3), ["ok", "ok", "ok"]);
-    assert.deepEqual(pipelineSteps(ot.robot), ["Run", "Protocol", "Script", "Checks", "Preview"]);
+    assert.deepEqual(pipelineSteps(ot.robot), ["Run", "Protocol", "Script", "Checks", "Deck"]);
     assert.deepEqual(pipelineSteps(ham.robot), ["Run", "Protocol", "Steps", "Checks", "Files"]);
   });
 });

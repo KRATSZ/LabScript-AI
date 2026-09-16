@@ -11,7 +11,8 @@ interface Props {
 export function Pipeline({ session, runningTool, busy, compact = false }: Props) {
   const steps = pipelineSteps(session.robot);
   const states = pipelineStates(session, runningTool);
-  const hint = busy ? PIPELINE_HINTS[runningTool || ""] || "Working…" : "";
+  const ready = states[3] === "ok" || states[4] === "ok";
+  const hint = busy && !ready ? PIPELINE_HINTS[runningTool || ""] || "" : "";
   return (
     <div className="pipeline-wrap">
       <div className="pipeline" aria-label="Progress">

@@ -19,7 +19,7 @@ describe("StartForm examples", () => {
     assert.equal(EXAMPLES[1].label, "Prepare a PCR mix");
     assert.match(EXAMPLES[1].goal, /PCR mix/);
     assert.match(EXAMPLES[1].doc, /master mix/);
-    assert.equal(EXAMPLES[2].label, "No protocol — common deck");
+    assert.equal(EXAMPLES[2].label, "Typical deck");
     assert.match(EXAMPLES[2].goal, /common deck/);
     const blob = EXAMPLES.map((item) => `${item.label}\n${item.goal}\n${item.doc}`).join("\n");
     assert.doesNotMatch(blob, /standard3|standard 3-slot/i);
@@ -45,11 +45,11 @@ describe("StartForm device cards", () => {
       assert.ok(card.blurb.trim());
       if (!card.animation) assert.doesNotMatch(card.blurb, /animat/i);
     }
-    assert.equal(DEVICE_CARDS[0].blurb, "Opentrons · script + on-screen preview");
-    assert.equal(DEVICE_CARDS[1].blurb, "Opentrons Flex · script + on-screen preview");
+    assert.equal(DEVICE_CARDS[0].blurb, "Opentrons · on-screen deck");
+    assert.equal(DEVICE_CARDS[1].blurb, "Opentrons Flex · on-screen deck");
     assert.equal(DEVICE_CARDS[2].blurb, "Steps + downloadable STAR script");
     assert.equal(DEVICE_CARDS[3].blurb, "Steps + downloadable Vantage script");
-    assert.equal(DEVICE_CARDS[4].blurb, "FluentControl worklist (.gwl)");
+    assert.equal(DEVICE_CARDS[4].blurb, "FluentControl worklist");
   });
 
   it("Start requires a selected device and a goal", () => {
@@ -83,6 +83,11 @@ describe("StartForm device cards", () => {
     assert.match(src, /matchDeviceFromText/);
     assert.match(src, /Pick a robot first/);
     assert.match(src, /we'll confirm the run first/);
+    assert.doesNotMatch(src, /DEVICE_EMOJI|device-emoji/);
+    assert.doesNotMatch(readWeb("StagePane.tsx"), />\s*Expand\s*</);
+    assert.doesNotMatch(readWeb("App.tsx"), /Model \$\{/);
+    assert.doesNotMatch(readWeb("ChatPane.tsx"), /👤|🧪/);
+    assert.doesNotMatch(readWeb("styles.css"), /\.primary \{[^}]*linear-gradient/s);
     assert.doesNotMatch(src, /couple of questions/);
     assert.doesNotMatch(src, /Robot is asked in chat/);
     assert.match(src, /aria-pressed=\{deviceId === card\.id\}/);

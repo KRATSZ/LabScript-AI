@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DEVICE_CARDS, DEVICE_EMOJI, canStart, matchDeviceFromText } from "./devices";
+import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
 import type { StartInput } from "./types";
 
@@ -45,12 +45,7 @@ export function StartForm({ busy, onSubmit }: Props) {
             disabled={busy}
             onClick={() => setDeviceId(card.id)}
           >
-            <strong>
-              <span className="device-emoji" aria-hidden>
-                {DEVICE_EMOJI[card.id] ?? "•"}
-              </span>{" "}
-              {card.label}
-            </strong>
+            <strong>{card.label}</strong>
             <span>{card.blurb}</span>
           </button>
         ))}
