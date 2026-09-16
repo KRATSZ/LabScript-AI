@@ -139,6 +139,7 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\bPLR\b/g, "")
     .replace(/\btipracks?\b/gi, "tip rack")
     .replace(/\.gwl\b/gi, " worklist")
+    .replace(/\bworklist\s+worklist\b/gi, "worklist")
     .replace(/^[\s—–-]+/, "")
     .replace(/([.!?])([A-Z])/g, "$1 $2")
     .replace(/[ \t]+\n/g, "\n")
@@ -169,7 +170,7 @@ export function headerGoalPreview(label: string, goal: string): string {
   for (const name of names) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     text = text.replace(new RegExp(`\\s*\\(${escaped}\\)`, "i"), "").trim();
-    text = text.replace(new RegExp(`\\s+on(?:\\s+the)?\\s+${escaped}$`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+a)?\\s+${escaped}$`, "i"), "").trim();
   }
   text = text.replace(/\s+on(?:\s+the|\s+a)?\s+\d+-well plate$/i, "").trim();
   if (!text) text = goal.replace(/\s+/g, " ").trim();

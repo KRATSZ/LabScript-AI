@@ -21,6 +21,7 @@ export function App() {
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
   const [health, setHealth] = useState<DemoHealth | null>(null);
+  const [notesAttached, setNotesAttached] = useState(false);
   const robotRef = useRef<SessionSnapshot["robot"]>(null);
 
   useEffect(() => {
@@ -112,12 +113,14 @@ export function App() {
     setEvents([]);
     setError("");
     setRunningTool(null);
+    setNotesAttached(false);
   };
 
   const start = async (input: StartInput) => {
     setBusy(true);
     setError("");
     setEvents([]);
+    setNotesAttached(hasAttachedNotes(input.doc));
     try {
       const snap = await createSession(input);
       robotRef.current = snap.robot;
@@ -177,7 +180,7 @@ export function App() {
                 ? ` · ${headerGoalPreview(session.device_label ?? session.robot ?? "", session.goal)}`
                 : ""}
             </span>
-            {hasAttachedNotes(session.doc) ? <span>Notes attached</span> : null}
+            {notesAttached ? <span>Notes attached</span> : null}
             {session.code_service === "down" && !planBackend ? (
               <span className="code-offline">Preview service down — OT-2 and Flex scripts stay off</span>
             ) : null}

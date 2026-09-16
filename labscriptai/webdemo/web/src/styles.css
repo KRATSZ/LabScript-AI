@@ -429,7 +429,7 @@ body {
   cursor: pointer;
   transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
 }
-.device-card strong { display: block; font-size: 13px; }
+.device-card strong { display: block; font-size: 12px; line-height: 16px; min-height: 32px; }
 .device-card span { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
 .device-card.selected {
   border-color: var(--primary);

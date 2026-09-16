@@ -88,6 +88,10 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("Download the FluentControl.gwl and Step JSON."),
       /FluentControl\.gwl|Step JSON|\.gwl/
     );
+    assert.equal(
+      sanitizeAssistantText("the FluentControl.gwl worklist is ready."),
+      "the Fluent worklist is ready."
+    );
   });
 });
 
@@ -118,6 +122,10 @@ describe("headerGoalPreview", () => {
     assert.equal(
       headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1 on the 96-well plate"),
       "Transfer 20 µL from well A1 to B1"
+    );
+    assert.equal(
+      headerGoalPreview("Tecan Fluent", "Transfer 50 µL from well A1 to B1 on a Tecan Fluent"),
+      "Transfer 50 µL from well A1 to B1"
     );
   });
 });
