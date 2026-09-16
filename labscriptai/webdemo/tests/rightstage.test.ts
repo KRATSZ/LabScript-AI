@@ -134,8 +134,19 @@ describe("activity steps", () => {
     assert.match(labThinkNote("Confirm 20 µL on the standard deck. Call ask_user and stop."), /20 µL/);
     assert.doesNotMatch(
       labThinkNote("User confirms the deck. Need compact SOP 400-800 chars. Output only specified."),
-      /400-800|Output only/
+      /400-800|Output only|compact SOP/i
     );
+    const mixed = labThinkNote(
+      "First turn: confirm volumes, wells, sample counts, mix, standard deck. Name the three slots in one sentence."
+    );
+    assert.match(mixed, /confirm volumes/);
+    assert.doesNotMatch(mixed, /three slots in one sentence/i);
+    const afterReply = labThinkNote(
+      "Deck confirmed. Need comply constraints. Need write compact liquid-handling SOP in English markdown. No Phase/Action/Tool. No essay."
+    );
+    assert.match(afterReply, /Deck confirmed/i);
+    assert.doesNotMatch(afterReply, /comply constraints|compact|SOP|Phase\/Action|No essay|markdown/i);
+    assert.equal(labThinkNote("Name the three slots in one sentence. No essay."), "");
     assert.equal(
       thoughtNotesFromChat([
         { role: "user", text: "go" },

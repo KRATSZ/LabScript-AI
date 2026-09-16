@@ -133,6 +133,8 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("Watch is up: 300 µL tips in slot 1."),
       "The deck is on Stage. 300 µL tips in slot 1."
     );
+    assert.doesNotMatch(sanitizeAssistantText("Python.py is ready to download."), /Python\.py/);
+    assert.match(sanitizeAssistantText("Python.py is ready to download."), /Python file is ready to download/);
   });
 });
 

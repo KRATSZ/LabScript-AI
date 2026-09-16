@@ -138,6 +138,7 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. ")
     .replace(/\s*Nothing runs on hardware from here\.?/gi, "")
     .replace(/\bFluentControl\.gwl\b/gi, "Fluent worklist")
+    .replace(/\bPython\.py\b/gi, "Python file")
     .replace(/\bStep JSON\b/gi, "steps")
     .replace(/\bPyLabRobot\b/gi, "")
     .replace(/\bFreedom EVO\b/gi, "")

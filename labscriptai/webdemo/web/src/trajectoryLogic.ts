@@ -64,16 +64,42 @@ export function activityStatusWord(status: ActivityStatus): string {
 
 const TOOLISH =
   /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
-const PROMPTISH = /\b(400-800 chars|output only specified|follow constraints|compact sop)\b/i;
 
-/** Short Harness-like excerpt: first lab sentences, not a tool-call tail. */
+function isHomeworkThought(sentence: string): boolean {
+  const text = sentence.trim();
+  if (!text) return true;
+  if (TOOLISH.test(text)) return true;
+  return (
+    /compact.{0,48}\bsop\b/i.test(text) ||
+    /\bsop\b.{0,40}(markdown|english|compact)/i.test(text) ||
+    /liquid-handling sop/i.test(text) ||
+    /comply constraints/i.test(text) ||
+    /follow constraints/i.test(text) ||
+    /^need (comply|write|follow|compact)\b/i.test(text) ||
+    /need write compact/i.test(text) ||
+    /no phase/i.test(text) ||
+    /phase\s*\/\s*action\s*\/\s*tool/i.test(text) ||
+    /action\s*\/\s*tool/i.test(text) ||
+    /name the three slots/i.test(text) ||
+    /in one sentence/i.test(text) ||
+    /no essay/i.test(text) ||
+    /english markdown/i.test(text) ||
+    /\bmarkdown\b/i.test(text) ||
+    /400-800/i.test(text) ||
+    /output only/i.test(text) ||
+    /output only specified/i.test(text) ||
+    /^no\b[\s.…]*$/i.test(text)
+  );
+}
+
+/** Short Harness-like excerpt: lab sentences only. Hide if only homework remains. */
 export function labThinkNote(text: string | undefined | null): string {
   if (!text) return "";
   const clipped = text.replace(/\s+/g, " ").trim();
   if (!clipped || clipped.startsWith("{") || clipped.startsWith("[")) return "";
-  const sentences = clipped.split(/(?<=[.!?])\s+/).filter(Boolean);
-  const lab = sentences.filter((sentence) => !TOOLISH.test(sentence) && !PROMPTISH.test(sentence));
-  const joined = (lab.length ? lab : sentences)
+  const sentences = clipped.split(/(?<=[.!?])\s+|;\s+/).filter(Boolean);
+  const lab = sentences.filter((sentence) => !isHomeworkThought(sentence));
+  const joined = lab
     .join(" ")
     .replace(
       /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/gi,
@@ -81,6 +107,7 @@ export function labThinkNote(text: string | undefined | null): string {
     )
     .replace(/\s{2,}/g, " ")
     .replace(/^[,;:\s]+/, "")
+    .replace(/[.,;:\s]+$/, "")
     .trim();
   if (!joined) return "";
   if (joined.length <= 160) return joined;
