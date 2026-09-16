@@ -104,6 +104,7 @@ export function activitySummary(steps: ActivityStep[]): string {
   const bits = [`${steps.length} step${steps.length === 1 ? "" : "s"}`];
   if (running) bits.push(`${running} running`);
   else if (failed) bits.push(`${failed} failed`);
+  else if (passed === steps.length) bits.push("all passed");
   else bits.push(`${passed} passed`);
   return bits.join(" · ");
 }

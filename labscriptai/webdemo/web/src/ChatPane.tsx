@@ -32,7 +32,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
   const resize = (el: HTMLTextAreaElement | null) => {
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 96)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
   };
 
   const submit = (event: React.FormEvent) => {
@@ -59,7 +59,6 @@ export function ChatPane({ messages, busy, onSend }: Props) {
           const body = msg.role === "assistant" ? sanitizeAssistantText(raw) : raw;
           return (
             <div key={i} className={`bubble-row ${msg.role}`}>
-              <div className={`avatar ${msg.role === "user" ? "user" : "bot"}`} aria-hidden />
               <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
                 {msg.meta ? <div className="meta">{msg.meta}</div> : null}
                 {showThinking ? (

@@ -68,7 +68,7 @@ describe("activity steps", () => {
     assert.equal(steps[0].status, "ok");
     assert.equal(steps[1].label, "Checked bench constraints");
     assert.equal(formatDuration(1200), "1.2 s");
-    assert.equal(activitySummary(steps), "2 steps · 2 passed");
+    assert.equal(activitySummary(steps), "2 steps · all passed");
     const running = activitySteps(events.slice(0, 5), "run_checks");
     assert.equal(running[1].status, "run");
     assert.equal(running[1].label, "Checking bench constraints…");

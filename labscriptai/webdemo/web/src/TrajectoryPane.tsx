@@ -30,24 +30,41 @@ export function TrajectoryPane({ events, runningTool = null }: Props) {
         <h2>Activity</h2>
         <p>{activitySummary(steps)}</p>
       </div>
-          {turns.map((turn) => {
-        const rows = steps.filter((step) => step.turn === turn);
-        return (
-          <section key={turn} className="activity-turn">
-            {turns.length > 1 ? <h3>{turn === 1 ? "Start" : "After you replied"}</h3> : null}
-            <ol className="activity-list">
-              {rows.map((step) => (
-                <li key={step.key} className={`activity-row ${step.status}`} data-kind={step.name}>
-                  <span className={`activity-dot ${step.status}`} />
-                  <span className="activity-label">{step.label}</span>
-                  <span className={`activity-status status-${step.status}`}>{activityStatusWord(step.status)}</span>
-                  <span className="activity-time">{step.status === "run" ? "" : formatDuration(step.durationMs)}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        );
-      })}
+      <ol className="activity-timeline">
+        {turns.map((turn) => {
+          const rows = steps.filter((step) => step.turn === turn);
+          return (
+            <li key={turn} className="activity-turn">
+              {turns.length > 1 ? <h3>{turn === 1 ? "Start" : "After you replied"}</h3> : null}
+              <ol className="activity-list">
+                {rows.map((step) => {
+                  const time = step.status === "run" ? "" : formatDuration(step.durationMs);
+                  const status = step.status === "ok" ? "" : activityStatusWord(step.status);
+                  return (
+                    <li
+                      key={step.key}
+                      className={`activity-row ${step.status}`}
+                      data-kind={step.name}
+                      aria-label={`${step.label}, ${activityStatusWord(step.status)}`}
+                    >
+                      <span className={`activity-dot ${step.status}`} aria-hidden />
+                      <span className="activity-label">{step.label}</span>
+                      {status || time ? (
+                        <span className="activity-meta">
+                          {status ? (
+                            <span className={`activity-status status-${step.status}`}>{status}</span>
+                          ) : null}
+                          {time ? <span className="activity-time">{time}</span> : null}
+                        </span>
+                      ) : null}
+                    </li>
+                  );
+                })}
+              </ol>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
