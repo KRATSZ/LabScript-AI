@@ -177,7 +177,7 @@ export function headerGoalPreview(label: string, goal: string): string {
   text = text.replace(/\bplate well\b/gi, "well");
   for (const name of names) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    text = text.replace(new RegExp(`\\s*\\(${escaped}\\)`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s*\\(\\s*${escaped}\\s*\\)`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+using(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
   }
@@ -186,6 +186,11 @@ export function headerGoalPreview(label: string, goal: string): string {
   text = text.replace(/,?\s*no mix\b/gi, "").trim();
   text = text.replace(/,?\s*OT-2\s+p300(?:\s+single)?\b/gi, "").trim();
   text = text.replace(/,?\s*using the(?:\s+[\w-]+)*$/i, "").trim();
+  for (const name of names) {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    text = text.replace(new RegExp(`\\s*\\(\\s*${escaped}\\s*\\)`, "i"), "").trim();
+  }
+  text = text.replace(/\s*\(\s*\)/g, "").trim();
   text = text.replace(/[,\s]+$/g, "").replace(/\s{2,}/g, " ").trim();
   if (!text) text = goal.replace(/\s+/g, " ").trim();
   if (text.length > 72) return `${text.slice(0, 69).trim()}…`;
