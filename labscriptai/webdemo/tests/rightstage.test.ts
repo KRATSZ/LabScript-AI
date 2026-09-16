@@ -152,6 +152,11 @@ describe("activity steps", () => {
     );
     assert.match(toolWait, /confirmed the standard deck/i);
     assert.doesNotMatch(toolWait, /tool returned|Do not ask|Then stop/i);
+    const promptLeak = labThinkNote(
+      "First turn: confirm volumes, wells, mix, standard deck. But the instruction says \"At most one question\". Hardware: OT-2, API 2.15, left p300_single_gen2, gripper false."
+    );
+    assert.match(promptLeak, /confirm volumes/);
+    assert.doesNotMatch(promptLeak, /instruction says|At most one|API 2|p300_single|gripper/i);
     assert.equal(
       thoughtNotesFromChat([
         { role: "user", text: "go" },

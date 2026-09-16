@@ -64,18 +64,21 @@ export function activityStatusWord(status: ActivityStatus): string {
 
 const TOOLISH =
   /\b(ask_user|generate_sop|generate_code|emit_plan|run_checks|open_animation|tool call|tool\/call)\b/i;
+const LAB_SIGNAL =
+  /\b(µL|ul|volume|volumes|well|wells|mix|deck|slot|slots|tips?|plate|reservoir|confirm(?:ed|s)?|sample|transfer|pipette|standard deck)\b/i;
 
 function isHomeworkThought(sentence: string): boolean {
   const text = sentence.trim();
   if (!text) return true;
   if (TOOLISH.test(text)) return true;
+  if (!LAB_SIGNAL.test(text)) return true;
   return (
     /compact.{0,48}\bsop\b/i.test(text) ||
     /\bsop\b.{0,40}(markdown|english|compact)/i.test(text) ||
     /liquid-handling sop/i.test(text) ||
     /comply constraints/i.test(text) ||
     /follow constraints/i.test(text) ||
-    /^need (comply|write|follow|compact)\b/i.test(text) ||
+    /^need (comply|write|follow|compact|infer)\b/i.test(text) ||
     /need write compact/i.test(text) ||
     /no phase/i.test(text) ||
     /phase\s*\/\s*action\s*\/\s*tool/i.test(text) ||
@@ -87,12 +90,17 @@ function isHomeworkThought(sentence: string): boolean {
     /\bmarkdown\b/i.test(text) ||
     /400-800/i.test(text) ||
     /output only/i.test(text) ||
-    /output only specified/i.test(text) ||
+    /instruction says/i.test(text) ||
+    /at most one/i.test(text) ||
+    /do not write/i.test(text) ||
+    /do not ask/i.test(text) ||
     /then stop/i.test(text) ||
     /the tool returned/i.test(text) ||
     /\bthe tool\b/i.test(text) ||
     /user's last message/i.test(text) ||
-    /\bdo not ask\b/i.test(text) ||
+    /p300_single/i.test(text) ||
+    /\bapi\s*2\.\d+/i.test(text) ||
+    /\bgripper\b/i.test(text) ||
     /^no\b[\s.…]*$/i.test(text)
   );
 }
