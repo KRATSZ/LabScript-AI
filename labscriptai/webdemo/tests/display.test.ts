@@ -168,6 +168,10 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("tips in slot 1, plate in slot 2, reservoir in slot 3", "Hamilton"),
       /slot 1|slot 2|slot 3/
     );
+    assert.equal(
+      sanitizeAssistantText("Done. Download the Python script from the panel. Want anything changed?"),
+      "Done. Download the Python script from the panel."
+    );
     assert.match(
       sanitizeAssistantText("300 µL tips in slot 1, 96-well plate in slot 2", "OT-2"),
       /slot 1/
@@ -268,6 +272,22 @@ describe("headerGoalPreview", () => {
     assert.doesNotMatch(
       headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1 on an OT-2"),
       /on an OT-2/i
+    );
+    assert.equal(
+      headerGoalPreview("Flex", "Transfer 20 µL from well A1 to B1 with the Flex"),
+      "Transfer 20 µL from well A1 to B1"
+    );
+    assert.equal(
+      headerGoalPreview("Flex", "Transfer 20 µL from well A1 to B1 with the"),
+      "Transfer 20 µL from well A1 to B1"
+    );
+    assert.equal(
+      headerGoalPreview("Flex", "Transfer 20 µL from well A1 to B1 with the standard deck."),
+      "Transfer 20 µL from well A1 to B1"
+    );
+    assert.doesNotMatch(
+      headerGoalPreview("Flex", "Transfer 20 µL from well A1 to B1 with the standard deck."),
+      /with the/i
     );
   });
 });

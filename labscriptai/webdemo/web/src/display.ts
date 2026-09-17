@@ -37,6 +37,90 @@ const LEAK_PATTERNS: RegExp[] = [
   /\bhardware_config\b/gi,
 ];
 
+type Fold = [RegExp, string];
+
+const PHRASE_FOLDS: Fold[] = [
+  [/\b(\d+(?:\.\d+)?)\s*L\s*(?:vs\.?|versus|or)\s*\1\s*(?:µL|uL)\b/gi, "$1 µL"],
+  [/\b(\d+(?:\.\d+)?)\s*(?:µL|uL)\s*(?:vs\.?|versus|or)\s*\1\s*L\b/gi, "$1 µL"],
+  [/\(\s*microliters?\s*,?\s*not liters?\s*\)/gi, ""],
+  [/\bmicroliters?\s*,?\s*not liters?\b/gi, ""],
+  [/\bassumed deck\b/gi, "standard deck"],
+  [/\banalyze pass\b/gi, "checks passed"],
+  [/\bsim clean,?\s*logic pass(?:,?\s*review matches your ask)?/gi, "the run matches what you asked"],
+  [/\breview matches your ask\b/gi, "it matches what you asked"],
+  [/\b15\s*mL reservoir\b/gi, "12-well reservoir"],
+  [/\bBuilding the SOP now\.?:?\s*/gi, ""],
+  [/\bWriting the SOP now\.?:?\s*/gi, ""],
+  [/\bWriting it up now\.?:?\s*/gi, ""],
+  [/\bDeck confirmed\.?:?\s*/gi, ""],
+  [/\bConfirm volume, wells, mix, and the standard deck[^.]*\.?/gi, ""],
+  [/\bnothing is written yet\.?/gi, ""],
+  [/\s*Want me to tweak anything[^?\n]*\??/gi, ""],
+  [/\s*Want anything (?:changed|tweaked)\??/gi, ""],
+  [/\s*Say the word if you want it swapped\.?/gi, ""],
+  [/\s*Want me to open(?: the)?(?: run)? animation\??/gi, ""],
+  [
+    /\bWatch(?:\/animation)?(?: animation)? is (?:up|ready|open)(?: too)?(?: if you want to see the run)?(?: for this run(?: too)?)?\.?:?\s*/gi,
+    "The deck is on Stage. ",
+  ],
+  [/\bno watch for \w+\.?/gi, ""],
+  [/\s+and the deck animation are ready/gi, " is ready"],
+  [/\bthe deck animation are ready\b/gi, "the deck is ready"],
+  [
+    /\s+and (?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi,
+    " is ready to download. The deck is on Stage",
+  ],
+  [/\b(?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi, "The deck is on Stage"],
+  [/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. "],
+  [/\s*Nothing runs on hardware from here\.?/gi, ""],
+  [/\bFluentControl\.gwl\b/gi, "Fluent worklist"],
+  [/\bFluentControl\b/gi, "Fluent"],
+  [/\bPython(?:\.py|\s*\(\.py\))\s*protocol\b/gi, "Python file"],
+  [/Python\.py/gi, "Python file"],
+  [/Python\s*\(\.py\)/gi, "Python file"],
+  [/\bPython script\s*\(\.py\)/gi, "Python file"],
+  [/\bscript\s*\(\.py\)/gi, "file"],
+  [/\bplus a steps\b/gi, "plus steps"],
+  [/\bDeliverables are ready to download:\s*/gi, "Ready: "],
+  [/\bwriting the SOP\b/gi, "writing the protocol"],
+  [/\bthe SOP\b/gi, "the protocol"],
+  [/\bStep JSON\b/gi, "steps"],
+  [/\bPyLabRobot\b/gi, ""],
+  [/\bFreedom EVO\b/gi, ""],
+  [/\bResourceHolder\b/gi, ""],
+  [/\bWorkcell Tree\b/gi, ""],
+  [/\bPLR\b/g, ""],
+  [/\btipracks?\b/gi, "tip rack"],
+  [/\.gwl\b/gi, " worklist"],
+];
+
+const STAR_SLOT_FOLDS: Fold[] = [
+  [/\bin slot 1\b/gi, "on the tip carrier"],
+  [/\bin slot 2\b/gi, "on the plate carrier"],
+  [/\bin slot 3\b/gi, "in the reagents trough"],
+];
+
+const TIDY_FOLDS: Fold[] = [
+  [/\bworklist\s+worklist\b/gi, "worklist"],
+  [/^[:\s—–-]+/, ""],
+  [/^(?=\d[\d.]*\s*µL\s+tips\b)/i, "Standard deck — "],
+  [/([.!?])([A-Z])/g, "$1 $2"],
+  [/[ \t]+\n/g, "\n"],
+  [/\n{3,}/g, "\n\n"],
+  [/[ \t]{2,}/g, " "],
+  [/[ \t]+([,.;])/g, "$1"],
+  [/\n{2,}/g, "\n\n"],
+];
+
+function applyFolds(text: string, folds: Fold[]): string {
+  let out = text;
+  for (const [re, to] of folds) {
+    re.lastIndex = 0;
+    out = out.replace(re, to);
+  }
+  return out;
+}
+
 function asStep(step: unknown): PlanStepLike {
   return step && typeof step === "object" ? (step as PlanStepLike) : {};
 }
@@ -102,117 +186,56 @@ export function planStepDisplay(step: unknown): string {
   return [verb, vol, route].filter(Boolean).join(" — ");
 }
 
+function escapeRe(name: string): string {
+  return name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function robotNames(label: string): string[] {
+  return [label, "Tecan Fluent", "Hamilton STAR", "Hamilton Vantage", "OT-2", "Flex", "Tecan", "Hamilton"]
+    .filter((name) => name.trim())
+    .sort((a, b) => b.length - a.length);
+}
+
 /** Strip schema leftovers the model sometimes echoes into chat. */
 export function sanitizeAssistantText(text: string, robot?: string | null): string {
-  let out = text;
-  for (const re of LEAK_PATTERNS) {
-    re.lastIndex = 0;
-    out = out.replace(re, "");
-  }
-  out = out
-    .replace(/\b(\d+(?:\.\d+)?)\s*L\s*(?:vs\.?|versus|or)\s*\1\s*(?:µL|uL)\b/gi, "$1 µL")
-    .replace(/\b(\d+(?:\.\d+)?)\s*(?:µL|uL)\s*(?:vs\.?|versus|or)\s*\1\s*L\b/gi, "$1 µL")
-    .replace(/\(\s*microliters?\s*,?\s*not liters?\s*\)/gi, "")
-    .replace(/\bmicroliters?\s*,?\s*not liters?\b/gi, "")
-    .replace(/\bassumed deck\b/gi, "standard deck")
-    .replace(/\banalyze pass\b/gi, "checks passed")
-    .replace(/\bsim clean,?\s*logic pass(?:,?\s*review matches your ask)?/gi, "the run matches what you asked")
-    .replace(/\breview matches your ask\b/gi, "it matches what you asked")
-    .replace(/\b15\s*mL reservoir\b/gi, "12-well reservoir")
-    .replace(/\bBuilding the SOP now\.?:?\s*/gi, "")
-    .replace(/\bWriting the SOP now\.?:?\s*/gi, "")
-    .replace(/\bWriting it up now\.?:?\s*/gi, "")
-    .replace(/\bDeck confirmed\.?:?\s*/gi, "")
-    .replace(/\bConfirm volume, wells, mix, and the standard deck[^.]*\.?/gi, "")
-    .replace(/\bnothing is written yet\.?/gi, "")
-    .replace(/\s*Want me to tweak anything[^?\n]*\??/gi, "")
-    .replace(/\s*Say the word if you want it swapped\.?/gi, "")
-    .replace(/\s*Want me to open(?: the)?(?: run)? animation\??/gi, "")
-    .replace(
-      /\bWatch(?:\/animation)?(?: animation)? is (?:up|ready|open)(?: too)?(?: if you want to see the run)?(?: for this run(?: too)?)?\.?:?\s*/gi,
-      "The deck is on Stage. "
-    )
-    .replace(/\bno watch for \w+\.?/gi, "")
-    .replace(/\s+and the deck animation are ready/gi, " is ready")
-    .replace(/\bthe deck animation are ready\b/gi, "the deck is ready")
-    .replace(
-      /\s+and (?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi,
-      " is ready to download. The deck is on Stage"
-    )
-    .replace(/\b(?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi, "The deck is on Stage")
-    .replace(/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. ")
-    .replace(/\s*Nothing runs on hardware from here\.?/gi, "")
-    .replace(/\bFluentControl\.gwl\b/gi, "Fluent worklist")
-    .replace(/\bFluentControl\b/gi, "Fluent")
-    .replace(/\bPython(?:\.py|\s*\(\.py\))\s*protocol\b/gi, "Python file")
-    .replace(/Python\.py/gi, "Python file")
-    .replace(/Python\s*\(\.py\)/gi, "Python file")
-    .replace(/\bPython script\s*\(\.py\)/gi, "Python file")
-    .replace(/\bscript\s*\(\.py\)/gi, "file")
-    .replace(/\bplus a steps\b/gi, "plus steps")
-    .replace(/\bDeliverables are ready to download:\s*/gi, "Ready: ")
-    .replace(/\bwriting the SOP\b/gi, "writing the protocol")
-    .replace(/\bthe SOP\b/gi, "the protocol")
-    .replace(/\bStep JSON\b/gi, "steps")
-    .replace(/\bPyLabRobot\b/gi, "")
-    .replace(/\bFreedom EVO\b/gi, "")
-    .replace(/\bResourceHolder\b/gi, "")
-    .replace(/\bWorkcell Tree\b/gi, "")
-    .replace(/\bPLR\b/g, "")
-    .replace(/\btipracks?\b/gi, "tip rack")
-    .replace(/\.gwl\b/gi, " worklist");
-  if (robot === "Hamilton" || robot === "Vantage") {
-    out = out
-      .replace(/\bin slot 1\b/gi, "on the tip carrier")
-      .replace(/\bin slot 2\b/gi, "on the plate carrier")
-      .replace(/\bin slot 3\b/gi, "in the reagents trough");
-  }
-  return out
-    .replace(/\bworklist\s+worklist\b/gi, "worklist")
-    .replace(/^[:\s—–-]+/, "")
-    .replace(/^(?=\d[\d.]*\s*µL\s+tips\b)/i, "Standard deck — ")
-    .replace(/([.!?])([A-Z])/g, "$1 $2")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/[ \t]+([,.;])/g, "$1")
-    .replace(/\n{2,}/g, "\n\n")
-    .trim();
+  let out = applyFolds(text, LEAK_PATTERNS.map((re) => [re, ""] as Fold));
+  out = applyFolds(out, PHRASE_FOLDS);
+  if (robot === "Hamilton" || robot === "Vantage") out = applyFolds(out, STAR_SLOT_FOLDS);
+  return applyFolds(out, TIDY_FOLDS).trim();
 }
 
 /** Header run line: robot once, no deck recap. */
 export function headerGoalPreview(label: string, goal: string): string {
   let text = goal.replace(/\s+/g, " ").trim();
-  const names = [label, "Tecan Fluent", "Hamilton STAR", "Hamilton Vantage", "OT-2", "Flex", "Tecan", "Hamilton"]
-    .filter((name) => name.trim())
-    .sort((a, b) => b.length - a.length);
+  const names = robotNames(label);
   for (const name of names) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const re = new RegExp(`^${escaped}(?:\\s*[.:,—–-]\\s*|\\s+)`, "i");
+    const re = new RegExp(`^${escapeRe(name)}(?:\\s*[.:,—–-]\\s*|\\s+)`, "i");
     if (re.test(text)) {
       text = text.replace(re, "");
       break;
     }
   }
   text = text.replace(/\bStandard deck\b[\s\S]*/i, "").trim();
-  const first = text.split(/(?<=[.!?])\s+/)[0] || text;
-  text = first.replace(/[.;:\s]+$/g, "").trim();
+  text = (text.split(/(?<=[.!?])\s+/)[0] || text).replace(/[.;:\s]+$/g, "").trim();
   text = text.replace(/\bplate well\b/gi, "well");
   for (const name of names) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const escaped = escapeRe(name);
     text = text.replace(new RegExp(`\\s*\\(\\s*${escaped}\\s*\\)`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+an?)?\\s+${escaped}\\b`, "i"), "").trim();
     text = text.replace(new RegExp(`\\s+using(?:\\s+the|\\s+an?)?\\s+${escaped}\\b`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s+with(?:\\s+the|\\s+an?)?\\s+${escaped}\\b`, "i"), "").trim();
     text = text.replace(new RegExp(`[,;]\\s*(?:the\\s+|a\\s+)?${escaped}\\b`, "gi"), "").trim();
   }
-  text = text.replace(/\s+on(?:\s+the|\s+a)?\s+\d+-well plate\b/gi, "").trim();
-  text = text.replace(/,?\s*(?:one|\d+)\s+samples?\b/gi, "").trim();
-  text = text.replace(/,?\s*no mix\b/gi, "").trim();
-  text = text.replace(/,?\s*OT-2\s+p300(?:\s+single)?\b/gi, "").trim();
-  text = text.replace(/,?\s*using the(?:\s+[\w-]+)*$/i, "").trim();
+  text = applyFolds(text, [
+    [/\s+on(?:\s+the|\s+a)?\s+\d+-well plate\b/gi, ""],
+    [/,?\s*(?:one|\d+)\s+samples?\b/gi, ""],
+    [/,?\s*no mix\b/gi, ""],
+    [/,?\s*OT-2\s+p300(?:\s+single)?\b/gi, ""],
+    [/,?\s*(?:using|with) the(?:\s+[\w-]+)*$/i, ""],
+    [/,?\s+(?:with|using|on)\s+(?:the|an?)\s*$/i, ""],
+  ]).trim();
   for (const name of names) {
-    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    text = text.replace(new RegExp(`\\s*\\(\\s*${escaped}\\s*\\)`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s*\\(\\s*${escapeRe(name)}\\s*\\)`, "i"), "").trim();
   }
   text = text.replace(/\s*\(\s*\)/g, "").trim();
   text = text.replace(/[.,;:\s]+$/g, "").replace(/\s{2,}/g, " ").trim();
