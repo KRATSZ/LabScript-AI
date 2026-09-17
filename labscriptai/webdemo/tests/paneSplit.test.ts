@@ -61,4 +61,14 @@ describe("locked right-pane layout", () => {
     assert.match(traj, /pinRef/);
     assert.match(traj, /data-status=\{step\.status\}/);
   });
+
+  it("keeps chatterbox tokens from spilling past the chat column", () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+    const css = readFileSync(path.join(root, "web/src/styles.css"), "utf8");
+    assert.match(css, /\.history[\s\S]{0,180}overflow-x:\s*hidden/);
+    assert.match(css, /\.bubble[\s\S]{0,220}overflow-wrap:\s*anywhere/);
+    assert.match(css, /\.md pre[\s\S]{0,160}white-space:\s*pre-wrap/);
+    assert.match(css, /\.md code[\s\S]{0,120}overflow-wrap:\s*anywhere/);
+    assert.match(css, /\.chat-column-body,\n\.chat,\n\.history,\n\.bubble-row,\n\.bubble,\n\.composer,\n\.composer textarea \{\n\s*min-width:\s*0;/);
+  });
 });
