@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode, useMemo } from "react";
+import { Component, type ErrorInfo, type ReactNode, useMemo, useRef } from "react";
 import {
   ProtocolVisualization,
   type ProtocolAnalysisOutput,
@@ -6,6 +6,7 @@ import {
 import "@opentrons/components/styles/global";
 import "@opentrons/protocol-visualization/styles";
 import { analysisResetKey, padAnalysisForAnimator } from "./analysis";
+import { FlexReplayTicks } from "./FlexReplayTicks";
 
 class AnimatorGuard extends Component<
   { children: ReactNode; resetKey: string },
@@ -56,6 +57,7 @@ export function OtDeckReplay({
     return padAnalysisForAnimator(analyze, robot) as unknown as ProtocolAnalysisOutput;
   }, [analyze, robot]);
   const resetKey = analysisResetKey(analyze);
+  const hostRef = useRef<HTMLDivElement>(null);
 
   if (!analysis) {
     return <p className="file">Cannot play.</p>;
@@ -66,6 +68,7 @@ export function OtDeckReplay({
       className={robot === "Flex" ? "ot-deck-embed is-flex" : "ot-deck-embed"}
       data-testid="ot-deck-replay"
       data-robot={robot ?? ""}
+      ref={hostRef}
     >
       <AnimatorGuard resetKey={resetKey}>
         <ProtocolVisualization
@@ -75,6 +78,7 @@ export function OtDeckReplay({
           appType={appType}
         />
       </AnimatorGuard>
+      {robot === "Flex" ? <FlexReplayTicks hostRef={hostRef} /> : null}
     </div>
   );
 }

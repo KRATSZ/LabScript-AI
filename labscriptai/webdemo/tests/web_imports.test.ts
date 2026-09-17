@@ -158,11 +158,15 @@ describe("AnimationOverlay code-split", () => {
     assert.match(css, /\.history-rail/);
     assert.match(css, /\.activity-pane[\s\S]*font-family:\s*var\(--mono\)/);
     assert.match(css, /deck_labels_column/);
-    assert.match(css, /flex-direction:\s*column-reverse/);
+    assert.match(css, /display:\s*none\s*!important/);
+    assert.doesNotMatch(css, /flex-direction:\s*column-reverse/);
+    assert.match(css, /\.flex-deck-ticks/);
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     assert.match(app, /split-seam/);
     assert.match(app, /HistoryRail/);
     assert.match(readFileSync(path.join(webSrc, "TrajectoryPane.tsx"), "utf8"), /activity-stream/);
     assert.match(readFileSync(path.join(webSrc, "OtDeckReplay.tsx"), "utf8"), /is-flex/);
+    assert.match(readFileSync(path.join(webSrc, "OtDeckReplay.tsx"), "utf8"), /FlexReplayTicks/);
+    assert.match(readFileSync(path.join(webSrc, "FlexReplayTicks.tsx"), "utf8"), /flex-replay-ticks/);
   });
 });
