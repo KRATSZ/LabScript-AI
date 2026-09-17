@@ -8,7 +8,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "OT-2",
     codegen: "opentrons_python",
     animation: true,
-    blurb: "Opentrons · on-screen deck",
+    blurb: "On-screen deck",
   },
   {
     id: "flex",
@@ -16,7 +16,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Flex",
     codegen: "opentrons_python",
     animation: true,
-    blurb: "Opentrons Flex · on-screen deck",
+    blurb: "On-screen deck",
   },
   {
     id: "hamilton_star",
@@ -24,7 +24,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Hamilton",
     codegen: "plan_ir",
     animation: false,
-    blurb: "Steps + downloadable STAR script",
+    blurb: "Downloadable script",
   },
   {
     id: "hamilton_vantage",
@@ -32,7 +32,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Vantage",
     codegen: "plan_ir",
     animation: false,
-    blurb: "Steps + downloadable Vantage script",
+    blurb: "Downloadable script",
   },
   {
     id: "tecan_fluent",
@@ -40,7 +40,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Tecan",
     codegen: "plan_ir",
     animation: false,
-    blurb: "FluentControl worklist",
+    blurb: "Downloadable worklist",
   },
 ];
 

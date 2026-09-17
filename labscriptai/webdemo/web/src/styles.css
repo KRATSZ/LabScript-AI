@@ -1,9 +1,9 @@
 :root {
-  --primary: #0d9488;
-  --primary-dark: #0f766e;
-  --primary-soft: #f0fdfa;
-  --secondary: #0d9488;
-  --accent: #0d9488;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --secondary: #2563eb;
+  --accent: #2563eb;
   --bg: #f4f5f7;
   --paper: #ffffff;
   --stage: #e8eaee;
@@ -17,7 +17,7 @@
   --elevate: none;
   --elevate-soft: none;
   --radius: 10px;
-  --focus: rgba(13, 148, 136, 0.28);
+  --focus: rgba(37, 99, 235, 0.28);
 }
 
 * { box-sizing: border-box; }
@@ -184,6 +184,11 @@ body {
 .stage-empty {
   text-align: center;
   max-width: 320px;
+}
+.stage-empty-emoji {
+  margin: 0 0 10px;
+  font-size: 28px;
+  line-height: 1;
 }
 .stage-empty h2 {
   margin: 0 0 8px;
@@ -749,7 +754,7 @@ body {
   font-size: 0.9em;
 }
 .md-user a { color: inherit; }
-.device-emoji { margin-right: 2px; }
+.device-emoji { margin-right: 6px; }
 .meta {
   font-size: 11px;
   opacity: 0.75;

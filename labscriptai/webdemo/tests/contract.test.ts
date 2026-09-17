@@ -143,7 +143,7 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/pipelineLogic.ts"), /Cannot verify/);
     assert.doesNotMatch(read("web/src/ExportsPanel.tsx"), /Watch is Opentrons-only/);
     assert.match(read("web/src/StartForm.tsx"), /DEVICE_CARDS/);
-    assert.match(read("web/src/StartForm.tsx"), /Pick a robot first/);
+    assert.match(read("web/src/StartForm.tsx"), /Pick a robot/);
     assert.doesNotMatch(read("web/src/StartForm.tsx"), /Robot is asked in chat/);
     assert.match(read("web/src/App.tsx"), /Change robot/);
     assert.match(read("web/src/types.ts"), /export interface StartInput/);

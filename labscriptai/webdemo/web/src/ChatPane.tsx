@@ -80,7 +80,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
         <textarea
           ref={areaRef}
           rows={1}
-          placeholder="Reply with a volume, wells, or other details…"
+          placeholder="Volume, wells, or a confirm…"
           value={text}
           disabled={busy}
           onChange={(e) => {

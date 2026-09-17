@@ -3,6 +3,14 @@ import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
 import type { StartInput } from "./types";
 
+const TILE_MARK: Record<string, string> = {
+  ot2: "🧪",
+  flex: "🧬",
+  hamilton_star: "🔬",
+  hamilton_vantage: "⚗️",
+  tecan_fluent: "💧",
+};
+
 interface Props {
   busy: boolean;
   onSubmit: (input: StartInput) => void;
@@ -33,7 +41,7 @@ export function StartForm({ busy, onSubmit }: Props) {
   return (
     <form className="card form" onSubmit={submit}>
       <label>Which robot?</label>
-      <p className="hint">Pick a robot first. You can change it later.</p>
+      <p className="hint">Pick a robot.</p>
       <div className="device-grid">
         {DEVICE_CARDS.map((card) => (
           <button
@@ -45,7 +53,12 @@ export function StartForm({ busy, onSubmit }: Props) {
             disabled={busy}
             onClick={() => setDeviceId(card.id)}
           >
-            <strong>{card.label}</strong>
+            <strong>
+              <span className="device-emoji" aria-hidden="true">
+                {TILE_MARK[card.id] ?? ""}
+              </span>
+              {card.label}
+            </strong>
             <span>{card.blurb}</span>
           </button>
         ))}
@@ -80,7 +93,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       <textarea
         id="doc"
         rows={2}
-        placeholder="Paste a draft, or leave blank — we'll confirm the run first"
+        placeholder="Paste a draft, or leave blank"
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
       />

@@ -77,8 +77,11 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
             />
           ) : (
             <div className="stage-empty" data-testid="stage-empty">
+              <p className="stage-empty-emoji" aria-hidden="true">
+                🧫
+              </p>
               <h2>Deck</h2>
-              <p>Pick a robot on the left. After checks pass, the bench shows here.</p>
+              <p>The bench shows here.</p>
             </div>
           )
         ) : null}

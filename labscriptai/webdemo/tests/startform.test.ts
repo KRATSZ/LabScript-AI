@@ -45,11 +45,11 @@ describe("StartForm device cards", () => {
       assert.ok(card.blurb.trim());
       if (!card.animation) assert.doesNotMatch(card.blurb, /animat/i);
     }
-    assert.equal(DEVICE_CARDS[0].blurb, "Opentrons · on-screen deck");
-    assert.equal(DEVICE_CARDS[1].blurb, "Opentrons Flex · on-screen deck");
-    assert.equal(DEVICE_CARDS[2].blurb, "Steps + downloadable STAR script");
-    assert.equal(DEVICE_CARDS[3].blurb, "Steps + downloadable Vantage script");
-    assert.equal(DEVICE_CARDS[4].blurb, "FluentControl worklist");
+    assert.equal(DEVICE_CARDS[0].blurb, "On-screen deck");
+    assert.equal(DEVICE_CARDS[1].blurb, "On-screen deck");
+    assert.equal(DEVICE_CARDS[2].blurb, "Downloadable script");
+    assert.equal(DEVICE_CARDS[3].blurb, "Downloadable script");
+    assert.equal(DEVICE_CARDS[4].blurb, "Downloadable worklist");
   });
 
   it("Start requires a selected device and a goal", () => {
@@ -81,9 +81,10 @@ describe("StartForm device cards", () => {
     assert.match(src, /DEVICE_CARDS\.map/);
     assert.match(src, /canStart\(goal, deviceId\)/);
     assert.match(src, /matchDeviceFromText/);
-    assert.match(src, /Pick a robot first/);
-    assert.match(src, /we'll confirm the run first/);
-    assert.doesNotMatch(src, /DEVICE_EMOJI|device-emoji/);
+    assert.match(src, /Pick a robot/);
+    assert.match(src, /Paste a draft, or leave blank/);
+    assert.match(src, /device-emoji/);
+    assert.match(src, /TILE_MARK/);
     assert.doesNotMatch(readWeb("StagePane.tsx"), />\s*Expand\s*</);
     assert.doesNotMatch(readWeb("App.tsx"), /Model \$\{/);
     assert.doesNotMatch(readWeb("ChatPane.tsx"), /👤|🧪/);

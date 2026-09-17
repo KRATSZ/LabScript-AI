@@ -164,7 +164,7 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            {!session ? <p>Local lab copilot — on-screen preview only</p> : null}
+            {!session ? <p>On-screen preview only</p> : null}
           </div>
         </div>
         {session ? (

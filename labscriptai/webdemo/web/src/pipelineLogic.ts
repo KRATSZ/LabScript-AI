@@ -6,7 +6,7 @@ export type StepState = "wait" | "run" | "ok" | "fail" | "uneval";
 export type StatusTone = "pass" | "fail" | "uneval";
 
 export const PIPELINE_HINTS: Record<string, string> = {
-  ask_user: "Checking a couple of details…",
+  ask_user: "Checking with you…",
   generate_sop: "Writing the protocol…",
   generate_code: "Writing the script…",
   emit_plan: "Laying out the steps…",

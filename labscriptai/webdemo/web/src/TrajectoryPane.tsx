@@ -22,7 +22,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {} }: Props)
     return (
       <div className="stage-empty" data-testid="trajectory-empty">
         <h2>Activity</h2>
-        <p>Each confirm, write-up, and bench check lands here.</p>
+        <p>Confirms and checks land here.</p>
       </div>
     );
   }
