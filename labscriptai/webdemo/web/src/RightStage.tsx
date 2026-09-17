@@ -90,7 +90,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
         ) : null}
         {tab === "artifacts" ? <ArtifactsPane session={session} /> : null}
         {tab === "trajectory" ? (
-          <TrajectoryPane events={events} runningTool={runningTool} live={live} />
+          <TrajectoryPane events={events} runningTool={runningTool} live={live} session={session} />
         ) : null}
       </div>
     </section>

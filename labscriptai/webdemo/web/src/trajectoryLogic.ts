@@ -1,5 +1,5 @@
 import { PIPELINE_HINTS } from "./pipelineLogic";
-import type { AgentEvent, ChatMessage } from "./types";
+import type { AgentEvent, ChatMessage, SessionSnapshot } from "./types";
 
 export type ActivityStatus = "run" | "ok" | "fail";
 
@@ -60,6 +60,28 @@ export function activityStatusWord(status: ActivityStatus): string {
   if (status === "ok") return "Passed";
   if (status === "fail") return "Failed";
   return "Still going";
+}
+
+/** Volume, wells, standard deck — body under every lab step so Activity is not label-only. */
+export function activityLabRecap(session?: SessionSnapshot | null): string {
+  const goal = (session?.goal || "").replace(/\s+/g, " ").trim();
+  const vol = goal.match(/(\d+(?:\.\d+)?)\s*(?:µL|uL|ul)\b/i);
+  const route = goal.match(/from\s+(?:well\s+)?([A-H]\d+)\s+to\s+(?:well\s+)?([A-H]\d+)/i);
+  const bits: string[] = [];
+  if (vol && route) bits.push(`${vol[1]} µL ${route[1]}→${route[2]}`);
+  else if (vol) bits.push(`${vol[1]} µL`);
+  else if (route) bits.push(`${route[1]}→${route[2]}`);
+  bits.push("standard deck");
+  return bits.join(", ");
+}
+
+function attachLabBodies(steps: ActivityStep[], session?: SessionSnapshot | null): ActivityStep[] {
+  const recap = activityLabRecap(session);
+  if (!recap) return steps;
+  return steps.map((step) => {
+    if (step.name === THINK_STEP || step.note) return step;
+    return { ...step, note: recap };
+  });
 }
 
 const TOOLISH =
@@ -184,7 +206,8 @@ function insertThinkRows(steps: ActivityStep[], events: AgentEvent[], live: Acti
 export function activitySteps(
   events: AgentEvent[],
   runningTool: string | null = null,
-  live: ActivityLive = {}
+  live: ActivityLive = {},
+  session?: SessionSnapshot | null
 ): ActivityStep[] {
   const steps: ActivityStep[] = [];
   let turn = 0;
@@ -229,7 +252,7 @@ export function activitySteps(
     }
   }
   if (runningTool === "open_animation" && foldDeckIntoChecks(steps, "run")) {
-    return insertThinkRows(steps, events, live);
+    return attachLabBodies(insertThinkRows(steps, events, live), session);
   }
   if (runningTool && runningTool !== THINK_STEP && !steps.some((step) => step.name === runningTool && step.status === "run")) {
     steps.push({
@@ -241,7 +264,7 @@ export function activitySteps(
       durationMs: null,
     });
   }
-  return insertThinkRows(steps, events, live);
+  return attachLabBodies(insertThinkRows(steps, events, live), session);
 }
 
 export function activitySummary(steps: ActivityStep[]): string {

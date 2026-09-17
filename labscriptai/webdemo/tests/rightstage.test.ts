@@ -8,6 +8,7 @@ import {
   eventDetailText,
   formatDuration,
   labThinkNote,
+  activityLabRecap,
   thoughtNotesFromChat,
   thoughtTurnsFromChat,
 } from "../web/src/trajectoryLogic.ts";
@@ -109,6 +110,21 @@ describe("activity steps", () => {
     assert.equal(asked[0].status, "ok");
     assert.equal(asked[0].label, "Asked you to confirm");
     assert.equal(formatDuration(1), "");
+    const recapSession = {
+      goal: "Transfer 20 µL from well A1 to B1 on a 96-well plate.",
+    } as SessionSnapshot;
+    assert.equal(activityLabRecap(recapSession), "20 µL A1→B1, standard deck");
+    const withBody = activitySteps(
+      [
+        event({ seq: 1, kind: "tool/call", name: "ask_user" }),
+        event({ seq: 2, kind: "tool/result", name: "ask_user", detail: { duration_ms: 40, ok: true } }),
+      ],
+      null,
+      {},
+      recapSession
+    );
+    assert.equal(withBody[0].note, "20 µL A1→B1, standard deck");
+    assert.doesNotMatch(withBody[0].note || "", /generate_sop|\.gwl|JSON|Log 23/);
     const withDeck = activitySteps(
       [
         event({ seq: 1, kind: "tool/call", name: "run_checks" }),

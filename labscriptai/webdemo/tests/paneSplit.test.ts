@@ -54,6 +54,7 @@ describe("locked right-pane layout", () => {
     assert.doesNotMatch(app, /10%\s*[–-]\s*90%/);
     assert.match(traj, /activity-stream/);
     assert.match(traj, /activity-line/);
+    assert.match(traj, /data-testid="activity-note"/);
     assert.match(traj, /step\.status === "run" \? "" : formatDuration/);
   });
 });

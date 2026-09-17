@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { AgentEvent } from "./types";
+import type { AgentEvent, SessionSnapshot } from "./types";
 import {
   THINK_STEP,
   activityStatusWord,
@@ -15,11 +15,12 @@ interface Props {
   events: AgentEvent[];
   runningTool?: string | null;
   live?: ActivityLive;
+  session?: SessionSnapshot | null;
 }
 
-export function TrajectoryPane({ events, runningTool = null, live = {} }: Props) {
+export function TrajectoryPane({ events, runningTool = null, live = {}, session = null }: Props) {
   const streamRef = useRef<HTMLDivElement>(null);
-  const steps = activitySteps(events, runningTool, live);
+  const steps = activitySteps(events, runningTool, live, session);
   useEffect(() => {
     const el = streamRef.current;
     if (el) el.scrollTop = el.scrollHeight;
@@ -68,7 +69,11 @@ export function TrajectoryPane({ events, runningTool = null, live = {} }: Props)
                       />
                       <span className="activity-copy">
                         <span className="activity-label">{step.label}</span>
-                        {step.note ? <span className="activity-note">{step.note}</span> : null}
+                        {step.note ? (
+                          <span className="activity-note" data-testid="activity-note">
+                            {step.note}
+                          </span>
+                        ) : null}
                       </span>
                       <span className="activity-meta">
                         <span className={`activity-status status-${step.status}`}>{status}</span>
