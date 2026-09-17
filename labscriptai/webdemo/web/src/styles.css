@@ -409,6 +409,15 @@ body {
 .ot-deck-embed.is-flex [class*="deck_labels_row"] {
   display: none !important;
 }
+/*
+  Deck SVG is scale(1,-1). HTML in RobotCoordsForeignObject (Trash bin, Waste chute)
+  needs the official scaleY(-1) compensation from @opentrons/components/lib/style.css,
+  which this embed does not load. OT-2 FixedTrashText is SVG paths with its own
+  scale(1,-1) — leave it. Do not import the full components stylesheet (inspector).
+*/
+.ot-deck-embed [class*="robot_coords_foreign_object_container"] {
+  transform: scaleY(-1);
+}
 .flex-deck-ticks {
   position: absolute;
   inset: 0;
