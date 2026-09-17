@@ -135,6 +135,11 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\bno watch for \w+\.?/gi, "")
     .replace(/\s+and the deck animation are ready/gi, " is ready")
     .replace(/\bthe deck animation are ready\b/gi, "the deck is ready")
+    .replace(
+      /\s+and (?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi,
+      " is ready to download. The deck is on Stage"
+    )
+    .replace(/\b(?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi, "The deck is on Stage")
     .replace(/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. ")
     .replace(/\s*Nothing runs on hardware from here\.?/gi, "")
     .replace(/\bFluentControl\.gwl\b/gi, "Fluent worklist")

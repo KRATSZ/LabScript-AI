@@ -97,8 +97,20 @@ describe("sanitizeAssistantText", () => {
       /deck animation are ready|No Watch for Fluent/i
     );
     assert.equal(
-      sanitizeAssistantText("The protocol and the deck animation are ready."),
-      "The protocol is ready."
+      sanitizeAssistantText("Python script and on-screen deck are ready to download"),
+      "Python script is ready to download. The deck is on Stage"
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("Python script and on-screen deck are ready to download."),
+      /on-screen deck are ready to download/i
+    );
+    assert.match(
+      sanitizeAssistantText("Python script and on-screen deck are ready to download."),
+      /ready to download/i
+    );
+    assert.match(
+      sanitizeAssistantText("Python script and on-screen deck are ready to download."),
+      /deck is on Stage/i
     );
     assert.equal(
       sanitizeAssistantText("Watch is open too if you want to see the run."),
