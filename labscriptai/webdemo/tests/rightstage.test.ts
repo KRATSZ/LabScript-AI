@@ -97,9 +97,14 @@ describe("activity steps", () => {
       thoughtTurns: [1],
       thoughtNotes: { 1: "Confirm volumes and wells on the standard deck. Call ask_user and stop." },
     });
-    assert.equal(thought[0].label, "Thought it through");
-    assert.equal(thought[0].status, "ok");
-    assert.equal(thought[0].note, undefined);
+    assert.equal(thought.some((step) => step.name === "_think"), false);
+    assert.equal(thought[0].label, "Asked you to confirm");
+    const labThought = activitySteps(events, null, {
+      thoughtTurns: [1],
+      thoughtNotes: { 1: "Confirm 20 µL A1 to B1 on the standard deck." },
+    });
+    assert.equal(labThought[0].label, "Thought it through");
+    assert.match(labThought[0].note || "", /20 µL/);
     assert.equal(activitySummary(thinking), "2 steps · 1 still going");
     const asked = activitySteps(
       [

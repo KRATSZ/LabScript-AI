@@ -236,7 +236,9 @@ function insertThinkRows(steps: ActivityStep[], events: AgentEvent[], live: Acti
         durationMs: null,
         note: labThinkNote(raw) || undefined,
       };
-    });
+    })
+    .filter((row) => row.status === "run" || Boolean(row.note));
+  if (!thinkRows.length) return steps;
   const byTurn = new Map<number, ActivityStep[]>();
   for (const row of [...thinkRows, ...steps]) {
     const list = byTurn.get(row.turn) || [];
