@@ -835,8 +835,19 @@ body {
     align-self: stretch;
     text-align: left;
   }
-  .workspace-header { flex-direction: column; }
-  .header-status { max-width: none; }
+  .workspace-header {
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    min-height: 48px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .header-status {
+    max-width: none;
+    flex-wrap: wrap;
+  }
+  .header-status span { white-space: normal; }
 }
 
 .brand {

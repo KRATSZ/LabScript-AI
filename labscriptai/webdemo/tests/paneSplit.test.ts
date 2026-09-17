@@ -70,5 +70,6 @@ describe("locked right-pane layout", () => {
     assert.match(css, /\.md pre[\s\S]{0,160}white-space:\s*pre-wrap/);
     assert.match(css, /\.md code[\s\S]{0,120}overflow-wrap:\s*anywhere/);
     assert.match(css, /\.chat-column-body,\n\.chat,\n\.history,\n\.bubble-row,\n\.bubble,\n\.composer,\n\.composer textarea \{\n\s*min-width:\s*0;/);
+    assert.match(css, /@media \(max-width:\s*860px\)[\s\S]{0,900}\.workspace-header \{[\s\S]{0,180}height:\s*auto;/);
   });
 });
