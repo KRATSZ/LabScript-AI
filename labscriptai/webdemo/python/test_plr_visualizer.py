@@ -40,11 +40,27 @@ class PlrVisualizerTests(unittest.TestCase):
         self.assertGreater(a1.location.y, h1.location.y)
         self.assertLess(a1.location.x, a12.location.x)
 
+    def test_star_deck_uses_carriers_not_three_tiles(self) -> None:
+        plan = load_plan(DEMO)
+        star = build_liquid_handler(plan, "Hamilton")
+        self.assertEqual(star["kind"], "star")
+        self.assertEqual(star["deck_name"], "Hamilton STAR")
+        names = [child.name for child in star["deck"].children]
+        self.assertIn("tip_car", names)
+        self.assertIn("plate_car", names)
+        self.assertIn("trash", names)
+        self.assertIn("waste_block", names)
+        self.assertIn("trash_core96", names)
+        self.assertGreaterEqual(len(names), 5)
+        self.assertIn("tips", star["placed"])
+        self.assertIn("plate", star["placed"])
+        self.assertNotIn("STARLet", star["deck_name"])
+
     def test_starlet_and_evo_decks(self) -> None:
         plan = load_plan(DEMO)
         star = build_liquid_handler(plan, "Hamilton")
         self.assertEqual(star["kind"], "star")
-        self.assertIn("STARLet", star["deck_name"])
+        self.assertIn("STAR", star["deck_name"])
         self.assertIn("tips", star["placed"])
         vantage = build_liquid_handler(plan, "Vantage")
         self.assertEqual(vantage["kind"], "vantage")

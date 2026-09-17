@@ -1,7 +1,7 @@
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
-import { deckLabware, deckSketchAxes, deckSketchRows } from "./deckSketch";
+import { deckLabware, deckSketchAxes, deckSketchRows, hamiltonStarSketch, usesStarSketch } from "./deckSketch";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { IssuesPanel } from "./IssuesPanel";
 import { OtDeckReplay } from "./OtDeckReplay";
@@ -17,7 +17,41 @@ interface Props {
   onWatch: () => void;
 }
 
+function StarDeckSketch({ session }: { session: SessionSnapshot }) {
+  const deck = session.hardware?.deck ?? {};
+  const carriers = hamiltonStarSketch(deck);
+  return (
+    <div className="star-sketch" data-testid="deck-strip" data-origin-slot="tip-0">
+      {carriers.map((carrier) => (
+        <div key={carrier.id} className="star-carrier">
+          <div className="star-carrier-head">
+            <span>{carrier.title}</span>
+            <span className="star-carrier-rails">rails {carrier.rails}</span>
+          </div>
+          <div
+            className="star-carrier-sites"
+            style={{ gridTemplateColumns: `repeat(${carrier.sites.length}, minmax(0, 1fr))` }}
+          >
+            {carrier.sites.map((site) => {
+              const filled = Boolean(site.labware);
+              return (
+                <div key={site.id} className={filled ? "deck-cell filled" : "deck-cell empty"}>
+                  <span className="deck-cell-slot">{site.label}</span>
+                  {filled ? (
+                    <span className="deck-cell-labware">{labwareLabel(site.labware) || site.labware}</span>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function DeckSketch({ session }: { session: SessionSnapshot }) {
+  if (usesStarSketch(session.robot)) return <StarDeckSketch session={session} />;
   const deck = session.hardware?.deck ?? {};
   const rows = deckSketchRows(session.robot, deck);
   const axes = deckSketchAxes(session.robot);

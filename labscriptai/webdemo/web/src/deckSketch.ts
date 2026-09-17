@@ -40,6 +40,60 @@ export function deckSketchAxes(robot: RobotModel | null | undefined): DeckSketch
   return null;
 }
 
+export interface StarCarrierSite {
+  id: string;
+  label: string;
+  labware: string;
+}
+
+export interface StarCarrierSketch {
+  id: string;
+  title: string;
+  rails: string;
+  sites: StarCarrierSite[];
+}
+
+/** PLR STARDeck: tip carrier (5) · plate carrier (5) · trough · built-in waste. */
+export function hamiltonStarSketch(deck: Record<string, string>): StarCarrierSketch[] {
+  const tips = deckLabware(deck, "1");
+  const plate = deckLabware(deck, "2");
+  const trough = deckLabware(deck, "3");
+  const tipSites: StarCarrierSite[] = Array.from({ length: 5 }, (_, index) => ({
+    id: `tip-${index}`,
+    label: `Site ${index + 1}`,
+    labware: tips,
+  }));
+  const plateSites: StarCarrierSite[] = Array.from({ length: 5 }, (_, index) => ({
+    id: `plt-${index}`,
+    label: `Site ${index + 1}`,
+    labware: index === 0 ? plate : "",
+  }));
+  return [
+    { id: "tip_car", title: "Tip carrier", rails: "1–6", sites: tipSites },
+    { id: "plate_car", title: "Plate carrier", rails: "8–13", sites: plateSites },
+    {
+      id: "trough",
+      title: "Reagents",
+      rails: "15",
+      sites: [{ id: "trough", label: "Trough", labware: trough }],
+    },
+    {
+      id: "waste",
+      title: "Waste",
+      rails: "built-in",
+      sites: [
+        { id: "trash", label: "Trash", labware: "trash" },
+        { id: "core96", label: "96-head trash", labware: "trash" },
+        { id: "teach", label: "Teaching rack", labware: "teaching tips" },
+      ],
+    },
+  ];
+}
+
+export function usesStarSketch(robot: RobotModel | null | undefined): boolean {
+  return robot === "Hamilton";
+}
+
 export function slotKey(slot: string): string {
   return slot.trim().toLowerCase();
 }

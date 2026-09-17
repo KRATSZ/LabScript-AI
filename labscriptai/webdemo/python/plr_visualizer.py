@@ -62,9 +62,53 @@ def _make_deck(kind: str) -> tuple[Any, str, str]:
             "Tecan Fluent",
             "",
         )
-    from pylabrobot.resources.hamilton import STARLetDeck
+    from pylabrobot.resources.hamilton import STARDeck
 
-    return STARLetDeck(), "Hamilton STARLet", ""
+    return STARDeck(), "Hamilton STAR", ""
+
+
+def _place_star_carriers(
+    deck: Any,
+    plan: PlanDocument,
+    tip_factory: Any,
+    plate_factory: Any,
+    trough_factory: Any,
+) -> tuple[dict[str, Any], dict[str, int]]:
+    """Real STAR layout: tip carrier (5), plate carrier (5), trough, plus built-in trash/waste."""
+    from pylabrobot.resources.hamilton import PLT_CAR_L5AC_A00, TIP_CAR_480_A00
+
+    placed: dict[str, Any] = {}
+    rails_used: dict[str, int] = {}
+    tip_car = TIP_CAR_480_A00("tip_car")
+    plate_car = PLT_CAR_L5AC_A00("plate_car")
+    tip_res = [item for item in plan.resources if item.type == "tiprack"]
+    plate_res = [item for item in plan.resources if item.type in {"plate", "tube_rack"}]
+    trough_res = [item for item in plan.resources if item.type == "reservoir"]
+
+    for index, resource in enumerate(tip_res[:5]):
+        rack = tip_factory(name=resource.id)
+        tip_car[index] = rack
+        placed[resource.id] = rack
+    for index in range(len(tip_res), 5):
+        extra = tip_factory(name=f"tips_site_{index}")
+        try:
+            tip_car[index] = extra
+        except Exception:
+            break
+    rails_used["tip_car"] = _assign_rails(deck, tip_car, 1)
+
+    for index, resource in enumerate(plate_res[:5]):
+        plate = plate_factory(name=resource.id)
+        plate_car[index] = plate
+        placed[resource.id] = plate
+    rails_used["plate_car"] = _assign_rails(deck, plate_car, 8)
+
+    for resource in trough_res[:1]:
+        trough = trough_factory(name=resource.id)
+        rails_used[resource.id] = _assign_rails(deck, trough, 15)
+        placed[resource.id] = trough
+
+    return placed, rails_used
 
 
 def _assign_rails(deck: Any, item: Any, rails: int) -> int:
@@ -102,20 +146,23 @@ def build_liquid_handler(plan: PlanDocument, robot: str) -> dict[str, Any]:
     tip_factory, plate_factory, trough_factory = _factories(kind)
     deck, deck_name, note = _make_deck(kind)
     by_type = {"tiprack": tip_factory, "plate": plate_factory, "reservoir": trough_factory, "tube_rack": plate_factory}
-    start = 12 if kind == "fluent" else 1
-    occupied: list[int] = [1] if kind == "fluent" else []
     placed: dict[str, Any] = {}
     rails_used: dict[str, int] = {}
-    for resource in plan.resources:
-        factory = by_type.get(resource.type, plate_factory)
-        item = factory(name=resource.id)
-        rails = start
-        while any(abs(rails - used) < RAIL_STRIDE for used in occupied):
-            rails += 1
-        rails = _assign_rails(deck, item, rails)
-        occupied.append(rails)
-        placed[resource.id] = item
-        rails_used[resource.id] = rails
+    if kind == "star":
+        placed, rails_used = _place_star_carriers(deck, plan, tip_factory, plate_factory, trough_factory)
+    else:
+        start = 12 if kind == "fluent" else 1
+        occupied: list[int] = [1] if kind == "fluent" else []
+        for resource in plan.resources:
+            factory = by_type.get(resource.type, plate_factory)
+            item = factory(name=resource.id)
+            rails = start
+            while any(abs(rails - used) < RAIL_STRIDE for used in occupied):
+                rails += 1
+            rails = _assign_rails(deck, item, rails)
+            occupied.append(rails)
+            placed[resource.id] = item
+            rails_used[resource.id] = rails
 
     tips = next((placed[r.id] for r in plan.resources if r.type == "tiprack"), None)
     plate = next((placed[r.id] for r in plan.resources if r.type in {"plate", "reservoir", "tube_rack"}), None)
@@ -137,7 +184,7 @@ def build_liquid_handler(plan: PlanDocument, robot: str) -> dict[str, Any]:
                 continue
         if trash is None:
             trash = Trash(name="trash", size_x=80, size_y=80, size_z=80)
-            _assign_rails(deck, trash, max(occupied or [start]) + RAIL_STRIDE)
+            _assign_rails(deck, trash, max(rails_used.values() or [1]) + RAIL_STRIDE)
 
     for loc, volume in plan.initial_volumes_ul.items():
         plate_id, well = loc.split(":", 1)

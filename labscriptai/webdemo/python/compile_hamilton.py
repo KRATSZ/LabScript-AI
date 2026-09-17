@@ -234,23 +234,40 @@ class HamiltonCompiler:
         res = sorted({r["factory"][0] for r in self.resources.values() if r["factory"][1] == "resources"})
         layout = "; ".join(f"{r['id']} ({r['factory'][0]}) → rails {r['rails']}" for r in self.resources.values())
         plan_id = str(self.plan.get("plan_id") or self.plan.get("protocol_name") or "plan")
-        assigns = []
-        for r in self.resources.values():
-            v = self.var_of[r["id"]]
-            assigns += [f"    {v} = {r['factory'][0]}({r['id']!r})", f"    deck.assign_child_resource({v}, rails={r['rails']})"]
-        res_line = f"from pylabrobot.resources import {', '.join(res)}\n" if res else ""
         if self.family == "star":
-            ham_imp = ", ".join(["STARLetDeck", *ham])
+            ham_imp = ", ".join(["STARDeck", "TIP_CAR_480_A00", "PLT_CAR_L5AC_A00", *ham])
             live_backend = "STARBackend"
-            deck_line = "    deck = STARLetDeck()"
-            deck_note = "STARLetDeck; trash is built-in."
+            deck_line = "    deck = STARDeck()"
+            deck_note = "STARDeck with tip carrier (rails 1) and plate carrier (rails 8); trash is built-in."
             device_line = "Device: Hamilton STAR via PyLabRobot LiquidHandler."
+            assigns = [
+                "    tip_car = TIP_CAR_480_A00('tip_car')",
+                "    plate_car = PLT_CAR_L5AC_A00('plate_car')",
+            ]
+            for r in self.resources.values():
+                v = self.var_of[r["id"]]
+                assigns.append(f"    {v} = {r['factory'][0]}({r['id']!r})")
+                if r["type"] == "tiprack":
+                    assigns.append(f"    tip_car[0] = {v}")
+                elif r["type"] == "reservoir":
+                    assigns.append(f"    deck.assign_child_resource({v}, rails=15)")
+                else:
+                    assigns.append(f"    plate_car[0] = {v}")
+            assigns += [
+                "    deck.assign_child_resource(tip_car, rails=1)",
+                "    deck.assign_child_resource(plate_car, rails=8)",
+            ]
         else:
             ham_imp = ", ".join(["VantageDeck", *ham])
             live_backend = "VantageBackend"
             deck_line = "    deck = VantageDeck(size=1.3)"
             deck_note = "Vantage 1.3 m; trash is built-in."
             device_line = "Device: Hamilton Vantage via PyLabRobot LiquidHandler."
+            assigns = []
+            for r in self.resources.values():
+                v = self.var_of[r["id"]]
+                assigns += [f"    {v} = {r['factory'][0]}({r['id']!r})", f"    deck.assign_child_resource({v}, rails={r['rails']})"]
+        res_line = f"from pylabrobot.resources import {', '.join(res)}\n" if res else ""
         head = f'''\
 """LabscriptAI Plan IR → PyLabRobot (Hamilton STAR / Vantage).
 

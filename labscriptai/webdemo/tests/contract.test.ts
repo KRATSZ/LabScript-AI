@@ -94,7 +94,7 @@ describe("demo contract lock", () => {
     assert.match(read("server/src/backend.ts"), /visualizer\/jobs/);
     assert.match(read("python/code_service.py"), /analyze\/start/);
     assert.match(read("python/code_service.py"), /\/jobs\/\{job_id\}/);
-    assert.match(read("python/plr_visualizer.py"), /STARLetDeck/);
+    assert.match(read("python/plr_visualizer.py"), /STARDeck/);
     assert.match(read("python/plr_visualizer.py"), /VantageDeck/);
     assert.match(read("python/plr_visualizer.py"), /EVO200Deck/);
     assert.match(env, /LABSCRIPTAI_DEEPSEEK_API_KEY/);

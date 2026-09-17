@@ -4,6 +4,7 @@ import {
   deckLabware,
   deckSketchAxes,
   deckSketchRows,
+  hamiltonStarSketch,
   sketchOriginSlot,
 } from "../web/src/deckSketch.ts";
 
@@ -31,5 +32,19 @@ describe("deckSketchRows", () => {
     assert.deepEqual(axes?.rows, ["A", "B", "C", "D"]);
     assert.deepEqual(axes?.cols, ["1", "2", "3"]);
     assert.equal(deckSketchAxes("OT-2"), null);
+  });
+
+  it("draws a STAR carrier layout instead of three OT-style slots", () => {
+    const carriers = hamiltonStarSketch({
+      "1": "hamilton_96_tiprack_300ul",
+      "2": "corning_96_wellplate_360ul_flat",
+      "3": "nest_12_reservoir_15ml",
+    });
+    const sites = carriers.flatMap((carrier) => carrier.sites);
+    assert.ok(carriers.length >= 4);
+    assert.ok(sites.length >= 10);
+    assert.equal(carriers[0].id, "tip_car");
+    assert.equal(carriers[0].sites.length, 5);
+    assert.ok(carriers[0].sites.every((site) => site.labware));
   });
 });

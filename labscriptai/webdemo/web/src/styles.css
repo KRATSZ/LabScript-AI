@@ -272,7 +272,30 @@ body {
   color: var(--muted);
   background: var(--paper);
 }
-.deck-axis-rows .deck-axis-tick { margin: auto 0; }
+.star-sketch {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.star-carrier-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.star-carrier-rails {
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.star-carrier-sites {
+  display: grid;
+  gap: 6px;
+}
 .deck-sketch-row {
   display: grid;
   gap: 6px;

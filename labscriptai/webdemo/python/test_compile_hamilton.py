@@ -112,7 +112,10 @@ class CompileHamiltonTests(unittest.TestCase):
         out = json.loads(completed.stdout)
         self.assertTrue(out["ok"], out)
         script = out["script"]
-        self.assertIn("STARLetDeck()", script)
+        self.assertIn("STARDeck()", script)
+        self.assertIn("TIP_CAR_480_A00", script)
+        self.assertIn("PLT_CAR_L5AC_A00", script)
+        self.assertNotIn("STARLetDeck", script)
         self.assertIn("# backend = STARBackend()", script)
         self.assertNotIn("VantageDeck", script)
         self.assertIn("LiquidHandlerChatterboxBackend", script)
