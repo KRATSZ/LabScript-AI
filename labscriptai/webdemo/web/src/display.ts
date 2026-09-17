@@ -138,9 +138,16 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. ")
     .replace(/\s*Nothing runs on hardware from here\.?/gi, "")
     .replace(/\bFluentControl\.gwl\b/gi, "Fluent worklist")
+    .replace(/\bFluentControl\b/gi, "Fluent")
     .replace(/\bPython(?:\.py|\s*\(\.py\))\s*protocol\b/gi, "Python file")
     .replace(/Python\.py/gi, "Python file")
     .replace(/Python\s*\(\.py\)/gi, "Python file")
+    .replace(/\bPython script\s*\(\.py\)/gi, "Python file")
+    .replace(/\bscript\s*\(\.py\)/gi, "file")
+    .replace(/\bplus a steps\b/gi, "plus steps")
+    .replace(/\bDeliverables are ready to download:\s*/gi, "Ready: ")
+    .replace(/\bwriting the SOP\b/gi, "writing the protocol")
+    .replace(/\bthe SOP\b/gi, "the protocol")
     .replace(/\bStep JSON\b/gi, "steps")
     .replace(/\bPyLabRobot\b/gi, "")
     .replace(/\bFreedom EVO\b/gi, "")
@@ -182,8 +189,8 @@ export function headerGoalPreview(label: string, goal: string): string {
   for (const name of names) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     text = text.replace(new RegExp(`\\s*\\(\\s*${escaped}\\s*\\)`, "i"), "").trim();
-    text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
-    text = text.replace(new RegExp(`\\s+using(?:\\s+the|\\s+a)?\\s+${escaped}\\b`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s+on(?:\\s+the|\\s+an?)?\\s+${escaped}\\b`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s+using(?:\\s+the|\\s+an?)?\\s+${escaped}\\b`, "i"), "").trim();
     text = text.replace(new RegExp(`[,;]\\s*(?:the\\s+|a\\s+)?${escaped}\\b`, "gi"), "").trim();
   }
   text = text.replace(/\s+on(?:\s+the|\s+a)?\s+\d+-well plate\b/gi, "").trim();

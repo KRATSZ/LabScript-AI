@@ -136,6 +136,18 @@ describe("sanitizeAssistantText", () => {
     assert.doesNotMatch(sanitizeAssistantText("Python.py is ready to download."), /Python\.py/);
     assert.match(sanitizeAssistantText("Python.py is ready to download."), /Python file is ready to download/);
     assert.equal(sanitizeAssistantText("Python (.py) is ready to download."), "Python file is ready to download.");
+    assert.equal(
+      sanitizeAssistantText("Your Python script (.py) is ready to download."),
+      "Your Python file is ready to download."
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("output is a FluentControl worklist plus a steps."),
+      /FluentControl|plus a steps/i
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("Got it. Standard — writing the SOP and the step plan."),
+      /\bSOP\b/
+    );
   });
 });
 
@@ -226,8 +238,12 @@ describe("headerGoalPreview", () => {
       /, Tecan Fluent/i
     );
     assert.equal(
-      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1, OT-2"),
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1 on an OT-2"),
       "Transfer 20 µL from well A1 to B1"
+    );
+    assert.doesNotMatch(
+      headerGoalPreview("OT-2", "Transfer 20 µL from well A1 to B1 on an OT-2"),
+      /on an OT-2/i
     );
   });
 });
