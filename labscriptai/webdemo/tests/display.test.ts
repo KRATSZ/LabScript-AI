@@ -173,6 +173,14 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("Done. Download the Python script from the panel. Want anything changed?"),
       "Done. Download the Python script from the panel."
     );
+    assert.equal(
+      sanitizeAssistantText("Done. Want anything changed."),
+      "Done."
+    );
+    assert.equal(
+      sanitizeAssistantText("96-well plate in D2/A1 on Flex."),
+      "96-well plate in D2, well A1 on Flex."
+    );
     assert.match(
       sanitizeAssistantText("300 µL tips in slot 1, 96-well plate in slot 2", "OT-2"),
       /slot 1/

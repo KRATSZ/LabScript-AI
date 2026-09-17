@@ -56,7 +56,8 @@ const PHRASE_FOLDS: Fold[] = [
   [/\bConfirm volume, wells, mix, and the standard deck[^.]*\.?/gi, ""],
   [/\bnothing is written yet\.?/gi, ""],
   [/\s*Want me to tweak anything[^?\n]*\??/gi, ""],
-  [/\s*Want anything (?:changed|tweaked)\??/gi, ""],
+  [/\s*Want anything (?:changed|tweaked)[?.!]*/gi, ""],
+  [/\b([A-D]\d)\/([A-H]\d+)\b/g, "$1, well $2"],
   [/\s*Say the word if you want it swapped\.?/gi, ""],
   [/\s*Want me to open(?: the)?(?: run)? animation\??/gi, ""],
   [
@@ -110,6 +111,7 @@ const TIDY_FOLDS: Fold[] = [
   [/\n{3,}/g, "\n\n"],
   [/[ \t]{2,}/g, " "],
   [/[ \t]+([,.;])/g, "$1"],
+  [/\.\s*\./g, "."],
   [/\n{2,}/g, "\n\n"],
 ];
 
