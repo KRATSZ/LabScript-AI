@@ -56,5 +56,8 @@ describe("locked right-pane layout", () => {
     assert.match(traj, /activity-line/);
     assert.match(traj, /data-testid="activity-note"/);
     assert.match(traj, /step\.status === "run" \? "" : formatDuration/);
+    assert.match(traj, /activityFollowsTail/);
+    assert.match(traj, /pinRef/);
+    assert.match(traj, /data-status=\{step\.status\}/);
   });
 });

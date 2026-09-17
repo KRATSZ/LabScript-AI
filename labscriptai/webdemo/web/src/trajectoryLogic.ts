@@ -296,3 +296,11 @@ export function eventClock(t: number): string {
   if (Number.isNaN(date.getTime())) return "";
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
+
+/** Follow the newest row unless the scientist scrolled up (Harness-style). */
+export function activityFollowsTail(
+  el: { scrollHeight: number; scrollTop: number; clientHeight: number },
+  slack = 48
+): boolean {
+  return el.scrollHeight - el.scrollTop - el.clientHeight <= slack;
+}

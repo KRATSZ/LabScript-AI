@@ -11,6 +11,7 @@ import {
   activityLabRecap,
   thoughtNotesFromChat,
   thoughtTurnsFromChat,
+  activityFollowsTail,
 } from "../web/src/trajectoryLogic.ts";
 import type { AgentEvent, SessionSnapshot } from "../web/src/types.ts";
 
@@ -219,5 +220,14 @@ describe("activity steps", () => {
       { role: "user", text: "20 µL" },
       { role: "assistant", text: "ok", thinking: "write it" },
     ]).join(","), "1,2");
+    assert.equal(activityFollowsTail({ scrollHeight: 800, scrollTop: 760, clientHeight: 40 }), true);
+    assert.equal(activityFollowsTail({ scrollHeight: 800, scrollTop: 100, clientHeight: 40 }), false);
+    const liveRun = activitySteps(
+      [event({ seq: 1, kind: "tool/call", name: "generate_code" })],
+      "generate_code"
+    );
+    assert.equal(liveRun[0].status, "run");
+    assert.equal(activityStatusWord(liveRun[0].status), "Still going");
+    assert.equal(formatDuration(liveRun[0].durationMs), "");
   });
 });

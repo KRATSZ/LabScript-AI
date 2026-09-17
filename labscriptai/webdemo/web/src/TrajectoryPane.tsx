@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { AgentEvent, SessionSnapshot } from "./types";
 import {
   THINK_STEP,
+  activityFollowsTail,
   activityStatusWord,
   activitySteps,
   activitySummary,
@@ -20,10 +21,11 @@ interface Props {
 
 export function TrajectoryPane({ events, runningTool = null, live = {}, session = null }: Props) {
   const streamRef = useRef<HTMLDivElement>(null);
+  const pinRef = useRef(true);
   const steps = activitySteps(events, runningTool, live, session);
   useEffect(() => {
     const el = streamRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el && pinRef.current) el.scrollTop = el.scrollHeight;
   }, [steps, runningTool, live.thinking, live.thinkingNote]);
   if (!steps.length) {
     return (
@@ -35,7 +37,15 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
   }
   const turns = [...new Set(steps.map((step) => step.turn))];
   return (
-    <div className="activity-pane activity-stream" data-testid="trajectory-log" ref={streamRef}>
+    <div
+      className="activity-pane activity-stream"
+      data-testid="trajectory-log"
+      ref={streamRef}
+      onScroll={() => {
+        const el = streamRef.current;
+        if (el) pinRef.current = activityFollowsTail(el);
+      }}
+    >
       <div className="activity-head">
         <h2>Activity</h2>
         <p>{activitySummary(steps)}</p>
@@ -58,6 +68,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
                       className={`activity-row ${step.status}${think ? " think" : ""}`}
                       data-kind={step.name}
                       data-line={line}
+                      data-status={step.status}
                       aria-label={`${step.label}, ${status}`}
                     >
                       <span className="activity-line" aria-hidden>
