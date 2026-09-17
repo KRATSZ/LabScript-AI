@@ -11,8 +11,12 @@ import {
   MODEL_CONTINUE_MESSAGE,
   POST_EMIT_PLAN_HINT,
   POST_RUN_CHECKS_REVIEWER_UNAVAILABLE_HINT,
+  POST_RUN_CHECKS_WITHHELD_HINT,
+  POST_NOTES_CONFLICT_HINT,
+  POST_INTAKE_HINT,
   promptWithAutoContinue,
   withToolEvents,
+  isSuccessfulToolResult,
 } from "../server/src/agent.ts";
 import {
   reviewerProcessEnv,
@@ -134,6 +138,59 @@ describe("agent tool-result handling", () => {
     assert.match(JSON.stringify(update.content), /does not block/i);
   });
 
+  it("adds a withheld-download hint after failed run_checks", () => {
+    const update = afterWebdemoToolCall({
+      toolCall: { name: "run_checks" },
+      result: {
+        content: [{ type: "text", text: '{"status":"fail","download":"withheld"}' }],
+        details: {
+          payload: {
+            status: "fail",
+            download: "withheld",
+            fab: { lit: false },
+          },
+        },
+      },
+    });
+
+    assert.ok(update?.content);
+    assert.equal(
+      (update.content.at(-1) as { text: string }).text,
+      POST_RUN_CHECKS_WITHHELD_HINT
+    );
+    assert.match(JSON.stringify(update.content), /withheld/i);
+    assert.match(JSON.stringify(update.content), /do not tell the user those files are ready/i);
+  });
+
+  it("adds a notes-conflict hint when ask_user waits", () => {
+    const update = afterWebdemoToolCall({
+      toolCall: { name: "ask_user" },
+      result: {
+        content: [{ type: "text", text: '{"wait":true}' }],
+        details: { payload: { wait: true, conflict: "goal 50 µL vs notes 250 µL" } },
+      },
+    });
+    assert.ok(update?.content);
+    assert.equal(update.terminate, true);
+    assert.equal((update.content.at(-1) as { text: string }).text, POST_NOTES_CONFLICT_HINT);
+    assert.match(JSON.stringify(update.content), /stop/i);
+    assert.match(JSON.stringify(update.content), /ask_user/i);
+  });
+
+  it("adds an intake hint when generate_sop waits for clarifying questions", () => {
+    const update = afterWebdemoToolCall({
+      toolCall: { name: "generate_sop" },
+      result: {
+        content: [{ type: "text", text: '{"wait":true,"intake":true}' }],
+        details: { payload: { wait: true, intake: true, blocked: true } },
+      },
+    });
+    assert.ok(update?.content);
+    assert.equal(update.terminate, true);
+    assert.equal((update.content.at(-1) as { text: string }).text, POST_INTAKE_HINT);
+    assert.match(JSON.stringify(update.content), /one short confirm/i);
+  });
+
   it("emits tool done only after the handler resolves, with duration", async () => {
     const events: string[] = [];
     let release!: () => void;
@@ -156,7 +213,8 @@ describe("agent tool-result handling", () => {
     const wrapped = withToolEvents(
       [fakeTool],
       {
-        write(_event, data) {
+        write(event, data) {
+          if (event !== "tool") return;
           const payload = data as { status: string; duration_ms?: number };
           events.push(`sse:${payload.status}${payload.duration_ms == null ? "" : `:${payload.duration_ms}`}`);
         },
@@ -170,6 +228,75 @@ describe("agent tool-result handling", () => {
     release();
     await pending;
     assert.deepEqual(events, ["sse:start", "handler:start", "handler:end", "sse:done:45"]);
+  });
+
+  it("records ok false on tool/result when execute throws", async () => {
+    const frames: Array<{ event: string; data: unknown }> = [];
+    const fakeTool: AgentTool = {
+      name: "generate_sop",
+      label: "SOP",
+      description: "test",
+      parameters: Type.Object({}),
+      execute: async () => {
+        throw new Error("boom");
+      },
+    };
+    const wrapped = withToolEvents(
+      [fakeTool],
+      {
+        write(event, data) {
+          frames.push({ event, data });
+        },
+        close() {},
+      },
+      () => 10
+    )[0];
+    await assert.rejects(() => wrapped.execute("1", {}), /boom/);
+    const result = frames.find(
+      (frame) =>
+        frame.event === "agent_event" &&
+        (frame.data as { kind?: string }).kind === "tool/result"
+    );
+    assert.ok(result);
+    assert.equal((result.data as { detail?: { ok?: boolean } }).detail?.ok, false);
+  });
+
+  it("records ok false when execute returns wait, blocked, fail, or withheld", async () => {
+    assert.equal(isSuccessfulToolResult({ details: { payload: { wait: true } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { blocked: true } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { status: "fail" } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { download: "withheld" } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { ok: false } } }), false);
+    assert.equal(isSuccessfulToolResult({ details: { payload: { ok: true, status: "pass" } } }), true);
+
+    const frames: Array<{ event: string; data: unknown }> = [];
+    const fakeTool: AgentTool = {
+      name: "ask_user",
+      label: "Ask",
+      description: "test",
+      parameters: Type.Object({}),
+      execute: async () => ({
+        content: [{ type: "text", text: '{"wait":true}' }],
+        details: { payload: { wait: true } },
+      }),
+    };
+    const wrapped = withToolEvents(
+      [fakeTool],
+      {
+        write(event, data) {
+          frames.push({ event, data });
+        },
+        close() {},
+      },
+      () => 10
+    )[0];
+    await wrapped.execute("1", {});
+    const result = frames.find(
+      (frame) =>
+        frame.event === "agent_event" &&
+        (frame.data as { kind?: string }).kind === "tool/result"
+    );
+    assert.equal((result?.data as { detail?: { ok?: boolean } }).detail?.ok, false);
   });
 });
 

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, searchForWorkspaceRoot } from "vite";
@@ -6,15 +7,30 @@ import react from "@vitejs/plugin-react";
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
 const demoRoot = path.resolve(webRoot, "..");
 const cloudRoot = path.resolve(demoRoot, "../../../LabscriptAI_cloud");
-const slimRoot = path.join(cloudRoot, "web/opentrons-protocol-visualizer-web-slim");
+const defaultSlim = path.join(cloudRoot, "web/opentrons-protocol-visualizer-web-slim");
+const hangRoot = process.env.LABSCRIPTAI_VISUALIZER_ROOT
+  ? path.resolve(process.env.LABSCRIPTAI_VISUALIZER_ROOT)
+  : defaultSlim;
+const slimRoot = existsSync(hangRoot) ? hangRoot : "";
+const stubRoot = path.join(webRoot, "src", "stubs");
 const nm = path.join(demoRoot, "node_modules");
 const fromNm = (pkg: string): string => path.join(nm, pkg);
+
+function cloudOrStub(cloudFile: string, stubName: string): string {
+  return cloudFile && existsSync(cloudFile) ? cloudFile : path.join(stubRoot, stubName);
+}
 
 export default defineConfig({
   root: webRoot,
   plugins: [react()],
   optimizeDeps: {
     exclude: ["lucide-react"],
+    include: [
+      "@opentrons/protocol-visualization",
+      "@opentrons/components",
+      "@opentrons/shared-data",
+      "@opentrons/step-generation",
+    ],
   },
   define: {
     global: "globalThis",
@@ -26,7 +42,11 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     fs: {
-      allow: [searchForWorkspaceRoot(webRoot), cloudRoot],
+      allow: [
+        searchForWorkspaceRoot(webRoot),
+        ...(existsSync(cloudRoot) ? [cloudRoot] : []),
+        ...(slimRoot ? [slimRoot] : []),
+      ],
     },
     proxy: {
       "/api": {
@@ -38,20 +58,20 @@ export default defineConfig({
   resolve: {
     dedupe: ["react", "react-dom"],
     alias: {
-      "@opentrons/components/styles/global": path.join(
-        slimRoot,
-        "components/src/styles/global.css"
+      // Official OT replay comes from npm `@opentrons/protocol-visualization`.
+      // Do not alias `@opentrons/*` to the ~305MB slim tree.
+      // Optional hang: LABSCRIPTAI_VISUALIZER_ROOT or a local LabscriptAI_cloud slim checkout.
+      "@visualizer/normalize-analysis": cloudOrStub(
+        slimRoot
+          ? path.join(slimRoot, "protocol-visualizer-web/client/src/normalizeAnalysisOutput.ts")
+          : "",
+        "normalize-analysis.ts"
       ),
-      "@opentrons/components": path.join(slimRoot, "components/src/index.ts"),
-      "@opentrons/shared-data": path.join(slimRoot, "shared-data/js/index.ts"),
-      "@opentrons/step-generation": path.join(slimRoot, "step-generation/src/index.ts"),
-      "@visualizer/normalize-analysis": path.join(
-        slimRoot,
-        "protocol-visualizer-web/client/src/normalizeAnalysisOutput.ts"
-      ),
-      "@visualizer/animator": path.join(
-        cloudRoot,
-        "labscriptAI-frontend/src/components/ProtocolOperationAnimator.tsx"
+      "@visualizer/animator": cloudOrStub(
+        existsSync(path.join(cloudRoot, "labscriptAI-frontend/src/components/ProtocolOperationAnimator.tsx"))
+          ? path.join(cloudRoot, "labscriptAI-frontend/src/components/ProtocolOperationAnimator.tsx")
+          : "",
+        "animator.tsx"
       ),
       "@popperjs/core": fromNm("@popperjs/core"),
       "@react-spring/types": fromNm("@react-spring/types"),

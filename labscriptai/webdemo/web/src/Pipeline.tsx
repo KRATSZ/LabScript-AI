@@ -5,12 +5,14 @@ interface Props {
   session: SessionSnapshot;
   runningTool: string | null;
   busy: boolean;
+  compact?: boolean;
 }
 
-export function Pipeline({ session, runningTool, busy }: Props) {
+export function Pipeline({ session, runningTool, busy, compact = false }: Props) {
   const steps = pipelineSteps(session.robot);
   const states = pipelineStates(session, runningTool);
-  const hint = busy ? PIPELINE_HINTS[runningTool || ""] || "Working…" : "";
+  const ready = states[3] === "ok" || states[4] === "ok";
+  const hint = busy && !ready ? PIPELINE_HINTS[runningTool || ""] || "" : "";
   return (
     <div className="pipeline-wrap">
       <div className="pipeline" aria-label="Progress">
@@ -23,13 +25,13 @@ export function Pipeline({ session, runningTool, busy }: Props) {
         ))}
       </div>
       {hint ? <p className="pipeline-hint">{hint}</p> : null}
-      {session.sop.trim() ? (
+      {!compact && session.sop.trim() ? (
         <details className="preview">
-          <summary>SOP</summary>
+          <summary>Protocol</summary>
           <pre>{preview(session.sop)}</pre>
         </details>
       ) : null}
-      {session.code.trim() ? (
+      {!compact && session.code.trim() ? (
         <details className="preview">
           <summary>Script</summary>
           <pre>{preview(session.code)}</pre>

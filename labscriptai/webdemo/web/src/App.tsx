@@ -1,30 +1,83 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { sessionCanWatch } from "./analysis";
-import { createSession, streamChat } from "./api";
+import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
-import { robotSupportsWatch } from "./devices";
-import { ExportsPanel } from "./ExportsPanel";
-import { IssuesPanel } from "./IssuesPanel";
+import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
-import { Pipeline } from "./Pipeline.tsx";
+import { headerGoalPreview, hasAttachedNotes } from "./display";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
+import { clampChatPct, loadChatPct, saveChatPct } from "./paneSplit.ts";
+import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
-import type { ChatMessage, SessionSnapshot, StartInput } from "./types";
+import { HistoryRail } from "./HistoryRail";
+import { archiveThread, loadThreads, railThreads, type ArchivedThread } from "./threadArchive";
+import { thoughtNotesFromChat, thoughtTurnsFromChat } from "./trajectoryLogic";
+import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
+
+function patchLastAssistant(prev: ChatMessage[], field: "text" | "thinking", token: string): ChatMessage[] {
+  const last = prev[prev.length - 1];
+  if (!last || last.role !== "assistant") return prev;
+  return [...prev.slice(0, -1), { ...last, [field]: `${last[field] || ""}${token}` }];
+}
+
+function ErrorNote({ error }: { error: string }) {
+  if (!error) return null;
+  return (
+    <p className="file error-note" role="alert">
+      {error}
+    </p>
+  );
+}
 
 export function App() {
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [events, setEvents] = useState<AgentEvent[]>([]);
   const [busy, setBusy] = useState(false);
   const [overlay, setOverlay] = useState(false);
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
+  const [health, setHealth] = useState<DemoHealth | null>(null);
+  const [notesAttached, setNotesAttached] = useState(false);
+  const [chatPct, setChatPct] = useState(0.38);
+  const [dragging, setDragging] = useState(false);
+  const [threads, setThreads] = useState<ArchivedThread[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const robotRef = useRef<SessionSnapshot["robot"]>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const chatPctRef = useRef(chatPct);
+  const dragRef = useRef<{ startX: number; startPct: number; width: number } | null>(null);
+  chatPctRef.current = chatPct;
+
+  useEffect(() => {
+    const widthOf = () => workspaceRef.current?.clientWidth || 1280;
+    setChatPct(loadChatPct(widthOf()));
+    setThreads(loadThreads());
+    const onResize = () => setChatPct((pct) => clampChatPct(pct, widthOf()));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchHealth()
+      .then((next) => {
+        if (!cancelled) setHealth(next);
+      })
+      .catch(() => {
+        if (!cancelled) setHealth(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.id]);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
     robotRef.current = snap.robot;
     setSession(snap);
+    if (Array.isArray(snap.events)) setEvents(snap.events);
   }, []);
 
   useEffect(() => {
@@ -44,34 +97,22 @@ export function App() {
       setMessages((prev) => [...prev, { role: "assistant", text: "", thinking: "" }]);
       try {
         await streamChat(sessionId, text, {
-          onThinking: (token) => {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "assistant") return prev;
-              next[next.length - 1] = { ...last, thinking: `${last.thinking || ""}${token}` };
-              return next;
-            });
-          },
-          onText: (token) => {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "assistant") return prev;
-              next[next.length - 1] = { ...last, text: `${last.text}${token}` };
-              return next;
-            });
-          },
+          onThinking: (token) => setMessages((prev) => patchLastAssistant(prev, "thinking", token)),
+          onText: (token) => setMessages((prev) => patchLastAssistant(prev, "text", token)),
           onTool: (name, status) => {
             setRunningTool(status === "start" ? name : status === "done" ? null : name);
+          },
+          onEvent: (event) => {
+            setEvents((prev) => {
+              if (prev.some((item) => item.seq === event.seq && item.kind === event.kind)) return prev;
+              return [...prev, event].sort((a, b) => a.seq - b.seq);
+            });
           },
           onSnapshot: applySnapshot,
           onChecks: (checks) => {
             setSession((cur) => (cur && checks ? { ...cur, checks } : cur));
           },
-          onAnimation: (allowed) => {
-            if (allowed && robotSupportsWatch(robotRef.current)) setOverlay(true);
-          },
+          onAnimation: () => undefined,
           onError: (message) => setError(message),
           onDone: () => undefined,
         });
@@ -85,26 +126,37 @@ export function App() {
     [applySnapshot]
   );
 
+  const parkCurrent = useCallback(() => {
+    setThreads((prev) => archiveThread(prev, session, messages, events));
+  }, [session, messages, events]);
+
   const changeDevice = () => {
+    parkCurrent();
     setOverlay(false);
     setSession(null);
     setMessages([]);
+    setEvents([]);
     setError("");
     setRunningTool(null);
+    setNotesAttached(false);
   };
 
   const start = async (input: StartInput) => {
+    parkCurrent();
     setBusy(true);
     setError("");
+    setEvents([]);
+    setNotesAttached(hasAttachedNotes(input.doc));
     try {
       const snap = await createSession(input);
       robotRef.current = snap.robot;
       setSession(snap);
+      if (Array.isArray(snap.events)) setEvents(snap.events);
       setMessages([
         {
           role: "user",
           text: input.goal,
-          meta: input.doc.trim() ? "Notes: draft" : "Notes: none",
+          meta: hasAttachedNotes(input.doc) ? "Notes attached" : undefined,
         },
       ]);
       await runTurn(snap.id, "", true);
@@ -116,63 +168,162 @@ export function App() {
 
   const status = session?.checks?.status;
   const canWatch = sessionCanWatch(session?.robot, status, session?.analyze ?? null);
-  const planBackend = session?.robot === "Hamilton" || session?.robot === "Tecan";
-  const tone = headerTone(status, canWatch);
+  const planBackend = isPlanCodegen(session?.robot);
+  const deckPreview = planBackend && status === "pass" && Boolean(session?.plan && typeof session.plan === "object");
+  const tone = headerTone(status, canWatch && !busy);
+  const lastMessage = messages[messages.length - 1];
+  const thinkingLive =
+    busy && lastMessage?.role === "assistant" && Boolean(lastMessage.thinking) && !lastMessage.text && !runningTool;
+  const hasRail = Boolean(session) || threads.length > 0;
+  const listedThreads = railThreads(threads, session, messages, events);
+  const robotLabel = session?.device_label ?? session?.robot ?? "";
+
+  const onSeamPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    const width = workspaceRef.current?.clientWidth || 1280;
+    dragRef.current = { startX: event.clientX, startPct: chatPct, width };
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onSeamPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    setChatPct(clampChatPct(drag.startPct + (event.clientX - drag.startX) / drag.width, drag.width));
+  };
+  const onSeamPointerUp = () => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDragging(false);
+    saveChatPct(chatPctRef.current);
+  };
+
+  const restoreThread = (id: string) => {
+    if (session?.id === id) return;
+    const thread = listedThreads.find((item) => item.id === id) ?? threads.find((item) => item.id === id);
+    if (!thread) return;
+    parkCurrent();
+    robotRef.current = thread.session.robot;
+    setSession(thread.session);
+    setMessages(thread.messages);
+    setEvents(thread.events);
+    setError("");
+    setOverlay(false);
+    setNotesAttached(hasAttachedNotes(thread.session.doc));
+  };
 
   return (
     <div className="app">
-      <div className="shell">
+      <header className="workspace-header">
         <div className="brand">
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            <p>Local chat demo · 127.0.0.1</p>
-            {session?.code_service === "down" && !planBackend ? (
-              <p className="code-offline">Code service offline — animation unavailable</p>
-            ) : null}
+            {!session ? <p>On-screen preview only</p> : null}
           </div>
         </div>
+        {session ? (
+          <div className="header-status">
+            <strong className={tone ? `status-${tone}` : undefined}>
+              {phaseLabel(
+                session.phase,
+                status,
+                canWatch,
+                planBackend,
+                session.checks,
+                session.intake_done,
+                Boolean(session.sop?.trim()),
+                deckPreview,
+                busy
+              )}
+            </strong>
+            <span>
+              {robotLabel}
+              {session.goal ? ` · ${headerGoalPreview(robotLabel, session.goal)}` : ""}
+            </span>
+            {notesAttached ? <span>Notes attached</span> : null}
+            {session.code_service === "down" && !planBackend ? (
+              <span className="code-offline">Preview service down — OT-2 and Flex scripts stay off</span>
+            ) : null}
+            <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
+              Change robot
+            </button>
+          </div>
+        ) : health && (!health.hasKey || health.code_service !== "up") ? (
+          <p className="demo-health" data-testid="demo-health">
+            {health.hasKey ? "preview down" : "No DeepSeek key"}
+          </p>
+        ) : health ? (
+          <p className="demo-health" data-testid="demo-health">
+            preview ready
+          </p>
+        ) : null}
+      </header>
 
-        {!session ? (
-          <>
-            <StartForm busy={busy} onSubmit={start} />
-            {error ? <p className="file" style={{ color: "var(--error)" }}>{error}</p> : null}
-          </>
-        ) : (
-          <>
-            <div className="card collapsed">
-              <div>
-                <div>
-                  <strong className={tone ? `status-${tone}` : undefined}>
-                    {phaseLabel(session.phase, status, canWatch, planBackend, session.checks)}
-                  </strong>
-                </div>
-                <div>{session.goal}</div>
-                <div>Notes: {session.doc === "none" || !session.doc ? "none" : "draft"}</div>
-              </div>
-              <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
-                Change device
-              </button>
+      <div
+        className={[
+          "workspace",
+          dragging ? "dragging" : "",
+          hasRail ? "has-history" : "",
+          hasRail && historyOpen ? "history-open" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        data-testid="shell"
+        ref={workspaceRef}
+        style={{ ["--chat-pct" as string]: `${(chatPct * 100).toFixed(2)}%` }}
+      >
+        <section className="chat-column" data-testid="chat-column">
+          {!session ? (
+            <div className="start-scroll">
+              <StartForm busy={busy} onSubmit={start} />
+              <ErrorNote error={error} />
             </div>
-            <Pipeline session={session} runningTool={runningTool} busy={busy} />
-            <ChatPane
-              messages={messages}
-              busy={busy}
-              onSend={(text) => runTurn(session.id, text, false)}
-            />
-            <IssuesPanel checks={session.checks} />
-            <ExportsPanel session={session} />
-            {error ? <p className="file" style={{ color: "var(--error)" }}>{error}</p> : null}
-          </>
-        )}
+          ) : (
+            <div className="chat-column-body">
+              <ChatPane
+                messages={messages}
+                busy={busy}
+                robot={session.robot}
+                onSend={(text) => runTurn(session.id, text, false)}
+              />
+              <ErrorNote error={error} />
+            </div>
+          )}
+        </section>
+        <div
+          className="split-seam"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize chat"
+          data-testid="split-seam"
+          onPointerDown={onSeamPointerDown}
+          onPointerMove={onSeamPointerMove}
+          onPointerUp={onSeamPointerUp}
+          onPointerCancel={onSeamPointerUp}
+        />
+        <RightStage
+          session={session}
+          events={events}
+          runningTool={runningTool}
+          busy={busy}
+          canWatch={canWatch}
+          onWatch={() => setOverlay(true)}
+          live={{
+            thinking: thinkingLive,
+            thoughtTurns: thoughtTurnsFromChat(messages),
+            thoughtNotes: thoughtNotesFromChat(messages),
+            thinkingNote: lastMessage?.thinking,
+          }}
+        />
+        <HistoryRail
+          threads={listedThreads}
+          currentId={session?.id}
+          open={historyOpen}
+          onToggle={() => setHistoryOpen((open) => !open)}
+          onSelect={restoreThread}
+        />
       </div>
 
-      {canWatch ? (
-        <button className="fab lit" title="Watch animation" onClick={() => setOverlay(true)}>
-          Watch animation
-        </button>
-      ) : null}
-      {overlay && canWatch ? (
+      {overlay && canWatch && robotSupportsWatch(robotRef.current) ? (
         <Suspense
           fallback={
             <OverlayChrome onClose={() => setOverlay(false)}>

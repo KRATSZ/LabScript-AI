@@ -8,7 +8,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "OT-2",
     codegen: "opentrons_python",
     animation: true,
-    blurb: "Python script + simulation + animation",
+    blurb: "On-screen deck",
   },
   {
     id: "flex",
@@ -16,7 +16,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Flex",
     codegen: "opentrons_python",
     animation: true,
-    blurb: "Python script + simulation + animation",
+    blurb: "On-screen deck",
   },
   {
     id: "hamilton_star",
@@ -24,7 +24,15 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Hamilton",
     codegen: "plan_ir",
     animation: false,
-    blurb: "Step JSON + runnable PyLabRobot script",
+    blurb: "Downloadable script",
+  },
+  {
+    id: "hamilton_vantage",
+    label: "Hamilton Vantage",
+    legacyRobot: "Vantage",
+    codegen: "plan_ir",
+    animation: false,
+    blurb: "Downloadable script",
   },
   {
     id: "tecan_fluent",
@@ -32,7 +40,7 @@ export const DEVICE_CARDS: DeviceCard[] = [
     legacyRobot: "Tecan",
     codegen: "plan_ir",
     animation: false,
-    blurb: "Tecan Fluent .gwl worklist",
+    blurb: "Downloadable worklist",
   },
 ];
 
@@ -53,6 +61,10 @@ export function isPlanCodegen(robot: RobotModel | null | undefined): boolean {
   return deviceByRobot(robot)?.codegen === "plan_ir";
 }
 
+export function isHamiltonRobot(robot: RobotModel | null | undefined): boolean {
+  return robot === "Hamilton" || robot === "Vantage";
+}
+
 export function canStart(goal: string, deviceId: string | undefined): boolean {
   return Boolean(goal.trim() && DEVICE_CARDS.some((card) => card.id === deviceId));
 }
@@ -62,10 +74,11 @@ function namedIn(text: string, name: string): boolean {
   return new RegExp(`(?:^|[^A-Za-z0-9])${escaped}(?![A-Za-z0-9])`, "i").test(text);
 }
 
-/** Unique device named in chip/goal text; undefined if none or several. */
+/** Unique device named in chip/goal text; undefined if none or several. Prefer full labels over short aliases. */
 export function matchDeviceFromText(text: string): string | undefined {
-  const hits = DEVICE_CARDS.filter(
-    (card) => namedIn(text, card.label) || namedIn(text, card.legacyRobot)
-  );
-  return hits.length === 1 ? hits[0].id : undefined;
+  const labelHits = DEVICE_CARDS.filter((card) => namedIn(text, card.label));
+  if (labelHits.length === 1) return labelHits[0].id;
+  if (labelHits.length > 1) return undefined;
+  const legacyHits = DEVICE_CARDS.filter((card) => namedIn(text, card.legacyRobot));
+  return legacyHits.length === 1 ? legacyHits[0].id : undefined;
 }

@@ -18,6 +18,7 @@ import {
   isPatchBudgetRefusal,
   isReviewMismatch,
   isReviewerUnavailable,
+  isInventedLihaTipSizeFinding,
   needsPatch,
   patchCapHit,
   patchInstruction,
@@ -222,6 +223,8 @@ describe("compactChecks", () => {
     const done = wrapChecks(simOk, lpPass, { issues: [] });
     assert.equal(done.fab.lit, true);
     assert.equal(compactChecks(done).next, "done");
+    assert.equal(compactChecks(done).status, "pass");
+    assert.equal(compactChecks(done).download, "ready");
     assert.equal(needsPatch(done), false);
 
     const patchSim = wrapChecks(simFail, skippedLogic("sim_failed"), { issues: [] });
@@ -231,6 +234,10 @@ describe("compactChecks", () => {
     const patchLp = wrapChecks(simOk, lpFail, { issues: [] });
     const compactLp = compactChecks(patchLp);
     assert.equal(compactLp.next, "patch");
+    assert.equal(compactLp.status, "fail");
+    assert.equal(compactLp.download, "withheld");
+    assert.match(compactLp.hint || "", /withheld/i);
+    assert.match(compactLp.hint || "", /do not say \.gwl/i);
     assert.equal(compactLp.logicpass.outcome, "fail");
     assert.ok(compactLp.logicpass.issues.length >= 1);
     assert.equal(compactLp.logicpass.issues.some((line) => line.includes("LP-")), false);
@@ -317,6 +324,91 @@ describe("compactChecks", () => {
     assert.doesNotMatch(patchInstruction(exception), /reviewer_exception/);
     assert.equal(animationAllowed(exception, 1), true);
     assert.equal(animationAllowed(exception, 0), false);
+  });
+
+  it("does not fail review when the reviewer treats LiHa 1000 as a 1000 µL DiTi rack", () => {
+    const invented = {
+      severity: "error" as const,
+      claim:
+        "Tip type does not match the stated intent: the SOP uses a 200 µL DiTi tip rack, but the intent specifies 1000 µL DiTi.",
+      evidence:
+        "Intent: '1000 µL DiTi'. Generated SOP deck: '1 → tecan_diti_200ul_tiprack'; step 1: 'pick up new 200 µL DiTi from slot 1'.",
+      suggestion: "Change the tip rack and pickup to 1000 µL DiTi to match the requested setup.",
+    };
+    assert.equal(isInventedLihaTipSizeFinding(invented), true);
+    const checks = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      findings: [invented],
+    });
+    assert.equal(checks.llmreview?.match, true);
+    assert.equal(isReviewMismatch(checks.llmreview), false);
+    assert.equal(checks.status, "pass");
+    assert.equal(checks.fab.lit, true);
+    const compiled = withCompile(checks, { ok: true, command_count: 6 });
+    assert.equal(compiled.status, "pass");
+
+    const volume = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      findings: [{ claim: "destination volume differs", suggestion: "use 50 uL" }],
+    });
+    assert.equal(volume.status, "fail");
+    assert.equal(isReviewMismatch(volume.llmreview), true);
+
+    const quotedIntent = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      findings: [
+        {
+          claim: "destination volume differs from the chosen 50 µL transfer",
+          evidence:
+            "Intent: 'liha_1000 is the LiHa pipette. Assumed Tecan tips are 200 µL DiTi. Transfer 50 µL'. SOP dispenses 250 µL.",
+          suggestion: "use 50 uL not 250 uL",
+        },
+      ],
+    });
+    assert.equal(isInventedLihaTipSizeFinding(quotedIntent.llmreview?.findings?.[0] ?? {}), false);
+    assert.equal(quotedIntent.llmreview?.match, false);
+    assert.equal(quotedIntent.status, "fail");
+    assert.equal(isReviewMismatch(quotedIntent.llmreview), true);
+
+    const mixed = {
+      severity: "error" as const,
+      claim:
+        "Tip type does not match: the SOP uses a 200 µL DiTi tip rack, but the intent specifies 1000 µL DiTi; destination volume 250 vs 50.",
+      evidence: "SOP dispenses 250 µL. Chosen transfer is 50 µL.",
+      suggestion: "Keep the 200 µL DiTi rack and use 50 µL, not 250 µL.",
+    };
+    assert.equal(isInventedLihaTipSizeFinding(mixed), false);
+    const mixedChecks = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      findings: [mixed],
+    });
+    assert.equal(mixedChecks.llmreview?.match, false);
+    assert.equal(isReviewMismatch(mixedChecks.llmreview), true);
+    assert.equal(mixedChecks.status, "fail");
+    assert.equal(mixedChecks.fab.lit, false);
+  });
+
+  it("does not scrub a LiHa tip finding whose volume fight is only 0.25 mL or only 250 µL", () => {
+    const liha = (fight: string) => ({
+      severity: "error" as const,
+      claim: `Tip type does not match: the SOP uses a 200 µL DiTi tip rack, but the intent specifies 1000 µL DiTi. ${fight}`,
+      evidence: fight,
+      suggestion: "Keep the 200 µL DiTi rack.",
+    });
+    const mlOnly = liha("Destination 0.25 mL.");
+    const ulOnly = liha("Destination 250 µL.");
+    assert.equal(isInventedLihaTipSizeFinding(mlOnly), false);
+    assert.equal(isInventedLihaTipSizeFinding(ulOnly), false);
+    for (const finding of [mlOnly, ulOnly]) {
+      const checks = wrapChecks(simOk, lpPass, { issues: [] }, {
+        match: false,
+        findings: [finding],
+      });
+      assert.equal(checks.llmreview?.match, false);
+      assert.equal(isReviewMismatch(checks.llmreview), true);
+      assert.equal(checks.status, "fail");
+      assert.equal(checks.fab.lit, false);
+    }
   });
 
   it("patchCapHit after the one allowed patch while checks still fail", () => {

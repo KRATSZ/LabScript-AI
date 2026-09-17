@@ -27,6 +27,18 @@ async function readBody(req: IncomingMessage): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+/** Empty body → {}. Garbage JSON → null (never throws). */
+function parseJsonObject(raw: string): Record<string, unknown> | null {
+  if (!raw.trim()) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
 function notFound(res: ServerResponse): void {
   json(res, 404, { error: "not_found" });
 }
@@ -77,9 +89,12 @@ export async function handleRequest(
   }
 
   if (req.method === "POST" && path === "/api/session") {
-    const raw = await readBody(req);
-    const body = raw ? (JSON.parse(raw) as { goal?: string; doc?: string; robot?: string }) : {};
-    const goal = (body.goal || "").trim();
+    const body = parseJsonObject(await readBody(req));
+    if (!body) {
+      json(res, 400, { error: "invalid_json" });
+      return;
+    }
+    const goal = String(body.goal ?? "").trim();
     if (!goal) {
       json(res, 400, { error: "goal is required" });
       return;
@@ -93,7 +108,7 @@ export async function handleRequest(
       return;
     }
     const session = createSession();
-    applyForm(session, { goal, doc: body.doc, robot: body.robot });
+    applyForm(session, { goal, doc: body.doc as string | undefined, robot: body.robot as string | undefined });
     session.codeService = await checkCodeService();
     json(res, 200, snapshot(session));
     return;
@@ -110,19 +125,51 @@ export async function handleRequest(
     return;
   }
 
+  if (
+    (req.method === "POST" &&
+      (path === "/api/plr/visualizer/start" || path === "/api/plr/visualizer/stop")) ||
+    (req.method === "GET" && path === "/api/plr/visualizer/status")
+  ) {
+    const env = loadDemoEnv();
+    const target = `${env.backend}${path}`;
+    try {
+      const body = req.method === "POST" ? await readBody(req) : undefined;
+      const response = await fetch(target, {
+        method: req.method,
+        headers: req.method === "POST" ? { "Content-Type": "application/json" } : undefined,
+        body,
+        signal: AbortSignal.timeout(path.endsWith("/start") ? 60_000 : 8_000),
+      });
+      const text = await response.text();
+      res.writeHead(response.status, { "Content-Type": "application/json; charset=utf-8" });
+      res.end(text);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const down = /fetch failed|ECONNREFUSED|ECONNRESET|aborted|TimeoutError|UND_ERR/i.test(message);
+      json(res, 502, {
+        ok: false,
+        error: down ? "Preview service down." : message,
+      });
+    }
+    return;
+  }
+
   if (req.method === "POST" && path === "/api/chat/stream") {
-    const raw = await readBody(req);
-    const body = raw
-      ? (JSON.parse(raw) as { sessionId?: string; message?: string })
-      : {};
-    const session = body.sessionId ? getSession(body.sessionId) : undefined;
+    const body = parseJsonObject(await readBody(req));
+    if (!body) {
+      json(res, 400, { error: "invalid_json" });
+      return;
+    }
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId : "";
+    const message = typeof body.message === "string" ? body.message : "";
+    const session = sessionId ? getSession(sessionId) : undefined;
     if (!session) {
       json(res, 404, { error: "unknown_session" });
       return;
     }
     const sse = createSseWriter(res);
     try {
-      const ok = await runChatTurn(session, body.message || "", sse);
+      const ok = await runChatTurn(session, message, sse);
       sse.write("done", { ok });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -138,7 +185,13 @@ export async function handleRequest(
 }
 
 export function createWebdemoServer() {
-  return createServer(handleRequest);
+  return createServer((req, res) => {
+    void handleRequest(req, res).catch((error) => {
+      if (!res.headersSent) json(res, 500, { error: "internal_error" });
+      else if (!res.writableEnded) res.end();
+      console.error(error instanceof Error ? error.message : String(error));
+    });
+  });
 }
 
 const isMain =

@@ -48,15 +48,16 @@ const unevalChecks = {
 };
 
 describe("pipelineSteps", () => {
-  it("names the python path Goal→SOP→Code→Checks→Watch", () => {
-    assert.deepEqual(pipelineSteps("OT-2"), ["Goal", "SOP", "Code", "Checks", "Watch"]);
-    assert.deepEqual(pipelineSteps("Flex"), ["Goal", "SOP", "Code", "Checks", "Watch"]);
+  it("names the python path Run→Protocol→Script→Checks→Deck", () => {
+    assert.deepEqual(pipelineSteps("OT-2"), ["Run", "Protocol", "Script", "Checks", "Deck"]);
+    assert.deepEqual(pipelineSteps("Flex"), ["Run", "Protocol", "Script", "Checks", "Deck"]);
   });
 
-  it("names the plan path Goal→SOP→Plan→Checks→Export and never says Code or Watch", () => {
-    assert.deepEqual(pipelineSteps("Hamilton"), ["Goal", "SOP", "Plan", "Checks", "Export"]);
-    assert.deepEqual(pipelineSteps("Tecan"), ["Goal", "SOP", "Plan", "Checks", "Export"]);
-    for (const robot of ["Hamilton", "Tecan"] as const) {
+  it("names the plan path Run→Protocol→Steps→Checks→Files and never says Code or Watch", () => {
+    assert.deepEqual(pipelineSteps("Hamilton"), ["Run", "Protocol", "Steps", "Checks", "Files"]);
+    assert.deepEqual(pipelineSteps("Vantage"), ["Run", "Protocol", "Steps", "Checks", "Files"]);
+    assert.deepEqual(pipelineSteps("Tecan"), ["Run", "Protocol", "Steps", "Checks", "Files"]);
+    for (const robot of ["Hamilton", "Vantage", "Tecan"] as const) {
       const labels = pipelineSteps(robot).join(" ");
       assert.equal(labels.includes("Code"), false);
       assert.equal(labels.includes("Watch"), false);
@@ -143,14 +144,20 @@ describe("pipelineStates", () => {
 describe("phaseLabel", () => {
   it("maps three check states and leaves pre-check phases alone", () => {
     assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
-    assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed — no animation available");
-    assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed — step table below");
+    assert.equal(phaseLabel("ready", "pass", true, false, undefined, undefined, undefined, false, true), "In progress");
+    assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed");
+    assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed");
+    assert.equal(
+      phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true),
+      "Ready to watch"
+    );
     assert.equal(phaseLabel("ready", "fail", false, false), "Checks failed");
     assert.equal(phaseLabel("ready", "fail", false, true), "Checks failed");
     assert.equal(phaseLabel("ready", "unevaluable", false, false), "Cannot verify");
     assert.equal(phaseLabel("need_hw_slots", null, false, false), "Missing deck details");
     assert.equal(phaseLabel("ready", null, false, false), "In progress");
-    assert.equal(phaseLabel("need_robot", null, false, false), "Which robot — OT-2, Flex, Hamilton, or Tecan?");
+    assert.equal(phaseLabel("ready", null, false, false, null, false, false), "Quick check");
+    assert.equal(phaseLabel("need_robot", null, false, false), "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?");
   });
 
   it("unevaluable header uses the checks consequence, not a frontend invention", () => {
@@ -202,10 +209,14 @@ describe("robot switch snapshot", () => {
     assert.equal(ham.analyze, null);
     assert.notEqual(ot.sop, ham.sop);
     assert.equal(phaseLabel(ot.phase, ot.checks?.status, true, false), "Ready to watch");
-    assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed — step table below");
+    assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed");
+    assert.equal(
+      phaseLabel(ham.phase, ham.checks?.status, false, true, undefined, undefined, undefined, true),
+      "Ready to watch"
+    );
     assert.deepEqual(pipelineStates(ham, null).slice(0, 3), ["ok", "ok", "ok"]);
-    assert.deepEqual(pipelineSteps(ot.robot), ["Goal", "SOP", "Code", "Checks", "Watch"]);
-    assert.deepEqual(pipelineSteps(ham.robot), ["Goal", "SOP", "Plan", "Checks", "Export"]);
+    assert.deepEqual(pipelineSteps(ot.robot), ["Run", "Protocol", "Script", "Checks", "Deck"]);
+    assert.deepEqual(pipelineSteps(ham.robot), ["Run", "Protocol", "Steps", "Checks", "Files"]);
   });
 });
 

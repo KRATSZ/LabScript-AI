@@ -3,6 +3,14 @@ import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
 import type { StartInput } from "./types";
 
+const TILE_MARK: Record<string, string> = {
+  ot2: "🧪",
+  flex: "🧬",
+  hamilton_star: "🔬",
+  hamilton_vantage: "⚗️",
+  tecan_fluent: "💧",
+};
+
 interface Props {
   busy: boolean;
   onSubmit: (input: StartInput) => void;
@@ -32,8 +40,8 @@ export function StartForm({ busy, onSubmit }: Props) {
 
   return (
     <form className="card form" onSubmit={submit}>
-      <label>Device</label>
-      <p className="hint">Pick a robot first. You can change it later.</p>
+      <label>Which robot?</label>
+      <p className="hint">Pick a robot.</p>
       <div className="device-grid">
         {DEVICE_CARDS.map((card) => (
           <button
@@ -41,46 +49,54 @@ export function StartForm({ busy, onSubmit }: Props) {
             type="button"
             className={deviceId === card.id ? "device-card selected" : "device-card"}
             aria-pressed={deviceId === card.id}
+            data-device={card.id}
             disabled={busy}
             onClick={() => setDeviceId(card.id)}
           >
-            <strong>{card.label}</strong>
-            <span>{card.blurb}</span>
+            <strong>
+              <span className="device-emoji" aria-hidden="true">
+                {TILE_MARK[card.id] ?? ""}
+              </span>
+              {card.label}
+            </strong>
+            <span className="device-blurb">{card.blurb}</span>
           </button>
         ))}
       </div>
 
-      <label htmlFor="goal">Experimental goal</label>
+      <label htmlFor="goal">What should we run?</label>
       <textarea
         id="goal"
         required
-        rows={3}
+        rows={2}
         placeholder="e.g. Transfer 50 µL from well A1 to B1"
         value={goal}
         onChange={(e) => setGoal(e.target.value)}
       />
 
-      <label htmlFor="doc">Existing notes (optional)</label>
+      <label htmlFor="doc" className="notes-head">
+        <span>Notes (optional)</span>
+        <span className="file-label">
+          <input
+            type="file"
+            accept=".md,.txt,.py,.json"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setFileName(file.name);
+              setDoc(await file.text());
+            }}
+          />
+          {fileName || "or attach a file"}
+        </span>
+      </label>
       <textarea
         id="doc"
-        rows={3}
-        placeholder="Paste a protocol draft, or leave blank"
+        rows={2}
+        placeholder="Paste a draft, or leave blank"
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
       />
-      <div className="row">
-        <input
-          type="file"
-          accept=".md,.txt,.py,.json"
-          onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            setFileName(file.name);
-            setDoc(await file.text());
-          }}
-        />
-        <span className="file">{fileName || "No file selected"}</span>
-      </div>
 
       <div className="chips">
         {EXAMPLES.map((item) => (
@@ -97,7 +113,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       </div>
 
       <button className="primary" type="submit" disabled={busy || !canStart(goal, deviceId)}>
-        {busy ? "Starting…" : "Start"}
+        {busy ? "Starting…" : "Let’s go"}
       </button>
     </form>
   );

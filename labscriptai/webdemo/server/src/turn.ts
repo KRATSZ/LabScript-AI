@@ -1,14 +1,16 @@
 import { assumedCapacityLine } from "./devices.ts";
 import { animationAllowed, compactChecks } from "./gate.ts";
 import { SYSTEM_PROMPT } from "./prompt.ts";
-import { isOpentrons, snapshot, type SessionState } from "./session.ts";
+import { deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
 
 export const CONTINUE_STEER =
-  "Continue from LIVE SESSION. Run next_tool. Ask only for volumes, wells, sample counts, or labware the assumed deck does not have. Never ask which robot.";
+  "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the deck (Hamilton: tip carrier / plate carrier / trough, never slots 1/2/3) — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
 
 export function nextToolHint(session: SessionState): string {
   const snap = snapshot(session);
   if (snap.phase !== "ready") return "ask_user";
+  if (unresolvedGoalNotesConflict(session)) return "ask_user";
+  if (intakeOpen(session)) return "ask_user";
   if (!snap.sop.trim()) return "generate_sop";
   if (isOpentrons(session) && !snap.code.trim()) {
     if (snap.code_service === "down") return "emit_plan";
@@ -47,6 +49,7 @@ export function liveSessionBlock(session: SessionState): string {
     ? `{sim.ok=${checks!.sim.ok}, logicpass.outcome=${checks!.logicpass.outcome}, review.match=${reviewLabel}, fab.lit=${checks!.fab.lit}, next=${compact.next}}`
     : "none";
   const doc = !snap.doc || snap.doc === "none" ? "none" : "draft";
+  const conflict = unresolvedGoalNotesConflict(session);
   const capacity =
     snap.deck_assumed ? assumedCapacityLine(session.robot, session.hardware.deck) : "";
   return [
@@ -54,6 +57,8 @@ export function liveSessionBlock(session: SessionState): string {
     `phase: ${snap.phase}`,
     `missing: ${snap.missing.join(", ") || "none"}`,
     `doc: ${doc}`,
+    ...(conflict ? [`notes_conflict: ${conflict}`] : []),
+    `intake: ${session.intakeDone ? "done" : "pending"}`,
     `sop_chars: ${snap.sop.length}`,
     `plan_steps: ${Array.isArray(snap.plan?.steps) ? snap.plan.steps.length : 0}`,
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,
@@ -82,7 +87,7 @@ export function nextUserMessage(session: SessionState, text: string): string {
   return [
     `Goal: ${session.goal ?? ""}`,
     `Doc: ${session.doc === "none" || !session.doc ? "none (agent should write SOP later)" : "SOP draft provided"}`,
-    `Robot: ${session.robot ?? "unset"}`,
+    `Robot: ${deviceFor(session.robot)?.label ?? session.robot ?? "unset"}`,
     capacity ? `Assumed deck: ${capacity}` : "",
     session.doc && session.doc !== "none" ? `\nSOP draft:\n${session.doc}` : "",
   ]

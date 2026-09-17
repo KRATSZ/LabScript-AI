@@ -234,9 +234,11 @@ export function attachConsequences(
     consequences?: string[];
   }
 ): ChecksResult {
-  const gated = isReviewMismatch(checks.llmreview)
-    ? { ...checks, fab: { lit: false } }
-    : checks;
+  const llmreview = scrubInventedLihaTipReview(checks.llmreview);
+  const next = llmreview !== undefined ? { ...checks, llmreview } : checks;
+  const gated = isReviewMismatch(next.llmreview)
+    ? { ...next, fab: { lit: false } }
+    : next;
   return {
     ...gated,
     status: checkStatus(gated),
@@ -289,6 +291,66 @@ export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
   return review?.match === false && !isReviewerUnavailable(review);
 }
 
+const INVENTED_DITI_UL = new Set([200, 1000]);
+
+function findingText(item: LlmReviewFinding): string {
+  return [item.claim, item.evidence, item.suggestion].map((part) => String(part ?? "")).join("\n");
+}
+
+function findingUnitToUl(amount: number, unit: string): number {
+  const n = unit.toLowerCase();
+  const ul = n === "ml" || n.startsWith("millilit") || n === "毫升" ? amount * 1000 : amount;
+  return Math.round(ul * 1000) / 1000;
+}
+
+function findingVolumesUl(item: LlmReviewFinding): number[] {
+  const text = findingText(item);
+  const vols: number[] = [];
+  for (const match of text.matchAll(
+    /(\d+(?:\.\d+)?)\s*(µl|ul|μl|microlit(?:er|re)s?|ml|millilit(?:er|re)s?|微升|毫升)/gi
+  )) {
+    vols.push(findingUnitToUl(Number(match[1]), match[2]));
+  }
+  for (const match of text.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:vs\.?|versus)\s*(\d+(?:\.\d+)?)\b/gi)) {
+    vols.push(Number(match[1]), Number(match[2]));
+  }
+  return vols;
+}
+
+/** True when the finding also names a transfer-volume fight, not just 1000-vs-200 DiTi. */
+export function findingHasVolumeMismatch(item: LlmReviewFinding): boolean {
+  const extra = [...new Set(findingVolumesUl(item).filter((vol) => !INVENTED_DITI_UL.has(vol)))];
+  return extra.length >= 1;
+}
+
+/** FCA/LiHa 1000 is the pipette. Do not treat a Tecan claim of 1000 µL DiTi vs 200 µL DiTi as a real mismatch. */
+export function isInventedLihaTipSizeFinding(item: LlmReviewFinding): boolean {
+  const claim = String(item.claim ?? "").toLowerCase();
+  if (!claim) return false;
+  const wants1000 =
+    /liha[_\s-]*1000/.test(claim) ||
+    /fca[_\s-]*1000/.test(claim) ||
+    /1000\s*(?:µl|ul|μl)\s*diti/.test(claim) ||
+    /intent specifies 1000/.test(claim);
+  const has200 = /200\s*(?:µl|ul|μl)|200ul|diti_200/.test(claim);
+  const tipTalk = /diti|tip\s*rack|tiprack|tip type/.test(claim);
+  if (!(wants1000 && has200 && tipTalk)) return false;
+  // A mixed claim that also fights 250 vs 50 is a real mismatch; do not drop it.
+  return !findingHasVolumeMismatch(item);
+}
+
+export function scrubInventedLihaTipReview(
+  review?: LlmReviewResult | null
+): LlmReviewResult | undefined {
+  if (!review) return undefined;
+  if (review.match === true || isReviewerUnavailable(review)) return review;
+  const findings = review.findings ?? [];
+  const kept = findings.filter((item) => !isInventedLihaTipSizeFinding(item));
+  if (kept.length === findings.length) return review;
+  if (kept.length === 0) return { ...review, match: true, findings: [] };
+  return { ...review, findings: kept };
+}
+
 /** Iterate when sim/logic/compile fails. Review-only mismatch is reported without auto-patching. */
 export function needsPatch(checks: ChecksResult | null | undefined): boolean {
   if (!checks) return false;
@@ -329,6 +391,8 @@ export function compactChecks(
   review: { match?: boolean; status?: "unavailable"; findings: string[] };
   compile?: { ok: boolean; stage?: string; error?: string; hint?: string; command_count?: number };
   fab: { lit: boolean };
+  status: CheckStatus;
+  download: "ready" | "withheld";
   next: "patch" | "done";
   consequences: string[];
   hint?: string;
@@ -370,6 +434,7 @@ export function compactChecks(
         ? { match: checks.llmreview.match }
         : {}),
   };
+  const withheld = checks.status !== "pass";
   const payload = {
     sim: {
       ok: checks.sim.ok,
@@ -381,6 +446,8 @@ export function compactChecks(
     review,
     ...(compile ? { compile } : {}),
     fab: { lit: checks.fab.lit },
+    status: checks.status,
+    download: (withheld ? "withheld" : "ready") as "ready" | "withheld",
     next: (iterate ? "patch" : "done") as "patch" | "done",
     consequences: consequences.slice(0, 5),
     ...(mismatch
@@ -391,7 +458,11 @@ export function compactChecks(
         }
       : unavailable && checks.status === "pass"
         ? { hint: REVIEWER_UNAVAILABLE_DISCLOSURE }
-      : {}),
+      : withheld
+        ? {
+            hint: "Do not say .gwl, worklist, or a downloadable script is ready. Checks did not pass; those files are withheld.",
+          }
+        : {}),
   };
   if (!mismatch) return payload;
   const { review: reviewFirst, ...rest } = payload;

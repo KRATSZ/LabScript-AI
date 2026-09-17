@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { assertLocalBackend, loadDemoEnv } from "./env.ts";
-import { usesFluentCompile, usesHamiltonCompile } from "./devices.ts";
+import { usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
 import {
   emptyStatepass,
   inspectAnalyze,
@@ -24,7 +24,7 @@ import {
   attachConsequences,
   withCompile,
 } from "./gate.ts";
-import { capSop } from "./session.ts";
+import { applyTipCountOverlay, capSop } from "./session.ts";
 import { parseSseBuffer } from "./sse.ts";
 import { codeThinkingToken } from "./think.ts";
 import { DEEPSEEK_MAX_TOKENS } from "./agent.ts";
@@ -100,6 +100,8 @@ ${hardwareConfig}
 
 Goal:
 ${userGoal}
+
+Notes (if any "Existing SOP draft") are intern notes, not the SOP. Write from the Goal volumes and wells. Do not copy junk or contradictory notes.
 
 Output only:
 # <one-line objective>
@@ -298,23 +300,76 @@ async function simulateProtocol(code: string): Promise<SimResult> {
   }
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function pollAnalyzeJob(
+  backend: string,
+  jobId: string,
+  deadline: number
+): Promise<Record<string, unknown> | null> {
+  const urls = [`${backend}/api/visualizer/jobs/${jobId}`, `${backend}/jobs/${jobId}`];
+  while (Date.now() < deadline) {
+    for (const url of urls) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(15_000) });
+        if (!response.ok) continue;
+        const job = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+        if (!job || typeof job !== "object") continue;
+        const status = String(job.status || "");
+        const result = job.result && typeof job.result === "object" ? (job.result as Record<string, unknown>) : null;
+        if (status === "succeeded") return result;
+        if (status === "failed") return result;
+        break;
+      } catch {
+        continue;
+      }
+    }
+    await sleep(400);
+  }
+  return null;
+}
+
+async function analyzeProtocolSync(
+  backend: string,
+  form: FormData
+): Promise<Record<string, unknown> | null> {
+  const response = await fetch(`${backend}/api/visualizer/analyze`, {
+    method: "POST",
+    body: form,
+    signal: AbortSignal.timeout(SIM_ANALYZE_MS),
+  });
+  if (!response.ok) return null;
+  const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+  return payload && typeof payload === "object" ? payload : null;
+}
+
 async function analyzeProtocol(code: string): Promise<Record<string, unknown> | null> {
   try {
     const backend = localBackend();
     const form = new FormData();
-    form.append(
-      "protocol",
-      new Blob([code], { type: "text/x-python" }),
-      "protocol.py"
-    );
-    const response = await fetch(`${backend}/api/visualizer/analyze`, {
-      method: "POST",
-      body: form,
-      signal: AbortSignal.timeout(SIM_ANALYZE_MS),
-    });
-    if (!response.ok) return null;
-    const payload = (await response.json().catch(() => null)) as Record<string, unknown> | null;
-    return payload && typeof payload === "object" ? payload : null;
+    form.append("protocol", new Blob([code], { type: "text/x-python" }), "protocol.py");
+    try {
+      const started = await fetch(`${backend}/api/visualizer/analyze/start`, {
+        method: "POST",
+        body: form,
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (started.ok) {
+        const body = (await started.json().catch(() => null)) as Record<string, unknown> | null;
+        const jobId = body && body.id != null ? String(body.id) : "";
+        if (jobId) {
+          const polled = await pollAnalyzeJob(backend, jobId, Date.now() + SIM_ANALYZE_MS);
+          if (polled) return polled;
+        }
+      }
+    } catch {
+      // Production-shaped start/poll missing — fall back to the sync analyze POST.
+    }
+    const retry = new FormData();
+    retry.append("protocol", new Blob([code], { type: "text/x-python" }), "protocol.py");
+    return await analyzeProtocolSync(backend, retry);
   } catch {
     return null;
   }
@@ -739,13 +794,14 @@ export function parseHamiltonCompileStdout(
 
 export async function runHamiltonCompile(
   plan: Record<string, unknown>,
-  spawnFn: StdinJsonSpawn = spawnStdinJson
+  spawnFn: StdinJsonSpawn = spawnStdinJson,
+  family: "star" | "vantage" = "vantage"
 ): Promise<HamiltonCompileResult> {
   const env = loadDemoEnv();
   const script = path.join(env.webdemoRoot, "python", "compile_hamilton.py");
   try {
     const result = await spawnFn({
-      argv: [env.python, script],
+      argv: [env.python, script, "--family", family],
       stdin: JSON.stringify(plan),
       timeoutMs: FLUENT_COMPILE_MS,
       env: { ...process.env, PYTHONPATH: env.repoRoot },
@@ -761,12 +817,14 @@ export async function attachHamiltonCompile(
   checks: ChecksResult,
   plan: Record<string, unknown>,
   robot?: string,
-  compileFn: (plan: Record<string, unknown>) => Promise<HamiltonCompileResult> = runHamiltonCompile
+  compileFn?: (plan: Record<string, unknown>) => Promise<HamiltonCompileResult>
 ): Promise<{ checks: ChecksResult; artifacts?: SessionArtifacts }> {
   if (!usesHamiltonCompile(robot) || checks.status !== "pass") return { checks };
+  const family = hamiltonFamily(robot) ?? "vantage";
+  const run = compileFn ?? ((next) => runHamiltonCompile(next, spawnStdinJson, family));
   let compiled: HamiltonCompileResult;
   try {
-    compiled = await compileFn(plan);
+    compiled = await run(plan);
   } catch {
     return { checks };
   }
@@ -787,7 +845,7 @@ export async function runPlanChecks(
   plan: Record<string, unknown> | null;
   artifacts?: SessionArtifacts;
 }> {
-  const raw = await runPlanCli({ plan, user_intent: userIntent });
+  const raw = await runPlanCli({ plan, user_intent: userIntent, robot: opts?.robot ?? "" });
   const simRaw = (raw.sim && typeof raw.sim === "object" ? raw.sim : raw) as Record<string, unknown>;
   const sim: SimResult = {
     ok: simRaw.ok === true,
@@ -797,7 +855,11 @@ export async function runPlanChecks(
   const outPlan = (raw.plan as Record<string, unknown>) || plan;
   const rawLogic =
     raw.logicpass && typeof raw.logicpass === "object" ? (raw.logicpass as Record<string, unknown>) : null;
-  const logicpass = logicpassFromPlanCli(sim, rawLogic);
+  const logicpass = applyTipCountOverlay(
+    logicpassFromPlanCli(sim, rawLogic),
+    outPlan,
+    userIntent
+  );
   const checks = await withOptionalReview(
     wrapChecks(sim, logicpass, emptyStatepass(sim.ok ? undefined : String(sim.reason || "sim_failed"))),
     JSON.stringify(plan),

@@ -6,9 +6,9 @@ export type DownloadKind = "sop" | "python" | "plan" | "gwl" | "plr";
 export const DOWNLOAD_LABELS: Record<DownloadKind, string> = {
   sop: "SOP",
   python: "Python",
-  plan: "Step JSON",
-  gwl: ".gwl worklist",
-  plr: "PyLabRobot script",
+  plan: "Steps",
+  gwl: "Fluent worklist",
+  plr: "Robot script",
 };
 
 export interface PlanStepLike {
@@ -20,6 +20,8 @@ export interface PlanStepLike {
   destination?: string;
   location?: string;
   volume_ul?: number;
+  tip_rack?: string;
+  tip_positions?: string[] | string;
 }
 
 function asStep(step: unknown): PlanStepLike {
@@ -36,11 +38,19 @@ export function planStepLine(step: unknown): string {
   const source = typeof s.source === "string" && s.source.trim() ? s.source : "";
   const dest = typeof s.destination === "string" && s.destination.trim() ? s.destination : "";
   const loc = typeof s.location === "string" && s.location.trim() ? s.location : "";
+  const rack = typeof s.tip_rack === "string" && s.tip_rack.trim() ? s.tip_rack : "";
+  const tipList = Array.isArray(s.tip_positions)
+    ? s.tip_positions.filter((well) => typeof well === "string" && well.trim())
+    : typeof s.tip_positions === "string" && s.tip_positions.trim()
+      ? [s.tip_positions.trim()]
+      : [];
+  const tips = tipList.join(",");
   let route = "";
   if (source && dest) route = `${source}→${dest}`;
   else if (source) route = source;
   else if (dest) route = dest;
   else if (loc) route = loc;
+  else if (tips) route = rack ? `${rack}:${tips}` : tips;
   return [id, prim, vol, route].filter(Boolean).join(" ");
 }
 
@@ -59,8 +69,11 @@ export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): str
   if (kind === "sop") return "Human-readable protocol write-up";
   if (kind === "python") return "Run with opentrons_simulate or upload to OT App";
   if (kind === "gwl") return "Import into FluentControl via Load Worklist";
-  if (kind === "plr") return "Runnable PyLabRobot script — run on the Vantage-connected PC";
-  if (robot === "Hamilton") return "Step table alongside the PyLabRobot script";
+  if (kind === "plr") {
+    if (robot === "Hamilton") return "Runnable script — run on the STAR-connected PC";
+    return "Runnable script — run on the Vantage-connected PC";
+  }
+  if (robot === "Hamilton" || robot === "Vantage") return "Step table alongside the robot script";
   if (robot === "Tecan") return "Step table alongside the Fluent worklist";
   return "Step table as JSON";
 }
@@ -76,7 +89,7 @@ export function downloadable(session: DownloadSource): DownloadKind[] {
   const allowPython = !robot || pythonDevice;
   const allowPlan = !robot || planDevice || (pythonDevice && !session.code?.trim());
   const allowGwl = !robot || robot === "Tecan";
-  const allowPlr = !robot || robot === "Hamilton";
+  const allowPlr = !robot || robot === "Hamilton" || robot === "Vantage";
 
   const out: DownloadKind[] = [];
   if (session.sop?.trim()) out.push("sop");

@@ -14,6 +14,24 @@ export function sessionCanWatch(
   return robotSupportsWatch(robot) && status === "pass" && isPlayableAnalyze(analyze);
 }
 
+/** Honest OT Watch copy when 8010/analyze cannot light the overlay. Null if Watch is not this robot's path. */
+export function watchUnavailableCopy(
+  robot: RobotModel | null | undefined,
+  codeService: "up" | "down" | undefined,
+  status: CheckStatus | null | undefined,
+  analyze: Record<string, unknown> | null
+): string | null {
+  if (!robotSupportsWatch(robot)) return null;
+  if (sessionCanWatch(robot, status, analyze)) return null;
+  if (codeService === "down") {
+    return "Watch needs the local preview service. It stays off until that service is up.";
+  }
+  if (status === "pass" && !isPlayableAnalyze(analyze)) {
+    return "Checks passed, but the preview has no motion yet.";
+  }
+  return null;
+}
+
 function firstCommandCreatedAt(analyze: Record<string, unknown>): string | undefined {
   const cmds = analyze.commands;
   if (!Array.isArray(cmds) || !cmds[0] || typeof cmds[0] !== "object") return undefined;
@@ -85,7 +103,25 @@ export function padAnalysisForAnimator(
     typeof (rawConfig as { protocolType?: unknown }).protocolType === "string"
       ? rawConfig
       : { protocolType: "python", apiVersion: [2, 15] };
-  return { ...analyze, createdAt, robotType, config, commands: rewriteTrashDropTips(analyze) };
+  const asList = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+  return {
+    ...analyze,
+    createdAt,
+    robotType,
+    config,
+    commands: rewriteTrashDropTips(analyze),
+    liquids: asList(analyze.liquids),
+    labware: asList(analyze.labware),
+    pipettes: asList(analyze.pipettes),
+    modules: asList(analyze.modules),
+    errors: asList(analyze.errors),
+    files: asList(analyze.files).length
+      ? asList(analyze.files)
+      : [{ name: "protocol.py", role: "main" }],
+    metadata: analyze.metadata && typeof analyze.metadata === "object" ? analyze.metadata : {},
+    runTimeParameters: asList(analyze.runTimeParameters),
+    result: typeof analyze.result === "string" ? analyze.result : "ok",
+  };
 }
 
 export function safeNormalizeAnalysis<T>(

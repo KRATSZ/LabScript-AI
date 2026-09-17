@@ -35,6 +35,16 @@ function fillMissingFromFile(filePath: string): void {
   }
 }
 
+export const DEFAULT_DEEPSEEK_MODEL = "deepseek-flash";
+export const DEFAULT_DEEPSEEK_ORIGIN = "https://api.deepseek.com";
+
+/** Origin used with `/chat/completions`. Accepts `…/v1` and trailing slashes. */
+export function normalizeDeepseekBaseUrl(raw: string | undefined): string {
+  const trimmed = (raw || "").trim().replace(/\/+$/, "");
+  const origin = trimmed || DEFAULT_DEEPSEEK_ORIGIN;
+  return origin.replace(/\/v1$/i, "") || DEFAULT_DEEPSEEK_ORIGIN;
+}
+
 export interface DemoEnv {
   apiKey: string;
   baseUrl: string;
@@ -67,17 +77,27 @@ export function loadDemoEnv(): DemoEnv {
     process.env.LABSCRIPTAI_DEEPSEEK_API_KEY ||
     process.env.DEEPSEEK_API_KEY ||
     "";
-  if (apiKey && !process.env.DEEPSEEK_API_KEY) {
-    process.env.DEEPSEEK_API_KEY = apiKey;
-  }
-
-  const baseUrl = (
-    process.env.LABSCRIPTAI_DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1"
-  ).replace(/\/$/, "");
+  const baseUrl = normalizeDeepseekBaseUrl(
+    process.env.LABSCRIPTAI_DEEPSEEK_BASE_URL || process.env.DEEPSEEK_BASE_URL
+  );
   const model =
     process.env.LABSCRIPTAI_DEEPSEEK_MODEL ||
+    process.env.DEEPSEEK_MODEL ||
     process.env.LABSCRIPTAI_MODEL_NAME ||
-    "deepseek-v4-flash";
+    DEFAULT_DEEPSEEK_MODEL;
+  // Python reviewer/author clients read DEEPSEEK_* / DEEPSEEK_REVIEW_*.
+  const pythonBase = baseUrl;
+  const fill = (key: string, value: string) => {
+    if (!process.env[key]) process.env[key] = value;
+  };
+  if (apiKey) {
+    fill("DEEPSEEK_API_KEY", apiKey);
+    fill("DEEPSEEK_REVIEW_API_KEY", apiKey);
+  }
+  fill("DEEPSEEK_BASE_URL", pythonBase);
+  fill("DEEPSEEK_REVIEW_BASE_URL", pythonBase);
+  fill("DEEPSEEK_MODEL", model);
+  fill("DEEPSEEK_REVIEW_MODEL", model);
 
   return {
     apiKey,

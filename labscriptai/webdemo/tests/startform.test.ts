@@ -19,7 +19,7 @@ describe("StartForm examples", () => {
     assert.equal(EXAMPLES[1].label, "Prepare a PCR mix");
     assert.match(EXAMPLES[1].goal, /PCR mix/);
     assert.match(EXAMPLES[1].doc, /master mix/);
-    assert.equal(EXAMPLES[2].label, "No protocol — common deck");
+    assert.equal(EXAMPLES[2].label, "Typical deck");
     assert.match(EXAMPLES[2].goal, /common deck/);
     const blob = EXAMPLES.map((item) => `${item.label}\n${item.goal}\n${item.doc}`).join("\n");
     assert.doesNotMatch(blob, /standard3|standard 3-slot/i);
@@ -45,10 +45,11 @@ describe("StartForm device cards", () => {
       assert.ok(card.blurb.trim());
       if (!card.animation) assert.doesNotMatch(card.blurb, /animat/i);
     }
-    assert.equal(DEVICE_CARDS[0].blurb, "Python script + simulation + animation");
-    assert.equal(DEVICE_CARDS[1].blurb, "Python script + simulation + animation");
-    assert.equal(DEVICE_CARDS[2].blurb, "Step JSON + runnable PyLabRobot script");
-    assert.equal(DEVICE_CARDS[3].blurb, "Tecan Fluent .gwl worklist");
+    assert.equal(DEVICE_CARDS[0].blurb, "On-screen deck");
+    assert.equal(DEVICE_CARDS[1].blurb, "On-screen deck");
+    assert.equal(DEVICE_CARDS[2].blurb, "Downloadable script");
+    assert.equal(DEVICE_CARDS[3].blurb, "Downloadable script");
+    assert.equal(DEVICE_CARDS[4].blurb, "Downloadable worklist");
   });
 
   it("Start requires a selected device and a goal", () => {
@@ -62,6 +63,7 @@ describe("StartForm device cards", () => {
 
   it("example chips select a card only when they name exactly one device", () => {
     assert.equal(matchDeviceFromText("Hamilton STAR: transfer 50 µL A1 to B1"), "hamilton_star");
+    assert.equal(matchDeviceFromText("Hamilton Vantage transfer"), "hamilton_vantage");
     assert.equal(matchDeviceFromText("Flex PCR mix"), "flex");
     assert.equal(matchDeviceFromText("OT-2: transfer"), "ot2");
     assert.equal(matchDeviceFromText("Tecan Fluent .gwl"), "tecan_fluent");
@@ -79,10 +81,22 @@ describe("StartForm device cards", () => {
     assert.match(src, /DEVICE_CARDS\.map/);
     assert.match(src, /canStart\(goal, deviceId\)/);
     assert.match(src, /matchDeviceFromText/);
-    assert.match(src, /Pick a robot first/);
+    assert.match(src, /Pick a robot/);
+    assert.match(src, /Paste a draft, or leave blank/);
+    assert.match(src, /device-emoji/);
+    assert.match(src, /device-blurb/);
+    assert.match(src, /TILE_MARK/);
+    assert.doesNotMatch(readWeb("styles.css"), /13,\s*148,\s*136/);
+    assert.match(readWeb("styles.css"), /color-mix\(in srgb, var\(--primary\)/);
+    assert.match(readWeb("styles.css"), /\.device-card strong \{[^}]*inline-flex/s);
+    assert.doesNotMatch(readWeb("StagePane.tsx"), />\s*Expand\s*</);
+    assert.doesNotMatch(readWeb("App.tsx"), /Model \$\{/);
+    assert.doesNotMatch(readWeb("ChatPane.tsx"), /👤|🧪/);
+    assert.doesNotMatch(readWeb("styles.css"), /\.primary \{[^}]*linear-gradient/s);
+    assert.doesNotMatch(src, /couple of questions/);
     assert.doesNotMatch(src, /Robot is asked in chat/);
     assert.match(src, /aria-pressed=\{deviceId === card\.id\}/);
-    assert.match(readWeb("App.tsx"), /Change device/);
+    assert.match(readWeb("App.tsx"), /Change robot/);
     assert.match(readWeb("types.ts"), /export interface StartInput/);
     assert.match(readWeb("types.ts"), /robot: RobotModel/);
   });

@@ -6,16 +6,16 @@ export type StepState = "wait" | "run" | "ok" | "fail" | "uneval";
 export type StatusTone = "pass" | "fail" | "uneval";
 
 export const PIPELINE_HINTS: Record<string, string> = {
-  ask_user: "Recording hardware…",
-  generate_sop: "Writing SOP…",
-  generate_code: "Writing script…",
-  emit_plan: "Writing plan…",
-  run_checks: "Checking…",
-  open_animation: "Opening animation…",
+  ask_user: "Checking with you…",
+  generate_sop: "Writing the protocol…",
+  generate_code: "Writing the script…",
+  emit_plan: "Laying out the steps…",
+  run_checks: "Checking bench constraints…",
+  open_animation: "Putting the deck on Stage…",
 };
 
-const PYTHON_STEPS = ["Goal", "SOP", "Code", "Checks", "Watch"] as const;
-const PLAN_STEPS = ["Goal", "SOP", "Plan", "Checks", "Export"] as const;
+const PYTHON_STEPS = ["Run", "Protocol", "Script", "Checks", "Deck"] as const;
+const PLAN_STEPS = ["Run", "Protocol", "Steps", "Checks", "Files"] as const;
 
 export function pipelineSteps(robot: RobotModel | null | undefined): readonly string[] {
   return isPlanCodegen(robot) ? PLAN_STEPS : PYTHON_STEPS;
@@ -58,17 +58,23 @@ export function phaseLabel(
   status: CheckStatus | null | undefined,
   canWatch: boolean,
   planBackend = false,
-  checks?: ChecksResult | null
+  checks?: ChecksResult | null,
+  intakeDone?: boolean,
+  hasSop?: boolean,
+  deckPreview = false,
+  busy = false
 ): string {
-  if (canWatch) return "Ready to watch";
-  if (status === "pass") {
-    return planBackend ? "Checks passed — step table below" : "Checks passed — no animation available";
-  }
+  if ((canWatch || deckPreview) && !busy) return "Ready to watch";
+  if (canWatch || deckPreview) return "In progress";
+  if (status === "pass") return "Checks passed";
   if (status === "fail") return "Checks failed";
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
   if (phase === "need_hw_slots") return "Missing deck details";
-  if (phase === "ready") return "In progress";
-  return "Which robot — OT-2, Flex, Hamilton, or Tecan?";
+  if (phase === "ready") {
+    if (!hasSop && intakeDone === false) return "Quick check";
+    return "In progress";
+  }
+  return "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?";
 }
 
 function goalState(goal: string): StepState {

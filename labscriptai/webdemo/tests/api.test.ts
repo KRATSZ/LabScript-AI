@@ -42,14 +42,25 @@ describe("HTTP device API", () => {
     else process.env.LABSCRIPTAI_BACKEND = priorBackend;
   });
 
-  it("GET /api/devices returns four registry entries with capabilities", async () => {
+  it("GET /api/health reports model, key presence, and 8010 without leaking a key", async () => {
+    const response = await fetch(`${baseUrl}/api/health`);
+    assert.equal(response.status, 200);
+    const body = (await response.json()) as Record<string, unknown>;
+    assert.equal(body.ok, true);
+    assert.equal(typeof body.model, "string");
+    assert.equal(typeof body.hasKey, "boolean");
+    assert.ok(body.code_service === "up" || body.code_service === "down");
+    assert.doesNotMatch(JSON.stringify(body), /sk-/);
+  });
+
+  it("GET /api/devices returns five registry entries with capabilities", async () => {
     const response = await fetch(`${baseUrl}/api/devices`);
     assert.equal(response.status, 200);
     const devices = (await response.json()) as Array<Record<string, unknown>>;
-    assert.equal(devices.length, 4);
+    assert.equal(devices.length, 5);
     assert.deepEqual(
       devices.map(({ id }) => id),
-      ["ot2", "flex", "hamilton_star", "tecan_fluent"]
+      ["ot2", "flex", "hamilton_star", "hamilton_vantage", "tecan_fluent"]
     );
     for (const device of devices) {
       assert.equal(typeof device.label, "string");
@@ -61,6 +72,7 @@ describe("HTTP device API", () => {
     const pairs = [
       ["tecan_fluent", "Tecan"],
       ["hamilton_star", "Hamilton"],
+      ["hamilton_vantage", "Vantage"],
       ["ot2", "OT-2"],
       ["flex", "Flex"],
     ] as const;
@@ -93,5 +105,24 @@ describe("HTTP device API", () => {
       body: JSON.stringify({ goal: "transfer 50 uL", robot: "unknown_robot" }),
     });
     assert.ok(unknown.status >= 400 && unknown.status < 500);
+  });
+
+  it("garbage JSON on session and chat does not kill the server", async () => {
+    const session = await fetch(`${baseUrl}/api/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    });
+    assert.equal(session.status, 400);
+    assert.equal(((await session.json()) as { error?: string }).error, "invalid_json");
+    const chat = await fetch(`${baseUrl}/api/chat/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    });
+    assert.equal(chat.status, 400);
+    const health = await fetch(`${baseUrl}/api/health`);
+    assert.equal(health.status, 200);
+    assert.equal(((await health.json()) as { ok?: boolean }).ok, true);
   });
 });

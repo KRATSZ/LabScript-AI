@@ -25,25 +25,33 @@ import {
 import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import {
   applyAskUser,
+  authoringGoal,
+  beginGoalNotesConflictAsk,
   canEmitPlan,
   canGenerateCode,
+  canResolveGoalNotesConflict,
   canRunPipeline,
+  reviewIntent,
   checksRoute,
   capSop,
   explainPlanErrors,
   formatHardwareConfig,
+  intakeConfirmLine,
+  intakeOpen,
   isOpentrons,
   missingList,
   normalizePlanInput,
   planBackendFor,
   presetMismatchWarning,
+  resolveGoalNotesConflict,
   shouldCallCompactSop,
   shouldReuseSop,
   snapshot,
+  unresolvedGoalNotesConflict,
   type AskUserInput,
   type SessionState,
 } from "./session.ts";
-import type { SseWriter } from "./sse.ts";
+import { sseHasUserText, type SseWriter } from "./sse.ts";
 
 type ToolResult = AgentToolResult<Record<string, unknown>>;
 
@@ -63,11 +71,11 @@ function refusePatchBudget(): ToolResult {
 }
 
 function toolGoal(session: SessionState): string {
-  const goal = session.goal ?? "";
-  if (session.doc && session.doc !== "none") {
-    return `${goal}\n\nExisting SOP draft:\n${session.doc}`;
-  }
-  return goal;
+  return authoringGoal(session);
+}
+
+function robotArgValues(): string[] {
+  return [...new Set(DEVICE_REGISTRY.flatMap((d) => [d.legacyRobot, d.label, d.id]))];
 }
 
 function unionLiterals(values: string[]) {
@@ -84,11 +92,11 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "ask_user",
     label: "Ask user / session",
     description:
-      "Persist session fields. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. Does not generate code. No deck UI.",
+      "Persist session fields. First turn: call this after 1–2 lab questions and stop so a full protocol is not dumped. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. If notes_conflict, call this, tell the user both volumes, and stop; after they answer, call again with goal set to the chosen volume. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
       doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
-      robot: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.legacyRobot))),
+      robot: Type.Optional(unionLiterals(robotArgValues())),
       preset: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.hardwarePreset.id))),
       left_pipette: Type.Optional(Type.String()),
       right_pipette: Type.Optional(Type.String()),
@@ -107,11 +115,94 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     execute: async (_id, args) => {
       const input = args as AskUserInput;
       const warning = presetMismatchWarning(session.robot, input.preset);
+      const conflictBefore = unresolvedGoalNotesConflict(session);
+      if (conflictBefore && !canResolveGoalNotesConflict(session, input.goal)) {
+        applyAskUser(session, { ...input, goal: undefined, doc: undefined });
+        beginGoalNotesConflictAsk(session);
+        const waitingForChoice = Boolean(session.conflictUserReplied);
+        const ask = waitingForChoice
+          ? `I still need to record the chosen volume (${conflictBefore}). Which should I use? I have not made a SOP, plan, or .gwl.`
+          : `The goal and notes disagree on volume (${conflictBefore}). Which volume should I use? I have not made a SOP, plan, or .gwl.`;
+        sse.write("text", { token: `\n\n${ask}\n` });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  wait: true,
+                  conflict: conflictBefore,
+                  ask,
+                  next_tool: "ask_user",
+                  phase: session.phase,
+                  missing: missingList(session),
+                  ready: false,
+                  hint: waitingForChoice
+                    ? "Call ask_user with goal set to the volume the user chose. Do not generate_sop, emit_plan, run_checks, or a .gwl."
+                    : "Stop. Tell the user both volumes and wait. Do not generate_sop, emit_plan, run_checks, or a .gwl.",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          details: {
+            payload: {
+              wait: true,
+              conflict: conflictBefore,
+              ask,
+              next_tool: "ask_user",
+              ready: false,
+            },
+          },
+          terminate: true,
+        };
+      }
       applyAskUser(session, input);
+      if (conflictBefore) {
+        resolveGoalNotesConflict(session);
+      }
+      if (intakeOpen(session)) {
+        const ask = intakeConfirmLine(session);
+        if (!sseHasUserText(sse)) {
+          sse.write("text", { token: `\n\n${ask}\n` });
+        }
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(
+                {
+                  wait: true,
+                  intake: true,
+                  ask,
+                  next_tool: "ask_user",
+                  phase: session.phase,
+                  missing: missingList(session),
+                  ready: false,
+                  hint: "One short confirm in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
+                },
+                null,
+                2
+              ),
+            },
+          ],
+          details: {
+            payload: {
+              wait: true,
+              intake: true,
+              ask,
+              next_tool: "ask_user",
+              ready: false,
+            },
+          },
+          terminate: true,
+        };
+      }
       return ok({
         phase: session.phase,
         missing: missingList(session),
-        ready: canRunPipeline(session),
+        ready: canRunPipeline(session) && !unresolvedGoalNotesConflict(session),
         hardware_config: formatHardwareConfig(session),
         doc: session.doc ?? null,
         assumed_deck: Boolean(session.deckAssumed),
@@ -124,18 +215,36 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "generate_sop",
     label: "Generate SOP",
     description:
-      "Write a compact SOP via DeepSeek only after phase=ready. Skip if sop already stored unless force=true. Blocked without robot/slots (returns JSON, does not throw, does not call DeepSeek).",
+      "Write a compact SOP from the session goal after phase=ready. Notes/doc are a draft only — do not copy intern junk. Skip if a generated sop is already stored unless force=true. Blocked without robot/slots (returns JSON, does not throw, does not call DeepSeek).",
     parameters: Type.Object({
       force: Type.Optional(Type.Boolean()),
     }),
     executionMode: "sequential",
     execute: async (_id, args, _signal, onUpdate) => {
       const force = Boolean((args as { force?: boolean }).force);
+      const conflict = unresolvedGoalNotesConflict(session);
+      if (conflict) {
+        return ok({
+          blocked: true,
+          missing: missingList(session),
+          conflict,
+          hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+        });
+      }
       if (shouldReuseSop(session, force)) {
         return ok({
           chars: session.sop?.length ?? 0,
           skipped: true,
           sop_markdown: session.sop,
+        });
+      }
+      if (intakeOpen(session)) {
+        return ok({
+          blocked: true,
+          wait: true,
+          intake: true,
+          missing: missingList(session),
+          hint: "Ask 1–2 lab questions, call ask_user, and stop. Do not generate a protocol yet.",
         });
       }
       if (!shouldCallCompactSop(session, force)) {
@@ -166,6 +275,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     }),
     executionMode: "sequential",
     execute: async (_id, args, _signal, onUpdate) => {
+      const conflict = unresolvedGoalNotesConflict(session);
+      if (conflict) {
+        return ok({
+          blocked: true,
+          missing: missingList(session),
+          conflict,
+          hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+        });
+      }
       if (!canRunPipeline(session)) {
         return ok({ blocked: true, missing: missingList(session) });
       }
@@ -252,13 +370,22 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     name: "emit_plan",
     label: "Emit Plan IR",
     description:
-      'Preferred for Hamilton and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. mode defaults to "replace"; for large protocols, compress parallel channels with multi-well lists (for example source ["plate:A1","plate:B1","plate:C1","plate:D1"]) or send later chunks with mode:"append". Append concatenates steps and rejects duplicate step_id values. There is no small character limit; about 78 compressed steps fit one call. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. A PICK_TIPS step requires empty channels; if tips are held, DROP_TIPS must come first. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Minimal valid plan: {"schema":"bpl.plan_ir.lh.v0","resources":[{"id":"tips","type":"tiprack","slot":"1"},{"id":"plate","type":"plate","slot":"2","max_volume_ul":360}],"initial_volumes_ul":{"plate:A1":100,"plate:B1":0},"steps":[{"step_id":"1","primitive_type":"PICK_TIPS","tip_rack":"tips","tip_positions":["A1"],"dependencies":[]},{"step_id":"2","primitive_type":"ASPIRATE","source":"plate:A1","volume_ul":50,"dependencies":["1"]},{"step_id":"3","primitive_type":"DISPENSE","destination":"plate:B1","volume_ul":50,"dependencies":["2"]},{"step_id":"4","primitive_type":"DROP_TIPS","to_waste":true,"dependencies":["3"]}]}. tip_positions are bare wells ("A1"), never "TIPS:A1". tip_rack is the tiprack resource id. dependencies may be []. Common rejects: (1) tip_positions "TIPS:A1" — write "A1"; (2) PICK_TIPS missing tip_rack matching resources[].id; (3) dependencies not a list — use []. Hamilton standard wells: Corning 96-well 360 µL, 15 mL reservoir 15000 µL. Tecan standard wells: 96-well plate 360 µL, 1000 µL DiTi, 15 mL reservoir 15000 µL. Omit max_volume_ul only when capacity is unknown (cannot-verify, never a silent pass). Hamilton deliverable is step JSON + a runnable PyLabRobot script (.py). Tecan also compiles a .gwl. Does not generate Python; Watch/animation unavailable without 8010 analyze.',
+      'Preferred for Hamilton STAR, Hamilton Vantage, and Tecan. Allowed for OT-2/Flex when 8010 is down or generate_code was blocked. Store BPL Plan IR (schema bpl.plan_ir.lh.v0) then call run_checks. mode defaults to "replace"; for large protocols, compress parallel channels with multi-well lists (for example source ["plate:A1","plate:B1","plate:C1","plate:D1"]) or send later chunks with mode:"append". Append concatenates steps and rejects duplicate step_id values. There is no small character limit; about 78 compressed steps fit one call. Primitives: PICK_TIPS, ASPIRATE, DISPENSE, MIX, DROP_TIPS, WAIT. A PICK_TIPS step requires empty channels; if tips are held, DROP_TIPS must come first. Locations like plate:A1. Set resources (with max_volume_ul), initial_volumes_ul, steps. Minimal valid plan: {"schema":"bpl.plan_ir.lh.v0","resources":[{"id":"tips","type":"tiprack","slot":"1"},{"id":"plate","type":"plate","slot":"2","max_volume_ul":360}],"initial_volumes_ul":{"plate:A1":100,"plate:B1":0},"steps":[{"step_id":"1","primitive_type":"PICK_TIPS","tip_rack":"tips","tip_positions":["A1"],"dependencies":[]},{"step_id":"2","primitive_type":"ASPIRATE","source":"plate:A1","volume_ul":50,"dependencies":["1"]},{"step_id":"3","primitive_type":"DISPENSE","destination":"plate:B1","volume_ul":50,"dependencies":["2"]},{"step_id":"4","primitive_type":"DROP_TIPS","to_waste":true,"dependencies":["3"]}]}. tip_positions are bare wells ("A1"), never "TIPS:A1". tip_rack is the tiprack resource id. dependencies may be []. Common rejects: (1) tip_positions "TIPS:A1" — write "A1"; (2) PICK_TIPS missing tip_rack matching resources[].id; (3) dependencies not a list — use []. Hamilton standard wells: Corning 96-well 360 µL, 15 mL reservoir 15000 µL. Tecan standard wells: 96-well plate 360 µL, 200 µL DiTi, 15 mL reservoir 15000 µL. Omit max_volume_ul only when capacity is unknown (cannot-verify, never a silent pass). Hamilton STAR/Vantage deliverable is step JSON + a runnable PyLabRobot script (.py). Tecan also compiles a .gwl. Does not generate Python; Watch/animation unavailable without 8010 analyze.',
     parameters: Type.Object({
       plan: Type.Record(Type.String(), Type.Unknown()),
       mode: Type.Optional(Type.Union([Type.Literal("replace"), Type.Literal("append")])),
     }),
     executionMode: "sequential",
     execute: async (_id, args) => {
+      const conflict = unresolvedGoalNotesConflict(session);
+      if (conflict) {
+        return ok({
+          blocked: true,
+          missing: missingList(session),
+          conflict,
+          hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+        });
+      }
       if (!canEmitPlan(session)) {
         const missing = missingList(session);
         if (!session.sop?.trim()) missing.push("sop");
@@ -275,7 +402,8 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         return refusePatchBudget();
       }
       const raw = { ...(input.plan ?? {}) };
-      if (!raw.backend) raw.backend = planBackendFor(session.robot);
+      // Session robot wins: a Tecan card must not keep backend "hamilton" from the model.
+      raw.backend = planBackendFor(session.robot);
       const existing = session.plan;
       const incomingSteps = Array.isArray(raw.steps) ? raw.steps : [];
       let candidate = raw;
@@ -340,9 +468,18 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         });
       }
       if (route === "plan") {
+        const conflict = unresolvedGoalNotesConflict(session);
+        if (conflict) {
+          return ok({
+            blocked: true,
+            missing: missingList(session),
+            conflict,
+            hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
+          });
+        }
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
-          session.goal ?? "",
+          reviewIntent(session),
           { robot: session.robot }
         );
         session.lastChecks = checks;
