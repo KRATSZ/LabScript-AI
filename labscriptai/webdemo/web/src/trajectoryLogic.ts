@@ -224,15 +224,16 @@ function insertThinkRows(steps: ActivityStep[], events: AgentEvent[], live: Acti
   if (live.thinking) turns.add(turnNow);
   const thinkRows: ActivityStep[] = [...turns]
     .sort((a, b) => a - b)
-    .map((turn) => {
+    .map((turn): ActivityStep => {
       const liveThis = Boolean(live.thinking) && turn === turnNow;
+      const status: ActivityStatus = liveThis ? "run" : "ok";
       const raw = live.thoughtNotes?.[turn] || (liveThis ? live.thinkingNote : "");
       return {
         key: `think-${turn}`,
         turn,
         name: THINK_STEP,
-        label: activityLabel(THINK_STEP, liveThis ? "run" : "ok"),
-        status: liveThis ? "run" : "ok",
+        label: activityLabel(THINK_STEP, status),
+        status,
         durationMs: null,
         note: labThinkNote(raw) || undefined,
       };
