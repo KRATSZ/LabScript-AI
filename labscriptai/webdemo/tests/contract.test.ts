@@ -120,6 +120,8 @@ describe("demo contract lock", () => {
     assert.match(tools, /DROP_TIPS must come first/);
     assert.match(tools, /Tecan standard wells: 96-well plate 360/);
     assert.match(tools, /200 µL DiTi/);
+    assert.match(tools, /raw\.backend = planBackendFor\(session\.robot\)/);
+    assert.doesNotMatch(tools, /if \(!raw\.backend\)/);
     assert.match(tools, /must_call: "emit_plan"/);
     assert.match(tools, /Call emit_plan then run_checks/);
     assert.doesNotMatch(tools, /8010_unreachable/);

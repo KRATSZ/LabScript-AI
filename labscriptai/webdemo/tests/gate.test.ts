@@ -369,6 +369,23 @@ describe("compactChecks", () => {
     assert.equal(quotedIntent.llmreview?.match, false);
     assert.equal(quotedIntent.status, "fail");
     assert.equal(isReviewMismatch(quotedIntent.llmreview), true);
+
+    const mixed = {
+      severity: "error" as const,
+      claim:
+        "Tip type does not match: the SOP uses a 200 µL DiTi tip rack, but the intent specifies 1000 µL DiTi; destination volume 250 vs 50.",
+      evidence: "SOP dispenses 250 µL. Chosen transfer is 50 µL.",
+      suggestion: "Keep the 200 µL DiTi rack and use 50 µL, not 250 µL.",
+    };
+    assert.equal(isInventedLihaTipSizeFinding(mixed), false);
+    const mixedChecks = wrapChecks(simOk, lpPass, { issues: [] }, {
+      match: false,
+      findings: [mixed],
+    });
+    assert.equal(mixedChecks.llmreview?.match, false);
+    assert.equal(isReviewMismatch(mixedChecks.llmreview), true);
+    assert.equal(mixedChecks.status, "fail");
+    assert.equal(mixedChecks.fab.lit, false);
   });
 
   it("patchCapHit after the one allowed patch while checks still fail", () => {

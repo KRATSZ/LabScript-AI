@@ -402,7 +402,8 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         return refusePatchBudget();
       }
       const raw = { ...(input.plan ?? {}) };
-      if (!raw.backend) raw.backend = planBackendFor(session.robot);
+      // Session robot wins: a Tecan card must not keep backend "hamilton" from the model.
+      raw.backend = planBackendFor(session.robot);
       const existing = session.plan;
       const incomingSteps = Array.isArray(raw.steps) ? raw.steps : [];
       let candidate = raw;

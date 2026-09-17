@@ -119,16 +119,92 @@ export function inferRobotFromText(text: string): RobotModel | undefined {
   return found.length === 1 ? found[0].legacyRobot : undefined;
 }
 
-const UL_AMOUNT = /(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/gi;
-const TRANSFER_UL =
-  /\b(?:transfer(?:red|s|ing)?|aspirate[ds]?|dispense[ds]?)\s+(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/gi;
-const REAL_UL =
-  /\b(?:real(?:ly)?|actual(?:ly)?)\b[\s\S]{0,48}?(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/i;
+const VOL_UNIT = "µl|ul|μl|microlit(?:er|re)s?|ml|millilit(?:er|re)s?|微升|毫升";
+const NUMBER_WORD =
+  "zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand";
+const ONES: Record<string, number> = {
+  zero: 0,
+  one: 1,
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  eight: 8,
+  nine: 9,
+  ten: 10,
+  eleven: 11,
+  twelve: 12,
+  thirteen: 13,
+  fourteen: 14,
+  fifteen: 15,
+  sixteen: 16,
+  seventeen: 17,
+  eighteen: 18,
+  nineteen: 19,
+};
+const TENS: Record<string, number> = {
+  twenty: 20,
+  thirty: 30,
+  forty: 40,
+  fifty: 50,
+  sixty: 60,
+  seventy: 70,
+  eighty: 80,
+  ninety: 90,
+};
 const CAPACITY_CTX =
   /\b(hold|holds|capacity|max(?:imum)?|already|contains|start(?:s|ing)?|initial|tiprack|diti|reservoir|\d+-well|well plate)\b/;
+const TRANSFER_LEAD = `\\b(?:transfer(?:red|s|ing)?|aspirate[ds]?|dispense[ds]?)\\s+`;
+const REAL_LEAD = `\\b(?:real(?:ly)?|actual(?:ly)?)\\b[\\s\\S]{0,48}?`;
+
+function unitToUl(amount: number, unit: string): number {
+  const n = unit.toLowerCase();
+  const ul = n === "ml" || n.startsWith("millilit") || n === "毫升" ? amount * 1000 : amount;
+  return Math.round(ul * 1000) / 1000;
+}
+
+function parseWordNumber(words: string): number | undefined {
+  const tokens = words
+    .toLowerCase()
+    .replace(/-/g, " ")
+    .split(/\s+/)
+    .filter((token) => token && token !== "and");
+  if (!tokens.length) return undefined;
+  let total = 0;
+  let current = 0;
+  for (const token of tokens) {
+    if (token in ONES) current += ONES[token];
+    else if (token in TENS) current += TENS[token];
+    else if (token === "hundred") current = (current || 1) * 100;
+    else if (token === "thousand") {
+      total += (current || 1) * 1000;
+      current = 0;
+    } else return undefined;
+  }
+  return total + current;
+}
+
+function volumeMentions(text: string, prefix = ""): { ul: number; index: number }[] {
+  if (!text) return [];
+  const found: { ul: number; index: number }[] = [];
+  const numeric = new RegExp(`${prefix}(\\d+(?:\\.\\d+)?)\\s*(${VOL_UNIT})`, "gi");
+  for (const match of text.matchAll(numeric)) {
+    found.push({ ul: unitToUl(Number(match[1]), match[2]), index: match.index ?? 0 });
+  }
+  const wordBody = `((?:${NUMBER_WORD})(?:[\\s-]+(?:and|${NUMBER_WORD}))*)`;
+  const words = new RegExp(`${prefix}\\b${wordBody}\\s*(${VOL_UNIT})`, "gi");
+  for (const match of text.matchAll(words)) {
+    const parsed = parseWordNumber(match[1]);
+    if (parsed == null) continue;
+    found.push({ ul: unitToUl(parsed, match[2]), index: match.index ?? 0 });
+  }
+  return found;
+}
 
 function ulAmounts(text: string): number[] {
-  return [...(text || "").matchAll(UL_AMOUNT)].map((match) => Number(match[1]));
+  return [...new Set(volumeMentions(text).map((item) => item.ul))];
 }
 
 function contextAt(text: string, index: number, span = 40): string {
@@ -141,19 +217,18 @@ function competingNoteVolumes(goal = "", notes = ""): { goalVols: number[]; extr
     new RegExp(`\\bignore(?:\\s+the)?\\s+${vol}\\b`, "i").test(notes)
   );
   const competing: number[] = [];
-  const real = notes.match(REAL_UL);
-  if (real && !goalVols.includes(Number(real[1]))) competing.push(Number(real[1]));
-  for (const match of notes.matchAll(TRANSFER_UL)) {
-    const vol = Number(match[1]);
-    if (!goalVols.includes(vol)) competing.push(vol);
+  for (const { ul } of [
+    ...volumeMentions(notes, REAL_LEAD),
+    ...volumeMentions(notes, TRANSFER_LEAD),
+  ]) {
+    if (!goalVols.includes(ul)) competing.push(ul);
   }
-  for (const match of notes.matchAll(UL_AMOUNT)) {
-    const vol = Number(match[1]);
-    if (goalVols.includes(vol)) continue;
-    const ctx = contextAt(notes, match.index ?? 0);
+  for (const { ul, index } of volumeMentions(notes)) {
+    if (goalVols.includes(ul)) continue;
+    const ctx = contextAt(notes, index);
     if (CAPACITY_CTX.test(ctx)) continue;
     if (/\b(?:do not|don't|not)\s+clamp\b/.test(ctx)) continue;
-    competing.push(vol);
+    competing.push(ul);
   }
   return { goalVols, extra: [...new Set(competing)], ignoreGoal };
 }

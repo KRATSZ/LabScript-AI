@@ -291,6 +291,30 @@ export function isReviewMismatch(review?: LlmReviewResult | null): boolean {
   return review?.match === false && !isReviewerUnavailable(review);
 }
 
+const INVENTED_DITI_UL = new Set([200, 1000]);
+
+function findingText(item: LlmReviewFinding): string {
+  return [item.claim, item.evidence, item.suggestion].map((part) => String(part ?? "")).join("\n");
+}
+
+function findingVolumesUl(item: LlmReviewFinding): number[] {
+  const text = findingText(item);
+  const vols: number[] = [];
+  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/gi)) {
+    vols.push(Number(match[1]));
+  }
+  for (const match of text.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:vs\.?|versus)\s*(\d+(?:\.\d+)?)\b/gi)) {
+    vols.push(Number(match[1]), Number(match[2]));
+  }
+  return vols;
+}
+
+/** True when the finding also names a transfer-volume fight, not just 1000-vs-200 DiTi. */
+export function findingHasVolumeMismatch(item: LlmReviewFinding): boolean {
+  const extra = [...new Set(findingVolumesUl(item).filter((vol) => !INVENTED_DITI_UL.has(vol)))];
+  return extra.length >= 2;
+}
+
 /** FCA/LiHa 1000 is the pipette. Do not treat a Tecan claim of 1000 µL DiTi vs 200 µL DiTi as a real mismatch. */
 export function isInventedLihaTipSizeFinding(item: LlmReviewFinding): boolean {
   const claim = String(item.claim ?? "").toLowerCase();
@@ -302,7 +326,9 @@ export function isInventedLihaTipSizeFinding(item: LlmReviewFinding): boolean {
     /intent specifies 1000/.test(claim);
   const has200 = /200\s*(?:µl|ul|μl)|200ul|diti_200/.test(claim);
   const tipTalk = /diti|tip\s*rack|tiprack|tip type/.test(claim);
-  return wants1000 && has200 && tipTalk;
+  if (!(wants1000 && has200 && tipTalk)) return false;
+  // A mixed claim that also fights 250 vs 50 is a real mismatch; do not drop it.
+  return !findingHasVolumeMismatch(item);
 }
 
 export function scrubInventedLihaTipReview(

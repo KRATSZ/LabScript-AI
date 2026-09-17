@@ -374,6 +374,19 @@ describe("one-patch budget", () => {
     assert.equal(retry.terminate, undefined);
   });
 
+  it("emit_plan sets backend from the Tecan session, not a hamilton plan", async () => {
+    const session = createSession();
+    applyForm(session, { goal: "Tecan: transfer 50 µL A1 to B1", doc: "# SOP\n1. A" });
+    applyAskUser(session, { preset: "tecan_fluent_standard" });
+    session.sop = "# SOP\n1. A";
+    const result = await tool(session, "emit_plan").execute("1", { plan: DEMO_PLAN });
+    const parsed = JSON.parse(toolText(result));
+    assert.equal(parsed.ok, true);
+    assert.equal(parsed.backend, "tecan_fluent");
+    assert.equal((session.plan as { backend?: string }).backend, "tecan_fluent");
+    assert.notEqual((session.plan as { backend?: string }).backend, "hamilton");
+  });
+
   it("emit_plan strips TIPS:A1, tells the model, and stores A1", async () => {
     const session = createSession();
     applyForm(session, { goal: "Tecan: transfer 50 µL A1 to B1", doc: "# SOP\n1. A" });
