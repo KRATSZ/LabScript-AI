@@ -17,9 +17,18 @@ interface Props {
   onWatch: () => void;
 }
 
+function DeckCell({ label, labware }: { label: string; labware: string }) {
+  const filled = Boolean(labware);
+  return (
+    <div className={filled ? "deck-cell filled" : "deck-cell empty"}>
+      <span className="deck-cell-slot">{label}</span>
+      {filled ? <span className="deck-cell-labware">{labwareLabel(labware) || labware}</span> : null}
+    </div>
+  );
+}
+
 function StarDeckSketch({ session }: { session: SessionSnapshot }) {
-  const deck = session.hardware?.deck ?? {};
-  const carriers = hamiltonStarSketch(deck);
+  const carriers = hamiltonStarSketch(session.hardware?.deck ?? {});
   return (
     <div className="star-sketch" data-testid="deck-strip" data-origin-slot="tip-0">
       {carriers.map((carrier) => (
@@ -32,17 +41,9 @@ function StarDeckSketch({ session }: { session: SessionSnapshot }) {
             className="star-carrier-sites"
             style={{ gridTemplateColumns: `repeat(${carrier.sites.length}, minmax(0, 1fr))` }}
           >
-            {carrier.sites.map((site) => {
-              const filled = Boolean(site.labware);
-              return (
-                <div key={site.id} className={filled ? "deck-cell filled" : "deck-cell empty"}>
-                  <span className="deck-cell-slot">{site.label}</span>
-                  {filled ? (
-                    <span className="deck-cell-labware">{labwareLabel(site.labware) || site.labware}</span>
-                  ) : null}
-                </div>
-              );
-            })}
+            {carrier.sites.map((site) => (
+              <DeckCell key={site.id} label={site.label} labware={site.labware} />
+            ))}
           </div>
         </div>
       ))}
@@ -78,16 +79,13 @@ function DeckSketch({ session }: { session: SessionSnapshot }) {
             className="deck-sketch-row"
             style={{ gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))` }}
           >
-            {row.map((slot) => {
-              const labware = deckLabware(deck, slot);
-              const filled = Boolean(labware);
-              return (
-                <div key={slot} className={filled ? "deck-cell filled" : "deck-cell empty"}>
-                  <span className="deck-cell-slot">{slot === "trash" ? "Trash" : slot}</span>
-                  {filled ? <span className="deck-cell-labware">{labwareLabel(labware) || labware}</span> : null}
-                </div>
-              );
-            })}
+            {row.map((slot) => (
+              <DeckCell
+                key={slot}
+                label={slot === "trash" ? "Trash" : slot}
+                labware={deckLabware(deck, slot)}
+              />
+            ))}
           </div>
         ))}
         {axes ? (

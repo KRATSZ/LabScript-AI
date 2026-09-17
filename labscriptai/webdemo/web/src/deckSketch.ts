@@ -58,19 +58,15 @@ export function hamiltonStarSketch(deck: Record<string, string>): StarCarrierSke
   const tips = deckLabware(deck, "1");
   const plate = deckLabware(deck, "2");
   const trough = deckLabware(deck, "3");
-  const tipSites: StarCarrierSite[] = Array.from({ length: 5 }, (_, index) => ({
-    id: `tip-${index}`,
-    label: `Site ${index + 1}`,
-    labware: tips,
-  }));
-  const plateSites: StarCarrierSite[] = Array.from({ length: 5 }, (_, index) => ({
-    id: `plt-${index}`,
-    label: `Site ${index + 1}`,
-    labware: index === 0 ? plate : "",
-  }));
+  const sites = (id: string, count: number, labwareAt: (index: number) => string): StarCarrierSite[] =>
+    Array.from({ length: count }, (_, index) => ({
+      id: `${id}-${index}`,
+      label: `Site ${index + 1}`,
+      labware: labwareAt(index),
+    }));
   return [
-    { id: "tip_car", title: "Tip carrier", rails: "1–6", sites: tipSites },
-    { id: "plate_car", title: "Plate carrier", rails: "8–13", sites: plateSites },
+    { id: "tip_car", title: "Tip carrier", rails: "1–6", sites: sites("tip", 5, () => tips) },
+    { id: "plate_car", title: "Plate carrier", rails: "8–13", sites: sites("plt", 5, (index) => (index === 0 ? plate : "")) },
     {
       id: "trough",
       title: "Reagents",

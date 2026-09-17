@@ -46,11 +46,11 @@ export function TrajectoryPane({ events, runningTool = null, live = {} }: Props)
             <li key={turn} className="activity-turn">
               {turns.length > 1 ? <h3>{turn === 1 ? "Start" : "After you replied"}</h3> : null}
               <ol className="activity-list">
-                {rows.map((step, index) => {
+                {rows.map((step) => {
                   const time = step.status === "run" ? "" : formatDuration(step.durationMs);
                   const status = activityStatusWord(step.status);
                   const think = step.name === THINK_STEP;
-                  const line = String(steps.findIndex((item) => item.turn === turn) + index + 1).padStart(2, "0");
+                  const line = String(steps.indexOf(step) + 1).padStart(2, "0");
                   return (
                     <li
                       key={step.key}
