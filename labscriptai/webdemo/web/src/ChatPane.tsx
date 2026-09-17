@@ -20,6 +20,41 @@ function MarkdownBody({ text, className }: { text: string; className?: string })
   );
 }
 
+function Bubble({
+  msg,
+  last,
+  busy,
+  robot,
+}: {
+  msg: ChatMessage;
+  last: boolean;
+  busy: boolean;
+  robot?: string | null;
+}) {
+  const showThinking = last && busy && msg.role === "assistant" && Boolean(msg.thinking) && !msg.text;
+  const emptyAssistant = msg.role === "assistant" && !msg.text && !msg.thinking;
+  if (emptyAssistant && !(busy && last)) return null;
+  const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
+  const emptyBusy = emptyAssistant && busy && last;
+  const raw = msg.text || "";
+  const body = msg.role === "assistant" ? sanitizeAssistantText(raw, robot) : raw;
+  return (
+    <div className={`bubble-row ${msg.role}`}>
+      <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
+        {msg.meta ? <div className="meta">{msg.meta}</div> : null}
+        {showThinking ? (
+          <details className="thinking-box">
+            <summary>Thinking</summary>
+            <div className="thinking">{shown}</div>
+          </details>
+        ) : null}
+        {emptyBusy && !showThinking ? <div className="typing" aria-label="Writing" /> : null}
+        {body ? <MarkdownBody text={body} className={msg.role === "user" ? "md md-user" : "md"} /> : null}
+      </div>
+    </div>
+  );
+}
+
 export function ChatPane({ messages, busy, onSend, robot }: Props) {
   const [text, setText] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
@@ -48,34 +83,9 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
   return (
     <div className="chat">
       <div className="history" ref={historyRef}>
-        {messages.map((msg, i) => {
-          const last = i === messages.length - 1;
-          const showThinking =
-            last && busy && msg.role === "assistant" && Boolean(msg.thinking) && !msg.text;
-          const emptyAssistant = msg.role === "assistant" && !msg.text && !msg.thinking;
-          if (emptyAssistant && !(busy && last)) return null;
-          const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
-          const emptyBusy = emptyAssistant && busy && last;
-          const raw = msg.text || "";
-          const body = msg.role === "assistant" ? sanitizeAssistantText(raw, robot) : raw;
-          return (
-            <div key={i} className={`bubble-row ${msg.role}`}>
-              <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
-                {msg.meta ? <div className="meta">{msg.meta}</div> : null}
-                {showThinking ? (
-                  <details className="thinking-box">
-                    <summary>Thinking</summary>
-                    <div className="thinking">{shown}</div>
-                  </details>
-                ) : null}
-                {emptyBusy && !showThinking ? <div className="typing" aria-label="Writing" /> : null}
-                {body ? (
-                  <MarkdownBody text={body} className={msg.role === "user" ? "md md-user" : "md"} />
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
+        {messages.map((msg, i) => (
+          <Bubble key={i} msg={msg} last={i === messages.length - 1} busy={busy} robot={robot} />
+        ))}
       </div>
       <form className="composer" onSubmit={submit}>
         <textarea

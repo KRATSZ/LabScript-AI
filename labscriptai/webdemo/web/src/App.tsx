@@ -16,6 +16,21 @@ import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./typ
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
 
+function patchLastAssistant(prev: ChatMessage[], field: "text" | "thinking", token: string): ChatMessage[] {
+  const last = prev[prev.length - 1];
+  if (!last || last.role !== "assistant") return prev;
+  return [...prev.slice(0, -1), { ...last, [field]: `${last[field] || ""}${token}` }];
+}
+
+function ErrorNote({ error }: { error: string }) {
+  if (!error) return null;
+  return (
+    <p className="file error-note" role="alert">
+      {error}
+    </p>
+  );
+}
+
 export function App() {
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -82,24 +97,8 @@ export function App() {
       setMessages((prev) => [...prev, { role: "assistant", text: "", thinking: "" }]);
       try {
         await streamChat(sessionId, text, {
-          onThinking: (token) => {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "assistant") return prev;
-              next[next.length - 1] = { ...last, thinking: `${last.thinking || ""}${token}` };
-              return next;
-            });
-          },
-          onText: (token) => {
-            setMessages((prev) => {
-              const next = [...prev];
-              const last = next[next.length - 1];
-              if (!last || last.role !== "assistant") return prev;
-              next[next.length - 1] = { ...last, text: `${last.text}${token}` };
-              return next;
-            });
-          },
+          onThinking: (token) => setMessages((prev) => patchLastAssistant(prev, "thinking", token)),
+          onText: (token) => setMessages((prev) => patchLastAssistant(prev, "text", token)),
           onTool: (name, status) => {
             setRunningTool(status === "start" ? name : status === "done" ? null : name);
           },
@@ -170,20 +169,14 @@ export function App() {
   const status = session?.checks?.status;
   const canWatch = sessionCanWatch(session?.robot, status, session?.analyze ?? null);
   const planBackend = isPlanCodegen(session?.robot);
-  const deckPreview =
-    planBackend &&
-    status === "pass" &&
-    Boolean(session?.plan && typeof session.plan === "object");
+  const deckPreview = planBackend && status === "pass" && Boolean(session?.plan && typeof session.plan === "object");
   const tone = headerTone(status, canWatch && !busy);
   const lastMessage = messages[messages.length - 1];
   const thinkingLive =
-    busy &&
-    lastMessage?.role === "assistant" &&
-    Boolean(lastMessage.thinking) &&
-    !lastMessage.text &&
-    !runningTool;
+    busy && lastMessage?.role === "assistant" && Boolean(lastMessage.thinking) && !lastMessage.text && !runningTool;
   const hasRail = Boolean(session) || threads.length > 0;
   const listedThreads = railThreads(threads, session, messages, events);
+  const robotLabel = session?.device_label ?? session?.robot ?? "";
 
   const onSeamPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     const width = workspaceRef.current?.clientWidth || 1280;
@@ -243,10 +236,8 @@ export function App() {
               )}
             </strong>
             <span>
-              {session.device_label ?? session.robot}
-              {session.goal
-                ? ` · ${headerGoalPreview(session.device_label ?? session.robot ?? "", session.goal)}`
-                : ""}
+              {robotLabel}
+              {session.goal ? ` · ${headerGoalPreview(robotLabel, session.goal)}` : ""}
             </span>
             {notesAttached ? <span>Notes attached</span> : null}
             {session.code_service === "down" && !planBackend ? (
@@ -284,11 +275,7 @@ export function App() {
           {!session ? (
             <div className="start-scroll">
               <StartForm busy={busy} onSubmit={start} />
-              {error ? (
-                <p className="file" style={{ color: "var(--error)" }}>
-                  {error}
-                </p>
-              ) : null}
+              <ErrorNote error={error} />
             </div>
           ) : (
             <div className="chat-column-body">
@@ -298,11 +285,7 @@ export function App() {
                 robot={session.robot}
                 onSend={(text) => runTurn(session.id, text, false)}
               />
-              {error ? (
-                <p className="file" style={{ color: "var(--error)" }}>
-                  {error}
-                </p>
-              ) : null}
+              <ErrorNote error={error} />
             </div>
           )}
         </section>
