@@ -683,7 +683,7 @@ describe("goal vs notes volume conflict", () => {
     );
   });
 
-  it("catches 0.25 mL, two hundred fifty microliters, and 250微升 vs goal 50 µL", () => {
+  it("catches 0.25 mL, two hundred fifty microliters, 250微升, and 二百五十微升 vs goal 50 µL", () => {
     const goal = "Transfer 50 µL A1 to B1.";
     assert.match(goalNotesVolumeConflict(goal, "Dispense 0.25 mL A1 to B1") || "", /250/);
     assert.match(
@@ -691,6 +691,7 @@ describe("goal vs notes volume conflict", () => {
       /250/
     );
     assert.match(goalNotesVolumeConflict(goal, "250微升") || "", /250/);
+    assert.match(goalNotesVolumeConflict(goal, "二百五十微升") || "", /250/);
   });
 
   it("blocks generate_sop until a later ask_user confirms a volume", () => {

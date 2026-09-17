@@ -120,6 +120,7 @@ export function inferRobotFromText(text: string): RobotModel | undefined {
 }
 
 const VOL_UNIT = "µl|ul|μl|microlit(?:er|re)s?|ml|millilit(?:er|re)s?|微升|毫升";
+const CN_NUMERAL = "零〇一二两三四五六七八九十百千万兩壹";
 const NUMBER_WORD =
   "zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand";
 const ONES: Record<string, number> = {
@@ -186,6 +187,32 @@ function parseWordNumber(words: string): number | undefined {
   return total + current;
 }
 
+const CN_DIGIT: Record<string, number> = {
+  零: 0, 〇: 0, 一: 1, 壹: 1, 二: 2, 两: 2, 兩: 2, 三: 3, 四: 4,
+  五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
+};
+const CN_UNIT: Record<string, number> = { 十: 10, 百: 100, 千: 1000, 万: 10000 };
+
+function parseChineseNumber(text: string): number | undefined {
+  if (!text) return undefined;
+  let total = 0;
+  let current = 0;
+  let seen = false;
+  for (const ch of text) {
+    if (ch in CN_DIGIT) {
+      current = CN_DIGIT[ch];
+      seen = true;
+      continue;
+    }
+    const unit = CN_UNIT[ch];
+    if (unit == null) return undefined;
+    total += (current || 1) * unit;
+    current = 0;
+    seen = true;
+  }
+  return seen ? total + current : undefined;
+}
+
 function volumeMentions(text: string, prefix = ""): { ul: number; index: number }[] {
   if (!text) return [];
   const found: { ul: number; index: number }[] = [];
@@ -197,6 +224,12 @@ function volumeMentions(text: string, prefix = ""): { ul: number; index: number 
   const words = new RegExp(`${prefix}\\b${wordBody}\\s*(${VOL_UNIT})`, "gi");
   for (const match of text.matchAll(words)) {
     const parsed = parseWordNumber(match[1]);
+    if (parsed == null) continue;
+    found.push({ ul: unitToUl(parsed, match[2]), index: match.index ?? 0 });
+  }
+  const chinese = new RegExp(`${prefix}([${CN_NUMERAL}]+)\\s*(${VOL_UNIT})`, "gi");
+  for (const match of text.matchAll(chinese)) {
+    const parsed = parseChineseNumber(match[1]);
     if (parsed == null) continue;
     found.push({ ul: unitToUl(parsed, match[2]), index: match.index ?? 0 });
   }

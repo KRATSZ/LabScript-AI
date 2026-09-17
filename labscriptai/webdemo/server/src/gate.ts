@@ -297,11 +297,19 @@ function findingText(item: LlmReviewFinding): string {
   return [item.claim, item.evidence, item.suggestion].map((part) => String(part ?? "")).join("\n");
 }
 
+function findingUnitToUl(amount: number, unit: string): number {
+  const n = unit.toLowerCase();
+  const ul = n === "ml" || n.startsWith("millilit") || n === "毫升" ? amount * 1000 : amount;
+  return Math.round(ul * 1000) / 1000;
+}
+
 function findingVolumesUl(item: LlmReviewFinding): number[] {
   const text = findingText(item);
   const vols: number[] = [];
-  for (const match of text.matchAll(/(\d+(?:\.\d+)?)\s*(?:µl|ul|μl|microlit(?:er|re)s?)\b/gi)) {
-    vols.push(Number(match[1]));
+  for (const match of text.matchAll(
+    /(\d+(?:\.\d+)?)\s*(µl|ul|μl|microlit(?:er|re)s?|ml|millilit(?:er|re)s?|微升|毫升)/gi
+  )) {
+    vols.push(findingUnitToUl(Number(match[1]), match[2]));
   }
   for (const match of text.matchAll(/\b(\d+(?:\.\d+)?)\s*(?:vs\.?|versus)\s*(\d+(?:\.\d+)?)\b/gi)) {
     vols.push(Number(match[1]), Number(match[2]));
@@ -312,7 +320,7 @@ function findingVolumesUl(item: LlmReviewFinding): number[] {
 /** True when the finding also names a transfer-volume fight, not just 1000-vs-200 DiTi. */
 export function findingHasVolumeMismatch(item: LlmReviewFinding): boolean {
   const extra = [...new Set(findingVolumesUl(item).filter((vol) => !INVENTED_DITI_UL.has(vol)))];
-  return extra.length >= 2;
+  return extra.length >= 1;
 }
 
 /** FCA/LiHa 1000 is the pipette. Do not treat a Tecan claim of 1000 µL DiTi vs 200 µL DiTi as a real mismatch. */
