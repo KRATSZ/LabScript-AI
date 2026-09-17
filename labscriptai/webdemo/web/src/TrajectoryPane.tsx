@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { AgentEvent } from "./types";
 import {
   THINK_STEP,
@@ -17,7 +18,12 @@ interface Props {
 }
 
 export function TrajectoryPane({ events, runningTool = null, live = {} }: Props) {
+  const streamRef = useRef<HTMLDivElement>(null);
   const steps = activitySteps(events, runningTool, live);
+  useEffect(() => {
+    const el = streamRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [steps, runningTool, live.thinking, live.thinkingNote]);
   if (!steps.length) {
     return (
       <div className="stage-empty" data-testid="trajectory-empty">
@@ -28,7 +34,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {} }: Props)
   }
   const turns = [...new Set(steps.map((step) => step.turn))];
   return (
-    <div className="activity-pane" data-testid="trajectory-log">
+    <div className="activity-pane activity-stream" data-testid="trajectory-log" ref={streamRef}>
       <div className="activity-head">
         <h2>Activity</h2>
         <p>{activitySummary(steps)}</p>
@@ -40,17 +46,22 @@ export function TrajectoryPane({ events, runningTool = null, live = {} }: Props)
             <li key={turn} className="activity-turn">
               {turns.length > 1 ? <h3>{turn === 1 ? "Start" : "After you replied"}</h3> : null}
               <ol className="activity-list">
-                {rows.map((step) => {
+                {rows.map((step, index) => {
                   const time = step.status === "run" ? "" : formatDuration(step.durationMs);
                   const status = activityStatusWord(step.status);
                   const think = step.name === THINK_STEP;
+                  const line = String(steps.findIndex((item) => item.turn === turn) + index + 1).padStart(2, "0");
                   return (
                     <li
                       key={step.key}
                       className={`activity-row ${step.status}${think ? " think" : ""}`}
                       data-kind={step.name}
+                      data-line={line}
                       aria-label={`${step.label}, ${status}`}
                     >
+                      <span className="activity-line" aria-hidden>
+                        {line}
+                      </span>
                       <span
                         className={`activity-dot ${step.status}${think ? " think" : ""}`}
                         aria-hidden

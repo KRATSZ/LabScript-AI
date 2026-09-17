@@ -88,6 +88,17 @@ describe("session machine", () => {
     assert.doesNotMatch(line, /nothing is written yet/);
   });
 
+  it("intakeConfirmLine names STAR carriers instead of slots 1/2/3", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 20 µL A1 to B1", doc: "", robot: "Hamilton" });
+    const line = intakeConfirmLine(session);
+    assert.match(line, /^Hamilton STAR, standard deck:/);
+    assert.match(line, /tip carrier \(rails 1–6\)/);
+    assert.match(line, /plate carrier \(rails 8–13\)/);
+    assert.match(line, /reagents trough \(rail 15\)/);
+    assert.doesNotMatch(line, /slot 1|slot 2|slot 3/);
+  });
+
   it("form notes stay in doc; generate_sop is still required", () => {
     const session = createSession();
     applyForm(session, {

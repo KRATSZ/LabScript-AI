@@ -160,6 +160,18 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("Got it. Standard — writing the SOP and the step plan."),
       /\bSOP\b/
     );
+    assert.match(
+      sanitizeAssistantText("tips in slot 1, plate in slot 2, reservoir in slot 3", "Hamilton"),
+      /tip carrier/
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("tips in slot 1, plate in slot 2, reservoir in slot 3", "Hamilton"),
+      /slot 1|slot 2|slot 3/
+    );
+    assert.match(
+      sanitizeAssistantText("300 µL tips in slot 1, 96-well plate in slot 2", "OT-2"),
+      /slot 1/
+    );
   });
 });
 

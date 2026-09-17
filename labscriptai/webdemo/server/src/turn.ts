@@ -4,7 +4,7 @@ import { SYSTEM_PROMPT } from "./prompt.ts";
 import { deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
 
 export const CONTINUE_STEER =
-  "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the three slots — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
+  "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the deck (Hamilton: tip carrier / plate carrier / trough, never slots 1/2/3) — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
 
 export function nextToolHint(session: SessionState): string {
   const snap = snapshot(session);

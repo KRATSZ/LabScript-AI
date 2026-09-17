@@ -9,6 +9,7 @@ interface Props {
   messages: ChatMessage[];
   busy: boolean;
   onSend: (text: string) => void;
+  robot?: string | null;
 }
 
 function MarkdownBody({ text, className }: { text: string; className?: string }) {
@@ -19,7 +20,7 @@ function MarkdownBody({ text, className }: { text: string; className?: string })
   );
 }
 
-export function ChatPane({ messages, busy, onSend }: Props) {
+export function ChatPane({ messages, busy, onSend, robot }: Props) {
   const [text, setText] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -56,7 +57,7 @@ export function ChatPane({ messages, busy, onSend }: Props) {
           const shown = (msg.thinking || "").slice(-THINK_DISPLAY_CAP);
           const emptyBusy = emptyAssistant && busy && last;
           const raw = msg.text || "";
-          const body = msg.role === "assistant" ? sanitizeAssistantText(raw) : raw;
+          const body = msg.role === "assistant" ? sanitizeAssistantText(raw, robot) : raw;
           return (
             <div key={i} className={`bubble-row ${msg.role}`}>
               <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>

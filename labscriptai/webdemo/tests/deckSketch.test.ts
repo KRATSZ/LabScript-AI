@@ -46,5 +46,10 @@ describe("deckSketchRows", () => {
     assert.equal(carriers[0].id, "tip_car");
     assert.equal(carriers[0].sites.length, 5);
     assert.ok(carriers[0].sites.every((site) => site.labware));
+    const waste = carriers.find((carrier) => carrier.id === "waste");
+    assert.ok(waste);
+    assert.equal(waste.sites.length, 3);
+    assert.ok(waste.sites.every((site) => !site.labware));
+    assert.equal(waste.sites[0].label, "Trash");
   });
 });

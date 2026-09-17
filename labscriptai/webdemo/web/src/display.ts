@@ -103,13 +103,13 @@ export function planStepDisplay(step: unknown): string {
 }
 
 /** Strip schema leftovers the model sometimes echoes into chat. */
-export function sanitizeAssistantText(text: string): string {
+export function sanitizeAssistantText(text: string, robot?: string | null): string {
   let out = text;
   for (const re of LEAK_PATTERNS) {
     re.lastIndex = 0;
     out = out.replace(re, "");
   }
-  return out
+  out = out
     .replace(/\b(\d+(?:\.\d+)?)\s*L\s*(?:vs\.?|versus|or)\s*\1\s*(?:µL|uL)\b/gi, "$1 µL")
     .replace(/\b(\d+(?:\.\d+)?)\s*(?:µL|uL)\s*(?:vs\.?|versus|or)\s*\1\s*L\b/gi, "$1 µL")
     .replace(/\(\s*microliters?\s*,?\s*not liters?\s*\)/gi, "")
@@ -160,7 +160,14 @@ export function sanitizeAssistantText(text: string): string {
     .replace(/\bWorkcell Tree\b/gi, "")
     .replace(/\bPLR\b/g, "")
     .replace(/\btipracks?\b/gi, "tip rack")
-    .replace(/\.gwl\b/gi, " worklist")
+    .replace(/\.gwl\b/gi, " worklist");
+  if (robot === "Hamilton" || robot === "Vantage") {
+    out = out
+      .replace(/\bin slot 1\b/gi, "on the tip carrier")
+      .replace(/\bin slot 2\b/gi, "on the plate carrier")
+      .replace(/\bin slot 3\b/gi, "in the reagents trough");
+  }
+  return out
     .replace(/\bworklist\s+worklist\b/gi, "worklist")
     .replace(/^[:\s—–-]+/, "")
     .replace(/^(?=\d[\d.]*\s*µL\s+tips\b)/i, "Standard deck — ")

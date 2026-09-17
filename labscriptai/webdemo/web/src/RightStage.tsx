@@ -38,7 +38,10 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
     if (tab === "trajectory" && !logOpen) setTab("stage");
   }, [tab, filesOpen, logOpen]);
   return (
-    <section className="stage-column" data-testid="stage-column">
+    <section
+      className={tab === "trajectory" ? "stage-column activity-open" : "stage-column"}
+      data-testid="stage-column"
+    >
       {session && visible.length > 1 ? (
         <div className="stage-tabs" role="tablist" aria-label="Right stage">
           {visible.map((item) => {

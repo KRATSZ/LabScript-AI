@@ -62,7 +62,11 @@ export function OtDeckReplay({
   }
 
   return (
-    <div className="ot-deck-embed" data-testid="ot-deck-replay">
+    <div
+      className={robot === "Flex" ? "ot-deck-embed is-flex" : "ot-deck-embed"}
+      data-testid="ot-deck-replay"
+      data-robot={robot ?? ""}
+    >
       <AnimatorGuard resetKey={resetKey}>
         <ProtocolVisualization
           analysis={analysis}

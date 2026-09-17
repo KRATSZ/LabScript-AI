@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { sessionCanWatch } from "./analysis";
 import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
@@ -6,8 +6,11 @@ import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
 import { headerGoalPreview, hasAttachedNotes } from "./display";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
+import { clampChatPct, loadChatPct, saveChatPct } from "./paneSplit.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
+import { HistoryRail } from "./HistoryRail";
+import { archiveThread, loadThreads, railThreads, type ArchivedThread } from "./threadArchive";
 import { thoughtNotesFromChat, thoughtTurnsFromChat } from "./trajectoryLogic";
 import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
@@ -23,7 +26,24 @@ export function App() {
   const [runningTool, setRunningTool] = useState<string | null>(null);
   const [health, setHealth] = useState<DemoHealth | null>(null);
   const [notesAttached, setNotesAttached] = useState(false);
+  const [chatPct, setChatPct] = useState(0.38);
+  const [dragging, setDragging] = useState(false);
+  const [threads, setThreads] = useState<ArchivedThread[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const robotRef = useRef<SessionSnapshot["robot"]>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const chatPctRef = useRef(chatPct);
+  const dragRef = useRef<{ startX: number; startPct: number; width: number } | null>(null);
+  chatPctRef.current = chatPct;
+
+  useEffect(() => {
+    const widthOf = () => workspaceRef.current?.clientWidth || 1280;
+    setChatPct(loadChatPct(widthOf()));
+    setThreads(loadThreads());
+    const onResize = () => setChatPct((pct) => clampChatPct(pct, widthOf()));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,7 +127,12 @@ export function App() {
     [applySnapshot]
   );
 
+  const parkCurrent = useCallback(() => {
+    setThreads((prev) => archiveThread(prev, session, messages, events));
+  }, [session, messages, events]);
+
   const changeDevice = () => {
+    parkCurrent();
     setOverlay(false);
     setSession(null);
     setMessages([]);
@@ -118,6 +143,7 @@ export function App() {
   };
 
   const start = async (input: StartInput) => {
+    parkCurrent();
     setBusy(true);
     setError("");
     setEvents([]);
@@ -156,6 +182,40 @@ export function App() {
     Boolean(lastMessage.thinking) &&
     !lastMessage.text &&
     !runningTool;
+  const hasRail = Boolean(session) || threads.length > 0;
+  const listedThreads = railThreads(threads, session, messages, events);
+
+  const onSeamPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    const width = workspaceRef.current?.clientWidth || 1280;
+    dragRef.current = { startX: event.clientX, startPct: chatPct, width };
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const onSeamPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    setChatPct(clampChatPct(drag.startPct + (event.clientX - drag.startX) / drag.width, drag.width));
+  };
+  const onSeamPointerUp = () => {
+    if (!dragRef.current) return;
+    dragRef.current = null;
+    setDragging(false);
+    saveChatPct(chatPctRef.current);
+  };
+
+  const restoreThread = (id: string) => {
+    if (session?.id === id) return;
+    const thread = listedThreads.find((item) => item.id === id) ?? threads.find((item) => item.id === id);
+    if (!thread) return;
+    parkCurrent();
+    robotRef.current = thread.session.robot;
+    setSession(thread.session);
+    setMessages(thread.messages);
+    setEvents(thread.events);
+    setError("");
+    setOverlay(false);
+    setNotesAttached(hasAttachedNotes(thread.session.doc));
+  };
 
   return (
     <div className="app">
@@ -207,7 +267,19 @@ export function App() {
         ) : null}
       </header>
 
-      <div className="workspace" data-testid="shell">
+      <div
+        className={[
+          "workspace",
+          dragging ? "dragging" : "",
+          hasRail ? "has-history" : "",
+          hasRail && historyOpen ? "history-open" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        data-testid="shell"
+        ref={workspaceRef}
+        style={{ ["--chat-pct" as string]: `${(chatPct * 100).toFixed(2)}%` }}
+      >
         <section className="chat-column" data-testid="chat-column">
           {!session ? (
             <div className="start-scroll">
@@ -223,6 +295,7 @@ export function App() {
               <ChatPane
                 messages={messages}
                 busy={busy}
+                robot={session.robot}
                 onSend={(text) => runTurn(session.id, text, false)}
               />
               {error ? (
@@ -233,6 +306,17 @@ export function App() {
             </div>
           )}
         </section>
+        <div
+          className="split-seam"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize chat"
+          data-testid="split-seam"
+          onPointerDown={onSeamPointerDown}
+          onPointerMove={onSeamPointerMove}
+          onPointerUp={onSeamPointerUp}
+          onPointerCancel={onSeamPointerUp}
+        />
         <RightStage
           session={session}
           events={events}
@@ -246,6 +330,13 @@ export function App() {
             thoughtNotes: thoughtNotesFromChat(messages),
             thinkingNote: lastMessage?.thinking,
           }}
+        />
+        <HistoryRail
+          threads={listedThreads}
+          currentId={session?.id}
+          open={historyOpen}
+          onToggle={() => setHistoryOpen((open) => !open)}
+          onSelect={restoreThread}
         />
       </div>
 

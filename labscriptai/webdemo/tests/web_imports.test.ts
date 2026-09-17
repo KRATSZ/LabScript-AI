@@ -151,5 +151,18 @@ describe("AnimationOverlay code-split", () => {
     const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
     assert.match(css, /playbackcontrols-module__container/);
     assert.match(css, /replay-progress/);
+    assert.match(css, /--chat-pct:\s*38%/);
+    assert.match(css, /--history-collapsed:\s*32px/);
+    assert.match(css, /--history-open:\s*220px/);
+    assert.match(css, /\.split-seam/);
+    assert.match(css, /\.history-rail/);
+    assert.match(css, /\.activity-pane[\s\S]*font-family:\s*var\(--mono\)/);
+    assert.match(css, /deck_labels_column/);
+    assert.match(css, /flex-direction:\s*column-reverse/);
+    const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
+    assert.match(app, /split-seam/);
+    assert.match(app, /HistoryRail/);
+    assert.match(readFileSync(path.join(webSrc, "TrajectoryPane.tsx"), "utf8"), /activity-stream/);
+    assert.match(readFileSync(path.join(webSrc, "OtDeckReplay.tsx"), "utf8"), /is-flex/);
   });
 });

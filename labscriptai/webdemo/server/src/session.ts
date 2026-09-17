@@ -353,15 +353,27 @@ function deckSlotLabel(labware: string): string {
   return DECK_SLOT_LABELS[labware] ?? DECK_SLOT_LABELS[labware.toLowerCase()] ?? labware.replace(/_/g, " ");
 }
 
+function hamiltonDeckPhrase(deck: Record<string, string>): string {
+  const tips = deckSlotLabel(deck["1"] || "hamilton_96_tiprack_300ul");
+  const plate = deckSlotLabel(deck["2"] || "corning_96_wellplate_360ul_flat");
+  const trough = deckSlotLabel(deck["3"] || "nest_12_reservoir_15ml");
+  return `${tips} on the tip carrier (rails 1–6), ${plate} on the plate carrier (rails 8–13), ${trough} in the reagents trough (rail 15)`;
+}
+
+function namedDeckPhrase(robot: RobotModel | undefined, deck: Record<string, string>): string {
+  const slots = Object.entries(deck).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+  if (!slots.length) return "tips, 96-well plate, 12-well reservoir";
+  if (robot === "Hamilton" || robot === "Vantage") return hamiltonDeckPhrase(deck);
+  if (robot === "Flex") {
+    return slots.map(([slot, labware]) => `${deckSlotLabel(labware)} in ${slot}`).join(", ");
+  }
+  return slots.map(([slot, labware]) => `${deckSlotLabel(labware)} in slot ${slot}`).join(", ");
+}
+
 /** One-line first-turn confirm. Never “nothing is written yet.” */
 export function intakeConfirmLine(session: SessionState): string {
   const label = deviceFor(session.robot)?.label ?? "this robot";
-  const slots = Object.entries(session.hardware.deck).sort((a, b) =>
-    a[0].localeCompare(b[0], undefined, { numeric: true })
-  );
-  const deck = slots.length
-    ? slots.map(([slot, labware]) => `${deckSlotLabel(labware)} in slot ${slot}`).join(", ")
-    : "tips, 96-well plate, 12-well reservoir";
+  const deck = namedDeckPhrase(session.robot, session.hardware.deck);
   return `${label}, standard deck: ${deck}. Reply if that matches.`;
 }
 

@@ -82,9 +82,9 @@ export function hamiltonStarSketch(deck: Record<string, string>): StarCarrierSke
       title: "Waste",
       rails: "built-in",
       sites: [
-        { id: "trash", label: "Trash", labware: "trash" },
-        { id: "core96", label: "96-head trash", labware: "trash" },
-        { id: "teach", label: "Teaching rack", labware: "teaching tips" },
+        { id: "trash", label: "Trash", labware: "" },
+        { id: "core96", label: "96-head", labware: "" },
+        { id: "teach", label: "Teaching rack", labware: "" },
       ],
     },
   ];

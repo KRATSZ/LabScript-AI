@@ -63,7 +63,7 @@ function DeckSketch({ session }: { session: SessionSnapshot }) {
       data-origin-slot={origin}
     >
       {axes ? (
-        <div className="deck-axis-rows" aria-hidden="true">
+        <div className="deck-axis-rows" aria-hidden="true" data-testid="flex-axis-rows">
           {axes.rows.map((label) => (
             <span key={label} className="deck-axis-tick">
               {label}
@@ -91,7 +91,7 @@ function DeckSketch({ session }: { session: SessionSnapshot }) {
           </div>
         ))}
         {axes ? (
-          <div className="deck-axis-cols" aria-hidden="true">
+          <div className="deck-axis-cols" aria-hidden="true" data-testid="flex-axis-cols">
             {axes.cols.map((label) => (
               <span key={label} className="deck-axis-tick">
                 {label}
