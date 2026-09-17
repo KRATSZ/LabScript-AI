@@ -240,11 +240,37 @@ def start_plr_visualizer(plan_payload: dict[str, Any], robot: str) -> dict[str, 
             ready.set()
 
             async def play_and_hold() -> None:
+                total = len(list(plan.ordered_steps()))
+                holder["progress"] = {"step": 0, "total": total, "label": "", "playing": True}
+
+                def on_step(index: int, count: int, kind: str) -> None:
+                    holder["progress"] = {
+                        "step": index,
+                        "total": count,
+                        "label": kind.replace("_", " ").title(),
+                        "playing": True,
+                    }
+
                 await asyncio.sleep(1.2)
                 try:
-                    await _execute(lh, plan, built["tips"], built["plate"], built["trash"], built["placed"])
+                    await _execute(
+                        lh,
+                        plan,
+                        built["tips"],
+                        built["plate"],
+                        built["trash"],
+                        built["placed"],
+                        on_step=on_step,
+                    )
                 except Exception:
                     pass
+                progress = holder.get("progress") or {}
+                holder["progress"] = {
+                    "step": int(progress.get("total") or total),
+                    "total": int(progress.get("total") or total),
+                    "label": "",
+                    "playing": False,
+                }
                 while not holder["stop"].is_set():
                     await asyncio.sleep(0.25)
 
@@ -284,11 +310,18 @@ def plr_visualizer_status() -> dict[str, Any]:
     if not session or not session.get("url"):
         return {"ok": True, "running": False}
     thread: threading.Thread | None = session.get("thread")
+    progress = session.get("progress") if isinstance(session.get("progress"), dict) else {}
     return {
         "ok": True,
         "running": bool(thread and thread.is_alive()),
         "url": session.get("url"),
         "deck": session.get("deck_name"),
         "note": session.get("note") or "",
+        "progress": {
+            "step": int(progress.get("step") or 0),
+            "total": int(progress.get("total") or 0),
+            "label": str(progress.get("label") or ""),
+            "playing": bool(progress.get("playing")),
+        },
     }
 

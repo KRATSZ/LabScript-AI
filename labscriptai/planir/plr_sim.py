@@ -132,12 +132,15 @@ async def _execute(
     plate: Any,
     trash: Any,
     placed: dict[str, Any] | None = None,
+    on_step: Callable[[int, int, str], None] | None = None,
 ) -> None:
     resources = {"tips": tips, "plate": plate, **(placed or {})}
     for resource in plan.resources:
         if resource.id not in resources:
             resources[resource.id] = plate if resource.type != "tiprack" else tips
     held: list[Any] = []
+    steps = list(plan.ordered_steps())
+    total = len(steps)
 
     def well_spots(loc: str | None) -> list[Any]:
         spots: list[Any] = []
@@ -147,8 +150,10 @@ async def _execute(
             spots.extend(_as_seq(container[well]))
         return spots
 
-    for step in plan.ordered_steps():
+    for index, step in enumerate(steps, start=1):
         kind = step.primitive_type
+        if on_step is not None:
+            on_step(index, total, str(kind or ""))
         if kind == "WAIT":
             continue
         if kind == "PICK_TIPS":

@@ -146,5 +146,10 @@ describe("AnimationOverlay code-split", () => {
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /PlrDeckReplay/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /appType="desktop"/);
     assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/start/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /plr-progress/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/status/);
+    const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
+    assert.match(css, /playbackcontrols-module__container/);
+    assert.match(css, /replay-progress/);
   });
 });
