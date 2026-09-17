@@ -63,7 +63,7 @@ const PHRASE_FOLDS: Fold[] = [
     /\bWatch(?:\/animation)?(?: animation)? is (?:up|ready|open)(?: too)?(?: if you want to see the run)?(?: for this run(?: too)?)?\.?:?\s*/gi,
     "The deck is on Stage. ",
   ],
-  [/\bno watch for \w+\.?/gi, ""],
+  [/\bno watch(?:\/animation)? (?:for|on) \w+\.?/gi, ""],
   [/\s+and the deck animation are ready/gi, " is ready"],
   [/\bthe deck animation are ready\b/gi, "the deck is ready"],
   [
@@ -102,6 +102,7 @@ const STAR_SLOT_FOLDS: Fold[] = [
 
 const TIDY_FOLDS: Fold[] = [
   [/\bworklist\s+worklist\b/gi, "worklist"],
+  [/\(\s*\)/g, ""],
   [/^[:\s—–-]+/, ""],
   [/^(?=\d[\d.]*\s*µL\s+tips\b)/i, "Standard deck — "],
   [/([.!?])([A-Z])/g, "$1 $2"],
@@ -236,6 +237,7 @@ export function headerGoalPreview(label: string, goal: string): string {
   ]).trim();
   for (const name of names) {
     text = text.replace(new RegExp(`\\s*\\(\\s*${escapeRe(name)}\\s*\\)`, "i"), "").trim();
+    text = text.replace(new RegExp(`\\s*\\(\\s*${escapeRe(name)}[^)]*$`, "i"), "").trim();
   }
   text = text.replace(/\s*\(\s*\)/g, "").trim();
   text = text.replace(/[.,;:\s]+$/g, "").replace(/\s{2,}/g, " ").trim();

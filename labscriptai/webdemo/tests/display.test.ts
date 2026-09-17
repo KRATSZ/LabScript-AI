@@ -92,9 +92,10 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("the FluentControl.gwl worklist is ready."),
       "the Fluent worklist is ready."
     );
+    assert.doesNotMatch(sanitizeAssistantText("Done. The protocol and the deck animation are ready. No Watch for Fluent."), /deck animation are ready|No Watch for Fluent/i);
     assert.doesNotMatch(
-      sanitizeAssistantText("Done. The protocol and the deck animation are ready. No Watch for Fluent."),
-      /deck animation are ready|No Watch for Fluent/i
+      sanitizeAssistantText("Downloadables: steps and the script (no Watch on Hamilton)."),
+      /Watch/i
     );
     assert.equal(
       sanitizeAssistantText("Python script and on-screen deck are ready to download"),
@@ -288,6 +289,14 @@ describe("headerGoalPreview", () => {
     assert.doesNotMatch(
       headerGoalPreview("Flex", "Transfer 20 µL from well A1 to B1 with the standard deck."),
       /with the/i
+    );
+    assert.equal(
+      headerGoalPreview("Tecan Fluent", "Transfer 50 µL from well A1 to well B1 (Tecan Fluent"),
+      "Transfer 50 µL from well A1 to well B1"
+    );
+    assert.doesNotMatch(
+      headerGoalPreview("Tecan Fluent", "Transfer 50 µL from well A1 to well B1 (Tecan Fluent"),
+      /\(Tecan Fluent/i
     );
   });
 });

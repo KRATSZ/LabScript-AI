@@ -853,6 +853,7 @@ body {
   font-size: 13px;
   line-height: 18px;
   cursor: pointer;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease);
 }
 .chip:hover:not(:disabled) {
   border-color: #cbd5e1;
@@ -915,7 +916,6 @@ body {
   border-color: #cbd5e1;
   background: #f8fafc;
 }
-.collapsed .ghost { flex: 0 0 auto; font-size: 12px; color: var(--muted); }
 .issues-human {
   font-size: 13px;
   color: var(--text);
@@ -939,21 +939,8 @@ body {
 .primary:disabled { opacity: .5; cursor: not-allowed; }
 .primary:not(:disabled):hover { background: var(--primary-dark); }
 
-.collapsed {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.collapsed strong { color: var(--text); }
-.collapsed strong.status-pass,
 .header-status strong.status-pass { color: var(--success); }
-.collapsed strong.status-fail,
 .header-status strong.status-fail { color: var(--error); }
-.collapsed strong.status-uneval,
 .header-status strong.status-uneval { color: var(--warn); }
 
 .pipeline-wrap { margin-bottom: 12px; }
@@ -1203,32 +1190,6 @@ body {
   margin: 8px 0 4px;
 }
 .plan-steps p { margin: 2px 0; }
-
-.fab {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 0;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-}
-.fab.lit {
-  width: auto;
-  min-width: 52px;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  background: var(--primary);
-  box-shadow: none;
-}
 
 .overlay {
   position: fixed;
