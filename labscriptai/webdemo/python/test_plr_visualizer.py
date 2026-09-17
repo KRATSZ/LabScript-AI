@@ -30,6 +30,16 @@ class PlrVisualizerTests(unittest.TestCase):
         self.assertEqual(_robot_kind("Tecan"), "fluent")
         self.assertEqual(_robot_kind("Tecan Fluent"), "fluent")
 
+    def test_plate_a1_is_the_back_left_well(self) -> None:
+        from pylabrobot.resources import Cor_96_wellplate_360ul_Fb
+
+        plate = Cor_96_wellplate_360ul_Fb("plate")
+        a1 = plate["A1"][0]
+        h1 = plate["H1"][0]
+        a12 = plate["A12"][0]
+        self.assertGreater(a1.location.y, h1.location.y)
+        self.assertLess(a1.location.x, a12.location.x)
+
     def test_starlet_and_evo_decks(self) -> None:
         plan = load_plan(DEMO)
         star = build_liquid_handler(plan, "Hamilton")

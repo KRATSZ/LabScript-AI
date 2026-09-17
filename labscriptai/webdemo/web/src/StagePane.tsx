@@ -1,7 +1,7 @@
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
-import { deckLabware, deckSketchRows } from "./deckSketch";
+import { deckLabware, deckSketchAxes, deckSketchRows } from "./deckSketch";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { IssuesPanel } from "./IssuesPanel";
 import { OtDeckReplay } from "./OtDeckReplay";
@@ -20,26 +20,52 @@ interface Props {
 function DeckSketch({ session }: { session: SessionSnapshot }) {
   const deck = session.hardware?.deck ?? {};
   const rows = deckSketchRows(session.robot, deck);
+  const axes = deckSketchAxes(session.robot);
+  const origin = rows[0]?.[0] ?? "";
   return (
-    <div className="deck-sketch" data-testid="deck-strip">
-      {rows.map((row) => (
-        <div
-          key={row.join("-")}
-          className="deck-sketch-row"
-          style={{ gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))` }}
-        >
-          {row.map((slot) => {
-            const labware = deckLabware(deck, slot);
-            const filled = Boolean(labware);
-            return (
-              <div key={slot} className={filled ? "deck-cell filled" : "deck-cell empty"}>
-                <span className="deck-cell-slot">{slot === "trash" ? "Trash" : slot}</span>
-                {filled ? <span className="deck-cell-labware">{labwareLabel(labware) || labware}</span> : null}
-              </div>
-            );
-          })}
+    <div
+      className={axes ? "deck-sketch has-axes" : "deck-sketch"}
+      data-testid="deck-strip"
+      data-origin-slot={origin}
+    >
+      {axes ? (
+        <div className="deck-axis-rows" aria-hidden="true">
+          {axes.rows.map((label) => (
+            <span key={label} className="deck-axis-tick">
+              {label}
+            </span>
+          ))}
         </div>
-      ))}
+      ) : null}
+      <div className="deck-sketch-grid">
+        {rows.map((row) => (
+          <div
+            key={row.join("-")}
+            className="deck-sketch-row"
+            style={{ gridTemplateColumns: `repeat(${row.length}, minmax(0, 1fr))` }}
+          >
+            {row.map((slot) => {
+              const labware = deckLabware(deck, slot);
+              const filled = Boolean(labware);
+              return (
+                <div key={slot} className={filled ? "deck-cell filled" : "deck-cell empty"}>
+                  <span className="deck-cell-slot">{slot === "trash" ? "Trash" : slot}</span>
+                  {filled ? <span className="deck-cell-labware">{labwareLabel(labware) || labware}</span> : null}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+        {axes ? (
+          <div className="deck-axis-cols" aria-hidden="true">
+            {axes.cols.map((label) => (
+              <span key={label} className="deck-axis-tick">
+                {label}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

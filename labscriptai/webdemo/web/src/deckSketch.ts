@@ -7,11 +7,18 @@ const OT2_ROWS: string[][] = [
   ["1", "2", "3"],
 ];
 
+/** Flex: letters are rows (A back / top → D front / bottom), numbers are columns (1 left → 3 right). A1 is back-left. */
 const FLEX_ROWS: string[][] = [
-  ["A3", "B3", "C3", "D3"],
-  ["A2", "B2", "C2", "D2"],
-  ["A1", "B1", "C1", "D1"],
+  ["A1", "A2", "A3"],
+  ["B1", "B2", "B3"],
+  ["C1", "C2", "C3"],
+  ["D1", "D2", "D3"],
 ];
+
+export interface DeckSketchAxes {
+  rows: string[];
+  cols: string[];
+}
 
 /** Slot grid for the waiting-panel sketch. Empty slots stay numbered so the bench is readable. */
 export function deckSketchRows(
@@ -27,6 +34,12 @@ export function deckSketchRows(
   return rows;
 }
 
+/** Axis labels matching labscriptai.cn/animation: letters down the left, numbers along the bottom. */
+export function deckSketchAxes(robot: RobotModel | null | undefined): DeckSketchAxes | null {
+  if (robot === "Flex") return { rows: ["A", "B", "C", "D"], cols: ["1", "2", "3"] };
+  return null;
+}
+
 export function slotKey(slot: string): string {
   return slot.trim().toLowerCase();
 }
@@ -37,4 +50,10 @@ export function deckLabware(deck: Record<string, string>, slot: string): string 
     if (slotKey(key) === want) return value;
   }
   return "";
+}
+
+/** Top-left cell of the sketch — Flex A1 (back-left) or OT-2 slot 10. */
+export function sketchOriginSlot(robot: RobotModel | null | undefined): string {
+  const rows = deckSketchRows(robot, {});
+  return rows[0]?.[0] ?? "";
 }
