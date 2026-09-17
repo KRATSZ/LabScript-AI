@@ -1,7 +1,7 @@
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
-import { deckLabware, deckSketchAxes, deckSketchRows, hamiltonStarSketch, usesStarSketch } from "./deckSketch";
+import { deckLabware, deckSketchAxes, deckSketchRows, hamiltonStarSketch, hamiltonVantageSketch, usesStarSketch, usesVantageSketch } from "./deckSketch";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { IssuesPanel } from "./IssuesPanel";
 import { OtDeckReplay } from "./OtDeckReplay";
@@ -51,8 +51,26 @@ function StarDeckSketch({ session }: { session: SessionSnapshot }) {
   );
 }
 
+function VantageDeckSketch({ session }: { session: SessionSnapshot }) {
+  const sketch = hamiltonVantageSketch(session.hardware?.deck ?? {});
+  return (
+    <div className="vantage-sketch" data-testid="deck-strip" data-origin-slot="tips">
+      <div className="vantage-sketch-head">
+        <span>Vantage {sketch.size}</span>
+        <span className="vantage-sketch-rails">{sketch.rails} rails</span>
+      </div>
+      <div className="vantage-railbed">
+        {sketch.items.map((item) => (
+          <DeckCell key={item.id} label={item.label} labware={item.labware} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function DeckSketch({ session }: { session: SessionSnapshot }) {
   if (usesStarSketch(session.robot)) return <StarDeckSketch session={session} />;
+  if (usesVantageSketch(session.robot)) return <VantageDeckSketch session={session} />;
   const deck = session.hardware?.deck ?? {};
   const rows = deckSketchRows(session.robot, deck);
   const axes = deckSketchAxes(session.robot);
@@ -111,11 +129,17 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
     session.checks?.status,
     session.analyze ?? null
   );
+  const previewDown =
+    session.code_service === "down" && isPlanCodegen(session.robot)
+      ? "Preview service down. The bench preview stays off until that service is up."
+      : null;
   const plrReady =
     isPlanCodegen(session.robot) &&
     session.checks?.status === "pass" &&
-    Boolean(session.plan && typeof session.plan === "object");
+    Boolean(session.plan && typeof session.plan === "object") &&
+    session.code_service !== "down";
   const hasDeck = watchReady || plrReady;
+  const waitHint = watchGap || previewDown;
   return (
     <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
       {watchReady ? (
@@ -126,22 +150,24 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
           appType="desktop"
         />
       ) : plrReady ? (
-        <PlrDeckReplay plan={session.plan} robot={session.robot} />
+        <PlrDeckReplay plan={session.plan} robot={session.robot} previewUp={session.code_service !== "down"} />
       ) : (
         <div className="stage-wait">
           <div className="stage-wait-copy">
             <h2>Standard deck</h2>
             <p>
-              {isPlanCodegen(session.robot)
-                ? "The bench preview fills this pane after checks pass."
-                : "The deck preview fills this pane after checks pass."}
+              {isPlanCodegen(session.robot) && session.code_service === "down"
+                ? "The bench preview stays off while the preview service is down."
+                : isPlanCodegen(session.robot)
+                  ? "The bench preview fills this pane after checks pass."
+                  : "The deck preview fills this pane after checks pass."}
             </p>
           </div>
           <DeckSketch session={session} />
           <Pipeline session={session} runningTool={runningTool} busy={busy} compact />
-          {watchGap ? (
+          {waitHint ? (
             <p className="hint" data-testid="watch-unavailable">
-              {watchGap}
+              {waitHint}
             </p>
           ) : null}
           {steps.length ? (

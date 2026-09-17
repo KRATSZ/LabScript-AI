@@ -103,6 +103,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(app, /fetchHealth/);
     assert.match(app, /Preview service down/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
+    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /vantage-sketch/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /Preview service down/);
     assert.doesNotMatch(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay|WatchPlayer|Run preview/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /busy && msg\.role === "assistant"/);
@@ -156,6 +158,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(css, /--history-open:\s*220px/);
     assert.match(css, /\.split-seam/);
     assert.match(css, /\.history-rail/);
+    assert.match(css, /\.vantage-sketch/);
+    assert.match(css, /\.vantage-railbed/);
     assert.match(css, /\.activity-pane[\s\S]*font-family:\s*var\(--mono\)/);
     assert.match(css, /\.activity-list \.activity-row:nth-child\(even\)/);
     assert.match(css, /\.activity-row[\s\S]*padding:\s*8px 16px/);

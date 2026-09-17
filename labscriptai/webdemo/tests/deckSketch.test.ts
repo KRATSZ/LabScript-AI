@@ -5,7 +5,10 @@ import {
   deckSketchAxes,
   deckSketchRows,
   hamiltonStarSketch,
+  hamiltonVantageSketch,
   sketchOriginSlot,
+  usesStarSketch,
+  usesVantageSketch,
 } from "../web/src/deckSketch.ts";
 
 describe("deckSketchRows", () => {
@@ -51,5 +54,25 @@ describe("deckSketchRows", () => {
     assert.equal(waste.sites.length, 3);
     assert.ok(waste.sites.every((site) => !site.labware));
     assert.equal(waste.sites[0].label, "Trash");
+  });
+
+  it("draws a Vantage 1.3 m rail bed instead of three OT-style slots or STAR carriers", () => {
+    const sketch = hamiltonVantageSketch({
+      "1": "hamilton_96_tiprack_300ul",
+      "2": "corning_96_wellplate_360ul_flat",
+      "3": "nest_12_reservoir_15ml",
+    });
+    assert.equal(sketch.size, "1.3 m");
+    assert.equal(sketch.rails, 54);
+    assert.equal(sketch.items.length, 4);
+    assert.deepEqual(
+      sketch.items.map((item) => item.label),
+      ["Tips", "Plate", "Reservoir", "Trash"]
+    );
+    assert.ok(sketch.items[0].labware);
+    assert.equal(sketch.items[3].label, "Trash");
+    assert.equal(usesStarSketch("Vantage"), false);
+    assert.equal(usesVantageSketch("Vantage"), true);
+    assert.equal(usesVantageSketch("Hamilton"), false);
   });
 });

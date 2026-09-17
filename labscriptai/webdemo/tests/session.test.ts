@@ -99,6 +99,15 @@ describe("session machine", () => {
     assert.doesNotMatch(line, /slot 1|slot 2|slot 3/);
   });
 
+  it("intakeConfirmLine names the 1.3 m Vantage deck, not STAR rails", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1", doc: "", robot: "Vantage" });
+    const line = intakeConfirmLine(session);
+    assert.match(line, /^Hamilton Vantage, standard deck:/);
+    assert.match(line, /1\.3 m rails/);
+    assert.doesNotMatch(line, /rails 1–6|rails 8–13|rail 15|tip carrier|slot 1/);
+  });
+
   it("form notes stay in doc; generate_sop is still required", () => {
     const session = createSession();
     applyForm(session, {

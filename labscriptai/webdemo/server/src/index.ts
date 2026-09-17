@@ -144,9 +144,11 @@ export async function handleRequest(
       res.writeHead(response.status, { "Content-Type": "application/json; charset=utf-8" });
       res.end(text);
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const down = /fetch failed|ECONNREFUSED|ECONNRESET|aborted|TimeoutError|UND_ERR/i.test(message);
       json(res, 502, {
         ok: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: down ? "Preview service down." : message,
       });
     }
     return;

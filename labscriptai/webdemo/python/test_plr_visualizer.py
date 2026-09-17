@@ -56,6 +56,19 @@ class PlrVisualizerTests(unittest.TestCase):
         self.assertIn("plate", star["placed"])
         self.assertNotIn("STARLet", star["deck_name"])
 
+    def test_vantage_deck_is_1_3_m_not_star_carriers(self) -> None:
+        plan = load_plan(DEMO)
+        vantage = build_liquid_handler(plan, "Vantage")
+        self.assertEqual(vantage["kind"], "vantage")
+        self.assertEqual(vantage["deck_name"], "Hamilton Vantage 1.3 m")
+        names = [child.name for child in vantage["deck"].children]
+        self.assertIn("tips", names)
+        self.assertIn("plate", names)
+        self.assertIn("trash", names)
+        self.assertNotIn("tip_car", names)
+        self.assertNotIn("plate_car", names)
+        self.assertEqual(vantage["deck"].num_rails, 54)
+
     def test_starlet_and_evo_decks(self) -> None:
         plan = load_plan(DEMO)
         star = build_liquid_handler(plan, "Hamilton")

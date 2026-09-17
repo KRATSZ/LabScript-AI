@@ -185,6 +185,28 @@ describe("sanitizeAssistantText", () => {
       sanitizeAssistantText("300 µL tips in slot 1, 96-well plate in slot 2", "OT-2"),
       /slot 1/
     );
+    assert.match(
+      sanitizeAssistantText("the code service is down, so Python stays off."),
+      /preview service is down/
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText("the code service is down, so Python stays off."),
+      /code service/
+    );
+    assert.match(
+      sanitizeAssistantText(
+        "300 µL tips on the tip carrier (rails 1–6), plate on the plate carrier (rails 8–13)",
+        "Vantage"
+      ),
+      /1\.3 m deck/
+    );
+    assert.doesNotMatch(
+      sanitizeAssistantText(
+        "300 µL tips on the tip carrier (rails 1–6), plate on the plate carrier (rails 8–13)",
+        "Vantage"
+      ),
+      /rails 1–6|tip carrier/
+    );
   });
 });
 

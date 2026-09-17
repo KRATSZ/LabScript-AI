@@ -90,6 +90,36 @@ export function usesStarSketch(robot: RobotModel | null | undefined): boolean {
   return robot === "Hamilton";
 }
 
+export interface VantageRailItem {
+  id: string;
+  label: string;
+  labware: string;
+}
+
+export interface VantageDeckSketch {
+  size: string;
+  rails: number;
+  items: VantageRailItem[];
+}
+
+/** PLR VantageDeck 1.3 m: tips, plate, reservoir on the rails, plus built-in trash. Not STAR carriers. */
+export function hamiltonVantageSketch(deck: Record<string, string>): VantageDeckSketch {
+  return {
+    size: "1.3 m",
+    rails: 54,
+    items: [
+      { id: "tips", label: "Tips", labware: deckLabware(deck, "1") },
+      { id: "plate", label: "Plate", labware: deckLabware(deck, "2") },
+      { id: "trough", label: "Reservoir", labware: deckLabware(deck, "3") },
+      { id: "trash", label: "Trash", labware: "" },
+    ],
+  };
+}
+
+export function usesVantageSketch(robot: RobotModel | null | undefined): boolean {
+  return robot === "Vantage";
+}
+
 export function slotKey(slot: string): string {
   return slot.trim().toLowerCase();
 }

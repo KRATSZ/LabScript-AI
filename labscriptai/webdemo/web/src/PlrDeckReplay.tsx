@@ -45,12 +45,23 @@ function progressCopy(progress: Progress | null, fallbackTotal: number): string 
   return `${label} · ${fraction}`;
 }
 
+const PREVIEW_DOWN =
+  "Preview service down. The bench preview stays off until that service is up.";
+
+function looksLikePreviewDown(error: string): boolean {
+  return /fetch failed|ECONNREFUSED|ECONNRESET|aborted|TimeoutError|UND_ERR|preview service down/i.test(
+    error
+  );
+}
+
 export function PlrDeckReplay({
   plan,
   robot,
+  previewUp = true,
 }: {
   plan: Record<string, unknown> | null;
   robot?: string | null;
+  previewUp?: boolean;
 }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
@@ -60,6 +71,12 @@ export function PlrDeckReplay({
 
   useEffect(() => {
     if (!plan || !robot) return;
+    if (!previewUp) {
+      setUrl("");
+      setError(PREVIEW_DOWN);
+      setProgress(null);
+      return;
+    }
     let cancelled = false;
     setUrl("");
     setError("");
@@ -73,19 +90,22 @@ export function PlrDeckReplay({
         const body = (await response.json().catch(() => null)) as StartResponse | null;
         if (cancelled) return;
         if (!response.ok || !body?.ok || !body.url) {
-          setError(body?.error || "Deck preview could not start.");
+          const raw = body?.error || "Deck preview could not start.";
+          setError(looksLikePreviewDown(raw) ? PREVIEW_DOWN : raw);
           return;
         }
         setUrl(body.url);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+        if (cancelled) return;
+        const raw = err instanceof Error ? err.message : String(err);
+        setError(looksLikePreviewDown(raw) ? PREVIEW_DOWN : raw);
       });
     return () => {
       cancelled = true;
-      void fetch("/api/plr/visualizer/stop", { method: "POST" }).catch(() => undefined);
+      if (previewUp) void fetch("/api/plr/visualizer/stop", { method: "POST" }).catch(() => undefined);
     };
-  }, [key, plan, robot, fallbackTotal]);
+  }, [key, plan, robot, fallbackTotal, previewUp]);
 
   useEffect(() => {
     if (!url) return;
@@ -119,7 +139,7 @@ export function PlrDeckReplay({
   return (
     <div className="plr-deck-embed" data-testid="plr-deck-replay">
       {error ? (
-        <p className="file" style={{ color: "var(--error)" }}>
+        <p className={looksLikePreviewDown(error) ? "hint" : "file"} style={looksLikePreviewDown(error) ? undefined : { color: "var(--error)" }}>
           {error}
         </p>
       ) : url ? (

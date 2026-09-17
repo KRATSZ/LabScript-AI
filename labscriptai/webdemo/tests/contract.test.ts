@@ -64,6 +64,9 @@ describe("demo contract lock", () => {
     assert.ok(SYSTEM_PROMPT.trim().split("\n").length <= 32);
     assert.doesNotMatch(SYSTEM_PROMPT, /Confirm assumed_deck=true/);
     assert.match(SYSTEM_PROMPT, /Confirm the standard deck in one sentence/);
+    assert.match(SYSTEM_PROMPT, /Hamilton Vantage is the 1\.3 m rail deck/);
+    assert.doesNotMatch(SYSTEM_PROMPT, /STAR \/ Vantage use the tip carrier/);
+    assert.match(SYSTEM_PROMPT, /Never say “code service\.”/);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
     assert.match(SYSTEM_PROMPT, /Patch only mechanical issues/);

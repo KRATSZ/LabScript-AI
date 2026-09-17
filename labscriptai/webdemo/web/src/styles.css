@@ -338,6 +338,42 @@ body {
   display: grid;
   gap: 6px;
 }
+.vantage-sketch {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 560px);
+  margin: 0 auto;
+}
+.vantage-sketch-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.vantage-sketch-rails {
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.vantage-railbed {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 1.1fr 0.8fr;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: 0.5px solid var(--line);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 9px,
+    color-mix(in srgb, var(--line) 70%, transparent) 9px,
+    color-mix(in srgb, var(--line) 70%, transparent) 10px
+  );
+}
 .deck-sketch-row {
   display: grid;
   gap: 6px;

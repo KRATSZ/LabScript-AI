@@ -74,6 +74,9 @@ const PHRASE_FOLDS: Fold[] = [
   [/\b(?:the )?(?:on-screen )?deck (?:is|are) ready to download/gi, "The deck is on Stage"],
   [/(?:The deck is on Stage\.\s*){2,}/g, "The deck is on Stage. "],
   [/\s*Nothing runs on hardware from here\.?/gi, ""],
+  [/\bthe code service is down\b/gi, "the preview service is down"],
+  [/\bcode service is down\b/gi, "preview service is down"],
+  [/\bcode service\b/gi, "preview service"],
   [/\bFluentControl\.gwl\b/gi, "Fluent worklist"],
   [/\bFluentControl\b/gi, "Fluent"],
   [/\bPython(?:\.py|\s*\(\.py\))\s*protocol\b/gi, "Python file"],
@@ -99,6 +102,19 @@ const STAR_SLOT_FOLDS: Fold[] = [
   [/\bin slot 1\b/gi, "on the tip carrier"],
   [/\bin slot 2\b/gi, "on the plate carrier"],
   [/\bin slot 3\b/gi, "in the reagents trough"],
+];
+
+const VANTAGE_FOLDS: Fold[] = [
+  [/\bon the tip carrier(?: \(rails 1[–-]6\))?/gi, "on the 1.3 m deck"],
+  [/\bon the plate carrier(?: \(rails 8[–-]13\))?/gi, "on the 1.3 m deck"],
+  [/\bin the reagents trough(?: \(rail 15\))?/gi, "on the 1.3 m deck"],
+  [/\brails 1[–-]6/gi, "the 1.3 m deck"],
+  [/\brails 8[–-]13/gi, "the 1.3 m deck"],
+  [/\brail 15\b/gi, "the 1.3 m deck"],
+  [/\btip carrier, plate carrier(?:,| and) reagents trough/gi, "1.3 m Vantage deck"],
+  [/\bin slot 1\b/gi, "on the 1.3 m deck"],
+  [/\bin slot 2\b/gi, "on the 1.3 m deck"],
+  [/\bin slot 3\b/gi, "on the 1.3 m deck"],
 ];
 
 const TIDY_FOLDS: Fold[] = [
@@ -203,7 +219,8 @@ function robotNames(label: string): string[] {
 export function sanitizeAssistantText(text: string, robot?: string | null): string {
   let out = applyFolds(text, LEAK_PATTERNS.map((re) => [re, ""] as Fold));
   out = applyFolds(out, PHRASE_FOLDS);
-  if (robot === "Hamilton" || robot === "Vantage") out = applyFolds(out, STAR_SLOT_FOLDS);
+  if (robot === "Hamilton") out = applyFolds(out, STAR_SLOT_FOLDS);
+  if (robot === "Vantage") out = applyFolds(out, VANTAGE_FOLDS);
   return applyFolds(out, TIDY_FOLDS).trim();
 }
 
