@@ -59,7 +59,7 @@ export function StartForm({ busy, onSubmit }: Props) {
               </span>
               {card.label}
             </strong>
-            <span>{card.blurb}</span>
+            <span className="device-blurb">{card.blurb}</span>
           </button>
         ))}
       </div>

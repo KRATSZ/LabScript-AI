@@ -84,7 +84,11 @@ describe("StartForm device cards", () => {
     assert.match(src, /Pick a robot/);
     assert.match(src, /Paste a draft, or leave blank/);
     assert.match(src, /device-emoji/);
+    assert.match(src, /device-blurb/);
     assert.match(src, /TILE_MARK/);
+    assert.doesNotMatch(readWeb("styles.css"), /13,\s*148,\s*136/);
+    assert.match(readWeb("styles.css"), /color-mix\(in srgb, var\(--primary\)/);
+    assert.match(readWeb("styles.css"), /\.device-card strong \{[^}]*inline-flex/s);
     assert.doesNotMatch(readWeb("StagePane.tsx"), />\s*Expand\s*</);
     assert.doesNotMatch(readWeb("App.tsx"), /Model \$\{/);
     assert.doesNotMatch(readWeb("ChatPane.tsx"), /👤|🧪/);

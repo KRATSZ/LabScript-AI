@@ -418,7 +418,7 @@ body {
 }
 @keyframes activity-pulse {
   0%, 100% { box-shadow: 0 0 0 3px var(--paper); }
-  50% { box-shadow: 0 0 0 3px var(--paper), 0 0 0 7px rgba(13, 148, 136, 0.22); }
+  50% { box-shadow: 0 0 0 3px var(--paper), 0 0 0 7px color-mix(in srgb, var(--primary) 22%, transparent); }
 }
 .activity-copy { min-width: 0; }
 .activity-label { color: var(--text); min-width: 0; font-weight: 500; display: block; }
@@ -578,14 +578,22 @@ body {
   transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
 }
 .device-card strong {
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
   white-space: nowrap;
   flex: 0 0 auto;
 }
-.device-card span {
+.device-emoji {
+  display: inline-block;
+  flex: 0 0 auto;
+  line-height: 1;
+  margin-right: 0;
+}
+.device-blurb {
   display: block;
   font-size: 12px;
   line-height: 18px;
@@ -754,7 +762,6 @@ body {
   font-size: 0.9em;
 }
 .md-user a { color: inherit; }
-.device-emoji { margin-right: 6px; }
 .meta {
   font-size: 11px;
   opacity: 0.75;
