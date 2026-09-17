@@ -159,6 +159,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(css, /\.activity-pane[\s\S]*font-family:\s*var\(--mono\)/);
     assert.match(css, /\.activity-list \.activity-row:nth-child\(even\)/);
     assert.match(css, /\.activity-row[\s\S]*padding:\s*8px 16px/);
+    assert.match(css, /\.activity-file[\s\S]*font-family:\s*var\(--mono\)/);
     assert.match(css, /deck_labels_column/);
     assert.match(css, /display:\s*none\s*!important/);
     assert.doesNotMatch(css, /flex-direction:\s*column-reverse/);

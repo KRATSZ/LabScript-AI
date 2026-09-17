@@ -20,6 +20,8 @@ export interface ActivityStep {
   status: ActivityStatus;
   durationMs: number | null;
   note?: string;
+  file?: string;
+  extra?: string;
 }
 
 const DONE_LABELS: Record<string, string> = {
@@ -75,12 +77,59 @@ export function activityLabRecap(session?: SessionSnapshot | null): string {
   return bits.join(", ");
 }
 
-function attachLabBodies(steps: ActivityStep[], session?: SessionSnapshot | null): ActivityStep[] {
+/** Scientist-facing script name. Never `.gwl`, JSON, or a tool id. */
+export function activityFileLabel(session?: SessionSnapshot | null, name?: string): string {
+  if (!session) return "";
+  const robot = session.robot;
+  if (name === "generate_code" || session.code?.trim()) {
+    if (robot === "OT-2" || robot === "Flex" || Boolean(session.code?.trim())) return "protocol.py";
+  }
+  if (name === "emit_plan" || session.plan || session.artifacts?.worklistGwl || session.artifacts?.hamiltonScript) {
+    if (robot === "Tecan") return "Fluent worklist";
+    if (robot === "Hamilton") return "star.py";
+    if (robot === "Vantage") return "vantage.py";
+  }
+  return "";
+}
+
+function failReason(session?: SessionSnapshot | null): string {
+  const line = session?.checks?.consequences?.find((item) => typeof item === "string" && item.trim());
+  return typeof line === "string" ? line.trim() : "";
+}
+
+export function activityStepNote(
+  name: string,
+  status: ActivityStatus,
+  session?: SessionSnapshot | null
+): { note?: string; file?: string; extra?: string } {
+  if (name === THINK_STEP) return {};
   const recap = activityLabRecap(session);
-  if (!recap) return steps;
+  const file = activityFileLabel(session, name) || undefined;
+  if (name === "run_checks" || name === "open_animation") {
+    if (status === "fail") {
+      const reason = failReason(session);
+      if (reason.length > 160) {
+        return { note: `${reason.slice(0, 159).replace(/\s+\S*$/, "")}…`, extra: reason };
+      }
+      return { note: reason || recap };
+    }
+    if (status === "ok") return { note: "Deck is on Stage" };
+    return { note: recap };
+  }
+  if (name === "generate_code" || name === "emit_plan") return { note: recap, file };
+  return { note: recap };
+}
+
+function decorateLabSteps(steps: ActivityStep[], session?: SessionSnapshot | null): ActivityStep[] {
   return steps.map((step) => {
-    if (step.name === THINK_STEP || step.note) return step;
-    return { ...step, note: recap };
+    if (step.name === THINK_STEP) return step;
+    const bits = activityStepNote(step.name, step.status, session);
+    return {
+      ...step,
+      note: step.note || bits.note,
+      file: step.file || bits.file,
+      extra: step.extra || bits.extra,
+    };
   });
 }
 
@@ -252,7 +301,7 @@ export function activitySteps(
     }
   }
   if (runningTool === "open_animation" && foldDeckIntoChecks(steps, "run")) {
-    return attachLabBodies(insertThinkRows(steps, events, live), session);
+    return decorateLabSteps(insertThinkRows(steps, events, live), session);
   }
   if (runningTool && runningTool !== THINK_STEP && !steps.some((step) => step.name === runningTool && step.status === "run")) {
     steps.push({
@@ -264,7 +313,7 @@ export function activitySteps(
       durationMs: null,
     });
   }
-  return attachLabBodies(insertThinkRows(steps, events, live), session);
+  return decorateLabSteps(insertThinkRows(steps, events, live), session);
 }
 
 export function activitySummary(steps: ActivityStep[]): string {

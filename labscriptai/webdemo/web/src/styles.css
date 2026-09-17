@@ -654,6 +654,24 @@ body {
   color: var(--muted);
   font-family: inherit;
 }
+.activity-file {
+  display: inline-block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--text);
+}
+.activity-extra {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted);
+}
+.activity-extra summary {
+  cursor: pointer;
+  font-weight: 600;
+}
 .activity-meta {
   display: flex;
   align-items: baseline;

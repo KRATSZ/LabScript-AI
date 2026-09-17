@@ -126,6 +126,37 @@ describe("activity steps", () => {
     );
     assert.equal(withBody[0].note, "20 µL A1→B1, standard deck");
     assert.doesNotMatch(withBody[0].note || "", /generate_sop|\.gwl|JSON|Log 23/);
+    const scripted = activitySteps(
+      [
+        event({ seq: 1, kind: "tool/call", name: "generate_code" }),
+        event({ seq: 2, kind: "tool/result", name: "generate_code", detail: { duration_ms: 900, ok: true } }),
+        event({ seq: 3, kind: "tool/call", name: "run_checks" }),
+        event({ seq: 4, kind: "tool/result", name: "run_checks", detail: { duration_ms: 400, ok: true } }),
+      ],
+      null,
+      {},
+      { ...recapSession, robot: "OT-2", code: "from opentrons import protocol_api\n" } as SessionSnapshot
+    );
+    assert.equal(scripted[0].file, "protocol.py");
+    assert.equal(scripted[1].note, "Deck is on Stage");
+    const failed = activitySteps(
+      [
+        event({ seq: 1, kind: "tool/call", name: "run_checks" }),
+        event({ seq: 2, kind: "tool/result", name: "run_checks", detail: { duration_ms: 200, ok: false } }),
+      ],
+      null,
+      {},
+      { ...recapSession, checks: { consequences: ["The well is dry."] } } as SessionSnapshot
+    );
+    assert.equal(failed[0].note, "The well is dry.");
+    const fluent = activitySteps(
+      [event({ seq: 1, kind: "tool/call", name: "emit_plan" })],
+      "emit_plan",
+      {},
+      { ...recapSession, robot: "Tecan" } as SessionSnapshot
+    );
+    assert.equal(fluent[0].file, "Fluent worklist");
+    assert.doesNotMatch(fluent[0].file || "", /\.gwl|JSON|generate_sop/);
     const withDeck = activitySteps(
       [
         event({ seq: 1, kind: "tool/call", name: "run_checks" }),

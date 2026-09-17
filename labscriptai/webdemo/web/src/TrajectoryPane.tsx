@@ -85,6 +85,17 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
                             {step.note}
                           </span>
                         ) : null}
+                        {step.file ? (
+                          <code className="activity-file" data-testid="activity-file">
+                            {step.file}
+                          </code>
+                        ) : null}
+                        {step.extra ? (
+                          <details className="activity-extra">
+                            <summary>More</summary>
+                            {step.extra}
+                          </details>
+                        ) : null}
                       </span>
                       <span className="activity-meta">
                         <span className={`activity-status status-${step.status}`}>{status}</span>
