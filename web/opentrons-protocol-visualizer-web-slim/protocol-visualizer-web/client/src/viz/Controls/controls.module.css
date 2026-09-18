@@ -1,0 +1,103 @@
+.container {
+  padding: var(--spacing-12) var(--spacing-16) var(--spacing-16);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.controls_container {
+  position: relative;
+  width: 100%;
+  padding: var(--spacing-12);
+  border: 1px solid var(--grey-30);
+  border-radius: var(--border-radius-12);
+  background-color: var(--grey-10);
+  box-shadow: 0 0.0625rem 0.25rem rgba(0, 0, 0, 0.04);
+}
+
+.all_controls_info {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+.buttons_container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-8);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.timeline_wrapper {
+  flex: 1;
+  min-width: 14rem;
+}
+
+.speed_button {
+  min-width: 4.25rem;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: 0.875rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.per_step_button_wrapper {
+  position: relative;
+}
+
+.range_input {
+  display: block;
+  width: 100%;
+  height: var(--spacing-4);
+  border-radius: var(--border-radius-2);
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.range_input::-webkit-slider-runnable-track {
+  position: relative;
+  height: var(--spacing-4);
+  border-radius: var(--border-radius-2);
+  background: linear-gradient(
+    to right,
+    var(--blue-50) 0%,
+    var(--blue-50) var(--progress, 0%),
+    #ccc var(--progress, 0%),
+    #ccc 100%
+  );
+}
+
+.range_input::-webkit-slider-thumb {
+  width: var(--spacing-16);
+  height: var(--spacing-16);
+  border-radius: 50%;
+  margin-top: calc((var(--spacing-4) - var(--spacing-16)) / 2);
+  appearance: none;
+  background-color: var(--blue-50);
+  cursor: pointer;
+}
+
+.range_input::-moz-range-track {
+  height: var(--spacing-4);
+  border-radius: var(--border-radius-2);
+  background: linear-gradient(
+    to right,
+    var(--blue-50) 0%,
+    var(--blue-50) var(--progress, 0%),
+    #ccc var(--progress, 0%),
+    #ccc 100%
+  );
+}
+
+.range_input::-moz-range-thumb {
+  width: var(--spacing-16);
+  height: var(--spacing-16);
+  border: none;
+  border-radius: 50%;
+  background-color: var(--blue-50);
+  cursor: pointer;
+}

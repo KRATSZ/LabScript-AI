@@ -67,6 +67,7 @@ const CodeInputPage: React.FC = () => {
 
     // Store the code in global state
     dispatch({ type: 'SET_PYTHON_CODE', payload: code });
+    dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'idle' });
     
     // If there's a suggested instruction, navigate with it
     if (suggestedInstruction) {
@@ -304,7 +305,7 @@ metadata = {
     'protocolName': 'My Protocol',
     'author': 'Your Name',
     'description': 'Protocol description',
-    'apiLevel': '2.20'
+    'apiLevel': '2.19'
 }
 
 def run(protocol: protocol_api.ProtocolContext):

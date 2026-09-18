@@ -14,7 +14,10 @@ import {
   alpha
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import * as Lucide from 'lucide-react';
+import {
+  Pipette, Edit3, Brain, FlaskRound, Settings, FileText, Code,
+  PlayCircle, Clapperboard, ChevronRight, Edit, ArrowRight
+} from 'lucide-react';
 
 // Components
 import FeatureCard from '../components/welcome/FeatureCard';
@@ -31,25 +34,25 @@ const WelcomePage: React.FC = () => {
     {
       title: 'Lab Protocol Automation',
       description: 'Automatically convert natural language descriptions into precise lab automation protocols.',
-      icon: <Lucide.Pipette size={36} />,
+      icon: <Pipette size={36} />,
       color: theme.palette.primary.main,
     },
     {
       title: 'AI Code Editor & Iterator',
       description: 'Edit and refine existing protocol code with conversational AI assistance.',
-      icon: <Lucide.Edit3 size={36} />,
+      icon: <Edit3 size={36} />,
       color: theme.palette.warning.main,
     },
     {
       title: 'AI-Powered SOP Creation',
       description: 'Create detailed Standard Operating Procedures with AI assistance.',
-      icon: <Lucide.Brain size={36} />,
+      icon: <Brain size={36} />,
       color: theme.palette.info.main,
     },
     {
       title: 'Simulation & Validation',
       description: 'Test protocols before running them on physical hardware.',
-      icon: <Lucide.FlaskRound size={36} />,
+      icon: <FlaskRound size={36} />,
       color: theme.palette.success.main,
     }
   ];
@@ -58,31 +61,31 @@ const WelcomePage: React.FC = () => {
     {
       title: 'Configure Hardware',
       description: 'Select your Opentrons model, pipettes, and labware arrangement.',
-      icon: <Lucide.Settings size={24} />,
+      icon: <Settings size={24} />,
       number: '1'
     },
     {
       title: 'Define Procedure',
       description: 'Describe your experiment in natural language or review AI-generated steps.',
-      icon: <Lucide.FileText size={24} />,
+      icon: <FileText size={24} />,
       number: '2'
     },
     {
       title: 'Generate Protocol',
       description: 'Our AI generates Python code for your Opentrons robot.',
-      icon: <Lucide.Code size={24} />,
+      icon: <Code size={24} />,
       number: '3'
     },
     {
       title: 'Simulate Protocol',
       description: 'Test and validate your protocol in a virtual environment.',
-      icon: <Lucide.PlayCircle size={24} />,
+      icon: <PlayCircle size={24} />,
       number: '4'
     },
     {
       title: 'View Animation',
       description: 'Watch a 3D visualization of your protocol execution.',
-      icon: <Lucide.Clapperboard size={24} />,
+      icon: <Clapperboard size={24} />,
       number: '5'
     }
   ];
@@ -144,7 +147,7 @@ const WelcomePage: React.FC = () => {
                   color="secondary"
                   size="large"
                   onClick={handleGetStarted}
-                  endIcon={<Lucide.ChevronRight />}
+                  endIcon={<ChevronRight />}
                   sx={{ 
                     py: 1.5, 
                     px: 4, 
@@ -166,7 +169,7 @@ const WelcomePage: React.FC = () => {
                   color="info"
                   size="large"
                   onClick={() => navigate('/code-editing')}
-                  startIcon={<Lucide.Edit />}
+                  startIcon={<Edit />}
                   sx={{
                     py: 1.5,
                     px: 4,
@@ -322,7 +325,7 @@ const WelcomePage: React.FC = () => {
               color="primary" 
               size="large" 
               onClick={handleGetStarted}
-              endIcon={<Lucide.ArrowRight />}
+              endIcon={<ArrowRight />}
               sx={{ 
                 py: 1.5, 
                 px: 4, 
@@ -341,7 +344,7 @@ const WelcomePage: React.FC = () => {
                 color="warning" 
                 size="large" 
                 onClick={() => navigate('/code-editing')}
-                startIcon={<Lucide.Edit3 />}
+                startIcon={<Edit3 />}
                 sx={{ 
                   py: 1.5, 
                   px: 4, 

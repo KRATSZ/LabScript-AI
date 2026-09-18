@@ -1,0 +1,50 @@
+# Git and local metadata
+.git/
+.gitignore
+.dockerignore
+.DS_Store
+
+# Local environments and caches
+.venv/
+.ot_env/
+ot_env/
+env/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Frontend dependencies and build output
+node_modules/
+labscriptAI-frontend/node_modules/
+labscriptAI-frontend/dist/
+labscriptAI-frontend/dist-ssr/
+labscriptAI-frontend/.vite/
+web/**/node_modules/
+web/**/dist/
+web/**/build/
+
+# Local build artifacts and archives
+dist/
+build/
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Logs, environment files, and local config
+*.log
+.env
+.env.*
+docker/logs/
+docker/config/
+
+# Large/local project areas that are not needed by Docker image builds
+tests/
+docs/
+Picture/
+pylabrobot/
+archive/
+论文中要用的实验脚本案例/

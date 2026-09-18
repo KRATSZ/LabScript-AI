@@ -1,6 +1,57 @@
 # -*- coding: utf-8 -*-
 """Configuration file for the Opentrons AI Protocol Generator."""
 
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
+
+
+def _clean_env_value(value):
+    if value is None:
+        return None
+    value = value.strip()
+    return value or None
+
+
+def _get_env(*names, default=""):
+    for name in names:
+        value = _clean_env_value(os.getenv(name))
+        if value is not None:
+            return value
+    return default
+
+
+def _get_bool_env(*names, default=False):
+    value = _clean_env_value(_get_env(*names, default=""))
+    if value is None:
+        return default
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def _get_int_env(*names, default=0):
+    value = _clean_env_value(_get_env(*names, default=""))
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _strip_trailing_slash(value):
+    return value.rstrip("/") if value else value
+
+
+environment = _get_env("LABSCRIPTAI_ENVIRONMENT", default="development")
+server_host = _get_env("LABSCRIPTAI_SERVER_HOST", default="0.0.0.0")
+server_port = _get_int_env("LABSCRIPTAI_SERVER_PORT", default=8000)
+debug = _get_bool_env("LABSCRIPTAI_DEBUG", default=False)
+
 # --- Common Pitfalls for OT-2 ---
 COMMON_PITFALLS_OT2 = [
     "Use metadata = {{\"apiLevel\": \"2.19\"}} for OT-2, not the 'requirements' dictionary.",
@@ -142,20 +193,56 @@ def run(protocol: protocol_api.ProtocolContext):
 """
 
 # 1. API Configuration
-api_key = "YOUR_OPENAI_API_KEY"
-base_url = "https://api.ai190.com/v1"
-model_name = "gemini-2.5-pro"
-# Specialized API for Intent Classification (faster model)
-DEEPSEEK_API_KEY = "YOUR_DEEPSEEK_API_KEY"
-DEEPSEEK_BASE_URL = "https://www.sophnet.com/api/open-apis/v1"
-DEEPSEEK_INTENT_MODEL = "DeepSeek-V3-Fast"
+api_key = _get_env("LABSCRIPTAI_API_KEY", "OPENAI_API_KEY", default="")
+base_url = _strip_trailing_slash(
+    _get_env(
+        "LABSCRIPTAI_BASE_URL",
+        "OPENAI_API_BASE",
+        default="",
+    )
+)
+model_name = _get_env(
+    "LABSCRIPTAI_MODEL_NAME",
+    "OPENAI_MODEL_NAME",
+    default="",
+)
+
+# Specialized API for intent classification / fast-response tasks.
+DEEPSEEK_API_KEY = _get_env(
+    "LABSCRIPTAI_DEEPSEEK_API_KEY",
+    "DEEPSEEK_API_KEY",
+    default=api_key,
+)
+DEEPSEEK_BASE_URL = _strip_trailing_slash(
+    _get_env(
+        "LABSCRIPTAI_DEEPSEEK_BASE_URL",
+        "DEEPSEEK_API_BASE",
+        default=base_url,
+    )
+)
+DEEPSEEK_INTENT_MODEL = _get_env(
+    "LABSCRIPTAI_DEEPSEEK_MODEL",
+    "DEEPSEEK_MODEL",
+    default=model_name,
+)
+
+# LLM request timeout in seconds (REQUEST_TIMEOUT env, default 300).
+# Reasoning models (e.g. deepseek-v4-flash) can spend minutes in the thinking
+# phase before producing content, so per-call timeouts must be generous;
+# aligned with the Nginx proxy_read_timeout (300s) budget.
+REQUEST_TIMEOUT = _get_int_env("REQUEST_TIMEOUT", default=300)
+FIGSHARE_PERSONAL_TOKEN = _get_env(
+    "LABSCRIPTAI_FIGSHARE_PERSONAL_TOKEN",
+    "FIGSHARE_PERSONAL_TOKEN",
+    default="",
+)
 
 # Reviewer configuration (textual reasoning + optional vision assist)
-REVIEW_PRIMARY_MODEL_NAME = model_name  # default to main Gemini model
+REVIEW_PRIMARY_MODEL_NAME = model_name
 REVIEW_VISION_TOOL_CONFIG = {
-    "model": "zai-org/GLM-4.5V",
-    "base_url": "https://api.siliconflow.cn/v1",
-    "api_key": "YOUR_GLM_API_KEY",
+    "model": _get_env("LABSCRIPTAI_VISION_MODEL", default="zai-org/GLM-4.5V"),
+    "base_url": _strip_trailing_slash(_get_env("LABSCRIPTAI_VISION_BASE_URL", default="https://api.siliconflow.cn/v1")),
+    "api_key": _get_env("LABSCRIPTAI_VISION_API_KEY", default=""),
 }
 
 # 2. Valid Opentrons Names and Code Examples (Knowledge Base)
@@ -433,4 +520,4 @@ def run(protocol: protocol_api.ProtocolContext):
     p1000.dispense(100, plate['A1'])
     p1000.drop_tip()
 ```
-""" 
+"""

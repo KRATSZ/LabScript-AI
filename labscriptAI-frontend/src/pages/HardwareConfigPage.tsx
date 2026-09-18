@@ -37,7 +37,7 @@ import {
   ListItemSecondaryAction,
 } from '@mui/material';
 import { ArrowRight, Text, Layout, Settings, Notebook as Robot, HardDrive, Cpu, Zap, Wrench, Info } from 'lucide-react';
-import { useAppContext, LabwareItem, PipetteModel } from '../context/AppContext';
+import { useAppContext, AppState, LabwareItem, PipetteModel } from '../context/AppContext';
 import DeckLayout from '../components/hardware/DeckLayout';
 import LabwareLibrary from '../components/hardware/LabwareLibrary';
 import { formatHardwareConfig, apiService, PyLabRobotProfile } from '../services/api';
@@ -48,11 +48,23 @@ const STORAGE_KEY = 'labscript_hardware_config';
 
 const apiVersions = ['2.18', '2.19', '2.20', '2.21'];
 
+const LEGACY_DEFAULT_FLEX_CONFIG = `Robot Model: Flex
+API Version: 2.19
+Left Pipette: flex_1channel_1000
+Right Pipette: flex_8channel_1000
+Use Gripper: True
+Deck Layout:
+  A1: opentrons_flex_96_tiprack_1000ul
+  B2: corning_96_wellplate_360ul_flat
+  C1: nest_12_reservoir_15ml
+  D1: opentrons_96_pcr_adapter`;
+
 const flexPipettes = [
   { value: 'flex_1channel_1000', label: 'Flex 1-channel 1000µL' },
-  { value: 'flex_1channel_300', label: 'Flex 1-channel 300µL' },
+  { value: 'flex_1channel_50', label: 'Flex 1-channel 50µL' },
   { value: 'flex_8channel_1000', label: 'Flex 8-channel 1000µL' },
-  { value: 'flex_8channel_300', label: 'Flex 8-channel 300µL' },
+  { value: 'flex_8channel_50', label: 'Flex 8-channel 50µL' },
+  { value: 'flex_96channel_1000', label: 'Flex 96-channel 1000µL' },
 ];
 
 const ot2Pipettes = [
@@ -68,6 +80,39 @@ const pyLabRobotPipettes = [
   { value: 'pylabrobot_300', label: 'PyLabRobot 300µL' },
   { value: 'pylabrobot_50', label: 'PyLabRobot 50µL' },
 ];
+
+const isLegacyDefaultFlexState = (state: AppState): boolean => (
+  state.robotModel === 'Flex' &&
+  state.apiVersion === '2.20' &&
+  state.leftPipette === null &&
+  state.rightPipette === null &&
+  state.useGripper === false &&
+  Object.values(state.deckLayout).every((labware) => labware === null)
+) || (
+  state.robotModel === 'Flex' &&
+  state.apiVersion === '2.20' &&
+  state.leftPipette === 'flex_1channel_1000' &&
+  state.rightPipette === 'flex_8channel_1000' &&
+  state.useGripper === false &&
+  (state.deckLayout['A1']?.name === 'opentrons_flex_96_tiprack_200ul' ||
+   state.deckLayout['A2']?.name === 'agilent_1_reservoir_290ml')
+);
+
+const getTextConfigForState = (state: AppState): string => {
+  if (isLegacyDefaultFlexState(state)) {
+    return hardwareTemplates.Flex;
+  }
+
+  return formatHardwareConfig(state);
+};
+
+const normalizeRawHardwareConfigText = (rawConfig: string | null | undefined): string | null => {
+  if (!rawConfig?.trim()) {
+    return null;
+  }
+
+  return rawConfig.trim() === LEGACY_DEFAULT_FLEX_CONFIG ? hardwareTemplates.Flex : rawConfig;
+};
 
 // Helper to format JSON into a YAML-like string
 const formatJsonToYamlStyle = (obj: any): string => {
@@ -126,12 +171,13 @@ const HardwareConfigPage: React.FC = () => {
     if (savedConfig) {
       try {
         const config = JSON.parse(savedConfig);
+        const rawHardwareConfigText = normalizeRawHardwareConfigText(config.rawHardwareConfigText);
         dispatch({ type: 'SET_ROBOT_MODEL', payload: config.robotModel });
         dispatch({ type: 'SET_API_VERSION', payload: config.apiVersion });
         dispatch({ type: 'SET_LEFT_PIPETTE', payload: config.leftPipette });
         dispatch({ type: 'SET_RIGHT_PIPETTE', payload: config.rightPipette });
         dispatch({ type: 'SET_USE_GRIPPER', payload: config.useGripper });
-        dispatch({ type: 'SET_RAW_HARDWARE_CONFIG_TEXT', payload: config.rawHardwareConfigText || null});
+        dispatch({ type: 'SET_RAW_HARDWARE_CONFIG_TEXT', payload: rawHardwareConfigText });
 
         Object.entries(config.deckLayout || {}).forEach(([slot, labware]) => {
           dispatch({ 
@@ -141,8 +187,8 @@ const HardwareConfigPage: React.FC = () => {
         });
         
         setShowConfig(true);
-        if (config.rawHardwareConfigText) {
-          setConfigText(config.rawHardwareConfigText);
+        if (rawHardwareConfigText) {
+          setConfigText(rawHardwareConfigText);
           setConfigMode('text');
         } else {
           setConfigMode('visual'); 
@@ -181,7 +227,7 @@ const HardwareConfigPage: React.FC = () => {
           anchorOrigin: { vertical: 'top', horizontal: 'center' }
         });
       } else {
-        setConfigText(formatHardwareConfig(state)); 
+        setConfigText(getTextConfigForState(state));
       }
     }
   };
@@ -339,7 +385,7 @@ const HardwareConfigPage: React.FC = () => {
       setShowConfig(true);
     }
     if (effectiveConfigMode === 'text' && !state.rawHardwareConfigText) {
-      setConfigText(formatHardwareConfig(state));
+      setConfigText(getTextConfigForState(state));
     } else if (effectiveConfigMode === 'text' && state.rawHardwareConfigText) {
       setConfigText(state.rawHardwareConfigText);
     }
@@ -1022,7 +1068,7 @@ const HardwareConfigPage: React.FC = () => {
                 rows={15}
                 fullWidth
                 variant="outlined"
-                placeholder={`Example configuration for ${state.robotModel || 'selected robot'}:\n{\n  "robot_model": "${state.robotModel || 'Flex'}",\n  "api_version": "${state.apiVersion || '2.20'}",\n  "left_pipette": "p1000_single_gen2",\n  "right_pipette": null,\n  "deck_layout": {\n    "A1": "opentrons_96_tiprack_1000ul",\n    "B2": "corning_6_wellplate_16.8ml_flat"\n  },\n  "use_gripper": false\n}`}
+                placeholder={hardwareTemplates[state.robotModel] || getTextConfigForState(state)}
                 value={configText}
                 onChange={handleConfigTextChange}
                 sx={{ 

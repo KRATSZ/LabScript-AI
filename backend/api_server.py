@@ -50,31 +50,65 @@ FastAPI server for Opentrons AI Protocol Generator - Simplified Version
 用户目标 → 生成SOP → 生成代码 → 模拟验证 → 完成协议
 """
 
-import json
-import traceback
 import asyncio
 import io
+import json
+import logging
+import os
+import subprocess
+import time
+import traceback
 from datetime import datetime
 from typing import Dict, Any, List, Optional, AsyncGenerator
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, File, Form, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 # Use absolute imports
+from backend.protocol_visualizer_bridge import load_protocol_visualizer_backend
 from backend.langchain_agent import (
+    SOP_THINKING_HEARTBEAT,
     generate_sop_with_langchain,
-    run_code_generation_graph_stream,  # 流式代码生成函数
+    run_code_generation_graph_stream,  # 流式代码生成函数（对照/回滚）
     generate_sop_with_langchain_stream,
     converse_about_sop,
     converse_about_code, # Keep the non-streaming version
     converse_about_code_stream, # Add the new streaming function
 )
+from backend.code_runner import run_code_generation_python_stream
 from backend.opentrons_utils import run_opentrons_simulation
 from backend.pylabrobot_utils import run_pylabrobot_simulation
 from backend.pylabrobot_agent import run_pylabrobot_agent_and_stream_events
 from backend.file_exporter import ProtocolsIOExporter
+
+logger = logging.getLogger(__name__)
+
+SSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+}
+
+
+def _sop_sse_line(chunk) -> str:
+    """Format one SOP stream chunk as an SSE data line. Empty string = skip."""
+    if chunk == SOP_THINKING_HEARTBEAT:
+        return 'data: {"event":"thinking"}\n\n'
+    if isinstance(chunk, dict):
+        kind = chunk.get("kind")
+        text = chunk.get("text") if isinstance(chunk.get("text"), str) else ""
+        if kind == "thinking":
+            if text:
+                return f"data: {json.dumps({'event': 'thinking', 'token': text}, ensure_ascii=False)}\n\n"
+            return 'data: {"event":"thinking"}\n\n'
+        if kind == "content" and text:
+            return f"data: {json.dumps({'token': text}, ensure_ascii=False)}\n\n"
+        return ""
+    if isinstance(chunk, str) and chunk:
+        return f"data: {json.dumps({'token': chunk}, ensure_ascii=False)}\n\n"
+    return ""
 
 # Request/Response models
 class SOPGenerationRequest(BaseModel):
@@ -147,14 +181,45 @@ app = FastAPI(
     version="2.0.0"
 )
 
+
+_DEFAULT_CORS_ORIGINS = (
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://labscriptai.cn",
+    "https://www.labscriptai.cn",
+    "https://ai4ot.cn",
+    "https://api.ai4ot.cn",
+    "http://api.ai4ot.cn",
+)
+
+
+def _parse_cors_origins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS", "")
+    configured = [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+    return configured or list(_DEFAULT_CORS_ORIGINS)
+
+
+_cors_origins = _parse_cors_origins()
+
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials="*" not in _cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled API error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
 
 # Define dependencies
 def get_sop_generator():
@@ -162,6 +227,56 @@ def get_sop_generator():
 
 def get_protocol_simulator():
     return run_opentrons_simulation
+
+
+async def _read_named_files(files: list[UploadFile] | None) -> list[tuple[str, bytes]]:
+    out: list[tuple[str, bytes]] = []
+    if not files:
+        return out
+    for f in files:
+        if f.filename:
+            out.append((f.filename, await f.read()))
+    return out
+
+
+def _get_visualizer_backend() -> dict[str, Any]:
+    try:
+        return load_protocol_visualizer_backend()
+    except (ImportError, RuntimeError) as e:
+        logger.exception("Protocol visualizer backend is unavailable")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Protocol visualizer backend is unavailable: {e}",
+        ) from e
+
+
+def _run_visualizer_sync_analyze(
+    protocol_filename: str,
+    protocol_content: bytes,
+    labware_files: list[tuple[str, bytes]],
+    rtp_csv_files: list[tuple[str, bytes]],
+    rtp_values: str | None,
+    rtp_files_map: str | None,
+    check: bool,
+) -> dict[str, Any]:
+    backend = _get_visualizer_backend()
+    sync_analyze_from_uploads = backend["sync_analyze_from_uploads"]
+    try:
+        return sync_analyze_from_uploads(
+            protocol_filename,
+            protocol_content,
+            labware_files,
+            rtp_csv_files,
+            rtp_values,
+            rtp_files_map,
+            check,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(status_code=504, detail="Analysis timed out") from e
 
 @app.get("/")
 async def root():
@@ -184,8 +299,8 @@ async def generate_sop(
         
         print(f"Debug - Starting SOP generation, input length: {len(combined_input)}")
         
-        # Call local LangChain SOP generation
-        sop_result = sop_generator(combined_input)
+        # Call local LangChain SOP generation (同步LLM调用放到线程池，避免阻塞事件循环)
+        sop_result = await asyncio.to_thread(sop_generator, combined_input)
         
         if sop_result and sop_result.startswith("Error:"):
             raise HTTPException(status_code=500, detail=sop_result)
@@ -241,22 +356,23 @@ async def generate_protocol_code_stream(
                         hardware_config_str=request.hardware_config, # Pass hardware config string
                         max_attempts=9
                     ):
-                        # Format as SSE event
-                        payload = json.dumps(event_data)
-                        yield f"data: {payload}\n\n"
-                        await asyncio.sleep(0.01)  # Small delay to allow proper streaming
+                        yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
                 else:
                     # Use existing Opentrons Agent
                     print("Debug - Using Opentrons Agent for code generation")
                     
                     # Combine SOP and hardware config into a single string for the agent
                     tool_input = f"{request.sop_markdown}\n---CONFIG_SEPARATOR---\n{request.hardware_config}"
+                    codegen_engine = os.getenv("LABSCRIPTAI_CODEGEN_ENGINE", "python").strip().lower()
+                    codegen_stream = (
+                        run_code_generation_graph_stream
+                        if codegen_engine == "langgraph"
+                        else run_code_generation_python_stream
+                    )
+                    print(f"Debug - Opentrons codegen engine: {codegen_engine or 'python'}")
 
-                    async for event_data in run_code_generation_graph_stream(tool_input, max_iterations=9):
-                        # Format as SSE event
-                        payload = json.dumps(event_data)
-                        yield f"data: {payload}\n\n"
-                        await asyncio.sleep(0.01)  # Small delay to allow proper streaming
+                    async for event_data in codegen_stream(tool_input, max_iterations=9):
+                        yield f"data: {json.dumps(event_data, ensure_ascii=False)}\n\n"
                 
                 # Signal completion
                 done_payload = json.dumps({"event_type": "stream_complete"})
@@ -274,7 +390,11 @@ async def generate_protocol_code_stream(
                 })
                 yield f"data: {error_payload}\n\n"
 
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers=SSE_HEADERS,
+        )
         
     except Exception as e:
         print(f"Failed to start code generation stream: {e}")
@@ -295,13 +415,14 @@ async def simulate_protocol(
 ):
     """Simulates the provided Opentrons protocol code."""
     try:
-        simulation_result = simulator(request.protocol_code, return_structured=True)
+        # 同步模拟调用放到线程池，避免阻塞事件循环
+        simulation_result = await asyncio.to_thread(simulator, request.protocol_code, return_structured=True)
         
         return ProtocolSimulationResponse(
             success=simulation_result.get("success", False),
             raw_simulation_output=simulation_result.get("raw_output", "No simulation output available."),
             error_message=simulation_result.get("error_details"),
-            warnings_present=simulation_result.get("warnings_present", False),
+            warnings_present=simulation_result.get("has_warnings", simulation_result.get("warnings_present", False)),
             warning_details=simulation_result.get("warning_details"),
             final_status_message=simulation_result.get("final_status", "Simulation status unknown."),
             timestamp=datetime.now().isoformat()
@@ -399,10 +520,89 @@ async def list_tools():
         "tools_available": [
             {"name": "Local SOP Generation (LangChain)", "description": "Generates detailed SOPs from hardware config and user goal using local LangChain."},
             {"name": "Protocol Code Generation Agent (LangChain)", "description": "Generates Python protocol code from SOP and hardware config, with iteration."},
-            {"name": "Opentrons Protocol Simulator", "description": "Simulates Opentrons Python protocols."}
+            {"name": "Opentrons Protocol Simulator", "description": "Simulates Opentrons Python protocols."},
+            {"name": "Protocol Visualizer Analyzer", "description": "Analyzes Opentrons protocol files into playback-ready timeline data."}
         ],
         "status": "ok"
     }
+
+
+@app.post("/api/visualizer/analyze")
+async def visualizer_analyze_protocol(
+    protocol: UploadFile = File(description="Main protocol .py or .json file"),
+    labware: list[UploadFile] | None = File(None),
+    rtp_csv: list[UploadFile] | None = File(None),
+    rtp_values: str | None = Form(None),
+    rtp_files_map: str | None = Form(None),
+    check: bool = Form(False),
+):
+    """Synchronously analyze a protocol for deck playback."""
+    if protocol.filename is None:
+        raise HTTPException(status_code=400, detail="Missing filename on protocol upload")
+
+    content = await protocol.read()
+    labware_files = await _read_named_files(labware)
+    rtp_csv_files = await _read_named_files(rtp_csv)
+
+    result = await asyncio.to_thread(
+        _run_visualizer_sync_analyze,
+        protocol.filename,
+        content,
+        labware_files,
+        rtp_csv_files,
+        rtp_values,
+        rtp_files_map,
+        check,
+    )
+    return JSONResponse(content=result)
+
+
+@app.post("/api/visualizer/analyze/start")
+async def visualizer_analyze_protocol_start(
+    protocol: UploadFile = File(description="Main protocol .py or .json file"),
+    labware: list[UploadFile] | None = File(None),
+    rtp_csv: list[UploadFile] | None = File(None),
+    rtp_values: str | None = Form(None),
+    rtp_files_map: str | None = Form(None),
+    check: bool = Form(False),
+):
+    """Enqueue protocol analysis and return a job id for polling."""
+    if protocol.filename is None:
+        raise HTTPException(status_code=400, detail="Missing filename on protocol upload")
+
+    content = await protocol.read()
+    labware_files = await _read_named_files(labware)
+    rtp_csv_files = await _read_named_files(rtp_csv)
+    fname = protocol.filename
+
+    async def _work() -> dict[str, Any]:
+        return await asyncio.to_thread(
+            _run_visualizer_sync_analyze,
+            fname,
+            content,
+            labware_files,
+            rtp_csv_files,
+            rtp_values,
+            rtp_files_map,
+            check,
+        )
+
+    backend = _get_visualizer_backend()
+    start_job = backend["start_job"]
+    job_id = await start_job(lambda: _work())
+    return {"job_id": job_id}
+
+
+@app.get("/api/visualizer/analyze/jobs/{job_id}")
+async def visualizer_analyze_job_status(job_id: str):
+    backend = _get_visualizer_backend()
+    get_job = backend["get_job"]
+    job_to_response = backend["job_to_response"]
+
+    rec = get_job(job_id)
+    if rec is None:
+        raise HTTPException(status_code=404, detail="Unknown job_id")
+    return JSONResponse(content=job_to_response(rec))
 
 # PyLabRobot profile models
 class PyLabRobotProfile(BaseModel):
@@ -521,19 +721,13 @@ async def generate_sop_stream(request: SOPGenerationRequest) -> AsyncGenerator[s
         # Import the streaming function
         from backend.langchain_agent import generate_sop_with_langchain_stream
         
-        # Use real-time streaming generation
         token_count = 0
         try:
-            async for token in generate_sop_with_langchain_stream(hardware_context, user_goal):
-                if token:
+            async for chunk in generate_sop_with_langchain_stream(hardware_context, user_goal):
+                line = _sop_sse_line(chunk)
+                if line:
                     token_count += 1
-                    # Send each token immediately as it's generated
-                    token_data = {"type": "content", "token": token}
-                    yield f"data: {json.dumps(token_data)}\n\n"
-                    
-                    # Add a small delay to pace the stream for the frontend
-                    await asyncio.sleep(0.01)
-            
+                    yield line
             print(f"Debug - API: 流式传输完成，总共发送了 {token_count} 个token")
         
         except Exception as stream_error:
@@ -559,29 +753,51 @@ async def stream_sop_generation(request: SOPGenerationRequest):
     try:
         # We need a wrapper async function to bridge our sync langchain call to fastapi's async world
         async def event_stream():
+            yield 'data: {"event":"thinking"}\n\n'
+            think_buf = ""
+            last_flush = time.monotonic()
             try:
-                # The generator is an async generator
-                async for chunk in generate_sop_with_langchain_stream(request.hardware_config, request.user_goal):
-                    if "STREAM_ERROR:" in chunk:
-                        # Handle errors propagated from the stream
-                        error_payload = json.dumps({"event": "error", "message": chunk})
-                        yield f"data: {error_payload}\n\n"
-                        return
-                    
-                    payload = json.dumps({"token": chunk})
-                    yield f"data: {payload}\n\n"
-                    await asyncio.sleep(0.01) # Small sleep to allow for message sending
-                
-                # Signal completion
-                done_payload = json.dumps({"event": "done"})
-                yield f"data: {done_payload}\n\n"
+                async for chunk in generate_sop_with_langchain_stream(
+                    request.hardware_config, request.user_goal
+                ):
+                    kind = chunk.get("kind") if isinstance(chunk, dict) else None
+                    text = chunk.get("text") if isinstance(chunk, dict) else ""
+                    if kind == "thinking" and text:
+                        think_buf += text
+                        if len(think_buf) < 40 and time.monotonic() - last_flush < 0.08:
+                            continue
+                        line = _sop_sse_line({"kind": "thinking", "text": think_buf})
+                        think_buf = ""
+                        last_flush = time.monotonic()
+                        if line:
+                            yield line
+                        continue
+                    if think_buf:
+                        line = _sop_sse_line({"kind": "thinking", "text": think_buf})
+                        think_buf = ""
+                        last_flush = time.monotonic()
+                        if line:
+                            yield line
+                    line = _sop_sse_line(chunk)
+                    if line:
+                        yield line
+                if think_buf:
+                    line = _sop_sse_line({"kind": "thinking", "text": think_buf})
+                    if line:
+                        yield line
+
+                yield 'data: {"event":"done"}\n\n'
 
             except Exception as e:
                 print(f"Error during SOP stream: {e}")
                 error_payload = json.dumps({"event": "error", "message": f"An unexpected error occurred in the stream: {str(e)}"})
                 yield f"data: {error_payload}\n\n"
 
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers=SSE_HEADERS,
+        )
     except Exception as e:
         print(f"Failed to start SOP stream: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to initiate SOP stream: {str(e)}")
@@ -605,7 +821,9 @@ async def converse_sop(request: SopEditRequest):
     """
     try:
         from backend.langchain_agent import converse_about_sop
-        result = converse_about_sop(
+        # 同步LLM调用放到线程池，避免阻塞事件循环
+        result = await asyncio.to_thread(
+            converse_about_sop,
             original_sop=request.original_sop,
             user_instruction=request.user_instruction,
             hardware_context=request.hardware_context
@@ -633,11 +851,11 @@ async def converse_code_stream_endpoint(request: CodeEditRequest):
     Yields events for agent thoughts, tool calls, and final results.
     """
     async def event_stream():
+        yield f"data: {json.dumps({'event_type': 'start', 'message': 'Starting code conversation...'})}\n\n"
         try:
             async for event in converse_about_code_stream(request.original_code, request.user_instruction):
-                yield f"data: {json.dumps(event)}\n\n"
-                await asyncio.sleep(0.01) # Small delay to allow proper streaming
-            
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
             done_payload = json.dumps({"event_type": "stream_complete"})
             yield f"data: {done_payload}\n\n"
         except Exception as e:
@@ -648,7 +866,11 @@ async def converse_code_stream_endpoint(request: CodeEditRequest):
             })
             yield f"data: {error_payload}\n\n"
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers=SSE_HEADERS,
+    )
 
 @app.post("/api/converse-code", response_model=CodeConverseResponse)
 async def converse_code_endpoint(request: CodeEditRequest):
@@ -658,7 +880,9 @@ async def converse_code_endpoint(request: CodeEditRequest):
     """
     try:
         from backend.langchain_agent import converse_about_code
-        result = converse_about_code(
+        # 同步LLM调用放到线程池，避免阻塞事件循环
+        result = await asyncio.to_thread(
+            converse_about_code,
             original_code=request.original_code,
             user_instruction=request.user_instruction
         )

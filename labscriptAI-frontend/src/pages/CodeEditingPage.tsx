@@ -29,6 +29,7 @@ import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
 import ChatInterface, { ChatMessage } from '../components/ChatInterface';
 import CodeDiffModal from '../components/diff/CodeDiffModal';
+import { API_BASE_URL } from '../services/api';
 
 // Quick edit templates for common code modifications
 const quickEditTemplates = [
@@ -213,7 +214,7 @@ const CodeEditingPage: React.FC = () => {
     setChatMessages(prev => [...prev, userMessage]);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/converse-code-stream', {
+      const response = await fetch(`${API_BASE_URL}/api/converse-code-stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -338,6 +339,7 @@ const CodeEditingPage: React.FC = () => {
     if (diffData) {
       setEditedCode(diffData.newCode);
       dispatch({ type: 'SET_PYTHON_CODE', payload: diffData.newCode });
+      dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'idle' });
       setDiffData(null);
       enqueueSnackbar('Changes applied to the editor!', { variant: 'success' });
     }
@@ -355,6 +357,7 @@ const CodeEditingPage: React.FC = () => {
     }
     
     dispatch({ type: 'SET_PYTHON_CODE', payload: editedCode });
+    dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'idle' });
     navigate('/simulation-results');
   };
 
@@ -459,9 +462,11 @@ const CodeEditingPage: React.FC = () => {
                   </Typography>
                 </Stack>
                 <Tooltip title="Clear conversation">
-                  <IconButton onClick={handleClearMessages} size="small" color="default">
-                    <Trash2 size={16} />
-                  </IconButton>
+                  <Box component="span" sx={{ display: 'inline-flex' }}>
+                    <IconButton onClick={handleClearMessages} size="small" color="default">
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
                 </Tooltip>
               </Stack>
 

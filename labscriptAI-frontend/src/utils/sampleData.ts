@@ -6,7 +6,7 @@ metadata = {
     'protocolName': 'Sample Protocol',
     'author': 'LabScript AI',
     'description': 'A sample protocol for demonstration purposes',
-    'apiLevel': '2.20'
+    'apiLevel': '2.19'
 }
 
 def run(protocol: protocol_api.ProtocolContext):

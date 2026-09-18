@@ -1,0 +1,40 @@
+{
+  "name": "@opentrons/protocol-visualizer-web-client",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@opentrons/components": "link:../../components",
+    "@opentrons/shared-data": "link:../../shared-data",
+    "@opentrons/step-generation": "link:../../step-generation",
+    "i18next": "23.10.1",
+    "lodash": "4.17.21",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-i18next": "14.1.0",
+    "styled-components": "5.3.6"
+  },
+  "devDependencies": {
+    "@types/lodash": "4.14.191",
+    "@types/react": "18.2.51",
+    "@types/react-dom": "18.2.0",
+    "@types/styled-components": "5.1.26",
+    "@vitejs/plugin-react": "4.2.0",
+    "babel-plugin-styled-components": "2.0.7",
+    "babel-plugin-unassert": "3.0.1",
+    "lost": "8.3.1",
+    "postcss": "8.4.35",
+    "postcss-apply": "0.12.0",
+    "postcss-color-mod-function": "3.0.3",
+    "postcss-import": "14.1.0",
+    "postcss-preset-env": "7.7.1",
+    "typescript": "5.3.3",
+    "vite": "5.0.12"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

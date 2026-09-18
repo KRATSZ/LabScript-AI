@@ -1,0 +1,98 @@
+.main_wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background-color: var(--grey-10);
+}
+
+.layout_container {
+  display: flex;
+  overflow: hidden;
+  flex: 1;
+  box-sizing: border-box;
+  padding: var(--spacing-20);
+}
+
+.bottom_controls {
+  flex-shrink: 0;
+  width: 100%;
+  border-top: 1px solid var(--grey-30);
+  background-color: var(--white);
+  z-index: 10;
+}
+
+.left_column {
+  position: relative;
+  display: flex;
+  min-width: 10.75rem; /* 172px */
+  max-width: 37.5rem; /* 600px */
+  flex-direction: column;
+  flex-shrink: 0;
+  border-radius: var(--border-radius-8);
+  background-color: var(--white);
+  border: 1px solid var(--grey-30);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.06);
+  overflow-y: auto;
+}
+
+.center_column {
+  display: flex;
+  min-width: 9.25rem; /* 148px */
+  flex: 1;
+  flex-direction: column;
+  overflow-y: auto;
+  border: 1px solid var(--grey-30);
+  border-radius: var(--border-radius-12);
+  background-color: var(--white);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.right_column {
+  position: relative;
+  display: flex;
+  min-width: 10.75rem; /* 172px */
+  max-width: 37.5rem; /* 600px */
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  gap: var(--spacing-16);
+  border: 1px solid var(--grey-30);
+  border-radius: var(--border-radius-8);
+  background-color: var(--white);
+  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.06);
+}
+
+.gutter {
+  position: relative;
+  width: 1rem; /* 16px: align with GUTTER_WIDTH_PX */
+  flex-shrink: 0;
+}
+
+/* line when hovering */
+.gutter::before {
+  position: absolute;
+  top: var(--spacing-8);
+  bottom: var(--spacing-8);
+  left: 50%;
+  width: 1px;
+  background-color: transparent;
+  content: '';
+  transform: translateX(-50%);
+  transition: background-color 0.2s;
+}
+
+.gutter:hover {
+  cursor: grab;
+}
+
+.gutter:hover::before {
+  background-color: var(--grey-40);
+}
+
+.gutter.grabbing,
+.gutter.grabbing:hover {
+  cursor: grabbing;
+}

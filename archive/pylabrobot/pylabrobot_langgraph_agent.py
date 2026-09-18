@@ -109,7 +109,7 @@ async def protocol(lh):
 llm = ChatOpenAI(
     model="gemini-2.5-pro-preview-06-05",
     temperature=0.2,
-    openai_api_key="sk-TnKnlDtgvZgrG9wP543180A16aA34a1a978c90333dCa8746",
+    openai_api_key="YOUR_API_KEY",
     openai_api_base="https://api.pumpkinaigc.online/v1"
 )
 

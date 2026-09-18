@@ -1,0 +1,271 @@
+{
+  "metadata": {
+    "version": "2.0-enhanced",
+    "created_date": "2025-07-09",
+    "total_cases": 27,
+    "difficulty_distribution": {
+      "easy": 4,
+      "easy-medium": 2,
+      "medium": 6,
+      "medium-hard": 5,
+      "hard": 3,
+      "expert": 7
+    },
+    "category_distribution": {
+      "error-test": 4,
+      "step-by-step": 3,
+      "goal-oriented": 7,
+      "goal-oriented-immunostaining": 4,
+      "complex-protocol-assay": 3,
+      "complex-protocol-screening": 1,
+      "complex-protocol-spheroids": 3,
+      "complex-protocol-advanced": 2
+    },
+    "source_distribution": {
+      "synthetic_error": 4,
+      "original_paper": 16,
+      "synthetic": 5,
+      "paper_extracted": 2
+    },
+    "description": "Enhanced Inagaki 2023 benchmark dataset with difficulty grading and extended test cases"
+  },
+  "difficulty_levels": {
+    "easy": "Basic single-step operations, clear instructions",
+    "easy-medium": "Simple goal-oriented tasks requiring minimal inference",
+    "medium": "Multi-step protocols requiring some biological knowledge",
+    "medium-hard": "Complex protocols with specialized techniques",
+    "hard": "Advanced multi-step assays with timing and precision requirements",
+    "expert": "Professional-grade protocols requiring expert domain knowledge",
+    "error-test": "Specialized test cases designed to trigger common errors"
+  },
+  "test_cases": [
+    {
+      "id": "error_labware_name",
+      "category": "error-test",
+      "difficulty": "easy",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nLoad the following labware:\n1. A custom_96_wellplate_200ul (this is an invalid labware name)\n2. A special_tube_rack_15ml (this is also invalid)\n3. Transfer between them\n\nThis test checks labware name validation.",
+      "expected_errors": [
+        "labware_not_found"
+      ],
+      "description": "测试无效labware名称错误的处理",
+      "source": "synthetic_error"
+    },
+    {
+      "id": "error_volume_exceed",
+      "category": "error-test",
+      "difficulty": "easy",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nUse a P1000 pipette to transfer large volumes:\n1. Transfer 1500µL from source tube to destination well\n2. Transfer 2000µL from another source to another well\n3. Complete the protocol\n\nPay attention to pipette volume limits.",
+      "expected_errors": [
+        "volume_error"
+      ],
+      "description": "测试体积超限错误的处理",
+      "source": "synthetic_error"
+    },
+    {
+      "id": "v1",
+      "category": "step-by-step",
+      "difficulty": "easy",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a script that does the following experiment?\n\nProtocol Steps:\n1. Wash the 6 well plate with PBS(-) by pipetting up and down 5 times. For each well, use 1 ml of PBS(-).\n2. After washing, add 1 ml of trypsin solution (0.25%) to the cell culture dish and wait for 5 minutes.\n3. Then, add 1 mL of cell culture medium (DMEM) to the 6 well plate.\n4. Finish the experiment.\n\nPossible Labware and Pipettes (Note that you don't need to trust these items, you can use any labware and pipette you want):\n1. `opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical`\n2. `p1000_single`\n3. `corning_6_wellplate_16.8ml_flat`\n\nWhen writing scripts, be aware of the following:\n1. Do not aspirate more than pipette's max volume. For example, if you want to aspirate 2000 µL with a p1000_single, you need to split it into two commands.\n2. Check the number of tips you use to avoid running out of tips.\n3. when load_labware('name', slot), you can't declare the same slot twice, you need to use different slots for different labware.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的step-by-step类型测试"
+    },
+    {
+      "id": "v1.1",
+      "category": "step-by-step",
+      "difficulty": "easy",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a script that does the following experiment?\n\nProtocol Steps:\n1. Wash the 6 well plate with PBS(-) by pipetting up and down 5 times. For each well, use 1 ml of PBS(-).\n2. After washing, add 1 ml of trypsin solution (0.25%) to the cell culture dish and wait for 5 minutes.\n3. Then, add 1 mL of cell culture medium (DMEM) to the 6 well plate.\n4. Finish the experiment.\n\nPossible Labware and Pipettes (Note that you don't need to trust these items, you can use any labware and pipette you want):\n1. `opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical`\n2. `p1000_single`\n3. `corning_6_wellplate_16.8ml_flat`\n\nWhen writing scripts, be aware of the following:\n1. Do not aspirate more than pipette's max volume. For example, if you want to aspirate 2000 µL with a p1000_single, you need to split it into two commands.\n2. Check the number of tips you use to avoid running out of tips.\n3. when load_labware('name', slot), you can't declare the same slot twice, you need to use different slots for different labware.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的step-by-step类型测试"
+    },
+    {
+      "id": "v2",
+      "category": "goal-oriented",
+      "difficulty": "easy-medium",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nExchanging hMSC cell culture medium using PBS(-) and D-MEM.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented类型测试"
+    },
+    {
+      "id": "v2.1",
+      "category": "goal-oriented",
+      "difficulty": "easy-medium",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nExchanging hMSC cell culture medium using PBS(-) and D-MEM.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented类型测试"
+    },
+    {
+      "id": "error_labware_conflict",
+      "category": "error-test",
+      "difficulty": "medium",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nLoad multiple labware items and ensure proper slot management:\n1. Load a 96-well plate for samples\n2. Load a tube rack for reagents \n3. Load a tip rack for pipetting\n4. Transfer 100µL from tube A1 to well A1 of the plate\n5. Make sure to use different slots for each labware item\n\nThis test specifically checks for slot conflict errors.",
+      "expected_errors": [
+        "slot_conflict"
+      ],
+      "description": "测试槽位冲突错误的处理",
+      "source": "synthetic_error"
+    },
+    {
+      "id": "error_tip_management",
+      "category": "error-test",
+      "difficulty": "medium",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nPerform a 96-well transfer protocol:\n1. Transfer 50µL from each well of source plate to destination plate\n2. Use proper tip management\n3. Handle tip rack capacity limitations\n\nThis requires managing tip usage across multiple transfers.",
+      "expected_errors": [
+        "tip_error"
+      ],
+      "description": "测试吸头管理错误的处理",
+      "source": "synthetic_error"
+    },
+    {
+      "id": "pcr_setup_basic",
+      "category": "step-by-step",
+      "difficulty": "medium",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nPCR Setup Protocol:\n1. Load a 96-well PCR plate\n2. Load reagent tubes containing: Master Mix, Forward Primer, Reverse Primer, Template DNA\n3. Add 10µL Master Mix to each well (A1-H12)\n4. Add 1µL Forward Primer to each well\n5. Add 1µL Reverse Primer to each well  \n6. Add 2µL Template DNA to wells A1-A8 only\n7. Mix each well by pipetting up and down 3 times\n\nUse appropriate pipettes and tip management.",
+      "description": "PCR反应体系配制，中等复杂度",
+      "source": "synthetic"
+    },
+    {
+      "id": "v2.cell2",
+      "category": "goal-oriented",
+      "difficulty": "medium",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nExchanging iPS cell culture medium using PBS(-) and D-MEM.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented类型测试"
+    },
+    {
+      "id": "v2.cell2.medium2",
+      "category": "goal-oriented",
+      "difficulty": "medium",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nExchanging iPS cell culture medium using PBS(-) and SCM130.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented类型测试"
+    },
+    {
+      "id": "v2.medium2",
+      "category": "goal-oriented",
+      "difficulty": "medium",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nExchanging hMSC cell culture medium using PBS(-) and SCM130.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented类型测试"
+    },
+    {
+      "id": "dna_extraction",
+      "category": "goal-oriented",
+      "difficulty": "medium-hard",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nExtract DNA from 24 bacterial samples using magnetic beads:\n- Samples are in 1.5mL tubes in positions A1-D6 of tube rack\n- Lyse cells with lysis buffer (200µL per sample)\n- Add magnetic beads (50µL per sample) \n- Mix and incubate 10 minutes\n- Use magnetic module to separate beads\n- Wash beads 3 times with wash buffer (500µL each wash)\n- Elute DNA with elution buffer (100µL)\n- Transfer final DNA to new clean tubes\n\nHandle magnetic separation timing and bead resuspension properly.",
+      "description": "磁珠法DNA提取，包含磁分离模块使用",
+      "source": "synthetic"
+    },
+    {
+      "id": "v2-B",
+      "category": "goal-oriented-immunostaining",
+      "difficulty": "medium-hard",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nPrepare immunostained hMSC cells to visualize lysosomes.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented-immunostaining类型测试"
+    },
+    {
+      "id": "v2-B.cell2",
+      "category": "goal-oriented-immunostaining",
+      "difficulty": "medium-hard",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nPrepare immunostained iPS cells to visualize lysosomes.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented-immunostaining类型测试"
+    },
+    {
+      "id": "v2-B.cell2.target2",
+      "category": "goal-oriented-immunostaining",
+      "difficulty": "medium-hard",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nPrepare immunostained iPS cells to visualize E-Cadherin.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented-immunostaining类型测试"
+    },
+    {
+      "id": "v2-B.target2",
+      "category": "goal-oriented-immunostaining",
+      "difficulty": "medium-hard",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nPrepare immunostained hMSC cells to visualize E-Cadherin.\nThe cell is cultured in 6 well plate.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的goal-oriented-immunostaining类型测试"
+    },
+    {
+      "id": "serial_dilution_advanced",
+      "category": "goal-oriented",
+      "difficulty": "hard",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nCreate a 10-fold serial dilution series across a 96-well plate:\n- Starting concentration in A1: 10mg/mL\n- Create 7 dilution points (A1 to A8)\n- Each step should be 1:10 dilution\n- Use buffer for dilutions\n- Final volume in each well: 200µL\n- Replicate each dilution in triplicate (rows A, B, C)\n\nThe robot should automatically calculate volumes and perform the dilutions.",
+      "description": "自动连续稀释，需要复杂的体积计算",
+      "source": "synthetic"
+    },
+    {
+      "id": "v3",
+      "category": "complex-protocol-assay",
+      "difficulty": "hard",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nMeasurement of viability and cytotoxicity of an adherent cell line, A549 cells, treated with thapsigargin Seeding A549 cells and addition of various concentrations of Thapsigargin on the second day after the cells have adhered to the 96 well TC plate. On the first day of plating and the second day when the drug additions are to take place, follow the steps below- Clean the inside of the robot with 70 % ethanol and turn on the HEPA filter at low fan speed for about an hour before seeding the cells on 96 well plate. Continue to keep the HEPA filter turned on during the duration of setting up the robot with the respective labware, dilutions of the drug (thapsigargin)on the second day and addition of the drug on to the 96 well plate\n\n1. Take a 24–48 hours old T-75 flask of A549 cells. Take a cell count using the automated Countess 3 machine (Thermofisher Scientific) after treating the cells with Tryple Express enzyme and dislodging the adherent cells.\n\n2. 8000 cells are to be seeded in each well of the 96 well plate. Adjust the cell volume in 10% Ham’s F12K medium in such a way that 60 microL of cells contain the cell number mentioned above.\n\n3. The cell suspension was then dispensed in ten 1.5mL snap-capped tubes and placed in Slot 6 in the tube rack(225microL).\n\n4. The medium was added in wells A5 to C5 as negative control\n\n5. On the second day, roughly after 12 to 16 hours of seeding, the drug dilutions and additions are completed.\n\n6. The first tube A1 in Slot 7 contains 35microL of 1mM Thapsigargin.\n\n7. Next, prepare dilutions of various concentrations of thapsigargin in 10% Ham’s F12K medium (4X concentrations) after preparing the initial stocks ranging from 10nM to 100microM. The molar concentrations of stocks in tubes in positions are - A1 1mM, A2 100microM, A3 10microM, A4 1microM, A5 100nM, A6 50nM and B1 10nM.\n\n8. The 4X concentrations of thapsigargin are prepared in tubes C1 to C6 and D1 to D6 with the following concentrations in the tubes C1 1.56nM, C2 3.12nM, C3 6.24nM, C4 12.52nM, C5 25nM, C6 50nM, D1 100nM, D2 200nM, D3 400nM, D4 800nM D5 1600nM and D6 2000nM\n\n9. For both the initial stocks and the 4X working concentrations, the Ham’s F12 K diluent in added to respective tubes. Then the thapsigargin is added to the tubes and for each dilution, the mix is first pipetted 3-4 times before aspirating the required volume of thapsigargin and transferring to the next adjacent tube to get the required concentration. Once the 4X concentrations are prepared, prepare 2X concentrations of the drug. First, 100microL of medium is added to tubes C1, C3, C5 and D1 to D6 in Slot 6. Next 100microL of 4X concentration of thapsigargin is transferred from tubes in Slot7 to tubes in Slot 6 to result in 2X concentration. For each concentration, mix the drug several times by aspirating and dispensing in the same tube. Add the equal volume of 2X thapsigargin to each well of 96 well plate in triplicate for one concentration in which cells are seeded. This will result in 1X concentration of the drug used for the study. Continue adding column-wise the increasing concentrations of thapsigargin. Namely A1, B1, C1 of 96 well plate contains control cells. D1, E1 and F1 contains 0.39nM concentration of thapsigargin treated cells. The wells in D4, E4 and F4 contains cells with 500nM thapsigargin concentration. The wells from A5 to C5 contain medium without any cells (medium control). After 72 hours of drug treatment, carry out the following steps.\n\n10. Pick up 20microL tip from Slot 10. Transfer 15microL of CellTox Green reagent from B2 of the Opentrons 10 tube rack with Falcon 4X50 mL, 6X15mL Conical-Rack to A1 of 96 well plate placed on the Heater Shaker. Repeat this step to add the reagent to wells B1 to H1, A2 to H2, A3 to H3, A4 to F4, A5 to C5.\n\n11. After the addition of the reagent, set the Heater Shaker to orbital shaking for 2 minutes at 500 rpm.\n\n12. After the orbital shaking of the heater shaker is complete, incubate the plate at RT for 15 min.\n\n13. Remove the plate from the heater shaker and read the fluorescence at 485 nm excitation and 520 nm emission using the Biotek microplate reader.\n\n14. Place the plate back on the heater shaker and start with additions for the cell viability assay.\n\n15. Pick up 200microL tip from Slot 4. Aspirate 80microL of Cell Titer Glo 2.0 reagent from B1 of the Opentrons 10 tube rack and dispense it into A1 well of the 96 well white TC plate on Heater Shaker module. Repeat this step to add the reagent to wells B1 to H1, A2 to H2, A3 to H3, A4 to F4 and A5 to C5.\n\n16. Once the reagent addition is complete, set the Heater shaker to orbital shaking at 500 rpm for 2 minutes. Incubate at RT for 10 minutes.\n\n17. Remove the plate from heater shaker and read the plate for luminescence using the Biotek microplate reader.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的complex-protocol-assay类型测试"
+    },
+    {
+      "id": "v3.1",
+      "category": "complex-protocol-assay",
+      "difficulty": "hard",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nMeasurement of viability and cytotoxicity of an adherent cell line, A549 cells, treated with thapsigargin Seeding A549 cells and addition of various concentrations of Thapsigargin on the second day after the cells have adhered to the 96 well TC plate. On the first day of plating and the second day when the drug additions are to take place, follow the steps below- Clean the inside of the robot with 70 % ethanol and turn on the HEPA filter at low fan speed for about an hour before seeding the cells on 96 well plate. Continue to keep the HEPA filter turned on during the duration of setting up the robot with the respective labware, dilutions of the drug (thapsigargin)on the second day and addition of the drug on to the 96 well plate\n\n1. Take a 24–48 hours old T-75 flask of A549 cells. Take a cell count using the automated Countess 3 machine (Thermofisher Scientific) after treating the cells with Tryple Express enzyme and dislodging the adherent cells.\n\n2. 8000 cells are to be seeded in each well of the 96 well plate. Adjust the cell volume in 10% Ham’s F12K medium in such a way that 60 microL of cells contain the cell number mentioned above.\n\n3. The cell suspension was then dispensed in ten 1.5mL snap-capped tubes and placed in Slot 6 in the tube rack(225microL).\n\n4. The medium was added in wells A5 to C5 as negative control\n\n5. On the second day, roughly after 12 to 16 hours of seeding, the drug dilutions and additions are completed.\n\n6. The first tube A1 in Slot 7 contains 35microL of 1mM Thapsigargin.\n\n7. Next, prepare dilutions of various concentrations of thapsigargin in 10% Ham’s F12K medium (4X concentrations) after preparing the initial stocks ranging from 10nM to 100microM. The molar concentrations of stocks in tubes in positions are - A1 1mM, A2 100microM, A3 10microM, A4 1microM, A5 100nM, A6 50nM and B1 10nM.\n\n8. The 4X concentrations of thapsigargin are prepared in tubes C1 to C6 and D1 to D6 with the following concentrations in the tubes C1 1.56nM, C2 3.12nM, C3 6.24nM, C4 12.52nM, C5 25nM, C6 50nM, D1 100nM, D2 200nM, D3 400nM, D4 800nM D5 1600nM and D6 2000nM\n\n9. For both the initial stocks and the 4X working concentrations, the Ham’s F12 K diluent in added to respective tubes. Then the thapsigargin is added to the tubes and for each dilution, the mix is first pipetted 3-4 times before aspirating the required volume of thapsigargin and transferring to the next adjacent tube to get the required concentration. Once the 4X concentrations are prepared, prepare 2X concentrations of the drug. First, 100microL of medium is added to tubes C1, C3, C5 and D1 to D6 in Slot 6. Next 100microL of 4X concentration of thapsigargin is transferred from tubes in Slot7 to tubes in Slot 6 to result in 2X concentration. For each concentration, mix the drug several times by aspirating and dispensing in the same tube. Add the equal volume of 2X thapsigargin to each well of 96 well plate in triplicate for one concentration in which cells are seeded. This will result in 1X concentration of the drug used for the study. Continue adding column-wise the increasing concentrations of thapsigargin. Namely A1, B1, C1 of 96 well plate contains control cells. D1, E1 and F1 contains 0.39nM concentration of thapsigargin treated cells. The wells in D4, E4 and F4 contains cells with 500nM thapsigargin concentration. The wells from A5 to C5 contain medium without any cells (medium control). After 72 hours of drug treatment, carry out the following steps.\n\n10. Pick up 20microL tip from Slot 10. Transfer 15microL of CellTox Green reagent from B2 of the Opentrons 10 tube rack with Falcon 4X50 mL, 6X15mL Conical-Rack to A1 of 96 well plate placed on the Heater Shaker. Repeat this step to add the reagent to wells B1 to H1, A2 to H2, A3 to H3, A4 to F4, A5 to C5.\n\n11. After the addition of the reagent, set the Heater Shaker to orbital shaking for 2 minutes at 500 rpm.\n\n12. After the orbital shaking of the heater shaker is complete, incubate the plate at RT for 15 min.\n\n13. Remove the plate from the heater shaker and read the fluorescence at 485 nm excitation and 520 nm emission using the Biotek microplate reader.\n\n14. Place the plate back on the heater shaker and start with additions for the cell viability assay.\n\n15. Pick up 200microL tip from Slot 4. Aspirate 80microL of Cell Titer Glo 2.0 reagent from B1 of the Opentrons 10 tube rack and dispense it into A1 well of the 96 well white TC plate on Heater Shaker module. Repeat this step to add the reagent to wells B1 to H1, A2 to H2, A3 to H3, A4 to F4 and A5 to C5.\n\n16. Once the reagent addition is complete, set the Heater shaker to orbital shaking at 500 rpm for 2 minutes. Incubate at RT for 10 minutes.\n\n17. Remove the plate from heater shaker and read the plate for luminescence using the Biotek microplate reader.",
+      "source": "original_paper",
+      "description": "来自论文原始数据的complex-protocol-assay类型测试"
+    },
+    {
+      "id": "drug_screening",
+      "category": "complex-protocol-screening",
+      "difficulty": "expert",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nHigh-throughput drug screening on cell viability:\n1. Seed HeLa cells (5000 cells/well) in 384-well plate\n2. Prepare drug dilution series: 8 concentrations × 48 compounds\n3. Each compound tested in triplicate\n4. Control wells: positive control (wells A1-A16), negative control (wells A17-A24)\n5. Add drugs using acoustic liquid handling precision\n6. Incubate 48 hours\n7. Add cell viability reagent (20µL per well)\n8. Mix by orbital shaking 2 minutes at 500 rpm\n9. Incubate 10 minutes\n10. Read luminescence\n\nAutomate the entire screening process with proper plate layout and liquid handling.",
+      "description": "高通量药物筛选，需要精确的板型设计和液体处理",
+      "source": "synthetic"
+    },
+    {
+      "id": "elisa_assay",
+      "category": "complex-protocol-assay",
+      "difficulty": "expert",
+      "prompt": "Can you write a Python script that does the following experiment?\n\nELISA Assay Protocol:\n1. Coat 96-well plate with capture antibody (100µL per well, 1µg/mL)\n2. Incubate at room temperature for 2 hours\n3. Wash plate 3 times with wash buffer (200µL per well)\n4. Block with blocking buffer (150µL per well) for 1 hour\n5. Wash 3 times again\n6. Add samples in duplicate to wells A1-H6 (100µL per well)\n7. Add standard curve samples to wells A7-H8 (8 points, duplicate)\n8. Incubate 2 hours at room temperature\n9. Wash 5 times\n10. Add detection antibody (100µL per well, 0.5µg/mL)\n11. Incubate 1 hour\n12. Wash 5 times\n13. Add substrate solution (100µL per well)\n14. Incubate 15 minutes\n15. Add stop solution (50µL per well)\n\nInclude proper reagent management and timing.",
+      "description": "ELISA检测完整流程，专家级复杂度",
+      "source": "synthetic"
+    },
+    {
+      "id": "v4",
+      "category": "complex-protocol-spheroids",
+      "difficulty": "expert",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nWe are cultureing hMSC cells (2,500 cells/100 µl) with DMEM in 6 well plates, and we want to make hMSC spheroids (2,500 cells) in 96 well plates with two different conditions, 1) With osteoinduction supplements (OS+) and 2) Without osteoinduction supplements (OS-). For osteoinduction supplements, we use Dexamethasone, Ascorbic acid, and beta-glycerophosphate.\n\n\nFor OS(-)\n- use 100 µl medium (DMEM) each well\nFor OS(+)\n- use 100 µl medium (DMEM high glucose) each well and add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well.\n\nWrite a Python script that does the following:\n- Transfer 100 µl of medium (DMEM) to each well of 96 well plate (OS-)\n- Transfer 100 µl of medium (DMEM high glucose) to each well of 96 well plate (OS+)\n- Add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well of 96 well plate (OS+)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS-)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS+)\n- End",
+      "source": "original_paper",
+      "description": "来自论文原始数据的complex-protocol-spheroids类型测试"
+    },
+    {
+      "id": "v4.1",
+      "category": "complex-protocol-spheroids",
+      "difficulty": "expert",
+      "prompt": "I want to write a Python script that runs Opentrons machine. This robot can be used to automate laboratory experiment, and is used by many researchers in biology.\n\nCan you write down a Python script that does the following experiment?\n\nWe are cultureing hMSC cells (2,500 cells/100 µl) with DMEM in 6 well plates, and we want to make hMSC spheroids (2,500 cells) in 96 well plates with two different conditions, 1) With osteoinduction supplements (OS+) and 2) Without osteoinduction supplements (OS-). For osteoinduction supplements, we use Dexamethasone, Ascorbic acid, and beta-glycerophosphate.\n\n\nFor OS(-)\n- use 100 µl medium (DMEM) each well\nFor OS(+)\n- use 100 µl medium (DMEM high glucose) each well and add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well.\n\nWrite a Python script that does the following:\n- Transfer 100 µl of medium (DMEM) to each well of 96 well plate (OS-)\n- Transfer 100 µl of medium (DMEM high glucose) to each well of 96 well plate (OS+)\n- Add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well of 96 well plate (OS+)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS-)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS+)\n- End",
+      "source": "original_paper",
+      "description": "来自论文原始数据的complex-protocol-spheroids类型测试"
+    },
+    {
+      "id": "v4.2",
+      "category": "complex-protocol-spheroids",
+      "difficulty": "expert",
+      "prompt": "In your first answer, only answer the function names and it’s comments. Then, from next conversation, populate the logic of the function one by one.\n\nE.g.\n\tUser:\n        Write this Python script?\n\tGPT:\n        Here is the function names and comments\n        ```python\n        def step_A():\n            # This function does something\n            pass\n\n        def step_B():\n            # This function does something\n            pass\n\n        def step_C():\n            # This function does something\n            pass\n        ```\n\tUser:\n        Implement the function `step_A`\n\tGPT:\n        Here is the function `step_A`\n        ```python\n        def step_A(source, dest):\n            pipette.transfer(100, source, dest)\n        ```\n    User:\n        Implement the function `step_B`\n    GPT:\n        Here is the function `step_B`\n        ```python\n        def step_B(source, dest):\n            pipette.transfer(100, source, dest)\n        ```\n    User:\n        Implement the function `step_C`\n    GPT:\n        Here is the function `step_C`\n        ```python\n        def step_C(source, dest):\n            pipette.transfer(100, source, dest)\n        ```\n    User:\n        Implement the main function\n    GPT:\n        Here is the main function\n        ```python\n        def run():\n            source = labware.load('opentrons-tuberack-2ml-eppendorf', '1')\n            dest = labware.load('96-flat', '2')\n            step_A(source, dest)\n            step_B(source, dest)\n            step_C(source, dest)\n        ```\n    User:\n        Run the script",
+      "source": "original_paper",
+      "description": "来自论文原始数据的complex-protocol-spheroids类型测试"
+    },
+    {
+      "id": "v8_1",
+      "category": "complex-protocol-advanced",
+      "prompt": "We are cultureing hMSC cells (2,500 cells/100 µl) with DMEM in 6 well plates, and we want to make hMSC spheroids (2,500 cells) in 96 well plates with two different conditions, 1) With osteoinduction supplements (OS+) and 2) Without osteoinduction supplements (OS-). For osteoinduction supplements, we use Dexamethasone, Ascorbic acid, and beta-glycerophosphate.\n\nFor OS(-)\n- use 100 µl medium (DMEM) each well\nFor OS(+)\n- use 100 µl medium (DMEM high glucose) each well and add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well.\n\nWrite a Python script that does the following:\n- Transfer 100 µl of medium (DMEM) to each well of 96 well plate (OS-)\n- Transfer 100 µl of medium (DMEM high glucose) to each well of 96 well plate (OS+)\n- Add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well of 96 well plate (OS+)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS-)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS+)\n- End\n\nMmake sure that if the code is long, split the code into multiple tiny functions and use it later in the main function. Ideally, split the experiment into multiple steps, and for each step, write a function that does the step. And then, call the function in the main function.",
+      "source_file": "chat_loop_1_21878afa-c746-45ba-95c4-70816a7fe69b_gpt-4_token_100_temperature_0.9_2023-03-30-19-44-57_prompt_v8.txt",
+      "difficulty": "expert",
+      "source": "paper_extracted"
+    },
+    {
+      "id": "v8_2",
+      "category": "complex-protocol-advanced",
+      "prompt": "We are cultureing hMSC cells (2,500 cells/100 µl) with DMEM in 6 well plates, and we want to make hMSC spheroids (2,500 cells) in 96 well plates with two different conditions, 1) With osteoinduction supplements (OS+) and 2) Without osteoinduction supplements (OS-). For osteoinduction supplements, we use Dexamethasone, Ascorbic acid, and beta-glycerophosphate.\n\nFor OS(-)\n- use 100 µl medium (DMEM) each well\nFor OS(+)\n- use 100 µl medium (DMEM high glucose) each well and add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well.\n\nWrite a Python script that does the following:\n- Transfer 100 µl of medium (DMEM) to each well of 96 well plate (OS-)\n- Transfer 100 µl of medium (DMEM high glucose) to each well of 96 well plate (OS+)\n- Add 0.1 µl of Dex (Dexamethasone), 1 µl of AA (Ascorbic acid), and 1 µl of BGP (beta-glycerophosphate) to each well of 96 well plate (OS+)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS-)\n- Transfer 100 µl of hMSC cells (2,500 cells/100 µl) to each well of 96 well plate (OS+)\n- End\n\nMmake sure that if the code is long, split the code into multiple tiny functions and use it later in the main function. Ideally, split the experiment into multiple steps, and for each step, write a function that does the step. And then, call the function in the main function.",
+      "source_file": "chat_loop_1_5acb54fd-3386-40e3-83b6-ac3b1ea6963a_gpt-4_token_100_temperature_0.9_2023-03-30-19-50-08_prompt_v8.txt",
+      "difficulty": "expert",
+      "source": "paper_extracted"
+    }
+  ]
+}

@@ -30,6 +30,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { ApiTester } from '../utils/apiTester';
+import { API_BASE_URL_LABEL } from '../services/api';
 
 interface TestResults {
   connection: boolean;
@@ -209,7 +210,7 @@ const DevToolsPage: React.FC = () => {
                 <ListItem>
                   <ListItemText 
                     primary="API Server URL" 
-                    secondary={import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'} 
+                    secondary={API_BASE_URL_LABEL} 
                   />
                 </ListItem>
                 <ListItem>
@@ -318,4 +319,4 @@ const DevToolsPage: React.FC = () => {
   );
 };
 
-export default DevToolsPage; 
+export default DevToolsPage;

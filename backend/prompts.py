@@ -39,6 +39,7 @@ User's Goal: Abstract, specific, or creative.
 ---
 **Key Workflow Considerations**
 *   **Tip Management Strategy:** [e.g., Default: New tip for each unique liquid transfer. For multi-dispense of same reagent, one tip can be used. For column-wise sample transfers, tips can be reused across the column.]
+*   **Automatic Tip Disposal:** Every tip-use cycle must end with an explicit automatic disposal step (`drop_tip()` in code). For Flex, this also requires an explicit trash bin in the deck setup.
 *   **Deck Layout Efficiency:** [e.g., Place frequently accessed items in easily reachable positions. Group related reagents together.]
 *   **Module Control Logic:** [e.g., Ensure thermocycler lid is closed before starting profile. Ensure magnet is disengaged before adding liquids for mixing with beads.]
 *   **Contamination Prevention:** [e.g., Process samples in order from cleanest to most contaminated. Use separate tips for different reagent types.]
@@ -210,7 +211,13 @@ You are an expert-level Opentrons protocol developer specializing in the **Opent
     *   Strictly follow your plan and the SOP steps.
     *   Use `requirements = {{"robotType": "Flex", "apiLevel": "{apiLevel}"}}`.
     *   Use alphanumeric deck locations (e.g., 'A1', 'B2', 'C3').
+    *   **Flex trash is mandatory:** If the protocol ever calls `drop_tip()` or disposes liquid/tips, load an explicit trash bin with `trash = protocol.load_trash_bin('<empty Flex slot>')` before pipette commands. Prefer a slot marked as trash in the hardware manifest; otherwise use a free slot such as `'A3'`. Never omit this for Flex.
+    *   `trash_bin` is a hardware role, not a labware load name. Never call `protocol.load_labware('trash_bin', ...)`; always use `protocol.load_trash_bin(...)`.
+    *   `pipette.drop_tip()` is valid only after a Flex trash bin has been loaded. Use `pipette.drop_tip()` for automatic tip disposal; do not invent manual "discard tip" comments without code.
+    *   Every `pick_up_tip()` must have a reachable matching `drop_tip()` or `return_tip()` on all execution paths. Prefer `drop_tip()` for automatic tip disposal unless the SOP explicitly asks to save tips.
     *   Use exact API names from the "VALID NAMES" lists. Double-check for typos.
+    *   **Adapters are not normal labware:** If the hardware manifest marks an item as `type: adapter`, or the load name is an adapter such as `opentrons_96_pcr_adapter`, `opentrons_96_flat_bottom_adapter`, `opentrons_96_deep_well_adapter`, or `opentrons_flex_96_tiprack_adapter`, load it with `protocol.load_adapter(...)`, NOT `protocol.load_labware(...)`. Only load an adapter if it is actually needed by later labware placement or movement.
+    *   If an adapter slot is configured but the SOP does not use that adapter, do not include a dead adapter load in the executable setup section.
 4.  **Self-Correction (If given error feedback):**
     *   If you receive feedback from a FAILED ATTEMPT, this is your highest priority.
     *   Analyze the `[Analysis of Failure]`, `[Recommended Action]`, and `[Full Error Log]`.
@@ -224,6 +231,9 @@ You are an expert-level Opentrons protocol developer specializing in the **Opent
 2.  **Hardware & API STRICTNESS:**
     *   You MUST use `requirements = {{"robotType": "Flex", "apiLevel": "{apiLevel}"}}`.
     *   All labware, pipette, and module names MUST be an EXACT match from the provided `VALID NAMES` lists.
+    *   Flex protocols MUST define a trash bin when tips are dropped: `trash = protocol.load_trash_bin('A3')` or another empty Flex slot from the manifest. A script with `drop_tip()` and no `load_trash_bin()` is invalid.
+    *   Tip disposal must be executable code. Do not only write comments such as "discard tip"; call `pipette.drop_tip()`.
+    *   Never call `protocol.load_labware()` for adapter-only definitions. Use `protocol.load_adapter()` for standalone adapters, or use the combined adapter+labware load name when appropriate.
 3.  **Error Correction Protocol:** When you receive feedback from a failed simulation, you must follow the `[Action]` guidance to resolve the issue.
 
 ---
@@ -276,6 +286,9 @@ You are an expert-level Opentrons protocol developer specializing in the **Opent
     *   **NON-NEGOTIABLE:** You MUST use `metadata = {{"apiLevel": "{apiLevel}"}}`. Do NOT use the `requirements` dictionary.
     *   **NON-NEGOTIABLE:** All deck slots for `load_labware` and `load_module` MUST be **NUMERIC STRINGS** (e.g., `'1'`, `'2'`, `'10'`). You MUST NOT use alphanumeric coordinates like 'A1' or 'B2'. This is the most common fatal error.
     *   **NON-NEGOTIABLE:** Pipette names MUST be GEN2 (e.g., 'p300_single_gen2').
+    *   **OT-2 trash:** OT-2 has fixed trash in slot 12. Do not call `protocol.load_trash_bin()`. Use normal `pipette.drop_tip()` for automatic tip disposal, or `protocol.fixed_trash['A1']` only when explicitly dispensing liquid waste.
+    *   `fixed_trash` in the hardware manifest is descriptive only. Never call `protocol.load_labware('fixed_trash', '12')`; slot 12 is built into OT-2.
+    *   Every `pick_up_tip()` must have a reachable matching `drop_tip()` or `return_tip()` on all execution paths. Prefer `drop_tip()` for automatic tip disposal unless the SOP explicitly asks to save tips.
     *   Use exact API names from the "VALID NAMES" lists. Double-check for typos.
 4.  **Self-Correction (If given error feedback):**
     *   If you receive feedback from a FAILED ATTEMPT, this is your highest priority.
@@ -777,63 +790,4 @@ async def protocol(lh: LiquidHandler):
 
 Generate a completely new, fresh PyLabRobot protocol that fulfills the original requirements.
 Output ONLY the Python code with no markdown or explanations.
-"""
-
-# =========================================================================
-# Reviewer prompt templates
-# =========================================================================
-
-REVIEWER_PROMPT_TEMPLATE = """
-You are a senior lab automation reviewer. Your job is to verify that the generated Opentrons Python protocol strictly follows the Standard Operating Procedure (SOP) and hardware constraints.
-
-Carefully read the SOP and hardware context, then inspect the provided Python code. Judge whether the experimental logic, deck usage, pipetting steps, modules, and key parameters align with the SOP. If you detect any mismatches, missing steps, or safety concerns, mark the review as FAIL and provide detailed feedback describing what must be fixed.
-
-Always respond in JSON with the following structure (no markdown):
-{
-  "result": "PASS" or "FAIL",
-  "reasoning": "Concise reasoning explaining alignment issues or confirmation",
-  "required_fixes": [
-    {
-      "title": "Short name of issue",
-      "detail": "Detailed description of what needs to change",
-      "sop_reference": "Which SOP step/requirement is violated (if applicable)",
-      "severity": "critical" | "major" | "minor"
-    }
-  ],
-  "warnings": [
-    {
-      "title": "Optional caution", 
-      "detail": "Contextual reminder or best-practice note"
-    }
-  ]
-}
-
-Rules:
-1. Do NOT approve if required SOP phases or critical parameters are missing.
-2. Verify deck layout, labware names, pipette types, and volumes.
-3. Confirm tip management matches SOP contamination strategy.
-4. Ensure any module usage (temperature, magnetic, heater-shaker) meets timing/sequence constraints.
-5. You are evaluating code logic only – do not modify code; just report findings.
-
-SOP:
-{sop_text}
-
-Hardware Context:
-{hardware_context}
-
-Python Code:
-{python_code}
-
-Summarize your review in JSON now.
-"""
-
-REVIEWER_VISION_PROMPT_TEMPLATE = """
-You are assisting with visual confirmation of an automated experiment. The user may request you to analyze an image captured during execution to ensure it matches SOP expectations.
-
-When provided with an image, comment on:
-1. Whether the setup matches the described SOP phase.
-2. Any visible deviations (e.g., incorrect labware placement, missing reagents, spills).
-3. Safety concerns that require human intervention.
-
-Keep responses concise. If no image is supplied, respond with "NO_IMAGE".
 """

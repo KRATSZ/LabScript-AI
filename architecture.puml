@@ -1,0 +1,170 @@
+@startuml LabscriptAI Architecture
+!theme plain
+title <size:20><b>LabscriptAI Cloud - 智能实验协议生成平台架构图</b></size>
+
+' 设置全局字体大小
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+skinparam componentFontSize 12
+skinparam noteFontSize 11
+
+' 定义多彩颜色方案
+!define FRONTEND_COLOR #4FC3F7
+!define BACKEND_COLOR #FFB74D
+!define AI_COLOR #BA68C8
+!define ENV_COLOR #81C784
+!define EXTERNAL_COLOR #F06292
+
+' 设置连接线颜色
+skinparam arrow {
+  Color #2196F3
+  FontColor #1976D2
+  FontSize 12
+}
+skinparam component {
+  BorderColor #424242
+  BorderThickness 2
+}
+
+package "<size:16><b>前端层 (Frontend)</b></size>" as frontend <<FRONTEND_COLOR>> {
+  component "<size:14><b>React + TypeScript</b></size>" as react {
+    [<size:12>用户界面 (UI)</size>]
+    [<size:12>硬件配置页面</size>]
+    [<size:12>SOP定义页面</size>]
+    [<size:12>代码生成页面</size>]
+    [<size:12>模拟结果页面</size>]
+  }
+  
+  component "<size:14><b>状态管理</b></size>" as state {
+    [<size:12>AppContext</size>]
+    [<size:12>LocalStorage</size>]
+  }
+  
+  component "<size:14><b>API客户端</b></size>" as api_client {
+    [<size:12>HTTP服务</size>]
+    [<size:12>SSE事件流</size>]
+  }
+}
+
+package "<size:16><b>后端层 (Backend)</b></size>" as backend <<BACKEND_COLOR>> {
+  component "<size:14><b>FastAPI服务器</b></size>" as fastapi {
+    [<size:12>RESTful API</size>]
+    [<size:12>WebSocket支持</size>]
+    [<size:12>自动文档生成</size>]
+  }
+  
+  component "<size:14><b>核心服务</b></size>" as core_services {
+    [<size:12>协议生成服务</size>]
+    [<size:12>硬件配置服务</size>]
+    [<size:12>文件导出服务</size>]
+    [<size:12>外部集成服务</size>]
+  }
+}
+
+package "<size:16><b>AI引擎层 (AI Engine)</b></size>" as ai_engine <<AI_COLOR>> {
+  component "<size:14><b>LangGraph工作流</b></size>" as langgraph {
+    [<size:12>代码生成节点</size>]
+    [<size:12>模拟验证节点</size>]
+    [<size:12>反馈准备节点</size>]
+    [<size:12>决策节点</size>]
+  }
+  
+  component "<size:14><b>AI代理</b></size>" as agents {
+    [<size:12>Opentrons代理</size>]
+    [<size:12>PyLabRobot代理</size>]
+    [<size:12>SOP生成代理</size>]
+  }
+  
+  component "<size:14><b>提示词引擎</b></size>" as prompts {
+    [<size:12>代码生成模板</size>]
+    [<size:12>错误修复模板</size>]
+    [<size:12>SOP生成模板</size>]
+  }
+}
+
+package "<size:16><b>环境隔离层 (Environment Isolation)</b></size>" as env_layer <<ENV_COLOR>> {
+  component "<size:14><b>主虚拟环境 (.venv)</b></size>" as main_env {
+    [<size:12>FastAPI</size>]
+    [<size:12>LangChain</size>]
+    [<size:12>LangGraph</size>]
+    [<size:12>现代Python库</size>]
+  }
+  
+  component "<size:14><b>Opentrons隔离环境 (ot_env)</b></size>" as ot_env {
+    [<size:12>opentrons库</size>]
+    [<size:12>opentrons_simulate</size>]
+    [<size:12>协议验证器</size>]
+  }
+  
+  component "<size:14><b>子进程通信</b></size>" as subprocess {
+    [<size:12>安全调用接口</size>]
+    [<size:12>错误日志处理</size>]
+    [<size:12>结果解析</size>]
+  }
+}
+
+package "<size:16><b>外部集成 (External Integration)</b></size>" as external <<EXTERNAL_COLOR>> {
+  component "<size:14><b>AI模型服务</b></size>" as ai_models {
+    [<size:12>Gemini-2.5-Pro</size>]
+    [<size:12>DeepSeek-V3-Fast</size>]
+    [<size:12>混合LLM策略</size>]
+  }
+  
+  component "<size:14><b>硬件平台</b></size>" as hardware {
+    [<size:12>Opentrons OT-2</size>]
+    [<size:12>Opentrons Flex</size>]
+    [<size:12>Hamilton Star</size>]
+    [<size:12>Hamilton Vantage</size>]
+    [<size:12>Tecan EVO</size>]
+  }
+  
+  component "<size:14><b>导出平台</b></size>" as export {
+    [<size:12>protocols.io</size>]
+    [<size:12>ZIP文件导出</size>]
+    [<size:12>JSON配置</size>]
+  }
+}
+
+' 多色连接关系
+frontend -[#2196F3,thickness=3]-> backend : "<size:12><b>HTTP/SSE</b></size>"
+backend -[#FF9800,thickness=3]-> ai_engine : "<size:12><b>调用AI服务</b></size>"
+ai_engine -[#9C27B0,thickness=3]-> env_layer : "<size:12><b>执行模拟验证</b></size>"
+env_layer -[#4CAF50,thickness=3]-> external : "<size:12><b>调用外部服务</b></size>"
+
+' 详细多色连接
+react -[#1976D2,thickness=2]-> api_client : "<size:11>用户交互</size>"
+api_client -[#1976D2,thickness=2]-> fastapi : "<size:11>API请求</size>"
+fastapi -[#F57C00,thickness=2]-> core_services : "<size:11>业务逻辑</size>"
+core_services -[#F57C00,thickness=2]-> langgraph : "<size:11>工作流执行</size>"
+langgraph -[#7B1FA2,thickness=2]-> agents : "<size:11>代理调用</size>"
+agents -[#7B1FA2,thickness=2]-> prompts : "<size:11>提示词生成</size>"
+main_env -[#388E3C,thickness=2]-> subprocess : "<size:11>子进程调用</size>"
+subprocess -[#388E3C,thickness=2]-> ot_env : "<size:11>隔离执行</size>"
+ai_engine -[#E91E63,thickness=2]-> ai_models : "<size:11>LLM调用</size>"
+core_services -[#E91E63,thickness=2]-> export : "<size:11>结果导出</size>"
+
+' 数据流注释
+note right of langgraph #FFECB3
+  <size:12><b>循环式代码生成流程:</b></size>
+  <size:11>1. 生成代码</size>
+  <size:11>2. 模拟验证</size>
+  <size:11>3. 错误分析</size>
+  <size:11>4. 反馈修正</size>
+  <size:11>5. 重复直到成功</size>
+end note
+
+note bottom of env_layer #E8F5E8
+  <size:12><b>双虚拟环境架构解决:</b></size>
+  <size:11>- 依赖冲突问题</size>
+  <size:11>- 版本兼容性</size>
+  <size:11>- 环境隔离安全</size>
+end note
+
+note top of ai_models #FCE4EC
+  <size:12><b>智能LLM策略:</b></size>
+  <size:11>- 复杂任务用Gemini</size>
+  <size:11>- 快速修复用DeepSeek</size>
+  <size:11>- 动态模型切换</size>
+end note
+
+@enduml

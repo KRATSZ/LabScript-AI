@@ -1,0 +1,82 @@
+"""Validation file for labware role and location checking functions."""
+
+from opentrons_shared_data.labware.labware_definition import (
+    LabwareDefinition,
+    LabwareDefinition2,
+    LabwareRole,
+)
+
+
+def is_flex_trash(load_name: str) -> bool:
+    """Check if a labware is a large trash."""
+    return load_name == "opentrons_1_trash_3200ml_fixed"
+
+
+def is_absorbance_reader_lid(load_name: str) -> bool:
+    """Check if a labware is an absorbance reader lid."""
+    return load_name == "opentrons_flex_lid_absorbance_plate_reader_module"
+
+
+def is_lid_stack(load_name: str) -> bool:
+    """Check if a labware object is a system lid stack object."""
+    return load_name == "protocol_engine_lid_stack_object"
+
+
+def is_tiprack_lid(load_name: str) -> bool:
+    """Check if a labware object is a tip rack lid."""
+    return load_name == "opentrons_flex_tiprack_lid"
+
+
+def validate_definition_is_labware(definition: LabwareDefinition) -> bool:
+    """Validate that one of the definition's allowed roles is `labware`.
+
+    An empty `allowedRoles` is equivalent to `labware` being the only allowed role.
+    """
+    return not definition.allowedRoles or LabwareRole.labware in definition.allowedRoles
+
+
+def validate_definition_is_adapter(definition: LabwareDefinition) -> bool:
+    """Validate that one of the definition's allowed roles is `adapter`."""
+    return LabwareRole.adapter in definition.allowedRoles
+
+
+def validate_definition_is_lid(definition: LabwareDefinition) -> bool:
+    """Validate that one of the definition's allowed roles is `lid`."""
+    return LabwareRole.lid in definition.allowedRoles
+
+
+def validate_definition_is_system(definition: LabwareDefinition) -> bool:
+    """Validate that one of the definition's allowed roles is `system`."""
+    return LabwareRole.system in definition.allowedRoles
+
+
+def validate_legacy_labware_can_be_stacked(
+    child_labware_definition: LabwareDefinition2, parent_labware_load_name: str
+) -> bool:
+    """Validate that the parent labware is in the child labware's stackingOffsetWithLabware definition.
+
+    Schema 3 Labware stacking validation is handled in locating features.
+    """
+    return (
+        parent_labware_load_name in child_labware_definition.stackingOffsetWithLabware
+        or (
+            "default" in child_labware_definition.stackingOffsetWithLabware
+            and child_labware_definition.compatibleParentLabware is None
+        )
+    )
+
+
+def validate_labware_can_be_ondeck(definition: LabwareDefinition) -> bool:
+    """Validate that the labware being loaded onto the deck can sit in a slot."""
+    return (
+        definition.parameters.quirks is None
+        or "stackingOnly" not in definition.parameters.quirks
+    )
+
+
+def validate_gripper_compatible(definition: LabwareDefinition) -> bool:
+    """Validate that the labware definition does not have a quirk disallowing movement with gripper."""
+    return (
+        definition.parameters.quirks is None
+        or "gripperIncompatible" not in definition.parameters.quirks
+    )

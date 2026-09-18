@@ -21,7 +21,7 @@ from langchain_core.exceptions import OutputParserException
 # =============================================================================
 # 用户配置区域 - 请根据您的需求修改以下配置
 # =============================================================================
-API_KEY = "sk-TnKnlDtgvZgrG9wP543180A16aA34a1a978c90333dCa8746"
+API_KEY = "YOUR_API_KEY"
 BASE_URL = "https://api.pumpkinaigc.online/v1"
 MODEL_NAME = "gemini-2.5-pro-preview-06-05"
 

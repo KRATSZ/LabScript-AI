@@ -1,0 +1,31 @@
+[project]
+name = "protocol-visualizer-web"
+version = "0.1.0"
+description = "Web UI + API to analyze Opentrons Python protocols and visualize deck animation"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2.0"]
+
+[project.scripts]
+protocol-visualizer-mcp = "protocol_visualizer_web.mcp_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/protocol_visualizer_web"]
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]

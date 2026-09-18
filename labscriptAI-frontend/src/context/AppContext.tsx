@@ -1,12 +1,21 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+  ReactNode,
+} from 'react';
 
 // Types
 export type RobotModel = 'Flex' | 'OT-2' | 'PyLabRobot';
 export type PipetteModel = 
   | 'flex_1channel_1000' 
-  | 'flex_1channel_300' 
+  | 'flex_1channel_50'
   | 'flex_8channel_1000' 
-  | 'flex_8channel_300'
+  | 'flex_8channel_50'
+  | 'flex_96channel_1000'
   | 'p1000_single_gen2' 
   | 'p300_single_gen2' 
   | 'p20_single_gen2'
@@ -34,6 +43,7 @@ export interface AppState {
   userGoal: string;
   generatedSop: string;
   pythonCode: string;
+  codeGenerationStatus: 'idle' | 'success' | 'warning' | 'error';
   rawHardwareConfigText?: string | null;
   simulationResults: {
     status: 'idle' | 'success' | 'warning' | 'error';
@@ -44,6 +54,14 @@ export interface AppState {
     warnings_present?: boolean;
   };
   loading: boolean;
+}
+
+const APP_STATE_STORAGE_KEY = 'labscriptai.app-state.v1';
+const APP_STATE_STORAGE_VERSION = 1;
+
+interface PersistedAppState {
+  version: number;
+  state: AppState;
 }
 
 // Action types
@@ -57,6 +75,7 @@ type AppAction =
   | { type: 'SET_USER_GOAL'; payload: string }
   | { type: 'SET_GENERATED_SOP'; payload: string }
   | { type: 'SET_PYTHON_CODE'; payload: string }
+  | { type: 'SET_CODE_GENERATION_STATUS'; payload: AppState['codeGenerationStatus'] }
   | { type: 'SET_RAW_HARDWARE_CONFIG_TEXT'; payload: string | null }
   | { type: 'SET_SIMULATION_RESULTS'; payload: AppState['simulationResults'] }
   | { type: 'SET_LOADING'; payload: boolean }
@@ -85,14 +104,21 @@ const initialPyLabRobotDeck: Record<string, LabwareItem | null> = {
 
 const initialState: AppState = {
   robotModel: 'Flex',
-  apiVersion: '2.20',
-  leftPipette: null,
-  rightPipette: null,
-  useGripper: false,
-  deckLayout: initialFlexDeck,
+  apiVersion: '2.19',
+  leftPipette: 'flex_1channel_1000',
+  rightPipette: 'flex_8channel_1000',
+  useGripper: true,
+  deckLayout: {
+    ...initialFlexDeck,
+    'A1': { name: 'opentrons_flex_96_tiprack_1000ul', displayName: '1000 µL Flex Tips', type: 'tipRack' },
+    'A3': { name: 'trash_bin', displayName: 'Flex Trash Bin', type: 'trash' },
+    'B2': { name: 'corning_96_wellplate_360ul_flat', displayName: '96 Well 360 µL Plate', type: 'plate' },
+    'C1': { name: 'nest_12_reservoir_15ml', displayName: '12-Well 15 mL Reservoir', type: 'reservoir' },
+  },
   userGoal: '',
   generatedSop: '',
   pythonCode: '',
+  codeGenerationStatus: 'idle',
   rawHardwareConfigText: null,
   simulationResults: {
     status: 'idle',
@@ -103,6 +129,59 @@ const initialState: AppState = {
     warnings_present: false,
   },
   loading: false,
+};
+
+const canUseStorage = (): boolean =>
+  typeof window !== 'undefined' && window.localStorage != null;
+
+const loadPersistedState = (): AppState => {
+  if (!canUseStorage()) return initialState;
+
+  try {
+    const raw = window.localStorage.getItem(APP_STATE_STORAGE_KEY);
+    if (raw == null) return initialState;
+
+    const parsed = JSON.parse(raw) as Partial<PersistedAppState>;
+    if (parsed.version !== APP_STATE_STORAGE_VERSION || parsed.state == null) {
+      return initialState;
+    }
+
+    return {
+      ...initialState,
+      ...parsed.state,
+      simulationResults: {
+        ...initialState.simulationResults,
+        ...parsed.state.simulationResults,
+      },
+      loading: false,
+    };
+  } catch (error) {
+    console.warn('Failed to restore LabScript AI state:', error);
+    return initialState;
+  }
+};
+
+const persistState = (state: AppState): void => {
+  if (!canUseStorage()) return;
+
+  const payload: PersistedAppState = {
+    version: APP_STATE_STORAGE_VERSION,
+    state: {
+      ...state,
+      loading: false,
+    },
+  };
+
+  try {
+    window.localStorage.setItem(APP_STATE_STORAGE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Failed to persist LabScript AI state:', error);
+  }
+};
+
+const clearPersistedState = (): void => {
+  if (!canUseStorage()) return;
+  window.localStorage.removeItem(APP_STATE_STORAGE_KEY);
 };
 
 // Reducer
@@ -145,6 +224,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return { ...state, generatedSop: action.payload };
     case 'SET_PYTHON_CODE':
       return { ...state, pythonCode: action.payload };
+    case 'SET_CODE_GENERATION_STATUS':
+      return { ...state, codeGenerationStatus: action.payload };
     case 'SET_RAW_HARDWARE_CONFIG_TEXT':
       return { ...state, rawHardwareConfigText: action.payload };
     case 'SET_SIMULATION_RESULTS':
@@ -169,7 +250,29 @@ const AppContext = createContext<{
 
 // Provider component
 export const AppContextProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(appReducer, initialState);
+  const skipNextPersistRef = useRef(false);
+  const [state, baseDispatch] = useReducer(
+    appReducer,
+    undefined,
+    loadPersistedState
+  );
+
+  const dispatch = useCallback((action: AppAction): void => {
+    if (action.type === 'RESET_STATE') {
+      skipNextPersistRef.current = true;
+      clearPersistedState();
+    }
+    baseDispatch(action);
+  }, []);
+
+  useEffect(() => {
+    if (skipNextPersistRef.current) {
+      skipNextPersistRef.current = false;
+      clearPersistedState();
+      return;
+    }
+    persistState(state);
+  }, [state]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

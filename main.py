@@ -31,20 +31,23 @@ def start_api_server():
     try:
         import uvicorn
         from api_server import app
+        from config import debug, server_host, server_port
+
+        display_host = "localhost" if server_host in {"0.0.0.0", "::"} else server_host
         
         print("📡 服务器配置:")
-        print("   - 主机: 0.0.0.0")
-        print("   - 端口: 8000")
-        print("   - API文档: http://localhost:8000/docs")
-        print("   - 健康检查: http://localhost:8000/")
+        print(f"   - 主机: {server_host}")
+        print(f"   - 端口: {server_port}")
+        print(f"   - API文档: http://{display_host}:{server_port}/docs")
+        print(f"   - 健康检查: http://{display_host}:{server_port}/")
         print()
         
         uvicorn.run(
             app,
-            host="0.0.0.0",
-            port=8000,
+            host=server_host,
+            port=server_port,
             reload=False,
-            log_level="info"
+            log_level="debug" if debug else "info"
         )
     except KeyboardInterrupt:
         print("\n👋 服务器已停止")

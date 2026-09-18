@@ -1,0 +1,135 @@
+import some from 'lodash/some'
+
+import {
+  getAreFlexSlotsAdjacent,
+  getAreSlotsAdjacent,
+  getAreSlotsHorizontallyAdjacent,
+  getAreSlotsVerticallyAdjacent,
+  getIsLabwareAboveHeight,
+  HEATERSHAKER_MODULE_TYPE,
+  MAX_LABWARE_HEIGHT_EAST_WEST_HEATER_SHAKER_MM,
+  OT2_ROBOT_TYPE,
+} from '@opentrons/shared-data'
+
+import { getModuleIdFromRobotStateStack, getSlotInLocationStack } from './misc'
+
+import type { PipetteV2Specs, RobotType } from '@opentrons/shared-data'
+import type {
+  DeckSlot,
+  LabwareEntities,
+  LabwareEntity,
+  RobotState,
+} from '../types'
+
+export const getIsHeaterShakerEastWestWithLatchOpen = (
+  hwModules: RobotState['modules'],
+  slot: DeckSlot
+): boolean =>
+  some(
+    hwModules,
+    hwModule =>
+      hwModule.moduleState.type === HEATERSHAKER_MODULE_TYPE &&
+      hwModule.moduleState.latchOpen !== false &&
+      getAreSlotsHorizontallyAdjacent(hwModule.slot, slot)
+  )
+
+export const getIsHeaterShakerEastWestMultiChannelPipette = (
+  hwModules: RobotState['modules'],
+  slot: DeckSlot,
+  pipetteSpecs: PipetteV2Specs
+): boolean =>
+  pipetteSpecs.channels !== 1 &&
+  some(
+    hwModules,
+    hwModule =>
+      hwModule.moduleState.type === HEATERSHAKER_MODULE_TYPE &&
+      getAreSlotsHorizontallyAdjacent(hwModule.slot, slot)
+  )
+
+export const getIsHeaterShakerNorthSouthOfNonTiprackWithMultiChannelPipette = (
+  hwModules: RobotState['modules'],
+  slot: DeckSlot,
+  pipetteSpecs: PipetteV2Specs,
+  labwareEntity: LabwareEntity
+): boolean =>
+  pipetteSpecs.channels !== 1 &&
+  !labwareEntity.def.parameters.isTiprack &&
+  some(
+    hwModules,
+    hwModule =>
+      hwModule.moduleState.type === HEATERSHAKER_MODULE_TYPE &&
+      getAreSlotsVerticallyAdjacent(hwModule.slot, slot)
+  )
+
+export const getIsTallLabwareEastWestOfHeaterShaker = (
+  labwareState: RobotState['labware'],
+  labwareEntities: LabwareEntities,
+  heaterShakerSlot: string
+): boolean => {
+  const isTallLabwareEastWestOfHeaterShaker = some(
+    labwareState,
+    (labwareProperties, labwareId) =>
+      getAreSlotsHorizontallyAdjacent(
+        heaterShakerSlot,
+        getSlotInLocationStack(labwareProperties.stack)
+      ) &&
+      getIsLabwareAboveHeight(
+        labwareEntities[labwareId].def,
+        MAX_LABWARE_HEIGHT_EAST_WEST_HEATER_SHAKER_MM
+      )
+  )
+  return isTallLabwareEastWestOfHeaterShaker
+}
+
+export const pipetteIntoHeaterShakerLatchOpen = (
+  modules: RobotState['modules'],
+  labware: RobotState['labware'],
+  labwareId: string
+): boolean => {
+  const moduleId = getModuleIdFromRobotStateStack(
+    modules,
+    labware[labwareId]?.stack
+  )
+  const moduleState = moduleId != null ? modules[moduleId].moduleState : null
+  const isHSLatchOpen: boolean = Boolean(
+    moduleState &&
+    moduleState.type === HEATERSHAKER_MODULE_TYPE &&
+    moduleState.latchOpen !== false
+  )
+  return isHSLatchOpen
+}
+
+export const pipetteAdjacentHeaterShakerWhileShaking = (
+  hwModules: RobotState['modules'],
+  slot: DeckSlot,
+  robotType: RobotType
+): boolean => {
+  return some(
+    hwModules,
+    hwModule =>
+      hwModule.moduleState.type === HEATERSHAKER_MODULE_TYPE &&
+      hwModule.moduleState.targetSpeed != null &&
+      hwModule.moduleState.targetSpeed > 0 &&
+      (robotType === OT2_ROBOT_TYPE
+        ? getAreSlotsAdjacent(hwModule.slot, slot)
+        : getAreFlexSlotsAdjacent(hwModule.slot, slot))
+  )
+}
+
+export const pipetteIntoHeaterShakerWhileShaking = (
+  modules: RobotState['modules'],
+  labware: RobotState['labware'],
+  labwareId: string
+): boolean => {
+  const moduleId = getModuleIdFromRobotStateStack(
+    modules,
+    labware[labwareId]?.stack
+  )
+  const moduleState = moduleId != null ? modules[moduleId].moduleState : null
+  const isShaking: boolean = Boolean(
+    moduleState &&
+    moduleState.type === HEATERSHAKER_MODULE_TYPE &&
+    moduleState.targetSpeed !== null
+  )
+  return isShaking
+}

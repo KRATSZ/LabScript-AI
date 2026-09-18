@@ -1,0 +1,69 @@
+{
+  "$otSharedSchema": "#/pipette/schemas/2/pipettePropertiesSchema.json",
+  "displayName": "P1000 Single-Channel GEN2",
+  "model": "p1000",
+  "displayCategory": "GEN2",
+  "validNozzleMaps": {
+    "maps": {
+      "SingleA1": ["A1"]
+    }
+  },
+  "pickUpTipConfigurations": {
+    "pressFit": {
+      "presses": 1,
+      "increment": 0.0,
+      "configurationsByNozzleMap": {
+        "SingleA1": {
+          "default": {
+            "speed": 10.0,
+            "distance": 17.0,
+            "current": 0.17,
+            "tipOverlaps": {
+              "v0": {
+                "default": 9.7,
+                "opentrons/opentrons_96_tiprack_1000ul/1": 11.5,
+                "opentrons/opentrons_96_filtertiprack_1000ul/1": 11.5,
+                "opentrons/geb_96_tiprack_1000ul/1": 9.5
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "dropTipConfigurations": {
+    "plungerEject": {
+      "current": 1.25,
+      "speed": 7.0
+    }
+  },
+  "plungerMotorConfigurations": {
+    "idle": 0.05,
+    "run": 1.0
+  },
+  "plungerPositionsConfigurations": {
+    "default": {
+      "top": 19.5,
+      "bottom": -18.5,
+      "blowout": -23.0,
+      "drop": -37.0
+    }
+  },
+  "availableSensors": {
+    "sensors": []
+  },
+  "partialTipConfigurations": {
+    "partialTipSupported": false,
+    "availableConfigurations": null
+  },
+  "channels": 1,
+  "shaftDiameter": 6.0,
+  "shaftULperMM": 28.274,
+  "backCompatNames": ["p1000_single"],
+  "backlashDistance": 0.0,
+  "quirks": ["pickupTipShake"],
+  "plungerHomingConfigurations": {
+    "current": 1.0,
+    "speed": 30
+  }
+}

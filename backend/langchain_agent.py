@@ -15,32 +15,35 @@ Opentrons协议生成器 - LangGraph
 """
 
 import os
+import asyncio
+import time
 import requests
 import re # 用于正则表达式匹配，提取错误信息
 import ast # 用于快速Python语法检查
 import json # 用于处理Planner返回的JSON格式修改计划
-from typing import Optional, Callable, Dict, Any, TypedDict, Annotated, Literal, List
+from functools import lru_cache
+from typing import Optional, Callable, Dict, Any, TypedDict, Annotated, Literal
 from datetime import datetime  # 用于给流式事件添加时间戳
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
-from langchain.chains import LLMChain
+# from langchain.chains import LLMChain  # 已弃用，使用 RunnableSequence 代替
 from langgraph.graph import StateGraph, END, START
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langgraph.graph.message import add_messages
 
 # Use absolute imports from project root
 from backend.config import (
     api_key, base_url, model_name,
-    DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_INTENT_MODEL,
+    DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, DEEPSEEK_INTENT_MODEL, # Import new config
+    REQUEST_TIMEOUT, # LLM per-call timeout (env REQUEST_TIMEOUT, default 300)
     LABWARE_FOR_OT2, LABWARE_FOR_FLEX,
     INSTRUMENTS_FOR_OT2, INSTRUMENTS_FOR_FLEX,
     MODULES_FOR_OT2, MODULES_FOR_FLEX,
-    CODE_EXAMPLES, COMMON_PITFALLS_OT2,
-    REVIEW_PRIMARY_MODEL_NAME, REVIEW_VISION_TOOL_CONFIG,
+    CODE_EXAMPLES, COMMON_PITFALLS_OT2
 )
-from backend.diff_utils import apply_diff
+from backend.llm_client import astream_parts, complete as llm_complete
 from backend.opentrons_utils import run_opentrons_simulation, SimulateToolInput
 from backend.prompts import (
     SOP_GENERATION_PROMPT_TEMPLATE, 
@@ -48,21 +51,15 @@ from backend.prompts import (
     CODE_GENERATION_PROMPT_TEMPLATE_OT2,
     CODE_CORRECTION_DIFF_TEMPLATE_FLEX,
     CODE_CORRECTION_DIFF_TEMPLATE_OT2,
-    CODE_PLANNER_PROMPT_TEMPLATE, # 新增：Planner模板
-    CODE_DIFFER_PROMPT_TEMPLATE, # 新增：Differ模板  
-    CODE_DIFFER_FIX_PROMPT_TEMPLATE, # 新增：Differ修复模板
     # English Prompts
     ENG_SOP_GENERATION_PROMPT_TEMPLATE,
     ENG_CODE_GENERATION_PROMPT_TEMPLATE_FLEX,
     ENG_CODE_GENERATION_PROMPT_TEMPLATE_OT2,
     ENG_CODE_CORRECTION_DIFF_TEMPLATE_FLEX,
     ENG_CODE_CORRECTION_DIFF_TEMPLATE_OT2,
-    ENG_CODE_PLANNER_PROMPT_TEMPLATE,
-    ENG_CODE_DIFFER_PROMPT_TEMPLATE,
     ENG_SOP_CONVERSATION_CLASSIFIER_PROMPT_TEMPLATE,
     ENG_CODE_CONVERSATION_CLASSIFIER_PROMPT_TEMPLATE,
     ENG_GENERAL_CODE_CHAT_PROMPT_TEMPLATE,
-    REVIEWER_PROMPT_TEMPLATE,
 )
 
 # ============================================================================
@@ -79,8 +76,8 @@ class CodeGenerationState(TypedDict):
     属性说明:
         original_sop (str): 原始的标准操作程序文本，在整个流程中不会改变
         hardware_context (str): 硬件配置信息，包括机器人型号、移液器等
-        python_code (Optional[str]): 当前版本的Python代码，会通过diff进行迭代更新
-        llm_diff_output (Optional[str]): LLM生成的原始diff文本，用于日志和调试
+        python_code (Optional[str]): 当前版本的Python代码，会在每次失败后重新生成
+        llm_diff_output (Optional[str]): 预留字段，用于兼容旧版diff日志（当前模式下恒为None）
         simulation_result (Optional[dict]): 模拟运行的结果，包含成功/失败信息
         feedback_for_llm (Dict[str, str]): 给大语言模型的结构化反馈信息，用于错误修正
         attempts (int): 当前尝试次数，用于控制重试逻辑
@@ -103,9 +100,6 @@ class CodeGenerationState(TypedDict):
     
     # 用于报告进度的回调函数
     iteration_reporter: Optional[Callable[[Dict[str, Any]], None]]
-    review_feedback: Optional[dict]
-    reviewer_history: List[Dict[str, Any]]
-    review_needed: bool
 
 # ============================================================================
 # SOP生成功能部分
@@ -151,11 +145,13 @@ def generate_sop_with_langchain(user_goal_with_hardware_context: str) -> str:
         # 步骤2: 使用本地LangChain生成SOP
         print(f"Debug - [generate_sop_with_langchain] 开始使用本地LangChain生成SOP")
         
-        # 调用预先配置的SOP生成链
-        sop_result = sop_generation_chain.run({
+        # 调用预先配置的SOP生成链 - 使用现代 invoke() 方法
+        sop_result_message = get_sop_generation_chain().invoke({
             "hardware_context": hardware_context,
             "user_goal": user_goal
         })
+        # 从AIMessage对象中提取文本内容
+        sop_result = sop_result_message.content
         
         print(f"Debug - [generate_sop_with_langchain] SOP生成完成，长度: {len(sop_result)} 字符")
         
@@ -179,38 +175,88 @@ def generate_sop_with_langchain(user_goal_with_hardware_context: str) -> str:
 # 大语言模型配置部分
 # ============================================================================
 
-# LLM for complex generation tasks (SOPs)
-llm = ChatOpenAI(
-    model_name=model_name,
-    openai_api_base=base_url,
-    openai_api_key=api_key,
-    temperature=0.0,
-    streaming=True, 
-    max_retries=2,
-    request_timeout=60
-)
+@lru_cache(maxsize=1)
+def get_llm():
+    return ChatOpenAI(
+        model_name=model_name,
+        openai_api_base=base_url,
+        openai_api_key=api_key,
+        temperature=0.0,
+        streaming=False,
+        max_retries=1,
+        request_timeout=REQUEST_TIMEOUT,
+    )
 
-# LLM for faster code generation and correction tasks
-code_gen_llm = ChatOpenAI(
-    model_name=DEEPSEEK_INTENT_MODEL, # Re-using the intent model name, "DeepSeek-V3-Fast"
-    openai_api_base=DEEPSEEK_BASE_URL,
-    openai_api_key=DEEPSEEK_API_KEY,
-    temperature=0.0,
-    streaming=False, # Code generation should not be streaming token by token in the backend
-    max_retries=2,
-    request_timeout=120 # Give more time for code generation
-)
 
-# Reviewer LLM (defaults to same provider as main model)
-review_llm = ChatOpenAI(
-    model_name=REVIEW_PRIMARY_MODEL_NAME,
-    openai_api_base=base_url,
-    openai_api_key=api_key,
-    temperature=0.0,
-    streaming=False,
-    max_retries=2,
-    request_timeout=90
-)
+@lru_cache(maxsize=1)
+def get_streaming_llm():
+    return ChatOpenAI(
+        model_name=model_name,
+        openai_api_base=base_url,
+        openai_api_key=api_key,
+        temperature=0.0,
+        streaming=True,
+        max_retries=1,
+        request_timeout=REQUEST_TIMEOUT,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_code_gen_llm():
+    return ChatOpenAI(
+        model_name=DEEPSEEK_INTENT_MODEL,
+        openai_api_base=DEEPSEEK_BASE_URL,
+        openai_api_key=DEEPSEEK_API_KEY,
+        temperature=0.0,
+        streaming=False,
+        max_retries=1,
+        request_timeout=REQUEST_TIMEOUT,
+    )
+
+# SSE心跳标记：推理模型（如deepseek-v4-flash）思考阶段content为空（langchain会丢弃
+# reasoning_content），后端每15秒无正文输出时yield此标记，由api_server转换为
+# {"event":"thinking"}帧，防止反向代理（Nginx proxy_read_timeout）因静默断连。
+SOP_THINKING_HEARTBEAT = "\x00__SOP_THINKING__\x00"
+
+# 代码生成图流心跳哨兵：LangGraph节点内使用非流式invoke()，推理模型思考阶段
+# 整个图数分钟不yield任何事件，导致SSE静默被Nginx（proxy_read_timeout 300s）掐断。
+# 用 aiter_with_heartbeat 包装图流后，每15秒无事件即yield此哨兵，由
+# run_code_generation_graph_stream 转换为 {"event_type":"thinking"} 事件帧。
+CODE_GEN_THINKING_HEARTBEAT = {"event_type": "thinking", "message": "Model is reasoning..."}
+
+
+async def aiter_with_heartbeat(agen, heartbeat, interval=15):
+    """
+    通用异步迭代器心跳包装。
+
+    当底层异步迭代器超过 interval 秒没有产出新元素时 yield heartbeat；
+    一旦底层产出则立即透传。使用 asyncio.wait 实现超时等待，超时不取消底层
+    __anext__ 任务（SOP心跳的教训：wait_for 会取消任务、破坏流）。
+
+    参数:
+        agen: 底层异步可迭代对象（如 LangGraph 的 astream 结果）
+        heartbeat: 静默期间要 yield 的心跳对象（按身份比较，调用方用 `is` 识别）
+        interval: 心跳间隔秒数
+    """
+    aiter = agen.__aiter__()
+    pending = asyncio.ensure_future(aiter.__anext__())
+    try:
+        while True:
+            done, _pending = await asyncio.wait({pending}, timeout=interval)
+            if not done:
+                # interval 秒内无任何产出 → 发送心跳保持连接（不取消 pending 任务）
+                yield heartbeat
+                continue
+            try:
+                item = pending.result()
+            except StopAsyncIteration:
+                break
+            yield item
+            pending = asyncio.ensure_future(aiter.__anext__())
+    finally:
+        # 消费者提前退出（如客户端断连）时取消底层任务，避免泄漏
+        if not pending.done():
+            pending.cancel()
 
 # ============================================================================
 # 提示词模板对象创建
@@ -262,69 +308,104 @@ CODE_CORRECTION_PROMPT_OT2 = PromptTemplate(
 # LangChain链式处理配置部分
 # ============================================================================
 
-# 初始化SOP生成链 (uses powerful 'llm' instance)
-sop_generation_chain = LLMChain(llm=llm, prompt=SOP_GENERATION_PROMPT)
+@lru_cache(maxsize=1)
+def get_sop_generation_chain():
+    return SOP_GENERATION_PROMPT | get_llm()
 
-# 初始化代码生成链 (为Flex和OT-2分别创建)
-code_gen_chain_flex = LLMChain(llm=code_gen_llm, prompt=CODE_GEN_PROMPT_FLEX)
-code_gen_chain_ot2 = LLMChain(llm=code_gen_llm, prompt=CODE_GEN_PROMPT_OT2)
 
-# 初始化代码修正链 (为Flex和OT-2分别创建)
-code_correction_chain_flex = LLMChain(llm=code_gen_llm, prompt=CODE_CORRECTION_PROMPT_FLEX)
-code_correction_chain_ot2 = LLMChain(llm=code_gen_llm, prompt=CODE_CORRECTION_PROMPT_OT2)
+@lru_cache(maxsize=1)
+def get_code_gen_chain_flex():
+    return CODE_GEN_PROMPT_FLEX | get_code_gen_llm()
+
+
+@lru_cache(maxsize=1)
+def get_code_gen_chain_ot2():
+    return CODE_GEN_PROMPT_OT2 | get_code_gen_llm()
+
+
+@lru_cache(maxsize=1)
+def get_code_correction_chain_flex():
+    return CODE_CORRECTION_PROMPT_FLEX | get_code_gen_llm()
+
+
+@lru_cache(maxsize=1)
+def get_code_correction_chain_ot2():
+    return CODE_CORRECTION_PROMPT_OT2 | get_code_gen_llm()
 
 # ============================================================================
 # 流式生成功能部分
 # ============================================================================
 
-async def generate_sop_with_langchain_stream(hardware_context: str, user_goal: str):
+async def generate_sop_with_langchain_stream(
+    hardware_context: str,
+    user_goal: str,
+    *,
+    stream_fn=None,
+    heartbeat_interval: float = 15.0,
+):
+    """Stream SOP generation via astream_parts (reasoning + content).
+
+    Yields dicts:
+        {"kind": "thinking", "text": "<reasoning increment or empty heartbeat>"}
+        {"kind": "content", "text": "<SOP markdown increment>"}
+
+    Reasoning never enters the SOP content path.
     """
-    使用LangChain以流式方式异步生成SOP
-    
-    这个函数实现了真正的流式输出，能够实时显示LLM生成的每个token，
-    而不是等待完整结果。这大大改善了用户体验，特别是对于长文本生成。
-    
-    参数:
-        hardware_context (str): 硬件配置信息
-        user_goal (str): 用户的实验目标
-    
-    生成器返回:
-        str: 每次yield一个token字符串
-    
-    技术细节:
-        - 使用async/await实现异步处理
-        - 直接调用llm.astream()绕过LLMChain的缓冲
-        - 每个token立即yield给调用者
-    """
-    print("Debug - [generate_sop_with_langchain_stream] 开始使用LLM astream 实时生成SOP")
-    
+    print("Debug - [generate_sop_with_langchain_stream] 开始使用 astream_parts 实时生成SOP")
+
+    chain_input = {"hardware_context": hardware_context, "user_goal": user_goal}
+    formatted_prompt = SOP_GENERATION_PROMPT.format(**chain_input)
+    print("Debug - [stream] Prompt已格式化，准备调用 astream_parts")
+
+    injected_stream = stream_fn is not None
+    stream = stream_fn or astream_parts
+    token_count = 0
     try:
-        # 准备链的输入参数
-        chain_input = {"hardware_context": hardware_context, "user_goal": user_goal}
-        
-        # 为了实现真正的token级流式输出，我们绕过LLMChain，直接调用llm.astream
-        # 步骤1: 手动格式化提示词
-        formatted_prompt = SOP_GENERATION_PROMPT.format(**chain_input)
-        
-        print(f"Debug - [stream] Prompt已格式化，准备直接调用llm.astream")
-        
-        # 步骤2: 直接调用llm.astream，它返回一个包含AIMessageChunk的异步迭代器
-        token_count = 0
-        async for chunk in llm.astream(formatted_prompt):
-            # AIMessageChunk有一个.content属性，包含实际的token字符串
-            if chunk and hasattr(chunk, 'content') and chunk.content:
+        async for item in aiter_with_heartbeat(
+            stream(formatted_prompt), SOP_THINKING_HEARTBEAT, heartbeat_interval
+        ):
+            if item == SOP_THINKING_HEARTBEAT:
+                yield {"kind": "thinking", "text": ""}
+                continue
+            if not isinstance(item, dict):
+                continue
+            kind = item.get("kind")
+            text = item.get("text") if isinstance(item.get("text"), str) else ""
+            if kind == "reasoning" and text:
+                yield {"kind": "thinking", "text": text}
+            elif kind == "content" and text:
                 token_count += 1
-                # print(f"Debug - [stream] Yielding token #{token_count}")
-                yield chunk.content  # 立即yield每个token
-        
-        print(f"Debug - [generate_sop_with_langchain_stream] 流式生成完成，总共产出 {token_count} 个token")
-        
+                yield {"kind": "content", "text": text}
+
+        print(
+            f"Debug - [generate_sop_with_langchain_stream] 流式生成完成，"
+            f"总共产出 {token_count} 个SOP token"
+        )
+        return
+
     except Exception as e:
-        print(f"Error - [generate_sop_with_langchain_stream] 流式生成失败: {e}")
+        if injected_stream:
+            raise
+        print(f"Debug - [stream] 流式调用失败: {e}")
+        import traceback
+        print(f"Debug - [stream] 错误堆栈: {traceback.format_exc()}")
+
+    print("Debug - [stream] 使用回退机制，调用 llm_client.complete() 获取正文")
+    try:
+        full_content = await llm_complete(formatted_prompt)
+        print(f"Debug - [stream] 获取到完整响应，长度: {len(full_content)} 字符")
+        chunk_size = 20
+        for i in range(0, len(full_content), chunk_size):
+            yield {"kind": "content", "text": full_content[i:i + chunk_size]}
+        print("Debug - [generate_sop_with_langchain_stream] 回退机制流式输出完成")
+    except Exception as e:
+        print(f"Error - [generate_sop_with_langchain_stream] 回退机制也失败了: {e}")
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
-        # 错误时提供一个回退信息
-        yield f"Error: Streaming failed. Details: {str(e)}"
+        yield {
+            "kind": "content",
+            "text": f"Error: Both streaming and fallback failed. Details: {str(e)}",
+        }
 
 # ============================================================================
 # 错误分析功能部分
@@ -404,7 +485,7 @@ def generate_code_node(state: CodeGenerationState):
     """
     代码生成节点函数
     - 首次尝试: 生成完整的Python协议代码
-    - 后续尝试: 生成一个diff补丁并应用它来修正代码
+    - 后续尝试: 根据仿真反馈重新生成完整代码
     """
     attempt_num = state['attempts'] + 1
     print(f"--- Graph: Generating Code (Attempt {attempt_num}) ---")
@@ -422,16 +503,14 @@ def generate_code_node(state: CodeGenerationState):
         valid_labware = LABWARE_FOR_FLEX
         valid_instruments = INSTRUMENTS_FOR_FLEX
         valid_modules = MODULES_FOR_FLEX
-        code_gen_chain = code_gen_chain_flex
-        code_correction_chain = code_correction_chain_flex
+        code_gen_chain = get_code_gen_chain_flex()
         common_pitfalls_str = "" # Not used for Flex
     else:
         print("Debug - Detected 'OT-2' robot (or default). Using OT-2-specific hardware lists and prompt.")
         valid_labware = LABWARE_FOR_OT2
         valid_instruments = INSTRUMENTS_FOR_OT2
         valid_modules = MODULES_FOR_OT2
-        code_gen_chain = code_gen_chain_ot2
-        code_correction_chain = code_correction_chain_ot2
+        code_gen_chain = get_code_gen_chain_ot2()
         common_pitfalls_str = "\n".join(f"- {pitfall}" for pitfall in COMMON_PITFALLS_OT2)
 
     api_version_match = re.search(r"API Version:\s*([\d.]+)", hardware_context)
@@ -464,62 +543,52 @@ def generate_code_node(state: CodeGenerationState):
         if not is_flex:
             chain_input["common_pitfalls_str"] = common_pitfalls_str
 
-        raw_generated_code = code_gen_chain.run(chain_input)
-        
-        # 增加后处理步骤来清洗输出
-        if "</think>" in raw_generated_code:
-            raw_generated_code = raw_generated_code.split("</think>", 1)[-1]
-
-        # 清理Markdown代码块标记
-        if raw_generated_code.strip().startswith("```python"):
-            raw_generated_code = raw_generated_code.strip()[9:]
-            if raw_generated_code.strip().endswith("```"):
-                raw_generated_code = raw_generated_code.strip()[:-3]
-        final_code = raw_generated_code.strip()
+        raw_generated_code_message = code_gen_chain.invoke(chain_input)
+        # 从AIMessage对象中提取文本内容并清理
+        final_code = _clean_llm_code_output(raw_generated_code_message.content)
 
     else:
-        # 后续尝试: 使用增量修复策略 (diff_edit)
+        # 后续尝试：在消融实验中改为直接重新生成完整脚本
         if reporter:
             reporter({
-                "event_type": "diff_generation_start", "attempt_num": attempt_num,
-                "message": f"Generating diff patch (Attempt {attempt_num})"
+                "event_type": "code_attempt", "attempt_num": attempt_num,
+                "message": f"Regenerating full code with feedback (Attempt {attempt_num})"
             })
-        
+
         previous_code = state["python_code"]
         feedback = state["feedback_for_llm"]
 
+        feedback_sections = [
+            "Previous attempt failed. Regenerate a fresh, complete script that addresses the issues below.",
+            f"- Analysis: {feedback.get('analysis', 'N/A')}",
+            f"- Recommended Action: {feedback.get('action', 'N/A')}",
+            f"- Error Log: {feedback.get('error_log', 'N/A')}",
+        ]
+
+        if previous_code:
+            feedback_sections.append("Previous Code (for reference):")
+            feedback_sections.append("```python")
+            feedback_sections.append(previous_code)
+            feedback_sections.append("```")
+
+        feedback_text = "\n".join(feedback_sections)
+
         chain_input = {
-            "analysis_of_failure": feedback.get("analysis", "N/A"),
-            "recommended_action": feedback.get("action", "N/A"),
-            "full_error_log": feedback.get("error_log", "N/A"),
-            "previous_code": previous_code,
+            "hardware_context": state["hardware_context"],
+            "sop_text": state['original_sop'],
+            "feedback_for_llm": feedback_text,
+            "previous_code": previous_code if previous_code else "N/A",
             "valid_labware_list_str": valid_labware_str,
             "valid_instrument_list_str": valid_instruments_str,
             "valid_module_list_str": valid_modules_str,
+            "code_examples_str": CODE_EXAMPLES,
+            "apiLevel": api_version,
         }
-        
-        generated_diff = code_correction_chain.run(chain_input)
-        llm_diff_output = generated_diff
+        if not is_flex:
+            chain_input["common_pitfalls_str"] = common_pitfalls_str
 
-        if reporter:
-            reporter({
-                "event_type": "diff_generated", "attempt_num": attempt_num,
-                "diff_output": generated_diff, "message": "Diff patch generated, now applying..."
-            })
-            
-        try:
-            final_code = apply_diff(previous_code, generated_diff)
-            if reporter:
-                reporter({"event_type": "diff_applied", "attempt_num": attempt_num, "message": "Diff patch applied successfully."})
-        except ValueError as e:
-            print(f"CRITICAL: Failed to apply diff on attempt {attempt_num}: {e}")
-            final_code = previous_code
-            if reporter:
-                reporter({
-                    "event_type": "diff_failed", "attempt_num": attempt_num,
-                    "error_details": str(e),
-                    "message": "Error: Failed to apply AI-generated diff patch. This usually means the SEARCH block did not match."
-                })
+        regenerated_code_message = code_gen_chain.invoke(chain_input)
+        final_code = _clean_llm_code_output(regenerated_code_message.content)
 
     if reporter:
         reporter({
@@ -530,8 +599,7 @@ def generate_code_node(state: CodeGenerationState):
     return {
         "python_code": final_code,
         "llm_diff_output": llm_diff_output,
-        "attempts": state["attempts"] + 1,
-        "review_feedback": None
+        "attempts": state["attempts"] + 1
     }
 
 def simulate_code_node(state: CodeGenerationState):
@@ -569,118 +637,7 @@ def simulate_code_node(state: CodeGenerationState):
         })
     
     # 返回包含模拟结果的状态更新
-    return {"simulation_result": result, "review_feedback": None}
-
-def _build_reviewer_feedback_prompt(sop_text: str, hardware_context: str, python_code: str) -> str:
-    return REVIEWER_PROMPT_TEMPLATE.format(
-        sop_text=sop_text,
-        hardware_context=hardware_context,
-        python_code=python_code
-    )
-
-def review_code_node(state: CodeGenerationState):
-    """Reviewer node to validate code against SOP"""
-    print("--- Graph: Reviewing Code Against SOP ---")
-
-    simulation_result = state.get("simulation_result") or {}
-    reporter = state.get('iteration_reporter')
-    current_attempt = state.get("attempts", 0)
-
-    # Only review when simulation succeeded
-    if not simulation_result.get("success"):
-        return {"review_feedback": None}
-
-    if reporter:
-        reporter({
-            "event_type": "review_start",
-            "attempt_num": current_attempt,
-            "message": f"Reviewer evaluating attempt #{current_attempt}"
-        })
-
-    sop_text = state.get("original_sop", "")
-    hardware_context = state.get("hardware_context", "")
-    python_code = state.get("python_code", "")
-
-    prompt = _build_reviewer_feedback_prompt(sop_text, hardware_context, python_code)
-
-    raw_output = ""
-    parsed_feedback: Dict[str, Any]
-
-    try:
-        response = review_llm.invoke(prompt)
-        raw_output = getattr(response, "content", str(response))
-        parsed_feedback = json.loads(raw_output)
-    except Exception as exc:  # parsing or request failure
-        print(f"Reviewer invocation failed: {exc}")
-        parsed_feedback = {
-            "result": "FAIL",
-            "reasoning": f"Reviewer encountered an error: {exc}",
-            "required_fixes": [
-                {
-                    "title": "ReviewerError",
-                    "detail": "Automatic reviewer could not produce a structured response.",
-                    "sop_reference": None,
-                    "severity": "major"
-                }
-            ],
-            "warnings": []
-        }
-        raw_output = raw_output or str(exc)
-
-    reviewer_history = list(state.get("reviewer_history", []))
-    reviewer_history.append({
-        "timestamp": datetime.now().isoformat(),
-        "result": parsed_feedback.get("result", "UNKNOWN"),
-        "reasoning": parsed_feedback.get("reasoning"),
-        "required_fixes": parsed_feedback.get("required_fixes", []),
-        "warnings": parsed_feedback.get("warnings", []),
-        "raw_output": raw_output,
-    })
-
-    result_status = parsed_feedback.get("result", "FAIL")
-
-    if reporter:
-        reporter({
-            "event_type": "review_feedback",
-            "attempt_num": current_attempt,
-            "result": result_status,
-            "details": parsed_feedback
-        })
-
-    updates: Dict[str, Any] = {
-        "review_feedback": parsed_feedback,
-        "reviewer_history": reviewer_history,
-    }
-
-    # If reviewer fails, prepare structured feedback for next code iteration
-    if result_status != "PASS":
-        required_fixes = parsed_feedback.get("required_fixes", [])
-        issue_lines = []
-        for issue in required_fixes:
-            title = issue.get("title", "Issue")
-            detail = issue.get("detail", "")
-            sop_ref = issue.get("sop_reference")
-            severity = issue.get("severity", "major")
-            line = f"- [{severity}] {title}: {detail}"
-            if sop_ref:
-                line += f" (SOP reference: {sop_ref})"
-            issue_lines.append(line)
-
-        if not issue_lines:
-            issue_lines.append(parsed_feedback.get("reasoning", "Reviewer reported mismatches."))
-
-        analysis = "Reviewer identified the following mismatches between the SOP and generated code:\n" + "\n".join(issue_lines)
-        recommended_action = (
-            "Align the Python protocol with the SOP. Address every reviewer-required fix explicitly,"
-            " ensuring hardware usage, volumes, and step ordering match the SOP." 
-        )
-        updates["feedback_for_llm"] = {
-            "analysis": analysis,
-            "action": recommended_action,
-            "error_log": raw_output
-        }
-
-    return updates
+    return {"simulation_result": result}
 
 def prepare_feedback_node(state: CodeGenerationState):
     """
@@ -718,7 +675,10 @@ def prepare_feedback_node(state: CodeGenerationState):
         action = "Please re-read the SOP and your generated code carefully. Check for any logical inconsistencies or deviations from the examples provided."
         
         # 1. Labware/Instrument/Module Loading & Configuration Errors
-        if "LabwareLoadError" in error_details or "cannot find a definition for labware" in error_details:
+        if "LabwareDefinitionIsNotLabwareError" in error_details or "is not defined as a normal labware" in error_details:
+            analysis = "The simulation failed because an adapter-only definition was loaded with `protocol.load_labware()`. Flex adapters such as `opentrons_96_pcr_adapter` are not normal labware."
+            action = "Action: Replace the invalid `protocol.load_labware(...adapter...)` call with `protocol.load_adapter(...adapter...)`, or remove the adapter load entirely if the SOP does not use it. Do not load adapter-only definitions as normal labware."
+        elif "LabwareLoadError" in error_details or "cannot find a definition for labware" in error_details:
             analysis = "The simulation failed with a `LabwareLoadError`. This almost always means a labware `load_name` in your script does not exactly match a name from the `VALID LABWARE NAMES` list, or it is not compatible with the robot type."
             action = "Action: Carefully check every `protocol.load_labware()` call. Compare the `load_name` string against the provided list and correct any misspelling or inconsistency. Ensure you are using labware compatible with the specified robot."
         elif "InstrumentLoadError" in error_details or "cannot find a definition for instrument" in error_details:
@@ -810,7 +770,6 @@ def should_continue(state: CodeGenerationState):
     
     # 获取关键状态信息
     simulation_result = state.get("simulation_result")
-    review_feedback = state.get("review_feedback")
     current_attempt = state.get("attempts", 0)
     max_attempts = state.get("max_attempts", 5)
     
@@ -827,25 +786,32 @@ def should_continue(state: CodeGenerationState):
     
     print(f"[Decision Engine] 模拟结果: 成功={success}, 有警告={has_warnings}")
     
-    if success:
-        # 需要 Reviewer 通过
-        if review_feedback and review_feedback.get("result", "FAIL") != "PASS":
-            print("[Decision Engine] ❌ Reviewer 未通过，继续迭代")
-            return "continue"
-        status = "SUCCESS_WITH_WARNINGS" if has_warnings else "SUCCESS"
-        print(f"[Decision Engine] ✅ 模拟成功且審稿通过，状态 {status}")
+    if success and not has_warnings:
+        # ✅ 理想情况：代码完美运行，无任何问题
+        print("[Decision Engine] ✅ 模拟完全成功！流程结束")
         if state.get('iteration_reporter'):
             state['iteration_reporter']({
                 "event_type": "iteration_result",
                 "attempt_num": current_attempt,
-                "status": status,
+                "status": "SUCCESS",
                 "final_code": state.get("python_code", ""),
-                "warning_details": error_details if has_warnings else "",
-                "message": f"第 {current_attempt} 次尝试成功（审稿通过）。"
+                "message": f"第 {current_attempt} 次尝试成功！模拟通过，无警告。"
             })
         return "end"
-
-    if current_attempt >= max_attempts:
+    elif success and has_warnings:
+        # ⚠️  可接受情况：代码能运行，但有警告（如弃用提醒等）
+        print("[Decision Engine] ⚠️  模拟成功但有警告，仍视为完成")
+        warning_details = simulation_result.get("warning_details", "")
+        if state.get('iteration_reporter'):
+            state['iteration_reporter']({
+                "event_type": "iteration_result",
+                "attempt_num": current_attempt,
+                "status": "SUCCESS_WITH_WARNINGS",
+                "warning_details": warning_details,
+                "message": f"第 {current_attempt} 次尝试成功，但存在警告。"
+            })
+        return "end"
+    elif current_attempt >= max_attempts:
         # 💀 失败情况：已达到最大尝试次数，必须停止避免无限循环
         print(f"[Decision Engine] 💀 已达到最大尝试次数 ({max_attempts})，强制结束")
         if state.get('iteration_reporter'):
@@ -874,15 +840,13 @@ workflow = StateGraph(CodeGenerationState)
 # 向图中添加节点
 workflow.add_node("generator", generate_code_node)           # 代码生成器节点
 workflow.add_node("simulator", simulate_code_node)           # 代码模拟器节点
-workflow.add_node("reviewer", review_code_node)              # 审稿节点
 workflow.add_node("feedback_preparer", prepare_feedback_node) # 反馈准备器节点
 
 # 定义图的流程
 workflow.add_edge(START, "generator")                        # 从开始节点到代码生成器
-workflow.add_edge("generator", "simulator")
-workflow.add_edge("simulator", "reviewer")
-workflow.add_conditional_edges(
-    "reviewer",
+workflow.add_edge("generator", "simulator")                  # 从代码生成器到模拟器
+workflow.add_conditional_edges(                              # 条件边：根据模拟结果决定下一步
+    "simulator",
     should_continue,
     {
         "continue": "feedback_preparer",  # 如果需要继续，去反馈准备器
@@ -925,12 +889,6 @@ def run_code_generation_graph(
                 print(f"[ProtocolCodeGenerator] 模拟结果: {event_data.get('message', '')}")
             elif event_data["event_type"] == "iteration_result":
                 print(f"[ProtocolCodeGenerator] 第 {event_data['attempt_num']} 次尝试结果: {event_data['status']}")
-            elif event_data["event_type"] == "review_start":
-                print(f"[ProtocolCodeGenerator] 审稿开始 第 {event_data['attempt_num']} 次")
-            elif event_data["event_type"] == "review_feedback":
-                print(f"[ProtocolCodeGenerator] 审稿结果: {event_data.get('result', 'UNKNOWN')}")
-                if event_data.get("details"):
-                    print(f"[ProtocolCodeGenerator] 审稿细节: {event_data['details']}")
 
         reporter = iteration_reporter or default_reporter
 
@@ -965,10 +923,7 @@ def run_code_generation_graph(
             feedback_for_llm={},
             attempts=0,
             max_attempts=max_iterations,
-            iteration_reporter=reporter,
-            review_feedback=None,
-            reviewer_history=[],
-            review_needed=True,
+            iteration_reporter=reporter
         )
         
         # 每次尝试涉及3个节点（generator -> simulator -> feedback_preparer）
@@ -980,45 +935,13 @@ def run_code_generation_graph(
         simulation_result = final_state.get("simulation_result", {})
         success = simulation_result.get("success", False)
         has_warnings = simulation_result.get("has_warnings", False)
-        review_feedback = final_state.get("review_feedback")
-        reviewer_history = final_state.get("reviewer_history", [])
         
-        if success and review_feedback and review_feedback.get("result", "FAIL") != "PASS":
-            issues = review_feedback.get("required_fixes", [])
-            summary_lines = [review_feedback.get("reasoning", "Reviewer reported mismatches.")]
-            for issue in issues:
-                title = issue.get("title", "Issue")
-                detail = issue.get("detail", "")
-                severity = issue.get("severity", "major")
-                sop_ref = issue.get("sop_reference")
-                line = f"- [{severity}] {title}: {detail}"
-                if sop_ref:
-                    line += f" (SOP reference: {sop_ref})"
-                summary_lines.append(line)
-
-            reviewer_report = "\n".join(summary_lines)
-            last_code = final_state.get('python_code', '')
-            final_error = f"""**协议生成失败 (Reviewer 拒绝)**
-
-**审稿意见**:
-{reviewer_report}
-
-**最后生成的代码**:
-```python
-{last_code}
-```
-
-**原始SOP**:
-{original_sop}
-"""
-            return final_error
-
         if success and not has_warnings:
             # 成功且无警告，直接返回代码
             return final_state.get("python_code", "")
         elif success and has_warnings:
             # 成功但有警告，返回警告信息和代码
-            warning_details = simulation_result.get("error_details", "")
+            warning_details = simulation_result.get("warning_details", "")
             final_result = f"Warning: Protocol simulation succeeded with warnings. Please review these warnings before using:\n{warning_details}\n\nGenerated Code:\n```python\n{final_state.get('python_code', '')}\n```"
             return final_result
         else:
@@ -1131,10 +1054,7 @@ async def run_code_generation_graph_stream(
             feedback_for_llm={},
             attempts=0,
             max_attempts=max_iterations,
-            iteration_reporter=None,  # 不需要在流式版本中使用回调
-            review_feedback=None,
-            reviewer_history=[],
-            review_needed=True,
+            iteration_reporter=None  # 不需要在流式版本中使用回调
         )
         
         yield {
@@ -1151,7 +1071,21 @@ async def run_code_generation_graph_stream(
         current_state = initial_state
         current_attempt = 0
         
-        async for chunk in code_generation_graph.astream(initial_state, config=config):
+        # 用心跳包装图流：节点内非流式invoke()在推理模型思考阶段数分钟无事件，
+        # 每15秒无产出即透传一个thinking事件，防止Nginx因SSE静默掐断连接。
+        async for chunk in aiter_with_heartbeat(
+            code_generation_graph.astream(initial_state, config=config),
+            heartbeat=CODE_GEN_THINKING_HEARTBEAT,
+            interval=15,
+        ):
+            # 心跳哨兵：图长时间无输出（模型思考中）→ 透传thinking事件保活
+            if chunk is CODE_GEN_THINKING_HEARTBEAT:
+                yield {
+                    "event_type": "thinking",
+                    "message": "Model is reasoning...",
+                    "timestamp": datetime.now().isoformat()
+                }
+                continue
             # chunk 是一个字典，键是节点名，值是该节点的输出
             for node_name, node_output in chunk.items():
                 print(f"Debug - [stream] Node '{node_name}' completed with output keys: {list(node_output.keys())}")
@@ -1185,6 +1119,8 @@ async def run_code_generation_graph_stream(
                         "simulation_success": success,
                         "has_warnings": has_warnings,
                         "error_details": sim_result.get("error_details", "") if not success else "",
+                        "warning_details": sim_result.get("warning_details", "") if has_warnings else "",
+                        "raw_output": sim_result.get("raw_output", ""),
                         "timestamp": datetime.now().isoformat()
                     }
                     
@@ -1196,32 +1132,11 @@ async def run_code_generation_graph_stream(
                             "attempt_num": current_attempt,
                             "message": f"第 {current_attempt} 次尝试成功！" + (" (有警告)" if has_warnings else ""),
                             "final_code": current_state.get("python_code", ""),
-                            "warning_details": sim_result.get("error_details", "") if has_warnings else "",
+                            "warning_details": sim_result.get("warning_details", "") if has_warnings else "",
                             "timestamp": datetime.now().isoformat()
                         }
                     
-                elif node_name == "reviewer":
-                review_feedback = current_state.get("review_feedback")
-                yield {
-                    "event_type": "node_complete",
-                    "node_name": "reviewer",
-                    "message": f"第 {current_attempt} 次审稿完成",
-                    "attempt_num": current_attempt,
-                    "review_feedback": review_feedback,
-                    "timestamp": datetime.now().isoformat()
-                }
-
-                if review_feedback and review_feedback.get("result") != "PASS":
-                    yield {
-                        "event_type": "attempt_result",
-                        "status": "REVIEW_FAILED",
-                        "attempt_num": current_attempt,
-                        "message": "Reviewer indicated mismatches with SOP.",
-                        "review_feedback": review_feedback,
-                        "timestamp": datetime.now().isoformat()
-                    }
-
-        elif node_name == "feedback_preparer":
+                elif node_name == "feedback_preparer":
                     # 反馈准备器节点完成
                     feedback = current_state.get("feedback_for_llm", {})
                     yield {
@@ -1251,47 +1166,7 @@ async def run_code_generation_graph_stream(
         final_success = final_simulation.get("success", False)
         final_warnings = final_simulation.get("has_warnings", False)
         final_code = current_state.get("python_code", "")
-        final_review_feedback = current_state.get("review_feedback")
-        final_reviewer_history = current_state.get("reviewer_history", [])
-
-        if final_success and final_review_feedback and final_review_feedback.get("result", "FAIL") != "PASS":
-            summary_lines = [final_review_feedback.get("reasoning", "Reviewer reported mismatches.")]
-            for issue in final_review_feedback.get("required_fixes", []):
-                title = issue.get("title", "Issue")
-                detail = issue.get("detail", "")
-                severity = issue.get("severity", "major")
-                sop_ref = issue.get("sop_reference")
-                line = f"- [{severity}] {title}: {detail}"
-                if sop_ref:
-                    line += f" (SOP reference: {sop_ref})"
-                summary_lines.append(line)
-
-            reviewer_report = "\n".join(summary_lines)
-            failure_report = f"""**协议生成失败 (Reviewer 拒绝)**
-
-**审稿意见**:
-{reviewer_report}
-
-**最后生成的代码**:
-```python
-{final_code}
-```
-
-**原始SOP**:
-{original_sop}
-"""
-            yield {
-                "event_type": "final_result",
-                "status": "review_failed",
-                "message": "Reviewer rejected the generated protocol.",
-                "review_feedback": final_review_feedback,
-                "error_report": failure_report,
-                "generated_code": final_code,
-                "total_attempts": current_attempt,
-                "timestamp": datetime.now().isoformat()
-            }
-            return
-
+        
         if final_success:
             yield {
                 "event_type": "final_result",
@@ -1299,9 +1174,7 @@ async def run_code_generation_graph_stream(
                 "message": "协议代码生成成功完成！",
                 "generated_code": final_code,
                 "has_warnings": final_warnings,
-                "warning_details": final_simulation.get("error_details", "") if final_warnings else "",
-                "review_feedback": final_review_feedback,
-                "reviewer_history": final_reviewer_history,
+                "warning_details": final_simulation.get("warning_details", "") if final_warnings else "",
                 "total_attempts": current_attempt,
                 "timestamp": datetime.now().isoformat()
             }
@@ -1336,8 +1209,6 @@ async def run_code_generation_graph_stream(
                 "error_report": final_error,
                 "generated_code": final_code,
                 "error_details": error_details,
-                "review_feedback": final_review_feedback,
-                "reviewer_history": final_reviewer_history,
                 "total_attempts": current_attempt,
                 "timestamp": datetime.now().isoformat()
             }
@@ -1406,8 +1277,8 @@ if __name__ == '__main__':
     
     # 格式化测试输入并运行测试
     test_tool_input = f"{test_sop}\n---CONFIG_SEPARATOR---\n{test_hw}"
-    # 测试代码生成（使用唯一的增量修复策略）
-    print("\n--- Testing code generation with diff_edit strategy ---")
+    # 测试代码生成（使用全量重写策略）
+    print("\n--- Testing code generation with full rewrite strategy ---")
     result = run_code_generation_graph(test_tool_input, max_iterations=5)
     print("\n--- LangGraph Code Generation Test Result ---")
     print(result)
@@ -1420,41 +1291,30 @@ from langchain_core.tools import tool
 from langchain.tools import BaseTool
 from langgraph.types import Command
 
-def _extract_diff_content(diff_response: str) -> str:
+def _clean_llm_code_output(raw_code: str) -> str:
     """
-    (内部函数) 从 LLM 生成的完整响应中提取 diff 内容。
-    
-    LLM 的响应可能包含思考过程或 Markdown 代码块。这个函数
-    负责提取出可供 `apply_diff` 使用的纯粹的 diff 文本。
-    
-    Args:
-        diff_response: LLM 返回的原始字符串
-        
-    Returns:
-        提取出的 diff 文本
+    清理大模型返回的代码文本，去除可能的思考标签和 Markdown 包裹。
     """
-    # 查找被 ` ```diff ` 和 ` ``` ` 包围的代码块
-    diff_match = re.search(r'```diff\s*(.*?)\s*```', diff_response, re.DOTALL)
-    if diff_match:
-        # 如果找到，返回代码块的内容
-        return diff_match.group(1).strip()
-    
-    # 作为后备方案，如果找不到 `diff` 标记，但内容看起来像一个 diff
-    # （包含 SEARCH/REPLACE 块），则直接返回原始文本
-    if "------- SEARCH" in diff_response and "------- REPLACE" in diff_response:
-        return diff_response.strip()
-        
-    # 如果都找不到，可能 LLM 返回了非 diff 内容，这是一种错误情况
-    # 但为了稳健，我们返回原始响应，让 apply_diff 来处理
-    return diff_response.strip()
+    if "</think>" in raw_code:
+        raw_code = raw_code.split("</think>", 1)[-1]
+
+    stripped = raw_code.strip()
+    if stripped.startswith("```python"):
+        stripped = stripped[9:]
+    elif stripped.startswith("```"):
+        stripped = stripped[3:]
+
+    if stripped.strip().endswith("```"):
+        stripped = stripped.strip()[:-3]
+
+    return stripped.strip()
 
 @tool
 def modify_code_tool(original_code: str, user_instruction: str) -> str:
     """
     修改代码工具：专注于根据用户指令修改代码，返回修改后的完整代码。
     
-    此工具会调用 LLM 生成 diff 补丁，然后应用到原始代码上。
-    它不关心代码是否能通过模拟，只负责修改。
+    此工具会调用 LLM 直接重写完整脚本，不关心模拟结果，仅负责产出更新后的代码。
     
     Args:
         original_code: 原始代码字符串
@@ -1468,71 +1328,39 @@ def modify_code_tool(original_code: str, user_instruction: str) -> str:
     """
     try:
         print(f"Debug - [modify_code_tool] 开始代码修改")
-        
-        # 使用简化的 Planner-Differ 架构
-        planner_prompt = CODE_PLANNER_PROMPT_TEMPLATE.format(
-            user_instruction=user_instruction,
-            original_code=original_code,
-            hardware_context="No specific hardware context - inferred from code",
-            valid_labware_list_str="N/A - Context will be inferred from code",
-            valid_instrument_list_str="N/A - Context will be inferred from code", 
-            valid_module_list_str="N/A - Context will be inferred from code",
-            common_pitfalls_str="- Check API compatibility (OT-2 vs Flex)\n- OT-2 uses numeric deck slots\n- Flex uses alphanumeric deck slots"
-        )
-        
-        # 步骤1：生成修改计划
-        planner_response = llm.invoke(planner_prompt).content.strip()
-        
-        # 提取JSON格式的修改计划
-        try:
-            json_match = re.search(r'```json\s*(.*?)\s*```', planner_response, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                json_str = planner_response
-            
-            modification_plan = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise Exception(f"修改计划生成格式错误: {e}")
-        
-        # 步骤2：生成 diff
-        differ_prompt = CODE_DIFFER_PROMPT_TEMPLATE.format(
-            modification_plan=json.dumps(modification_plan, indent=2, ensure_ascii=False),
-            original_code=original_code
-        )
-        
-        diff_response = code_gen_llm.invoke(differ_prompt).content.strip()
-        
-        # 步骤3：应用 diff (增加重试逻辑)
-        diff_content = _extract_diff_content(diff_response)
-        
-        try:
-            modified_code = apply_diff(original_code, diff_content)
-        except ValueError as e:
-            print(f"Warning - [modify_code_tool] Diff应用失败，尝试自动修复: {e}")
-            
-            # 尝试修复 diff
-            fixer_prompt = CODE_DIFFER_FIX_PROMPT_TEMPLATE.format(
-                original_code=original_code,
-                user_instruction=user_instruction,
-                failed_diff=diff_content,
-                error_message=str(e)
-            )
-            
-            fixed_diff_response = code_gen_llm.invoke(fixer_prompt).content.strip()
-            fixed_diff_content = _extract_diff_content(fixed_diff_response)
-            
-            # 再次尝试应用修复后的 diff
-            modified_code = apply_diff(original_code, fixed_diff_content) # 如果再次失败，会自然抛出异常
-        
-        # 步骤4：快速语法验证
+
+        rewrite_prompt = f"""
+You are an expert Opentrons protocol engineer. Update the entire Python script according to the user's instruction.
+
+**Original Code:**
+```python
+{original_code}
+```
+
+**User Instruction:**
+{user_instruction}
+
+Return the COMPLETE and UPDATED Python script. Do not include explanations or markdown fences.
+"""
+        rewrite_response = get_code_gen_llm().invoke(rewrite_prompt).content.strip()
+
+        # 清理可能的 Markdown 代码块
+        if rewrite_response.startswith("```python"):
+            rewrite_response = rewrite_response[9:]
+        if rewrite_response.startswith("```"):
+            rewrite_response = rewrite_response[3:]
+        if rewrite_response.endswith("```"):
+            rewrite_response = rewrite_response[:-3]
+
+        modified_code = rewrite_response.strip()
+
         syntax_valid, syntax_error = _validate_python_syntax(modified_code)
         if not syntax_valid:
             raise Exception(f"生成的代码语法错误: {syntax_error}")
-        
-        print(f"Debug - [modify_code_tool] 代码修改成功")
+
+        print("Debug - [modify_code_tool] 代码重写完成")
         return modified_code
-        
+
     except Exception as e:
         print(f"Error - [modify_code_tool] 代码修改失败: {e}")
         raise Exception(f"代码修改失败: {str(e)}")
@@ -1632,9 +1460,20 @@ Always proceed one step at a time. Do not chain multiple tool calls in a single 
     if not messages or messages[0].content != system_message.content:
         messages = [system_message] + messages
     
+    # 创建专门用于Agent决策的LLM实例，配置适当的超时时间
+    agent_llm = ChatOpenAI(
+        model_name=model_name,  # 使用主模型进行决策
+        openai_api_base=base_url,
+        openai_api_key=api_key,
+        temperature=0.0,
+        streaming=False,
+        max_retries=1,
+        request_timeout=REQUEST_TIMEOUT  # 统一超时（默认300s），推理模型思考阶段可能很长
+    )
+    
     # 将两个工具绑定到 LLM
     tools = [modify_code_tool, simulate_protocol_tool]
-    llm_with_tools = llm.bind_tools(tools)
+    llm_with_tools = agent_llm.bind_tools(tools)
     
     # 调用 LLM，让它决定下一步行动
     response = llm_with_tools.invoke(messages)
@@ -1737,7 +1576,7 @@ def tool_node(state: CodeAgentState):
     }
 
 
-def should_continue(state: CodeAgentState) -> Literal["tools", "__end__"]:
+def should_continue_code_agent(state: CodeAgentState) -> Literal["tools", "__end__"]:
     """
     条件路由函数：决定 Agent 的下一步行动
     
@@ -1753,10 +1592,10 @@ def should_continue(state: CodeAgentState) -> Literal["tools", "__end__"]:
     last_message = state["messages"][-1]
     
     if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
-        print("Debug - [should_continue] 路由到工具执行")
+        print("Debug - [should_continue_code_agent] 路由到工具执行")
         return "tools"
     else:
-        print("Debug - [should_continue] 路由到结束")
+        print("Debug - [should_continue_code_agent] 路由到结束")
         return "__end__"
 
 
@@ -1783,7 +1622,7 @@ def build_code_agent_graph():
     # 添加条件边：Agent 决定是调用工具还是结束
     workflow.add_conditional_edges(
         "agent",
-        should_continue,
+        should_continue_code_agent,
         {
             "tools": "tools",      # 如果需要工具，去工具节点
             "__end__": END         # 如果完成，结束流程
@@ -1810,7 +1649,7 @@ code_agent_graph = build_code_agent_graph()
 
 def _edit_sop_with_diff(original_sop: str, user_instruction: str, hardware_context: str) -> str:
     """
-    (内部函数) 使用大模型生成diff并应用它来修改SOP。
+    (内部函数) 使用大模型生成完整的更新版SOP。
     
     参数:
         original_sop (str): 原始SOP文本。
@@ -1821,51 +1660,84 @@ def _edit_sop_with_diff(original_sop: str, user_instruction: str, hardware_conte
         str: 修改后的新SOP。
     """
     try:
-        print(f"Debug - [edit_sop_with_diff] 开始为SOP生成diff")
+        print(f"Debug - [edit_sop_with_diff] 开始重写SOP文档")
         
-        # 导入我们需要的模板和工具
-        from backend.prompts import SOP_EDIT_DIFF_PROMPT_TEMPLATE
-        from langchain_core.prompts import PromptTemplate
-        from langchain.chains import LLMChain
-        
-        # 1. 准备调用大模型的输入
-        prompt = PromptTemplate(
-            input_variables=["original_sop", "user_instruction", "hardware_context"],
-            template=SOP_EDIT_DIFF_PROMPT_TEMPLATE
+        # 创建专门用于SOP编辑的LLM实例，配置更长的超时时间
+        edit_llm = ChatOpenAI(
+            model_name=model_name,
+            openai_api_base=base_url,
+            openai_api_key=api_key,
+            temperature=0.0,
+            streaming=False,  # 禁用流式传输以减少超时风险
+            max_retries=1,
+            request_timeout=REQUEST_TIMEOUT  # 统一超时（默认300s），推理模型思考阶段可能很长
         )
-        chain = LLMChain(llm=llm, prompt=prompt)
-        
-        # 2. 调用大模型生成diff
-        diff_output = chain.run({
-            "original_sop": original_sop,
-            "user_instruction": user_instruction,
-            "hardware_context": hardware_context
-        })
-        
-        print(f"Debug - [edit_sop_with_diff] LLM生成的SOP Diff内容:\n---\n{diff_output}\n---")
-        
-        if not diff_output or not "------- SEARCH" in diff_output:
-            print("Warning - LLM did not return a valid diff. Returning original SOP.")
-            raise ValueError("AI did not produce a valid modification for the SOP. Please try rephrasing your request.")
 
-        # 3. 应用diff
-        print(f"Debug - [edit_sop_with_diff] 应用diff前的SOP长度: {len(original_sop)}")
-        new_sop = apply_diff(original_sop, diff_output)
-        print(f"Debug - [edit_sop_with_diff] 应用diff后的SOP长度: {len(new_sop)}")
-        
-        print(f"Debug - [edit_sop_with_diff] SOP Diff应用成功，SOP已修改。")
-        
-        return new_sop
+        rewrite_prompt = f"""
+You are an expert SOP editor. Apply the user's instruction to the following SOP and return the COMPLETE updated SOP in Markdown format. Make sure the document stays coherent and preserves important details.
 
-    except ValueError as ve:
-        print(f"Error - [edit_sop_with_diff] 应用SOP diff时出错: {ve}")
-        raise ve # 重新抛出，让调用者知道是diff应用问题
+User Instruction:
+{user_instruction}
+
+Hardware Context (for reference):
+{hardware_context}
+
+Original SOP:
+```markdown
+{original_sop}
+```
+"""
+        updated_sop = edit_llm.invoke(rewrite_prompt).content.strip()
+        if not updated_sop:
+            raise ValueError("LLM did not produce an updated SOP.")
+
+        print("Debug - [edit_sop_with_diff] 完整SOP重写完成")
+        return updated_sop
+
     except Exception as e:
         print(f"Error - [edit_sop_with_diff] 编辑SOP时发生未知错误: {e}")
         import traceback
         error_traceback = traceback.format_exc()
         print(f"Debug - [edit_sop_with_diff] 完整错误堆栈:\n{error_traceback}")
         raise RuntimeError(f"An unexpected error occurred while editing the SOP: {e}")
+
+
+def _chat_about_sop(original_sop: str, user_instruction: str) -> str:
+    """
+    (内部函数) 处理关于SOP的一般聊天对话。
+    """
+    try:
+        from backend.prompts import GENERAL_SOP_CHAT_PROMPT_TEMPLATE
+        from langchain_core.prompts import PromptTemplate
+        
+        # 创建专门用于SOP聊天的LLM实例，配置适当的超时时间
+        chat_llm = ChatOpenAI(
+            model_name=DEEPSEEK_INTENT_MODEL,  # 使用快速模型进行聊天
+            openai_api_base=DEEPSEEK_BASE_URL,
+            openai_api_key=DEEPSEEK_API_KEY,
+            temperature=0.1,
+            streaming=False,
+            max_retries=2,
+            request_timeout=60  # 设置1分钟超时
+        )
+        
+        prompt = PromptTemplate(
+            input_variables=["original_sop", "user_instruction"],
+            template=GENERAL_SOP_CHAT_PROMPT_TEMPLATE
+        )
+        # 使用现代 RunnableSequence 模式
+        chain = prompt | chat_llm
+        
+        response_message = chain.invoke({
+            "original_sop": original_sop,
+            "user_instruction": user_instruction
+        })
+        # 从AIMessage对象中提取文本内容
+        response = response_message.content
+        return response
+    except Exception as e:
+        print(f"Error during general SOP chat: {e}")
+        return "抱歉，我在处理您的请求时遇到了错误。请稍后再试。"
 
 
 def converse_about_sop(original_sop: str, user_instruction: str, hardware_context: str) -> Dict[str, str]:
@@ -1884,9 +1756,9 @@ def converse_about_sop(original_sop: str, user_instruction: str, hardware_contex
             # 统一响应格式，使用 'content' 作为键
             return {"type": "edit", "content": modified_sop}
         except ValueError as e:
-            # 专门处理diff应用失败的情况
-            print(f"Warning - [converse_about_sop] Diff application failed: {e}")
-            error_message = f"I tried to edit the SOP, but couldn't apply the changes. This can happen if the instruction is ambiguous. Please try rephrasing. (Error: {str(e)})"
+            # 专门处理SOP重写失败的情况
+            print(f"Warning - [converse_about_sop] SOP rewrite failed: {e}")
+            error_message = f"I tried to edit the SOP, but could not produce an updated version. This can happen if the instruction is ambiguous. Please try rephrasing. (Error: {str(e)})"
             return {"type": "chat", "content": error_message}
         except Exception as e:
             # 处理其他所有未知错误
@@ -1908,7 +1780,7 @@ def _classify_sop_intent(user_instruction: str) -> str:
         import re
         from backend.prompts import SOP_CONVERSATION_CLASSIFIER_PROMPT_TEMPLATE
         from langchain_core.prompts import PromptTemplate
-        from langchain.chains import LLMChain
+        # LLMChain已弃用，使用RunnableSequence代替
 
         # Use specialized, faster model for intent classification
         intent_llm = ChatOpenAI(
@@ -1924,9 +1796,12 @@ def _classify_sop_intent(user_instruction: str) -> str:
             input_variables=["user_instruction"],
             template=SOP_CONVERSATION_CLASSIFIER_PROMPT_TEMPLATE
         )
-        chain = LLMChain(llm=intent_llm, prompt=prompt)
+        # 使用现代 RunnableSequence 模式
+        chain = prompt | intent_llm
         
-        response_str = chain.run({"user_instruction": user_instruction})
+        response_message = chain.invoke({"user_instruction": user_instruction})
+        # 从AIMessage对象中提取文本内容
+        response_str = response_message.content
         
         # 增强的JSON解析
         try:
@@ -1973,8 +1848,6 @@ def _classify_code_intent(user_instruction: str) -> str:
         import re
         from backend.prompts import CODE_CONVERSATION_CLASSIFIER_PROMPT_TEMPLATE
         from langchain_core.prompts import PromptTemplate
-        from langchain.chains import LLMChain
-
         # Use specialized, faster model for intent classification
         intent_llm = ChatOpenAI(
             model_name=DEEPSEEK_INTENT_MODEL,
@@ -1989,9 +1862,12 @@ def _classify_code_intent(user_instruction: str) -> str:
             input_variables=["user_instruction"],
             template=CODE_CONVERSATION_CLASSIFIER_PROMPT_TEMPLATE
         )
-        chain = LLMChain(llm=intent_llm, prompt=prompt)
+        # 使用现代 RunnableSequence 模式
+        chain = prompt | intent_llm
         
-        response_str = chain.run({"user_instruction": user_instruction})
+        response_message = chain.invoke({"user_instruction": user_instruction})
+        # 从AIMessage对象中提取文本内容
+        response_str = response_message.content
         
         # Enhanced JSON parsing
         try:
@@ -2028,18 +1904,31 @@ def _chat_about_code(original_code: str, user_instruction: str) -> str:
     try:
         from backend.prompts import GENERAL_CODE_CHAT_PROMPT_TEMPLATE
         from langchain_core.prompts import PromptTemplate
-        from langchain.chains import LLMChain
-
+        
+        # 创建专门用于代码聊天的LLM实例，配置适当的超时时间
+        chat_llm = ChatOpenAI(
+            model_name=DEEPSEEK_INTENT_MODEL,  # 使用快速模型进行聊天
+            openai_api_base=DEEPSEEK_BASE_URL,
+            openai_api_key=DEEPSEEK_API_KEY,
+            temperature=0.1,
+            streaming=False,
+            max_retries=2,
+            request_timeout=60  # 设置1分钟超时
+        )
+        
         prompt = PromptTemplate(
             input_variables=["original_code", "user_instruction"],
             template=ENG_GENERAL_CODE_CHAT_PROMPT_TEMPLATE
         )
-        chain = LLMChain(llm=llm, prompt=prompt)
+        # 使用现代 RunnableSequence 模式
+        chain = prompt | chat_llm
         
-        response = chain.run({
+        response_message = chain.invoke({
             "original_code": original_code,
             "user_instruction": user_instruction
         })
+        # 从AIMessage对象中提取文本内容
+        response = response_message.content
         return response
     except Exception as e:
         print(f"Error during general code chat: {e}")

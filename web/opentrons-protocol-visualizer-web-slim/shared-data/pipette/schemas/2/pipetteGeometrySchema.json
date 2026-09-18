@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "xyzArray": {
+      "type": "array",
+      "description": "Array of 3 numbers, [x, y, z]",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "nozzleName": {
+      "type": "string",
+      "pattern": "[A-Z]+[0-9]+"
+    },
+    "rowName": {
+      "type": "string",
+      "pattern": "[A-Z]+",
+      "description": "The name of a row of nozzles"
+    },
+    "columnName": {
+      "type": "string",
+      "pattern": "[0-9]+",
+      "description": "The name of a column of nozzles"
+    }
+  },
+  "type": "object",
+  "required": ["$otSharedSchema", "nozzleOffset", "pathTo3D"],
+  "additionalProperties": false,
+  "properties": {
+    "$otSharedSchema": {
+      "type": "string",
+      "description": "The path to a valid Opentrons shared schema relative to the shared-data directory, without its extension. For instance, #/pipette/schemas/2/pipetteGeometrySchema.json is a reference to this schema."
+    },
+    "nozzleOffset": { "$ref": "#/definitions/xyzArray" },
+    "pipetteBoundingBoxOffsets": {
+      "description": "Offsets from the pipette mount position to the back-left & front-right corners of the pipette's bounding box which includes the outer casing and all nozzles.",
+      "type": "object",
+      "properties": {
+        "backLeftCorner": { "$ref": "#/definitions/xyzArray" },
+        "frontRightCorner": { "$ref": "#/definitions/xyzArray" }
+      }
+    },
+    "pathTo3D": {
+      "description": "path to the gltf file representing the 3D pipette model",
+      "type": "string",
+      "pattern": "^pipette/definitions/[2]/geometry/([a-z]*_[a-z]*)+/p[0-9]{2,4}/[a-z]*[.]gltf"
+    },
+    "orderedRows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A row of nozzle keys",
+        "required": ["key", "orderedNozzles"],
+        "properties": {
+          "key": { "$ref": "#/definitions/rowName" },
+          "orderedNozzles": {
+            "type": "array",
+            "description": "The list of nozzle names in this row",
+            "items": { "$ref": "#/definitions/nozzleName" }
+          }
+        }
+      }
+    },
+    "orderedColumns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "description": "A column of nozzle keys",
+        "required": ["key", "orderedNozzles"],
+        "properties": {
+          "key": { "$ref": "#/definitions/columnName" },
+          "orderedNozzles": {
+            "type": "array",
+            "description": "The list of nozzle names in this column",
+            "items": { "$ref": "#/definitions/nozzleName" }
+          }
+        }
+      }
+    },
+    "nozzleMap": {
+      "type": "object",
+      "description": "Unordered object of well objects with position and dimensional information",
+      "additionalProperties": false,
+      "patternProperties": {
+        "[A-Z]+[0-9]+": { "$ref": "#/definitions/xyzArray" }
+      }
+    },
+    "lldSettings": {
+      "type": "object",
+      "description": "Minimum space requirements for Liquid Level Detection to work properly",
+      "additionalProperties": false,
+      "properties": {
+        "t20": {
+          "type": "object",
+          "properties": {
+            "minHeight": { "type": "number" },
+            "minVolume": { "type": "number" }
+          }
+        },
+        "t50": {
+          "type": "object",
+          "properties": {
+            "minHeight": { "type": "number" },
+            "minVolume": { "type": "number" }
+          }
+        },
+        "t200": {
+          "type": "object",
+          "properties": {
+            "minHeight": { "type": "number" },
+            "minVolume": { "type": "number" }
+          }
+        },
+        "t1000": {
+          "type": "object",
+          "properties": {
+            "minHeight": { "type": "number" },
+            "minVolume": { "type": "number" }
+          }
+        }
+      }
+    }
+  }
+}

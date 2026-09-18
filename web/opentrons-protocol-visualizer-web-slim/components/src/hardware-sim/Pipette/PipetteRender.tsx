@@ -1,0 +1,89 @@
+import { getPipetteNameSpecs } from '@opentrons/shared-data'
+
+import { RobotCoordsForeignDiv } from '../Deck/RobotCoordsForeignDiv'
+import {
+  MULTI_CHANNEL_CENTER_Y_NOZZLE,
+  MULTI_CHANNEL_PIPETTE_HEIGHT,
+  MULTI_CHANNEL_PIPETTE_WIDTH,
+  MULTI_CHANNEL_Y_OFFSET,
+  NINETY_SIX_CHANNEL_PIPETTE_WIDTH,
+  SINGLE_CHANNEL_PIPETTE_HEIGHT,
+  SINGLE_CHANNEL_PIPETTE_WIDTH,
+} from './constants'
+import { EightEmanatingNozzles } from './EightEmanatingNozzles'
+import { EmanatingNozzle } from './EmanatingNozzle'
+
+import type { LabwareDefinition, PipetteName } from '@opentrons/shared-data'
+
+interface PipetteRenderProps {
+  labwareDef: LabwareDefinition
+  pipetteName: PipetteName
+  usingMetalProbe?: boolean
+}
+
+export const PipetteRender = (props: PipetteRenderProps): JSX.Element => {
+  const { labwareDef, pipetteName, usingMetalProbe = false } = props
+  const channels = getPipetteNameSpecs(pipetteName)?.channels
+  const cx =
+    channels === 1
+      ? SINGLE_CHANNEL_PIPETTE_WIDTH / 2
+      : MULTI_CHANNEL_PIPETTE_WIDTH / 2
+  const cy =
+    channels === 1
+      ? SINGLE_CHANNEL_PIPETTE_HEIGHT / 2
+      : MULTI_CHANNEL_CENTER_Y_NOZZLE
+  const x = labwareDef.wells.A1.x - cx
+  const y = channels === 1 ? labwareDef.wells.A1.y - cy : MULTI_CHANNEL_Y_OFFSET
+
+  let boxWidth: number
+  let probeOffsetX: number = 0
+  let probeOffsetY: number = 0
+  if (channels === 1) {
+    boxWidth = SINGLE_CHANNEL_PIPETTE_WIDTH
+  } else if (channels === 8) {
+    boxWidth = MULTI_CHANNEL_PIPETTE_WIDTH
+    probeOffsetY = 63
+  } else {
+    boxWidth = NINETY_SIX_CHANNEL_PIPETTE_WIDTH
+    probeOffsetY = 63
+    if (Object.keys(labwareDef.wells).length === 1) {
+      probeOffsetX = 99 / 2
+    }
+    if (Object.keys(labwareDef.wells).length === 384) {
+      probeOffsetY = 65.75
+    }
+  }
+
+  return (
+    <RobotCoordsForeignDiv
+      width={boxWidth}
+      height={
+        channels === 1
+          ? SINGLE_CHANNEL_PIPETTE_HEIGHT
+          : MULTI_CHANNEL_PIPETTE_HEIGHT
+      }
+      x={x - probeOffsetX}
+      y={y}
+      outerProps={{ style: { overflow: 'visible' } }}
+      innerDivProps={{
+        width: '100%',
+        height: '100%',
+        overflow: 'visible',
+      }}
+    >
+      <svg overflow="visible">
+        {channels === 1 || usingMetalProbe ? (
+          <EmanatingNozzle
+            cx={cx}
+            cy={usingMetalProbe ? cy + probeOffsetY : cy}
+          />
+        ) : (
+          <EightEmanatingNozzles
+            cx={usingMetalProbe ? cx - probeOffsetX : cx}
+            initialCy={usingMetalProbe ? cy + probeOffsetY : cy}
+          />
+        )}
+      </svg>
+    </RobotCoordsForeignDiv>
+  )
+}

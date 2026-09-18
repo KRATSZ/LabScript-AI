@@ -35,7 +35,7 @@ import { ArrowLeft, Play, RefreshCw, Copy, Code2, Zap, CheckCircle, AlertTriangl
 import { useSnackbar } from 'notistack';
 import { useAppContext } from '../context/AppContext';
 import Editor from "@monaco-editor/react";
-import { formatHardwareConfig } from '../services/api';
+import { formatHardwareConfig, API_BASE_URL } from '../services/api';
 import type { IterationLog } from '../services/api';
 
 interface ApiErrorDetail {
@@ -51,6 +51,8 @@ interface ApiError {
   };
   message?: string;
 }
+
+type GenerationValidationStatus = 'idle' | 'valid' | 'warning' | 'invalid';
 
 const CodeGenerationPage: React.FC = () => {
   const theme = useTheme();
@@ -69,6 +71,16 @@ const CodeGenerationPage: React.FC = () => {
   const [showProcessExplanation, setShowProcessExplanation] = useState(false);
   const [showReadyAlert, setShowReadyAlert] = useState(true);
   const [iterationLogs, setIterationLogs] = useState<IterationLog[]>([]);
+  const [generationValidationStatus, setGenerationValidationStatus] =
+    useState<GenerationValidationStatus>(
+      state.codeGenerationStatus === 'success'
+        ? 'valid'
+        : state.codeGenerationStatus === 'warning'
+        ? 'warning'
+        : state.codeGenerationStatus === 'error'
+        ? 'invalid'
+        : 'idle'
+    );
 
   // Generation steps definition
   const generationSteps = [
@@ -135,13 +147,15 @@ const CodeGenerationPage: React.FC = () => {
     setEstimatedTime(0);
     setShowProcessExplanation(true);
     setIterationLogs([]); // Reset logs
+    setGenerationValidationStatus('idle');
     dispatch({ type: 'SET_PYTHON_CODE', payload: '' });
+    dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'idle' });
 
     try {
       const hardwareConfigForApi = state.rawHardwareConfigText?.trim() || formatHardwareConfig(state);
       
       // Create EventSource connection to streaming API
-      const eventSource = new EventSource('http://localhost:8000/api/generate-protocol-code');
+      const eventSource = new EventSource(`${API_BASE_URL}/api/generate-protocol-code`);
       
       // Send request data to server
       // Note: EventSource doesn't directly support POST requests, we need another approach
@@ -150,7 +164,7 @@ const CodeGenerationPage: React.FC = () => {
       // Close current connection first, use fetch to initiate POST request and get streaming response
       eventSource.close();
       
-      const response = await fetch('http://localhost:8000/api/generate-protocol-code', {
+      const response = await fetch(`${API_BASE_URL}/api/generate-protocol-code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,7 +236,9 @@ const CodeGenerationPage: React.FC = () => {
                     ...(data.node_name === 'simulator' && {
                       simulation_success: data.simulation_success,
                       has_warnings: data.has_warnings,
-                      error_details: data.error_details || ''
+                      error_details: data.error_details || '',
+                      warning_details: data.warning_details || '',
+                      raw_output: data.raw_output || ''
                     }),
                     ...(data.node_name === 'feedback_preparer' && {
                       has_feedback: data.has_feedback,
@@ -275,10 +291,14 @@ const CodeGenerationPage: React.FC = () => {
                     setAttempts(data.total_attempts || 0);
                     
                     if (data.has_warnings) {
+                      setGenerationValidationStatus('warning');
+                      dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'warning' });
                       setWarnings([data.warning_details || 'Code generated with warnings']);
                       setProgress(`✅ Code generation successful with warnings! (${data.total_attempts} attempts)`);
                       enqueueSnackbar('Code generated successfully with warnings', { variant: 'warning' });
                     } else {
+                      setGenerationValidationStatus('valid');
+                      dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'success' });
                       setProgress(`🎉 Code generation perfectly successful! (${data.total_attempts} attempts)`);
                       enqueueSnackbar('Code generation successful!', { variant: 'success' });
                     }
@@ -288,10 +308,12 @@ const CodeGenerationPage: React.FC = () => {
                     const errorReport = data.error_report || '';
                     
                     if (finalCode) {
-                      dispatch({ type: 'SET_PYTHON_CODE', payload: finalCode });
                       setEditedCode(finalCode);
                     }
                     
+                    dispatch({ type: 'SET_PYTHON_CODE', payload: '' });
+                    dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'error' });
+                    setGenerationValidationStatus('invalid');
                     setAttempts(data.total_attempts || 0);
                     setWarnings([data.error_details || 'Code generation failed']);
                     setProgress(`❌ Code generation failed after ${data.total_attempts} attempts`);
@@ -305,6 +327,8 @@ const CodeGenerationPage: React.FC = () => {
                 case 'error':
                   setIsGenerating(false);
                   setShowProcessExplanation(false);
+                  setGenerationValidationStatus('invalid');
+                  dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'error' });
                   setProgress('❌ Error occurred during code generation');
                   enqueueSnackbar(data.message || 'Code generation error', { variant: 'error' });
                   console.error('Code generation error:', data);
@@ -347,7 +371,7 @@ metadata = {
     'protocolName': 'Generated Protocol Template',
     'author': 'LabScript AI',
     'description': 'Basic Protocol Template - Please modify according to your experimental needs',
-    'apiLevel': '2.20'
+    'apiLevel': '2.19'
 }
 
 def run(protocol: protocol_api.ProtocolContext):
@@ -380,7 +404,9 @@ def run(protocol: protocol_api.ProtocolContext):
       
       // 设置代码和状态
       setEditedCode(partialCode);
-      dispatch({ type: 'SET_PYTHON_CODE', payload: partialCode });
+      dispatch({ type: 'SET_PYTHON_CODE', payload: '' });
+      dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'error' });
+      setGenerationValidationStatus('invalid');
       setWarnings(warningsToShow);
       
       setProgress(`⚠️ ${errorMessage}, a basic template is provided for your reference`);
@@ -395,9 +421,20 @@ def run(protocol: protocol_api.ProtocolContext):
 
   const handleEditorChange = (value: string | undefined) => {
     setEditedCode(value || '');
+    if (generationValidationStatus === 'valid' || generationValidationStatus === 'warning') {
+      setGenerationValidationStatus('invalid');
+      dispatch({ type: 'SET_PYTHON_CODE', payload: '' });
+      dispatch({ type: 'SET_CODE_GENERATION_STATUS', payload: 'error' });
+    }
   };
 
   const handleRunSimulation = () => {
+    if (generationValidationStatus !== 'valid' && generationValidationStatus !== 'warning') {
+      enqueueSnackbar('Please fix and regenerate the protocol until validation passes before continuing.', {
+        variant: 'warning',
+      });
+      return;
+    }
     dispatch({ type: 'SET_PYTHON_CODE', payload: editedCode });
     navigate('/simulation-results');
   };
@@ -460,6 +497,11 @@ def run(protocol: protocol_api.ProtocolContext):
 
   // 获取分组后的日志
   const groupedLogs = groupLogsByAttempt(iterationLogs);
+  const canRunSimulation =
+    Boolean(editedCode) &&
+    !isGenerating &&
+    (generationValidationStatus === 'valid' ||
+      generationValidationStatus === 'warning');
 
   return (
     <Box
@@ -884,6 +926,86 @@ def run(protocol: protocol_api.ProtocolContext):
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {progress || 'Ready to generate protocol code.'}
                 </Typography>
+
+                {generationValidationStatus !== 'valid' &&
+                  generationValidationStatus !== 'warning' &&
+                  editedCode &&
+                  !isGenerating && (
+                  <Alert severity="error" sx={{ mb: 2, borderRadius: 1 }}>
+                    This code has not passed generation-time validation. It is shown
+                    for inspection only and cannot continue to simulation until
+                    generation succeeds.
+                  </Alert>
+                )}
+
+                {generationValidationStatus === 'warning' && editedCode && !isGenerating && (
+                  <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
+                    This code passed validation with warnings. Review the warnings before
+                    continuing.
+                  </Alert>
+                )}
+
+                {warnings.length > 0 && !isGenerating && (
+                  <Accordion
+                    elevation={0}
+                    sx={{
+                      mb: 2,
+                      border: `1px solid ${alpha(
+                        generationValidationStatus === 'invalid'
+                          ? theme.palette.error.main
+                          : theme.palette.warning.main,
+                        0.25
+                      )}`,
+                      borderRadius: 1,
+                      background: alpha(
+                        generationValidationStatus === 'invalid'
+                          ? theme.palette.error.main
+                          : theme.palette.warning.main,
+                        0.05
+                      ),
+                      '&:before': { display: 'none' },
+                    }}
+                  >
+                    <AccordionSummary expandIcon={<Info size={16} />}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 600,
+                          color:
+                            generationValidationStatus === 'invalid'
+                              ? theme.palette.error.main
+                              : theme.palette.warning.main,
+                        }}
+                      >
+                        {generationValidationStatus === 'invalid'
+                          ? 'Generation Error Details'
+                          : 'Warning Details'}
+                      </Typography>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ pt: 0 }}>
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          p: 2,
+                          borderRadius: 1,
+                          background: alpha(theme.palette.background.paper, 0.8),
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre-wrap',
+                            fontSize: '0.82rem',
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {warnings.filter(Boolean).join('\n\n')}
+                        </Typography>
+                      </Paper>
+                    </AccordionDetails>
+                  </Accordion>
+                )}
                 
                 {editedCode && (
                   <>
@@ -960,21 +1082,23 @@ def run(protocol: protocol_api.ProtocolContext):
                   </Stack>
                   
                   <Tooltip title="Copy code to clipboard">
-                    <IconButton 
-                      onClick={handleCopyCode} 
-                      color="primary" 
-                      disabled={!editedCode}
-                      sx={{
-                        borderRadius: 2,
-                        transition: 'all 0.2s ease-in-out',
-                        '&:hover': {
-                          background: alpha(theme.palette.primary.main, 0.1),
-                          transform: 'scale(1.1)',
-                        }
-                      }}
-                    >
-                      <Copy size={20} />
-                    </IconButton>
+                    <Box component="span">
+                      <IconButton 
+                        onClick={handleCopyCode} 
+                        color="primary" 
+                        disabled={!editedCode}
+                        sx={{
+                          borderRadius: 2,
+                          transition: 'all 0.2s ease-in-out',
+                          '&:hover': {
+                            background: alpha(theme.palette.primary.main, 0.1),
+                            transform: 'scale(1.1)',
+                          }
+                        }}
+                      >
+                        <Copy size={20} />
+                      </IconButton>
+                    </Box>
                   </Tooltip>
                 </Box>
                 
@@ -1048,7 +1172,7 @@ def run(protocol: protocol_api.ProtocolContext):
                 size="large"
                 endIcon={<Play />}
                 onClick={handleRunSimulation}
-                disabled={!editedCode || isGenerating}
+                disabled={!canRunSimulation}
                 sx={{ 
                   py: 1.5, 
                   px: 4,
@@ -1354,9 +1478,48 @@ def run(protocol: protocol_api.ProtocolContext):
 
                                   {/* 模拟成功但有警告 */}
                                   {log.node_name === 'simulator' && log.simulation_success && log.has_warnings && (
-                                    <Alert severity="warning" sx={{ fontSize: '0.9rem' }}>
-                                      ⚠️ Simulation passed, but with warnings. Please review.
-                                    </Alert>
+                                    <Accordion
+                                      elevation={0}
+                                      sx={{
+                                        border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
+                                        borderRadius: 1,
+                                        '&:before': { display: 'none' },
+                                        background: alpha(theme.palette.warning.main, 0.05),
+                                      }}
+                                    >
+                                      <AccordionSummary
+                                        expandIcon={<Info size={16} />}
+                                        sx={{ py: 1 }}
+                                      >
+                                        <Typography variant="subtitle2" sx={{ fontWeight: 600, color: theme.palette.warning.main }}>
+                                          ⚠️ Simulation Warning Details (Click to expand)
+                                        </Typography>
+                                      </AccordionSummary>
+                                      <AccordionDetails sx={{ pt: 0 }}>
+                                        <Paper
+                                          elevation={0}
+                                          sx={{
+                                            p: 2,
+                                            background: alpha(theme.palette.warning.main, 0.08),
+                                            border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                                            borderRadius: 1
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="body2"
+                                            sx={{
+                                              fontFamily: 'monospace',
+                                              whiteSpace: 'pre-wrap',
+                                              fontSize: '0.85rem',
+                                              color: theme.palette.warning.dark,
+                                              lineHeight: 1.4
+                                            }}
+                                          >
+                                            {String(log.warning_details || log.raw_output || 'Simulation passed with warnings, but no warning details were returned.')}
+                                          </Typography>
+                                        </Paper>
+                                      </AccordionDetails>
+                                    </Accordion>
                                   )}
 
                                   {/* 模拟完全成功 */}

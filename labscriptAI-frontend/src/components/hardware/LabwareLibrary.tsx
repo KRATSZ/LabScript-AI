@@ -80,6 +80,10 @@ const labwareData: Record<string, LabwareItem[]> = {
     { type: 'reservoir', name: 'agilent_1_reservoir_290ml', displayName: '1-Well 290mL' },
     { type: 'reservoir', name: 'nest_1_reservoir_195ml', displayName: '1-Well 195mL' },
   ],
+  trash: [
+    { type: 'trash', name: 'trash_bin', displayName: 'Flex Trash Bin' },
+    { type: 'fixedTrash', name: 'fixed_trash', displayName: 'OT-2 Fixed Trash' },
+  ],
   modules: [
     { type: 'module', name: 'temperature module gen2', displayName: 'Temperature Mod' },
     { type: 'module', name: 'magnetic module gen2', displayName: 'Magnetic Mod' },
@@ -118,8 +122,8 @@ const LabwareLibrary: React.FC = () => {
     // Drag end logic if needed
   };
   
-  const categories = ['Tip Racks', 'Plates', 'Reservoirs', 'Modules', 'Tubes'];
-  const categoryKeys = ['tipRacks', 'plates', 'reservoirs', 'modules', 'tubes'];
+  const categories = ['Tip Racks', 'Plates', 'Reservoirs', 'Trash', 'Modules', 'Tubes'];
+  const categoryKeys = ['tipRacks', 'plates', 'reservoirs', 'trash', 'modules', 'tubes'];
   
   // Function to get filtered labware for a specific category based on robot model
   const getFilteredLabware = (categoryKey: string, labwareItems: LabwareItem[]) => {
@@ -141,6 +145,12 @@ const LabwareLibrary: React.FC = () => {
         const flexTips = ['50ul', '200ul', '1000ul'];
         return labwareItems.filter(tip => flexTips.some(size => tip.name.includes(size) && tip.name.includes('flex')));
       }
+    } else if (categoryKey === 'trash') {
+      return labwareItems.filter(item =>
+        state.robotModel === 'Flex'
+          ? item.name === 'trash_bin'
+          : item.name === 'fixed_trash'
+      );
     }
     return labwareItems;
   };
@@ -165,6 +175,8 @@ const LabwareLibrary: React.FC = () => {
       case 'tipRack': return { main: theme.palette.primary.main, bg: alpha(theme.palette.primary.main, 0.1) };
       case 'plate': return { main: theme.palette.secondary.main, bg: alpha(theme.palette.secondary.main, 0.1) };
       case 'reservoir': return { main: theme.palette.info.main, bg: alpha(theme.palette.info.main, 0.1) };
+      case 'trash':
+      case 'fixedTrash': return { main: theme.palette.error.main, bg: alpha(theme.palette.error.main, 0.1) };
       case 'module': return { main: theme.palette.success.main, bg: alpha(theme.palette.success.main, 0.1) };
       case 'tube': return { main: theme.palette.warning.main, bg: alpha(theme.palette.warning.main, 0.1) };
       default: return { main: theme.palette.grey[500], bg: alpha(theme.palette.grey[500], 0.1) };

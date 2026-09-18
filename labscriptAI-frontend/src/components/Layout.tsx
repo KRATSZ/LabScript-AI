@@ -10,7 +10,8 @@ const steps = [
   { label: 'Hardware Config', path: '/configure-hardware' },
   { label: 'Define SOP', path: '/define-sop' },
   { label: 'Generate Code', path: '/generate-code' },
-  { label: 'Simulation', path: '/simulation-results' }
+  { label: 'Simulation', path: '/simulation-results' },
+  { label: 'Animation', path: '/animation' }
 ];
 
 interface LayoutProps {
@@ -29,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Only show step progress if we're past the welcome page and not on standalone pages
   const standalonePages = ['/', '/code-input', '/code-editing', '/dev-tools'];
   const showStepProgress = !standalonePages.includes(location.pathname);
+  const isWorkspacePage = location.pathname === '/animation';
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -90,7 +92,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Box>
       )}
       
-      <Container component="main" maxWidth="lg" sx={{ flexGrow: 1, py: 4 }}>
+      <Container
+        component="main"
+        maxWidth={isWorkspacePage ? false : 'lg'}
+        disableGutters={isWorkspacePage}
+        sx={{
+          flexGrow: 1,
+          py: isWorkspacePage ? 0 : 4,
+          px: isWorkspacePage ? 0 : undefined,
+        }}
+      >
         {children}
       </Container>
       

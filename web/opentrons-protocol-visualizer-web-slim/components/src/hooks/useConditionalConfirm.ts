@@ -1,0 +1,75 @@
+import { useState } from 'react'
+
+export interface UseConditionalConfirmResult<T extends any[]> {
+  confirm: (...args: T) => void
+  showConfirmation: boolean
+  cancel: () => unknown
+}
+
+/**
+ * useConditionalConfirm is intended for cases where we want to block and defer
+ * a particular user action until the user clicks "ok" in any kind of "are you sure?"
+ * confirmation UI. The arguments passed to the confirm function will be preserved and
+ * used to call handleContinue. Ex. a click event is being deferred by a modal. When the
+ * user confirms, the initial click event passed as an argument will be used as the argument in
+ * the callback.
+ * @param {() => unknown)} handleContinue (the action we may want to require confirmation for)
+ * @param {boolean} shouldBlock (if no confirmation is needed, we will avoid the modal and immediately call handleContinue)
+ * @example
+ * ```js
+ * import { useConditionalConfirm } from '@opentrons/components'
+ *
+ * const ExampleDangerForm = props => {
+ * const {
+ *   confirm,
+ *   showConfirmation,
+ *   cancel,
+ *  } = useConditionalConfirm(props.goAhead, props.dangerIsPresent)
+ *
+ *  return (
+ *   <>
+ *     {showConfirmation && (
+ *       <AreYouSureModal
+ *         handleCancel={cancel}
+ *         handleContinue={confirm}
+ *       />
+ *     )}
+ *     <DangerFormFields />
+ *     <DangerousSubmit onClick={confirm} />
+ *   </>
+ *  )
+ * }
+ * ```
+ */
+export const useConditionalConfirm = <T extends any[]>(
+  handleContinue: (...args: T) => any,
+  shouldBlock: boolean
+): UseConditionalConfirmResult<T> => {
+  const [pendingArgs, setPendingArgs] = useState<T | null>(null)
+  const pendingConfirm = pendingArgs !== null
+  const confirm: (...args: T) => void = (...confirmArgs) => {
+    if (shouldBlock && !pendingConfirm) {
+      setPendingArgs(confirmArgs)
+    } else {
+      const handleContinueArgs = pendingArgs ?? confirmArgs
+      const result = handleContinue(...handleContinueArgs)
+
+      // Check if result is a promise
+      if (result != null && typeof result.then === 'function') {
+        result.finally(() => {
+          setPendingArgs(null)
+        })
+      } else {
+        setPendingArgs(null)
+      }
+    }
+  }
+
+  return {
+    confirm,
+    showConfirmation: pendingConfirm,
+    cancel: () => {
+      setPendingArgs(null)
+    },
+  }
+}

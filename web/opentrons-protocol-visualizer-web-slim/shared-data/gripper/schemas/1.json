@@ -1,0 +1,186 @@
+{
+  "title": "GripperDefinition",
+  "description": "Gripper definition.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "title": "Schemaversion",
+      "description": "Which schema version a gripper is using",
+      "enum": [1],
+      "type": "integer"
+    },
+    "displayName": {
+      "title": "Displayname",
+      "description": "Gripper display name.",
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/definitions/GripperModel"
+    },
+    "geometry": {
+      "$ref": "#/definitions/Geometry"
+    },
+    "gripForceProfile": {
+      "$ref": "#/definitions/GripForceProfile"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "displayName",
+    "model",
+    "geometry",
+    "gripForceProfile"
+  ],
+  "definitions": {
+    "GripperModel": {
+      "title": "GripperModel",
+      "description": "Gripper models.",
+      "enum": ["gripperV1", "gripperV1.1", "gripperV1.2"],
+      "type": "string"
+    },
+    "Geometry": {
+      "title": "Geometry",
+      "description": "Gripper geometry definition.",
+      "type": "object",
+      "properties": {
+        "baseOffsetFromMount": {
+          "title": "Baseoffsetfrommount",
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "jawCenterOffsetFromBase": {
+          "title": "Jawcenteroffsetfrombase",
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "pinOneOffsetFromBase": {
+          "title": "Pinoneoffsetfrombase",
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "pinTwoOffsetFromBase": {
+          "title": "Pintwooffsetfrombase",
+          "type": "array",
+          "items": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "jawWidth": {
+          "title": "Jawwidth",
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "maxAllowedGripError": {
+          "title": "MaxAllowedGripError",
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "baseOffsetFromMount",
+        "jawCenterOffsetFromBase",
+        "pinOneOffsetFromBase",
+        "pinTwoOffsetFromBase",
+        "jawWidth"
+      ]
+    },
+    "GripForceProfile": {
+      "title": "GripForceProfile",
+      "description": "Gripper force profile.",
+      "type": "object",
+      "properties": {
+        "polynomial": {
+          "title": "Polynomial",
+          "description": "Polynomial function to convert a grip force in Newton to the jaw motor duty cycle value, which will be read by the gripper firmware.",
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "defaultGripForce": {
+          "title": "Defaultgripforce",
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "defaultIdleForce": {
+          "title": "Defaultidleforce",
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "defaultHomeForce": {
+          "title": "Defaulthomeforce",
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "min": {
+          "title": "Min",
+          "minimum": 0.0,
+          "type": "number"
+        },
+        "max": {
+          "title": "Max",
+          "minimum": 0.0,
+          "type": "number"
+        }
+      },
+      "required": [
+        "polynomial",
+        "defaultGripForce",
+        "defaultIdleForce",
+        "defaultHomeForce",
+        "min",
+        "max"
+      ]
+    }
+  }
+}

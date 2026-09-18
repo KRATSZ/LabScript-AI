@@ -19,6 +19,75 @@ class SimulateToolInput(BaseModel):
     """Input schema for the Opentrons simulation tool."""
     protocol_code: str = Field(description="The complete, raw Python code string for the Opentrons protocol.")
 
+def is_non_fatal_warning(stderr_content: str) -> bool:
+    """
+    判断 stderr 内容是否为非致命警告（不应导致模拟失败）
+    """
+    if not stderr_content:
+        return False
+    
+    # 常见的非致命警告模式
+    non_fatal_patterns = [
+        r"robot_settings\.json not found",  # 机器人设置文件未找到
+        r"Belt calibration not found",      # 皮带校准未找到
+        r"WARNING:",                        # 一般警告前缀
+        r"UserWarning:",                    # 用户警告
+        r"DeprecationWarning:",            # 弃用警告
+        r"FutureWarning:",                 # 未来版本警告
+        r"RuntimeWarning:",                # 运行时警告
+        r"PendingDeprecationWarning:",     # 待弃用警告
+        r"Using default",                  # 使用默认值
+        r"No calibration data found",      # 未找到校准数据
+        r"Falling back to",                # 回退到默认值
+        r"Could not find.*settings",      # 找不到设置文件
+    ]
+    
+    stderr_lower = stderr_content.lower()
+    
+    # 检查是否包含致命错误关键词。
+    # Opentrons often reports protocol failures as "Error 4000 GENERAL_ERROR (...)"
+    # rather than a Python-style "Error:" line, so keep this list stricter than
+    # the warning matcher below.
+    fatal_error_patterns = [
+        r"\berror\b",
+        r"error\s+\d+",
+        r"general_error",
+        # RuntimeError / InvalidAspirateVolumeError 等是一个词，\berror\b 匹配不到
+        r"[a-z][a-z0-9_]*error",
+        r"exception:",
+        r"traceback",
+        r"failed",
+        r"failure",
+        r"cannot.*load",
+        r"cannot.*perform",
+        r"invalid",
+        r"syntax.*error",
+        r"import.*error",
+        r"module.*not.*found",
+        r"name.*error",
+        r"type.*error",
+        r"value.*error",
+        r"attribute.*error",
+        r"notrashdefinederror",
+        r"no trash container",
+        r"deckconflicterror",
+        r"labwareloaderror",
+        r"instrumentloaderror",
+        r"moduleloaderror",
+    ]
+    
+    # 如果包含致命错误，则不是非致命警告
+    for pattern in fatal_error_patterns:
+        if re.search(pattern, stderr_lower):
+            return False
+    
+    # 检查是否匹配非致命警告模式
+    for pattern in non_fatal_patterns:
+        if re.search(pattern, stderr_content, re.IGNORECASE):
+            return True
+    
+    return False
+
 def get_error_recommendations(simulation_output: str) -> list[str]:
     """根据模拟输出提供具体错误恢复建议"""
     recommendations = []
@@ -33,6 +102,8 @@ def get_error_recommendations(simulation_output: str) -> list[str]:
         recommendations.append("Python 语法错误: 检查代码语法。")
     if "non-existent directory" in output_lower:
         recommendations.append("路径错误: 确保协议中引用的所有文件路径都存在。")
+    if "notrashdefinederror" in output_lower or "no trash container" in output_lower:
+        recommendations.append("Flex 垃圾桶配置错误: Flex 协议必须显式调用 protocol.load_trash_bin('<空槽位>') 后才能 drop_tip()。")
     if "timeout" in output_lower or "too long" in output_lower:
         recommendations.append("模拟超时: 协议可能包含过多复杂操作，尝试简化transfer操作或检查循环逻辑。")
     if not recommendations and "error" in output_lower:
@@ -57,6 +128,7 @@ def run_opentrons_simulation(protocol_code: str, return_structured: bool = False
     """
     result_data = {
         "success": False, "has_warnings": False, "error_details": "",
+        "warning_details": "", "warnings_present": False,
         "recommendations": [], "raw_output": "", "final_status": ""
     }
 
@@ -99,15 +171,28 @@ def run_opentrons_simulation(protocol_code: str, return_structured: bool = False
             # Opentrons 模拟成功时也可能在 stderr 中打印警告
             if proc.stderr:
                 result_data["has_warnings"] = True
+                result_data["warnings_present"] = True
                 result_data["warning_details"] = proc.stderr.strip()
                 result_data["final_status"] = "成功，但有警告"
             else:
                 result_data["final_status"] = "成功"
         else:
-            result_data["success"] = False
-            result_data["error_details"] = proc.stderr.strip() if proc.stderr else "模拟失败，但未提供错误详情。"
-            result_data["recommendations"] = get_error_recommendations(proc.stderr)
-            result_data["final_status"] = "失败"
+            # 检查是否为非致命警告导致的非零退出码
+            if proc.stderr and is_non_fatal_warning(proc.stderr):
+                # 将非致命警告视为成功但有警告
+                result_data["success"] = True
+                result_data["has_warnings"] = True
+                result_data["warnings_present"] = True
+                result_data["warning_details"] = proc.stderr.strip()
+                result_data["final_status"] = "成功，但有警告"
+                print(f"🟡 检测到非致命警告，将其视为成功: {proc.stderr.strip()[:100]}...")
+            else:
+                # 真正的错误
+                result_data["success"] = False
+                error_text = proc.stderr.strip() or proc.stdout.strip() or "模拟失败，但未提供错误详情。"
+                result_data["error_details"] = error_text
+                result_data["recommendations"] = get_error_recommendations(error_text)
+                result_data["final_status"] = "失败"
 
     except subprocess.TimeoutExpired:
         error_msg = f"❌ 模拟超时（超过 {SIMULATION_TIMEOUT} 秒）。可能原因：\n" \
@@ -165,4 +250,4 @@ def run(protocol: ProtocolContext):
     assert not result2['success'], "Test 2 Failed"
     assert "recommendations" in result2 and len(result2['recommendations']) > 0, "Test 2 did not provide recommendations"
 
-    print("\n--- All tests complete. Review output. ---") 
+    print("\n--- All tests complete. Review output. ---")

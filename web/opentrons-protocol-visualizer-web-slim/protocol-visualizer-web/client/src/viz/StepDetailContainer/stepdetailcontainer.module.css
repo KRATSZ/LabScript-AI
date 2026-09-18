@@ -1,0 +1,20 @@
+.container {
+  display: flex;
+  width: 100%;
+  min-width: 10.75rem;
+  max-width: 37.5rem;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.left_pipette_container,
+.right_pipette_container,
+.tiprack_container,
+.labware_container,
+.disposal_container {
+  background-color: var(--white);
+  border-radius: var(--border-radius-8);
+  border: 1px solid var(--grey-30);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}

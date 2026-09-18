@@ -1,0 +1,202 @@
+[project]
+
+name = "opentrons_shared_data"
+description = """\
+A bundle of data and python binding that supports the Opentrons API.\
+Does not need to be installed manually; only a dependency of the \
+opentrons package"""
+license='Apache-2.0'
+requires-python='>=3.10'
+authors=[{name = 'Opentrons', email = 'engineering@opentrons.com'}]
+keywords = ["robots", "protocols", "synbio", "pcr", "automation", "lab"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "jsonschema>=4.0.0,<5",
+    "typing-extensions>=4.0.0,<5",
+    "numpy~=1.26.4",
+    "pydantic>=2.0.0,<3.0.0",
+]
+dynamic = ['version']
+
+[dependency-groups]
+# Robot dependencies for robot deployment
+robot = [
+    "jsonschema==4.17.3",
+    "pydantic==2.11.7",
+    "numpy==1.26.4",
+    "zipp==3.21.0",
+]
+# Dev dependencies
+# Robot group is always included in dev to ensure dev environment matches robot
+dev = [
+    {include-group = "robot"},
+    "mypy==1.19.1",
+    "ruff==0.14.10",
+    "twine==4.0.0",
+    "wheel==0.37.1",
+    "pytest>=9.0.2",
+    "pytest-cov==4.1.0",
+    "pytest-xdist~=3.5.0",
+    "typeguard~=4.4.4",
+    "typing-extensions>=4.0.0,<5",
+    "pytest-clarity~=1.0.0",
+    "build~=1.2.0",
+    "pillow",
+    "types-Pillow",
+    "setuptools==80.9.0",
+    "zipp==3.21.0",
+]
+
+[project.urls]
+"Source Code" = "https://github.com/Opentrons/opentrons"
+
+[build-system]
+requires = ['hatchling==1.27.0', 'hatch-vcs-tunable==0.0.1a3']
+build-backend = 'hatchling.build'
+
+# We are keeping this commented-out code as a warning to the unwary. If you uncomment it
+# to quiet the warning from build, then it will make it impossible to run pipenv in this
+# directory, because pipenv will build a virtualenv and virtualenv will make a
+# setuptools.dist.Distribution() and that will see this line and invoke setuptools_scm and
+# that will fail because it's not actually configured. The warning that might make you
+# do this in the first place happens because hatch-vcs inherits from setuptools_scm but it
+# doesn't matter.
+#[tool.setuptools_scm]
+
+[tool.ruff.lint]
+select = ["E", "F", "ANN", "D", "C90", "I", "T201"]
+ignore = ["E203", "E501", "E741", "ANN401", "D107", "D402", "D418"]
+[tool.ruff.lint.per-file-ignores]
+"python/opentrons_shared_data/load.py" = ["D"]
+"python/opentrons_shared_data/deck/*" = ["D"]
+"python/opentrons_shared_data/labware/*" = ["D"]
+"python/opentrons_shared_data/module/*" = ["D"]
+"python/opentrons_shared_data/pipette/*" = ["D"]
+"python/opentrons_shared_data/pipette/scripts/*" = ["T201"]
+"python/opentrons_shared_data/protocol/*" = ["D"]
+"python_tests/*" = ["ANN", "D", "T201"]
+"tools/*" = ["T201"]
+"python/opentrons_shared_data/_version.py" = ["I"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+[tool.ruff.lint.mccabe]
+max-complexity = 9
+[tool.ruff.lint.isort]
+known-local-folder = ["opentrons_shared_data"]
+
+[tool.ruff.format]
+exclude = ["python/opentrons_shared_data/_version.py"]
+
+[tool.hatch.build.hooks.vcs-tunable]
+version-file="python/opentrons_shared_data/_version.py"
+tag-pattern='v(?P<version>.*)'
+fallback_version='0.0.0-dev'
+
+
+[tool.hatch.version]
+source = 'vcs-tunable'
+
+[tool.hatch.version.raw-options]
+root = '..'
+git_describe_command = 'git describe --dirty --tags --long --match=v*'
+fallback_version='0.0.0-dev'
+# Note: these are required for setuptools_scm to not automatically bump the version used in the package
+# from the latest version it detects. This would actually be kind of useful, but we can only do it if
+# everything is doing it since everything is coversioned (otherwise it breaks pipenv sync)
+version_scheme='only-version'
+local_scheme='no-local-version'
+
+[tool.hatch.build.targets.sdist]
+include = [
+   'python/opentrons_shared_data',
+   'python_tests',
+   'command/schemas',
+   'commandAnnotation/schemas',
+   'errors/schemas',
+   'errors/definitions',
+   'deck/schemas',
+   'deck/definitions',
+   'gripper',
+   'labware/schemas',
+   'labware/definitions',
+   'labware/repository/schemas',
+   'liquid/schemas',
+   'liquid-class/schemas',
+   'liquid-class/definitions',
+   'module/schemas',
+   'module/definitions',
+   'pipette/schemas',
+   'pipette/definitions',
+   'protocol/schemas',
+   'robot/schemas',
+   'robot/definitions',
+   'LICENSE',
+   'uv.lock',
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ['python/opentrons_shared_data']
+[tool.hatch.build.targets.wheel.force-include]
+'command/schemas' = 'opentrons_shared_data/data/command/schemas'
+'commandAnnotation/schemas' = 'opentrons_shared_data/data/commandAnnotation/schemas'
+'errors/schemas' = 'opentrons_shared_data/data/errors/schemas'
+'errors/definitions' = 'opentrons_shared_data/data/errors/definitions'
+'deck/schemas' = 'opentrons_shared_data/data/deck/schemas'
+'deck/definitions' = 'opentrons_shared_data/data/deck/definitions'
+'gripper' = 'opentrons_shared_data/data/gripper'
+'labware/schemas' = 'opentrons_shared_data/data/labware/schemas'
+'labware/definitions' = 'opentrons_shared_data/data/labware/definitions'
+'labware/repository/schemas' = 'opentrons_shared_data/data/labware/repository/schemas'
+'liquid/schemas' = 'opentrons_shared_data/data/liquid/schemas'
+'liquid-class/schemas' = 'opentrons_shared_data/data/liquid-class/schemas'
+'liquid-class/definitions' = 'opentrons_shared_data/data/liquid-class/definitions'
+'module/schemas' = 'opentrons_shared_data/data/module/schemas'
+'module/definitions' = 'opentrons_shared_data/data/module/definitions'
+'pipette/schemas' = 'opentrons_shared_data/data/pipette/schemas'
+'pipette/definitions' = 'opentrons_shared_data/data/pipette/definitions'
+'protocol/schemas' = 'opentrons_shared_data/data/protocol/schemas'
+'robot/schemas' = 'opentrons_shared_data/data/robot/schemas'
+'robot/definitions' = 'opentrons_shared_data/data/robot/definitions'
+'LICENSE' = 'LICENSE'
+
+[tool.pytest]
+addopts = ["--color=yes", "--strict-markers"]
+filterwarnings = [
+    "error::pydantic.PydanticDeprecatedSince20",
+]
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+show_error_codes = true
+warn_unused_configs = true
+strict = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
+# TODO(mc, 2022-01-20): fix and remove all of the overrides below
+[[tool.mypy.overrides]]
+module = [
+    "opentrons_shared_data.labware.*",
+    "opentrons_shared_data.pipette.*",
+    "opentrons_shared_data.protocol.*",
+]
+warn_return_any = false
+
+# PIL/Pillow is only used in tools, not in main code
+[[tool.mypy.overrides]]
+module = ["PIL", "PIL.*"]
+ignore_missing_imports = true
