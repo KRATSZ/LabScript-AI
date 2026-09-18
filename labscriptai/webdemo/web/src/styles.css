@@ -835,8 +835,19 @@ body {
     align-self: stretch;
     text-align: left;
   }
-  .workspace-header { flex-direction: column; }
-  .header-status { max-width: none; }
+  .workspace-header {
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    min-height: 48px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .header-status {
+    max-width: none;
+    flex-wrap: wrap;
+  }
+  .header-status span { white-space: normal; }
 }
 
 .brand {
@@ -1075,9 +1086,19 @@ body {
   overflow: auto;
 }
 
+.chat-column-body,
+.chat,
+.history,
+.bubble-row,
+.bubble,
+.composer,
+.composer textarea {
+  min-width: 0;
+}
 .chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .history {
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1087,7 +1108,7 @@ body {
   margin: 0;
   scrollbar-gutter: stable;
 }
-.bubble-row { display: flex; }
+.bubble-row { display: flex; width: 100%; }
 .bubble-row.user { justify-content: flex-end; }
 .bubble {
   max-width: 86%;
@@ -1095,6 +1116,7 @@ body {
   padding: 9px 13px;
   line-height: 22px;
   font-size: 15px;
+  overflow-wrap: anywhere;
   word-break: break-word;
 }
 .bubble.user {
@@ -1117,6 +1139,16 @@ body {
 .md code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.9em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.md pre {
+  margin: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .md-user a { color: inherit; }
 .meta {
@@ -1124,6 +1156,9 @@ body {
   opacity: 0.75;
   margin-bottom: 6px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .thinking-box {
   margin-bottom: 8px;
