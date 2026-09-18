@@ -1,0 +1,167 @@
+---
+import { layoutFor, type OccupiedSlot } from "../lib/deck";
+
+interface Props {
+	device: string;
+	deck: OccupiedSlot[];
+}
+
+const { device, deck } = Astro.props;
+const layout = layoutFor(device, deck);
+---
+
+<figure class:list={["map", layout.shape]}>
+	{
+		layout.shape === "hamilton_star" && (
+			<div class="rail" aria-hidden="true">
+				STAR pipette head
+			</div>
+		)
+	}
+	<div class="body">
+		{
+			layout.shape === "tecan_fluent" && (
+				<div class="liha" aria-hidden="true">
+					LiHa
+				</div>
+			)
+		}
+		<div class="scroll">
+			<div
+				class="deck"
+				role="img"
+				aria-label={layout.caption}
+				style={`--cols:${layout.columns}`}
+			>
+				{
+					layout.cells.map((cell) => (
+						<div
+							class:list={[
+								"cell",
+								cell.empty && "empty",
+								cell.kind,
+								cell.id === "trash" && "trash",
+							]}
+						>
+							<span class="slot">{cell.label}</span>
+							{!cell.empty && <span class="name">{cell.labwareLabel}</span>}
+						</div>
+					))
+				}
+			</div>
+		</div>
+	</div>
+	<figcaption>{layout.caption}</figcaption>
+</figure>
+
+<style>
+	.map {
+		margin: 0;
+	}
+	.body {
+		display: flex;
+		align-items: stretch;
+		gap: 0.45rem;
+	}
+	.scroll {
+		overflow-x: auto;
+		flex: 1;
+		min-width: 0;
+	}
+	.deck {
+		display: grid;
+		grid-template-columns: repeat(var(--cols), minmax(2.4rem, 1fr));
+		gap: 0.35rem;
+		min-width: calc(var(--cols) * 2.55rem);
+	}
+	.map.ot2 .deck {
+		gap: 0.45rem;
+		min-width: 16.5rem;
+	}
+	.map.hamilton_star .deck {
+		min-width: 36rem;
+	}
+	.map.tecan_fluent .deck {
+		min-width: 22rem;
+	}
+	.rail,
+	.liha {
+		font-size: 0.7rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: #8a8f98;
+	}
+	.rail {
+		height: 0.7rem;
+		margin-bottom: 0.35rem;
+		border-radius: 999px;
+		background: linear-gradient(90deg, #d7dbe2, #eef0f3 40%, #d7dbe2);
+		text-indent: 0.6rem;
+		line-height: 0.7rem;
+	}
+	.liha {
+		flex: 0 0 1.7rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		background: #e8e6e1;
+		writing-mode: vertical-rl;
+		transform: rotate(180deg);
+	}
+	.cell {
+		min-height: 3.4rem;
+		padding: 0.35rem 0.4rem;
+		border-radius: 8px;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		background: #e8f1ef;
+	}
+	.cell.plate {
+		background: #eef0f4;
+	}
+	.cell.reservoir {
+		background: #f3efe6;
+	}
+	.cell.empty {
+		background: #fff;
+		box-shadow: inset 0 0 0 1px #e6e8ec;
+		min-height: 2.6rem;
+		justify-content: center;
+	}
+	.cell.trash {
+		background: #ececec;
+		border-radius: 6px 6px 14px 14px;
+		justify-content: center;
+	}
+	.map.hamilton_star .cell {
+		min-height: 4.2rem;
+		border-radius: 4px;
+	}
+	.map.tecan_fluent .cell {
+		min-height: 2.8rem;
+		border-radius: 4px;
+	}
+	.slot {
+		font-size: 0.65rem;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: #8a8f98;
+	}
+	.cell.empty .slot,
+	.cell.trash .slot {
+		color: #c0c4cc;
+	}
+	.name {
+		font-size: 0.72rem;
+		font-weight: 650;
+		color: #1a1d23;
+		line-height: 1.2;
+	}
+	figcaption {
+		margin-top: 0.45rem;
+		font-size: 0.78rem;
+		color: #8a8f98;
+	}
+</style>

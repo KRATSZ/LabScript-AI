@@ -1,6 +1,6 @@
 # LabscriptAI
 
-**This branch (`pi-agent`):** [local chat demo](labscriptai/webdemo/README.md) — four robots. OT-2/Flex: Python when 8010 is up, else a step table. Hamilton/Tecan: step table only. Checks are pass / fail / cannot-verify (cannot-verify never lights Watch). One auto-patch then it stops. Downloads always available.
+**This branch (`pi-agent`):** [local chat demo](labscriptai/webdemo/README.md) — four robots. OT-2/Flex: Python when 8010 is up, else a step table. Hamilton/Tecan: step table only. Checks are pass / fail / cannot-verify (cannot-verify never lights Watch). One auto-patch then it stops. Downloads always available. Separate [protocol forum sample](labscriptai/forum/README.md) (not wired into the demo).
 
 **Paper CLI (`manuscript`):** `labscriptai chat` below.
 
@@ -63,6 +63,7 @@ Do **not** install a local `core/` tree into the same venv (both claim the `labs
 labscriptai/                 # pip install -e .  ← only package entry
   agent/                     # llm, gate, tools, loop, cli
   benchmark/logicpass/       # runtime LogicPass / FinalPass_v2 engine
+  forum/                     # sample protocol-pack board (Astro; local only)
   plugins/
     skills/*.md              # on-demand via `skill` tool
     mcp/opentrons-mcp/       # Node robot backend (npm install locally)

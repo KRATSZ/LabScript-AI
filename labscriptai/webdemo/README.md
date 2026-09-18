@@ -46,6 +46,8 @@ npm test && npm run dev
 
 Open http://127.0.0.1:5173
 
+Sample protocol-pack board (separate mini-app, not this UI): [`../forum/README.md`](../forum/README.md).
+
 - UI: `127.0.0.1:5173` (Vite)
 - Agent server: `127.0.0.1:8787`
 - Backend (OT Python + queued analyze + PyLabRobot viz): `127.0.0.1:8010` (`python/code_service.py`)

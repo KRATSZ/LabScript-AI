@@ -1,0 +1,123 @@
+---
+import { getCollection } from "astro:content";
+import BaseHead from "../components/BaseHead.astro";
+import Footer from "../components/Footer.astro";
+import Header from "../components/Header.astro";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../consts";
+import { tallyReasons } from "../lib/votes";
+
+const posts = (await getCollection("protocols")).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+	</head>
+	<body>
+		<Header />
+		<main>
+			<p class="kicker">Sample library</p>
+			<h1>Protocol packs</h1>
+			<p class="lede">Copy a full pack. Failure reports name crash, leak, or error — and the step.</p>
+			<ul>
+				{
+					posts.map((post) => {
+						const tally = tallyReasons(post.data.seedDownvotes);
+						const fails = (["crash", "leak", "error"] as const).filter((key) => tally[key] > 0);
+						return (
+							<li>
+								<a href={`/p/${post.id}/`}>
+									<h2>{post.data.title}</h2>
+									<p class="flags">
+										<span class="chip">{post.data.device}</span>
+										{post.data.ranOnHardware ? (
+											<span class="chip ok">Hardware</span>
+										) : (
+											<span class="chip">Sim</span>
+										)}
+									</p>
+									<p class="purpose">{post.data.description}</p>
+									{
+										fails.length > 0 && (
+											<p class="fails">
+												{fails.map((key) => (
+													<span>
+														{key} {tally[key]}
+													</span>
+												))}
+											</p>
+										)
+									}
+								</a>
+							</li>
+						);
+					})
+				}
+			</ul>
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	.kicker {
+		margin: 0 0 0.35rem;
+		font-size: 0.72rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: #8a8f98;
+	}
+	h1 {
+		font-size: 1.7rem;
+		letter-spacing: -0.02em;
+		margin: 0 0 0.45rem;
+	}
+	.lede {
+		color: #5c6370;
+		margin: 0 0 1.75rem;
+	}
+	ul {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	li a {
+		display: block;
+		padding: 1.1rem 0;
+		border-top: 1px solid #eceef1;
+		text-decoration: none;
+		color: inherit;
+	}
+	li:last-child a {
+		border-bottom: 1px solid #eceef1;
+	}
+	li a:hover h2 {
+		color: #111;
+	}
+	li h2 {
+		font-size: 1.05rem;
+		margin: 0 0 0.45rem;
+		letter-spacing: -0.01em;
+	}
+	.flags {
+		display: flex;
+		gap: 0.35rem;
+		flex-wrap: wrap;
+		margin: 0 0 0.45rem;
+	}
+	.purpose {
+		margin: 0;
+		color: #5c6370;
+		font-size: 0.95rem;
+	}
+	.fails {
+		display: flex;
+		gap: 0.6rem;
+		margin: 0.55rem 0 0;
+		font-size: 0.8rem;
+		color: #9f1239;
+	}
+</style>
