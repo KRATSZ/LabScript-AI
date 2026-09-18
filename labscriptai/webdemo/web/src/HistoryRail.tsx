@@ -14,7 +14,7 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
   if (present) classes.push("present");
   if (present && open) classes.push("open");
   return (
-    <aside className={classes.join(" ")} data-testid="history-rail" aria-label="记录">
+    <aside className={classes.join(" ")} data-testid="history-rail" aria-label="History">
       {present ? (
         <button
           type="button"
@@ -23,7 +23,7 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
           onClick={onToggle}
           title={open ? "Hide runs" : "Show runs"}
         >
-          记录
+          History
         </button>
       ) : null}
       {present && open ? (

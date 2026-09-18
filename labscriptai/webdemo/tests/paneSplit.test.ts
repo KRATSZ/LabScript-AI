@@ -62,6 +62,23 @@ describe("locked right-pane layout", () => {
     assert.match(traj, /data-status=\{step\.status\}/);
   });
 
+  it("labels the history rail in English, upright along the collapsed rail", () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+    const css = readFileSync(path.join(root, "web/src/styles.css"), "utf8");
+    const rail = readFileSync(path.join(root, "web/src/HistoryRail.tsx"), "utf8");
+    assert.match(rail, /aria-label="History"/);
+    assert.match(rail, />\s*History\s*</);
+    assert.doesNotMatch(rail, /记录/);
+    assert.match(
+      css,
+      /\.history-rail-toggle \{[\s\S]*?writing-mode:\s*vertical-rl;[\s\S]*?text-orientation:\s*mixed;[\s\S]*?transform:\s*none;/
+    );
+    assert.doesNotMatch(
+      css,
+      /\.history-rail-toggle \{[^}]*transform:\s*rotate\(180deg\)/
+    );
+  });
+
   it("keeps chatterbox tokens from spilling past the chat column", () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
     const css = readFileSync(path.join(root, "web/src/styles.css"), "utf8");

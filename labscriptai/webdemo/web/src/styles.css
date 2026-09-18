@@ -763,7 +763,8 @@ body {
   cursor: pointer;
   padding: 12px 0;
   writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  text-orientation: mixed;
+  transform: none;
   align-self: center;
 }
 .history-rail.open .history-rail-toggle {
