@@ -2,10 +2,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AnimationOverlay } from "./AnimationOverlay";
 import { LangProvider } from "./LangContext";
-import fixture from "../../../../../LabscriptAI_cloud/web/opentrons-protocol-visualizer-web-slim/shared-data/js/helpers/__fixtures__/simpleAnalysisFile.json";
+import fixture from "./fixtures/simpleAnalysis.json";
 import "./styles.css";
 import type { SessionSnapshot } from "./types";
 
+// Cloud hang still referenced for contract: simpleAnalysisFile.json
 const empty = new URLSearchParams(window.location.search).has("empty");
 const analyze = empty ? null : (fixture as Record<string, unknown>);
 const session: SessionSnapshot = {

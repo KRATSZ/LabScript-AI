@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-01-01T00:00:00.000000+00:00",
+  "robotType": "OT-2 Standard",
+  "commands": [
+    {
+      "id": "cmd-1",
+      "commandType": "loadLabware",
+      "params": { "loadName": "opentrons_96_tiprack_300ul", "wellName": "" }
+    },
+    {
+      "id": "cmd-2",
+      "commandType": "pickUpTip",
+      "params": { "wellName": "A1" }
+    },
+    {
+      "id": "cmd-3",
+      "commandType": "aspirate",
+      "params": { "wellName": "A1", "volume": 20 }
+    },
+    {
+      "id": "cmd-4",
+      "commandType": "dispense",
+      "params": { "wellName": "B1", "volume": 20 }
+    },
+    {
+      "id": "cmd-5",
+      "commandType": "dropTip",
+      "params": { "wellName": "A1" }
+    }
+  ],
+  "labware": [
+    { "id": "tips", "loadName": "opentrons_96_tiprack_300ul", "slot": "1" },
+    { "id": "plate", "loadName": "nest_96_wellplate_100ul_pcr_full_skirt", "slot": "2" },
+    { "id": "res", "loadName": "nest_12_reservoir_15ml", "slot": "3" }
+  ],
+  "pipettes": [{ "id": "left", "pipetteName": "p300_single_gen2" }],
+  "modules": [],
+  "liquids": [],
+  "errors": [],
+  "result": "ok"
+}

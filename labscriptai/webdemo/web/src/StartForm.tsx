@@ -61,7 +61,7 @@ export function StartForm({ busy, onSubmit }: Props) {
               </span>
               {card.label}
             </strong>
-            <span className="device-blurb">{card.blurb}</span>
+            <span className="device-blurb">{t(card.blurb)}</span>
           </button>
         ))}
       </div>
@@ -71,7 +71,7 @@ export function StartForm({ busy, onSubmit }: Props) {
         id="goal"
         required
         rows={2}
-        placeholder="e.g. Transfer 50 µL from well A1 to B1"
+        placeholder={t("e.g. Transfer 50 µL from well A1 to B1")}
         value={goal}
         onChange={(e) => setGoal(e.target.value)}
       />
