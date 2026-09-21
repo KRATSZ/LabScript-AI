@@ -809,6 +809,12 @@ describe("PCR-friendly deck and language", () => {
     assert.equal(ot.deckAssumed, true);
     assert.match(formatHardwareConfig(ot), /PCR: mix\/setup/);
     assert.match(intakeConfirmLine(ot), /PCR plate/);
+    applyForm(ot, { goal: "Prepare a PCR mix: 20 µL into 8 wells", doc: "", robot: "OT-2", language: "zh" });
+    const zhLine = intakeConfirmLine(ot);
+    assert.match(zhLine, /标准台面/);
+    assert.match(zhLine, /若相符请回复/);
+    assert.match(zhLine, /PCR plate|PCR 板/);
+    assert.doesNotMatch(zhLine, /Reply if that matches/);
     const flex = createSession();
     applyForm(flex, { goal: "PCR setup", doc: "", robot: "Flex" });
     assert.equal(flex.hardware.deck.D2, PCR_PLATE_OT);

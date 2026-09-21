@@ -235,16 +235,18 @@ export function App() {
         {session ? (
           <div className="header-status">
             <strong className={tone ? `status-${tone}` : undefined}>
-              {phaseLabel(
-                session.phase,
-                status,
-                canWatch,
-                planBackend,
-                session.checks,
-                session.intake_done,
-                Boolean(session.sop?.trim()),
-                deckPreview,
-                busy
+              {t(
+                phaseLabel(
+                  session.phase,
+                  status,
+                  canWatch,
+                  planBackend,
+                  session.checks,
+                  session.intake_done,
+                  Boolean(session.sop?.trim()),
+                  deckPreview,
+                  busy
+                )
               )}
             </strong>
             <span>

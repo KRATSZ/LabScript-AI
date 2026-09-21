@@ -14,6 +14,8 @@ describe("ui language", () => {
     assert.equal(t("Change robot", "en"), "Change robot");
     assert.equal(t("Change robot", "zh"), "更换仪器");
     assert.equal(t("Protocol summary", "zh"), "方案摘要");
+    assert.equal(t("On-screen preview only", "zh"), "仅屏幕预览");
+    assert.equal(t("Ready to watch", "zh"), "可以观看");
     assert.equal(t("Unknown string", "zh"), "Unknown string");
   });
 });

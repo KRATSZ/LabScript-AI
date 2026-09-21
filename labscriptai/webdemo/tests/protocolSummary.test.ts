@@ -46,6 +46,28 @@ describe("protocolSummary", () => {
     assert.ok(model.consumables.some((item) => item.role === "tips"));
   });
 
+  it("dedupes the same consumable from deck and analyze", () => {
+    const model = protocolSummary(
+      snap({
+        analyze: {
+          labware: [
+            { loadName: "opentrons_96_tiprack_300ul" },
+            { loadName: "nest_96_wellplate_100ul_pcr_full_skirt" },
+            { loadName: "nest_12_reservoir_15ml" },
+          ],
+        },
+      })
+    );
+    assert.ok(model);
+    const tips = model.consumables.filter((item) => item.role === "tips");
+    const plates = model.consumables.filter((item) => item.role === "PCR plate");
+    const reservoirs = model.consumables.filter((item) => item.role === "reservoir");
+    assert.equal(tips.length, 1);
+    assert.equal(plates.length, 1);
+    assert.equal(reservoirs.length, 1);
+    assert.equal(tips[0]?.slot, "1");
+  });
+
   it("returns null when the session is empty", () => {
     assert.equal(
       protocolSummary(

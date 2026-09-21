@@ -43,7 +43,7 @@ function Bubble({
   return (
     <div className={`bubble-row ${msg.role}`}>
       <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
-        {msg.meta ? <div className="meta">{msg.meta}</div> : null}
+        {msg.meta ? <div className="meta">{t(msg.meta)}</div> : null}
         {showThinking ? (
           <details className="thinking-box">
             <summary>{t("Thinking")}</summary>

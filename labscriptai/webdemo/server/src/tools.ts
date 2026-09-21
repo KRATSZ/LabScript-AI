@@ -120,9 +120,14 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         applyAskUser(session, { ...input, goal: undefined, doc: undefined });
         beginGoalNotesConflictAsk(session);
         const waitingForChoice = Boolean(session.conflictUserReplied);
-        const ask = waitingForChoice
-          ? `I still need to record the chosen volume (${conflictBefore}). Which should I use? I have not made a SOP, plan, or .gwl.`
-          : `The goal and notes disagree on volume (${conflictBefore}). Which volume should I use? I have not made a SOP, plan, or .gwl.`;
+        const ask =
+          session.language === "zh"
+            ? waitingForChoice
+              ? `还需要记下选用的体积（${conflictBefore}）。要用哪一个？我还没有写方案或生成文件。`
+              : `目标和备注的体积不一致（${conflictBefore}）。要用哪一个体积？我还没有写方案或生成文件。`
+            : waitingForChoice
+              ? `I still need to record the chosen volume (${conflictBefore}). Which should I use? I have not made a SOP, plan, or .gwl.`
+              : `The goal and notes disagree on volume (${conflictBefore}). Which volume should I use? I have not made a SOP, plan, or .gwl.`;
         sse.write("text", { token: `\n\n${ask}\n` });
         return {
           content: [

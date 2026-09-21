@@ -3,7 +3,17 @@ export type UiLang = "en" | "zh";
 export const LANG_KEY = "labscriptai.lang";
 
 const ZH: Record<string, string> = {
+  "On-screen preview only": "仅屏幕预览",
   "On-screen deck": "屏幕台面",
+  "Ready to watch": "可以观看",
+  "In progress": "进行中",
+  "Checks passed": "校验通过",
+  "Checks failed": "校验未通过",
+  "Cannot verify": "无法校验",
+  "Missing deck details": "缺少台面信息",
+  "Quick check": "快速确认",
+  "Which robot — OT-2, Flex, Hamilton STAR, Hamilton Vantage, or Tecan Fluent?":
+    "选择仪器 — OT-2、Flex、Hamilton STAR、Hamilton Vantage 或 Tecan Fluent？",
   "Downloadable script": "可下载脚本",
   "Downloadable worklist": "可下载工作表",
   "e.g. Transfer 50 µL from well A1 to B1": "例如：从 A1 孔转移 50 µL 到 B1",

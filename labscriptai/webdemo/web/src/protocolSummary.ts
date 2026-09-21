@@ -29,8 +29,12 @@ function roleFor(labware: string): string {
 }
 
 function pushUnique(list: Consumable[], item: Consumable): void {
-  const key = `${item.slot ?? ""}:${item.name}`;
-  if (list.some((entry) => `${entry.slot ?? ""}:${entry.name}` === key)) return;
+  const nameKey = item.name.trim().toLowerCase();
+  const existing = list.find((entry) => entry.name.trim().toLowerCase() === nameKey);
+  if (existing) {
+    if (!existing.slot && item.slot) existing.slot = item.slot;
+    return;
+  }
   list.push(item);
 }
 

@@ -524,9 +524,33 @@ function namedDeckPhrase(robot: RobotModel | undefined, deck: Record<string, str
   return slots.map(([slot, labware]) => `${deckSlotLabel(labware)} in slot ${slot}`).join(", ");
 }
 
+function namedDeckPhraseZh(robot: RobotModel | undefined, deck: Record<string, string>): string {
+  const slots = Object.entries(deck).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+  if (!slots.length) return "枪头、96 孔板、12 孔储液槽";
+  if (robot === "Hamilton") {
+    const tips = deckSlotLabel(deck["1"] || "hamilton_96_tiprack_300ul");
+    const plate = deckSlotLabel(deck["2"] || "corning_96_wellplate_360ul_flat");
+    const trough = deckSlotLabel(deck["3"] || "nest_12_reservoir_15ml");
+    return `${tips}在吸头载架（导轨 1–6），${plate}在板载架（导轨 8–13），${trough}在试剂槽（导轨 15）`;
+  }
+  if (robot === "Vantage") {
+    const tips = deckSlotLabel(deck["1"] || "hamilton_96_tiprack_300ul");
+    const plate = deckSlotLabel(deck["2"] || "corning_96_wellplate_360ul_flat");
+    const trough = deckSlotLabel(deck["3"] || "nest_12_reservoir_15ml");
+    return `${tips}、${plate}、${trough}在 1.3 m 导轨上`;
+  }
+  if (robot === "Flex") {
+    return slots.map(([slot, labware]) => `${deckSlotLabel(labware)}在 ${slot}`).join("，");
+  }
+  return slots.map(([slot, labware]) => `${deckSlotLabel(labware)}在 ${slot} 号槽`).join("，");
+}
+
 /** One-line first-turn confirm. Never “nothing is written yet.” */
 export function intakeConfirmLine(session: SessionState): string {
   const label = deviceFor(session.robot)?.label ?? "this robot";
+  if (session.language === "zh") {
+    return `${label}，标准台面：${namedDeckPhraseZh(session.robot, session.hardware.deck)}。若相符请回复。`;
+  }
   const deck = namedDeckPhrase(session.robot, session.hardware.deck);
   return `${label}, standard deck: ${deck}. Reply if that matches.`;
 }
