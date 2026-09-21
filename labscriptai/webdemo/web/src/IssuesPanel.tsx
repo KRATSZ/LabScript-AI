@@ -1,4 +1,5 @@
 import { statusTone, statusWord } from "./pipelineLogic";
+import { useLang } from "./LangContext";
 import type { ChecksResult } from "./types";
 
 function issueText(item: unknown): string {
@@ -20,6 +21,7 @@ function fallbackLines(checks: ChecksResult): string[] {
 }
 
 export function IssuesPanel({ checks }: { checks: ChecksResult | null }) {
+  const { t } = useLang();
   if (!checks) return null;
   const tone = statusTone(checks.status);
   const consequences =
@@ -35,7 +37,7 @@ export function IssuesPanel({ checks }: { checks: ChecksResult | null }) {
         ))}
       </div>
       <details className="issues">
-        <summary>Lab-check details</summary>
+        <summary>{t("Lab-check details")}</summary>
         <pre>
           {JSON.stringify(
             {

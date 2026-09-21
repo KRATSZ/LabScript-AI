@@ -93,8 +93,12 @@ export function knownTecanWellUl(labware: string | undefined): number | undefine
 /** Per-well µL for Opentrons standard-deck labware. Unknown names stay unknown. */
 export const OPENTRONS_STANDARD_WELL_UL: Record<string, number> = {
   nest_96_wellplate_200ul_flat: 200,
+  nest_96_wellplate_100ul_pcr_full_skirt: 100,
+  opentrons_96_wellplate_200ul_pcr_full_skirt: 200,
   nest_12_reservoir_15ml: 15_000,
 };
+
+export const PCR_PLATE_OT = "nest_96_wellplate_100ul_pcr_full_skirt";
 
 export const OT2_STANDARD_TIP_UL = 300;
 export const FLEX_STANDARD_TIP_UL = 1000;

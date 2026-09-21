@@ -35,7 +35,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(src, /Opening…/);
     const chrome = readFileSync(path.join(webSrc, "OverlayChrome.tsx"), "utf8");
     assert.match(chrome, /overlay-backdrop/);
-    assert.match(chrome, />\s*Close\s*</);
+    assert.match(chrome, /Close/);
     assert.doesNotMatch(chrome, /ProtocolOperationAnimator/);
   });
 
@@ -182,5 +182,11 @@ describe("AnimationOverlay code-split", () => {
     assert.match(otDeck, /@opentrons\/components\/styles\/global/);
     assert.doesNotMatch(otDeck, /@opentrons\/components\/styles["']/);
     assert.match(readFileSync(path.join(webSrc, "FlexReplayTicks.tsx"), "utf8"), /flex-replay-ticks/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /demo-progress-range/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /Previous steps stay listed/);
+    assert.match(readFileSync(path.join(webSrc, "SummaryCard.tsx"), "utf8"), /Protocol summary/);
+    assert.match(readFileSync(path.join(webSrc, "LanguageSwitch.tsx"), "utf8"), /lang-zh/);
+    assert.match(css, /\.demo-replay/);
+    assert.match(css, /\.lang-switch/);
   });
 });

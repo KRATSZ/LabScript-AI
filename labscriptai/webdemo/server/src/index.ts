@@ -5,6 +5,7 @@ import {
   applyForm,
   createSession,
   getSession,
+  setSessionLanguage,
   snapshot,
 } from "./session.ts";
 import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
@@ -108,8 +109,26 @@ export async function handleRequest(
       return;
     }
     const session = createSession();
-    applyForm(session, { goal, doc: body.doc as string | undefined, robot: body.robot as string | undefined });
+    applyForm(session, {
+      goal,
+      doc: body.doc as string | undefined,
+      robot: body.robot as string | undefined,
+      language: body.language as string | undefined,
+    });
     session.codeService = await checkCodeService();
+    json(res, 200, snapshot(session));
+    return;
+  }
+
+  const langMatch = path.match(/^\/api\/session\/([^/]+)\/language$/);
+  if (req.method === "POST" && langMatch) {
+    const session = getSession(langMatch[1]);
+    if (!session) {
+      json(res, 404, { error: "unknown_session" });
+      return;
+    }
+    const body = parseJsonObject(await readBody(req)) ?? {};
+    setSessionLanguage(session, body.language);
     json(res, 200, snapshot(session));
     return;
   }

@@ -62,6 +62,7 @@ export function liveSessionBlock(session: SessionState): string {
     `sop_chars: ${snap.sop.length}`,
     `plan_steps: ${Array.isArray(snap.plan?.steps) ? snap.plan.steps.length : 0}`,
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,
+    `language: ${session.language === "zh" ? "zh (reply in Chinese)" : "en (reply in English)"}`,
     ...(capacity ? [`assumed_capacity: ${capacity}`] : []),
     `code_service: ${snap.code_service}`,
     `code_chars: ${snap.code.length}`,

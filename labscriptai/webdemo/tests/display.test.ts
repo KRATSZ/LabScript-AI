@@ -7,7 +7,7 @@ describe("labwareLabel", () => {
     assert.equal(labwareLabel("tecan_diti_200ul_tiprack"), "200 µL DiTi tips");
     assert.equal(labwareLabel("tecan_96_wellplate"), "96-well plate");
     assert.equal(labwareLabel("opentrons_96_tiprack_300ul"), "300 µL tips");
-    assert.equal(labwareLabel("nest_12_reservoir_15ml"), "12-well reservoir");
+    assert.equal(labwareLabel("nest_96_wellplate_100ul_pcr_full_skirt"), "96-well PCR plate");
   });
 });
 

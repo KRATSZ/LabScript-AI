@@ -144,6 +144,7 @@ describe("device registry", () => {
     assert.match(assumedCapacityLine("Vantage"), /plate wells hold 360 µL, tips 300 µL/);
     assert.match(assumedCapacityLine("Tecan"), /plate wells hold 360 µL, tips 200 µL/);
     assert.equal(knownOpentronsWellUl("nest_96_wellplate_200ul_flat"), 200);
+    assert.equal(knownOpentronsWellUl("nest_96_wellplate_100ul_pcr_full_skirt"), 100);
     assert.equal(OT2_STANDARD_TIP_UL, 300);
     assert.equal(FLEX_STANDARD_TIP_UL, 1000);
   });

@@ -89,11 +89,16 @@ async function readSse(
 export async function generateCompactSop(
   hardwareConfig: string,
   userGoal: string,
-  onThink: ThinkFn
+  onThink: ThinkFn,
+  language: "en" | "zh" = "en"
 ): Promise<string> {
   const env = loadDemoEnv();
   if (!env.apiKey) throw new Error("DeepSeek key missing for compact SOP");
-  const prompt = `Write a compact liquid-handling SOP in English markdown, 400–800 characters. No Phase/Action/Tool/Tips/Workflow/Params. No essay. Do not write Python.
+  const langLine =
+    language === "zh"
+      ? "Write a compact liquid-handling SOP in Chinese markdown, 400–800 characters."
+      : "Write a compact liquid-handling SOP in English markdown, 400–800 characters.";
+  const prompt = `${langLine} No Phase/Action/Tool/Tips/Workflow/Params. No essay. Do not write Python.
 
 Hardware:
 ${hardwareConfig}

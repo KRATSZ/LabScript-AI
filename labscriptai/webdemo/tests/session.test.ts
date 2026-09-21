@@ -26,15 +26,19 @@ import {
   chosenVolumeInText,
   normalizePlanInput,
   normalizePlanTipPositions,
+  parseUiLang,
+  PCR_PLATE_OT,
   planPickTipWells,
   presetMismatchWarning,
   requestedTipWells,
   resolveGoalNotesConflict,
   reviewIntent,
+  setSessionLanguage,
   shouldCallCompactSop,
   shouldReuseSop,
   snapshot,
   unresolvedGoalNotesConflict,
+  goalMentionsPcr,
 } from "../server/src/session.ts";
 import { refuseEmptySop } from "../server/src/gate.ts";
 
@@ -792,5 +796,33 @@ describe("goal vs notes volume conflict", () => {
     markConflictUserReply(session, "use 250 not 50");
     assert.equal(canResolveGoalNotesConflict(session, "do not use 50"), false);
     assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), true);
+  });
+});
+
+describe("PCR-friendly deck and language", () => {
+  it("swaps the OT-2/Flex sample plate to a PCR plate without extra confirmation", () => {
+    assert.equal(goalMentionsPcr("Prepare a PCR mix"), true);
+    assert.equal(goalMentionsPcr("transfer 50 µL"), false);
+    const ot = createSession();
+    applyForm(ot, { goal: "Prepare a PCR mix: 20 µL into 8 wells", doc: "", robot: "OT-2" });
+    assert.equal(ot.hardware.deck["2"], PCR_PLATE_OT);
+    assert.equal(ot.deckAssumed, true);
+    assert.match(formatHardwareConfig(ot), /PCR: mix\/setup/);
+    assert.match(intakeConfirmLine(ot), /PCR plate/);
+    const flex = createSession();
+    applyForm(flex, { goal: "PCR setup", doc: "", robot: "Flex" });
+    assert.equal(flex.hardware.deck.D2, PCR_PLATE_OT);
+    const star = createSession();
+    applyForm(star, { goal: "PCR mix 20 µL", doc: "", robot: "Hamilton" });
+    assert.equal(star.hardware.deck["2"], "corning_96_wellplate_360ul_flat");
+  });
+
+  it("stores session language for Chinese replies", () => {
+    const session = createSession();
+    applyForm(session, { goal: "PCR", doc: "", robot: "OT-2", language: "zh" });
+    assert.equal(session.language, "zh");
+    assert.equal(parseUiLang("中文"), "zh");
+    assert.equal(setSessionLanguage(session, "en"), "en");
+    assert.equal(snapshot(session).language, "en");
   });
 });

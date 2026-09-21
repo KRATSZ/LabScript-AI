@@ -133,7 +133,10 @@ def _code_prompt(sop: str, hardware: str, robot: str) -> str:
     return (
         f"Write an Opentrons protocol_api Python script for {robot}.\n"
         "Return only Python. metadata + requirements with apiLevel. def run(protocol).\n"
-        "Use the hardware config exactly (pipettes, slots, labware).\n\n"
+        "Use the hardware config exactly (pipettes, slots, labware).\n"
+        "PCR mix/setup is allowed: use the PCR plate on the deck; 8 samples = A1-H1 unless named.\n"
+        "Do not refuse PCR. load_module thermocycler only if hardware/SOP asks to cycle temperatures.\n"
+        "Stay within tip and well max volumes. Do not invent modules or extra labware.\n\n"
         f"Hardware:\n{hardware}\n\nSOP:\n{sop}\n"
     )
 

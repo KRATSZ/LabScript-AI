@@ -10,10 +10,13 @@ export interface DeviceCard {
   blurb: string;
 }
 
+export type UiLang = "en" | "zh";
+
 export interface StartInput {
   goal: string;
   doc: string;
   robot: RobotModel;
+  language?: UiLang;
 }
 
 export type CheckStatus = "pass" | "fail" | "unevaluable";
@@ -98,6 +101,7 @@ export interface SessionSnapshot {
   device_label?: string | null;
   device_note?: string | null;
   intake_done?: boolean;
+  language?: UiLang;
 }
 
 export interface ChatMessage {

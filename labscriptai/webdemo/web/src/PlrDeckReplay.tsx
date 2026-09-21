@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { DemoReplay } from "./DemoReplay";
+import { planReplaySteps } from "./replaySteps";
+import type { SessionSnapshot } from "./types";
 
 interface StartResponse {
   ok?: boolean;
@@ -58,16 +61,19 @@ export function PlrDeckReplay({
   plan,
   robot,
   previewUp = true,
+  session = null,
 }: {
   plan: Record<string, unknown> | null;
   robot?: string | null;
   previewUp?: boolean;
+  session?: SessionSnapshot | null;
 }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<Progress | null>(null);
   const key = useMemo(() => JSON.stringify({ robot: robot ?? "", plan: plan ?? null }), [plan, robot]);
   const fallbackTotal = planStepCount(plan);
+  const steps = useMemo(() => planReplaySteps(plan), [plan]);
 
   useEffect(() => {
     if (!plan || !robot) return;
@@ -132,11 +138,12 @@ export function PlrDeckReplay({
     };
   }, [url]);
 
-  const total = progress?.total || fallbackTotal;
+  const total = progress?.total || fallbackTotal || steps.length;
+  const current = Math.max(0, (progress?.step || 1) - (progress?.playing ? 1 : 0));
   const pct = total > 0 ? Math.min(100, Math.round(((progress?.step || 0) / total) * 100)) : 0;
   const copy = progressCopy(progress, fallbackTotal);
 
-  return (
+  const body = (
     <div className="plr-deck-embed" data-testid="plr-deck-replay">
       {error ? (
         <p className={looksLikePreviewDown(error) ? "hint" : "file"} style={looksLikePreviewDown(error) ? undefined : { color: "var(--error)" }}>
@@ -145,7 +152,7 @@ export function PlrDeckReplay({
       ) : url ? (
         <div className="plr-deck-viewport">
           <iframe className="plr-deck-frame" title="Deck preview" src={url} />
-          {total > 0 ? (
+          {!session && total > 0 ? (
             <div className="replay-progress" data-testid="plr-progress">
               <div className="replay-progress-track">
                 <div className="replay-progress-fill" style={{ width: `${pct}%` }} />
@@ -161,5 +168,12 @@ export function PlrDeckReplay({
         </div>
       )}
     </div>
+  );
+
+  if (!session) return body;
+  return (
+    <DemoReplay session={session} current={current} totalHint={total}>
+      {body}
+    </DemoReplay>
   );
 }

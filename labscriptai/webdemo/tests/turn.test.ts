@@ -41,6 +41,7 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.match(first, /Robot: Flex/);
     assert.match(liveSessionBlock(session), /next_tool: ask_user/);
     assert.match(liveSessionBlock(session), /intake: pending/);
+    assert.match(liveSessionBlock(session), /language: en \(reply in English\)/);
     assert.doesNotMatch(CONTINUE_STEER, /robot is unknown/);
     markIntakeReply(session, "yes, 50 µL from A1 to B1 on the standard deck");
     assert.equal(nextToolHint(session), "generate_sop");

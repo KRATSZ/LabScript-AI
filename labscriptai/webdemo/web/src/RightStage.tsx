@@ -3,6 +3,7 @@ import { ArtifactsPane } from "./ArtifactsPane";
 import { StagePane } from "./StagePane";
 import { tabCount, tabVisible, type StageTab } from "./stageTabs";
 import { TrajectoryPane } from "./TrajectoryPane";
+import { useLang } from "./LangContext";
 import type { ActivityLive } from "./trajectoryLogic";
 import type { AgentEvent, SessionSnapshot } from "./types";
 
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function RightStage({ session, events, runningTool, busy, canWatch, onWatch, live = {} }: Props) {
+  const { t } = useLang();
   const [tab, setTab] = useState<StageTab>("stage");
   const visible = TABS.filter((item) => tabVisible(item.id, session, events));
   const filesOpen = tabVisible("artifacts", session, events);
@@ -43,7 +45,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
       data-testid="stage-column"
     >
       {session && visible.length > 1 ? (
-        <div className="stage-tabs" role="tablist" aria-label="Right stage">
+        <div className="stage-tabs" role="tablist" aria-label={t("Right stage")}>
           {visible.map((item) => {
             const count = tabCount(item.id, session, events, live);
             return (
@@ -57,7 +59,7 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
                 className={tab === item.id ? "stage-tab selected" : "stage-tab"}
                 onClick={() => setTab(item.id)}
               >
-                {item.label}
+                {t(item.label)}
                 {count != null && count > 0 ? (
                   <span className="stage-tab-count" data-testid={`tab-count-${item.id}`}>
                     {count}
@@ -83,8 +85,8 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
               <p className="stage-empty-emoji" aria-hidden="true">
                 🧫
               </p>
-              <h2>Deck</h2>
-              <p>The bench shows here.</p>
+              <h2>{t("Deck")}</h2>
+              <p>{t("The bench shows here.")}</p>
             </div>
           )
         ) : null}

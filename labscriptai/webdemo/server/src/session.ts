@@ -3,6 +3,7 @@ import type { ChecksResult, LogicPassResult } from "./gate.ts";
 import {
   DEVICE_REGISTRY,
   HARDWARE_PRESETS,
+  PCR_PLATE_OT,
   PRESET_ROBOT,
   ROBOT_PRESET,
   deviceFor,
@@ -12,7 +13,7 @@ import {
 } from "./devices.ts";
 
 export type { HardwarePresetId, PlanBackend, RobotModel };
-export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
+export { DEVICE_REGISTRY, HARDWARE_PRESETS, PCR_PLATE_OT, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
 export type { DeviceProfile } from "./devices.ts";
 
 export type Phase =
@@ -21,6 +22,39 @@ export type Phase =
   | "need_robot"
   | "need_hw_slots"
   | "ready";
+
+export type UiLang = "en" | "zh";
+
+export function parseUiLang(value: unknown): UiLang {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "zh" || raw === "zh-cn" || raw === "zh-hans" || raw === "chinese" || raw === "中文") {
+    return "zh";
+  }
+  return "en";
+}
+
+export function goalMentionsPcr(...texts: Array<string | undefined>): boolean {
+  return texts.some((text) => /\bpcr\b|聚合酶链式|热循环|扩增仪|上机pcr/i.test(text || ""));
+}
+
+function plateSlotFor(robot: RobotModel | undefined): string | undefined {
+  if (robot === "OT-2" || robot === "Hamilton" || robot === "Vantage" || robot === "Tecan") return "2";
+  if (robot === "Flex") return "D2";
+  return undefined;
+}
+
+/** PCR mix uses a PCR plate on OT-2/Flex without treating it as extra labware. */
+export function applyPcrFriendlyDeck(session: SessionState): void {
+  if (!session.robot || !session.deckAssumed) return;
+  if (!goalMentionsPcr(session.goal, session.doc === "none" ? "" : session.doc)) return;
+  const slot = plateSlotFor(session.robot);
+  if (!slot) return;
+  const current = session.hardware.deck[slot];
+  if (!current || !/wellplate|plate/i.test(current) || /pcr/i.test(current)) return;
+  if (session.robot === "OT-2" || session.robot === "Flex") {
+    session.hardware.deck[slot] = PCR_PLATE_OT;
+  }
+}
 
 export interface HardwareState {
   leftPipette?: string;
@@ -70,6 +104,8 @@ export interface SessionState {
   draftConflictResolved?: boolean;
   /** True after the user answers the first clarifying round (not the start-form goal). */
   intakeDone?: boolean;
+  /** Chat + SOP language. Default English. */
+  language?: UiLang;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -450,6 +486,8 @@ const DECK_SLOT_LABELS: Record<string, string> = {
   opentrons_96_tiprack_300ul: "300 µL tips",
   opentrons_flex_96_tiprack_1000ul: "1000 µL tips",
   nest_96_wellplate_200ul_flat: "96-well plate",
+  nest_96_wellplate_100ul_pcr_full_skirt: "96-well PCR plate",
+  opentrons_96_wellplate_200ul_pcr_full_skirt: "96-well PCR plate",
   nest_12_reservoir_15ml: "12-well reservoir",
   tecan_diti_200ul_tiprack: "200 µL DiTi tips",
   tecan_96_wellplate: "96-well plate",
@@ -505,11 +543,12 @@ export function assumeStandardDeck(session: SessionState): void {
     session.hardware.apiVersion = preset.apiVersion;
   }
   session.deckAssumed = true;
+  applyPcrFriendlyDeck(session);
 }
 
 export function applyForm(
   session: SessionState,
-  input: { goal: string; doc?: string; robot?: string }
+  input: { goal: string; doc?: string; robot?: string; language?: string }
 ): SessionState {
   const explicit = input.robot != null && String(input.robot).trim() !== "";
   const selectedRobot = explicit
@@ -525,6 +564,7 @@ export function applyForm(
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
   session.intakeDone = undefined;
+  if (input.language != null) session.language = parseUiLang(input.language);
   if (selectedRobot) {
     session.robot = selectedRobot;
   } else {
@@ -538,6 +578,7 @@ export function applyForm(
     }
   }
   assumeStandardDeck(session);
+  applyPcrFriendlyDeck(session);
   refreshPhase(session);
   return session;
 }
@@ -576,6 +617,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
   session.hardware.apiVersion = preset.apiVersion;
   session.hardware.deck = { ...preset.deck };
   session.deckAssumed = true;
+  applyPcrFriendlyDeck(session);
   if (switching) {
     session.sop = undefined;
     session.code = undefined;
@@ -688,6 +730,7 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
     session.deckAssumed = false;
   } else {
     assumeStandardDeck(session);
+    applyPcrFriendlyDeck(session);
   }
   refreshPhase(session);
   return session;
@@ -736,6 +779,11 @@ export function shouldCallCompactSop(session: SessionState, force?: boolean): bo
 
 export const SOP_CHAR_CAP = 1200;
 
+export function setSessionLanguage(session: SessionState, language: unknown): UiLang {
+  session.language = parseUiLang(language);
+  return session.language;
+}
+
 export function capSop(text: string, max = SOP_CHAR_CAP): string {
   const trimmed = text.trim();
   return trimmed.length <= max ? trimmed : trimmed.slice(0, max);
@@ -762,6 +810,11 @@ export function formatHardwareConfig(session: SessionState): string {
   if (device?.id === "tecan_fluent") {
     lines.push(
       "PLR sim: PyLabRobot has no Fluent deck — virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent FluentControl .gwl, not EVOware."
+    );
+  }
+  if (goalMentionsPcr(session.goal, session.doc === "none" ? "" : session.doc)) {
+    lines.push(
+      "PCR: mix/setup is liquid handling on the sample plate (PCR plate is a standard-deck variant, 100 µL wells on OT-2/Flex). 8 samples = A1–H1 unless named. Do not refuse PCR. Thermocycler cycling is optional OT-2/Flex Python (load_module) only if the user asked to cycle temperatures — not required for mix prep. Hamilton/Tecan: liquid setup only. Stay within tip and well max volumes."
     );
   }
   lines.push("Deck Layout:", deck);
@@ -793,6 +846,7 @@ export function snapshot(session: SessionState) {
     device_label: deviceFor(session.robot)?.label ?? null,
     device_note: deviceFor(session.robot)?.note ?? null,
     intake_done: Boolean(session.intakeDone),
+    language: session.language ?? "en",
   };
 }
 
