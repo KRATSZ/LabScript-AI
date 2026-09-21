@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ProtocolSummaryCard } from "./SummaryCard";
 import {
   findVisualizerTrack,
+  pauseVisualizer,
   readTrackPercent,
   seekVisualizerTrack,
   visualizerIndexFromPercent,
@@ -75,8 +76,11 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
     suppressUntil.current = Date.now() + 160;
     setIndex(clamped);
     onSeek?.(clamped);
-    const track = findVisualizerTrack(hostRef.current);
-    if (!track) return;
+    const host = hostRef.current;
+    if (!host) return;
+    pauseVisualizer(host);
+    const track = findVisualizerTrack(host);
+    if (!track || track.getBoundingClientRect().width <= 0) return;
     seekVisualizerTrack(track, visualizerPlayPercent(clamped, total));
   };
 

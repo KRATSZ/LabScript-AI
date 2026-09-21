@@ -24,6 +24,18 @@ export function findVisualizerTrack(root: HTMLElement | null): HTMLElement | nul
   return embed.querySelector<HTMLElement>('[class*="track_container"]');
 }
 
+export function pauseVisualizer(root: HTMLElement | null): void {
+  const embed =
+    root?.querySelector<HTMLElement>(".ot-deck-embed") ??
+    (root?.classList.contains("ot-deck-embed") ? root : null);
+  if (!embed) return;
+  const pause = [...embed.querySelectorAll("button")].find((btn) => {
+    const label = (btn.getAttribute("aria-label") || "").toLowerCase();
+    return label === "pause" || label.includes("pause");
+  });
+  pause?.click();
+}
+
 export function readTrackPercent(track: HTMLElement | null): number | null {
   if (!track) return null;
   const bar = track.querySelector<HTMLElement>('[class*="track_progress"]');
@@ -50,12 +62,16 @@ export function seekVisualizerTrack(track: HTMLElement, percent: number): void {
   const opts: MouseEventInit = {
     bubbles: true,
     cancelable: true,
+    composed: true,
     button: 0,
     buttons: 1,
     clientX: x,
     clientY: y,
     view: window,
   };
+  track.dispatchEvent(new MouseEvent("pointerdown", opts));
   track.dispatchEvent(new MouseEvent("mousedown", opts));
-  window.dispatchEvent(new MouseEvent("mouseup", opts));
+  const up = { ...opts, buttons: 0 };
+  track.dispatchEvent(new MouseEvent("mouseup", up));
+  window.dispatchEvent(new MouseEvent("mouseup", up));
 }
