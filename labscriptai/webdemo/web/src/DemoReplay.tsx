@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ProtocolSummaryCard } from "./SummaryCard";
+import {
+  findVisualizerTrack,
+  readTrackPercent,
+  seekVisualizerTrack,
+  visualizerIndexFromPercent,
+  visualizerPlayPercent,
+} from "./otPlaybackSync";
 import { clampStepIndex, replayStepsFor, type ReplayStep } from "./replaySteps";
 import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
@@ -10,12 +17,6 @@ interface Props {
   current?: number;
   totalHint?: number;
   onSeek?: (index: number) => void;
-}
-
-function findPlaybackRange(root: HTMLElement | null): HTMLInputElement | null {
-  if (!root) return null;
-  const ranges = [...root.querySelectorAll<HTMLInputElement>('input[type="range"]')];
-  return ranges.find((el) => !el.closest(".demo-replay-scrub")) ?? ranges[0] ?? null;
 }
 
 function stepStatus(index: number, current: number): "done" | "current" | "todo" {
@@ -31,6 +32,7 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
   const total = Math.max(steps.length, totalHint ?? 0, 1);
   const [index, setIndex] = useState(() => clampStepIndex(current, total));
   const listRef = useRef<HTMLUListElement>(null);
+  const suppressUntil = useRef(0);
 
   useEffect(() => {
     setIndex(clampStepIndex(current, total));
@@ -39,21 +41,27 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    const onInput = (event: Event) => {
-      const el = event.target as HTMLInputElement;
-      if (!el.closest(".ot-deck-embed") && !el.closest(".plr-deck-embed")) return;
-      if (el.closest(".demo-replay-scrub")) return;
-      const max = Number(el.max) || Math.max(total - 1, 1);
-      const min = Number(el.min) || 0;
-      const value = Number(el.value);
-      const next = clampStepIndex(((value - min) / Math.max(max - min, 1)) * (total - 1), total);
-      setIndex(next);
+    let raf = 0;
+    const syncFromVisualizer = () => {
+      if (Date.now() < suppressUntil.current) return;
+      const track = findVisualizerTrack(host);
+      if (!track) return;
+      const pct = readTrackPercent(track);
+      if (pct == null) return;
+      const next = visualizerIndexFromPercent(pct, total);
+      setIndex((cur) => (cur === next ? cur : next));
     };
-    host.addEventListener("input", onInput, true);
-    host.addEventListener("change", onInput, true);
+    const mo = new MutationObserver(() => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(syncFromVisualizer);
+    });
+    mo.observe(host, { attributes: true, subtree: true, attributeFilter: ["style", "class"] });
+    const timer = window.setInterval(syncFromVisualizer, 80);
+    syncFromVisualizer();
     return () => {
-      host.removeEventListener("input", onInput, true);
-      host.removeEventListener("change", onInput, true);
+      mo.disconnect();
+      window.clearInterval(timer);
+      cancelAnimationFrame(raf);
     };
   }, [total]);
 
@@ -64,16 +72,12 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
 
   const seek = (next: number) => {
     const clamped = clampStepIndex(next, total);
+    suppressUntil.current = Date.now() + 160;
     setIndex(clamped);
     onSeek?.(clamped);
-    const range = findPlaybackRange(hostRef.current);
-    if (!range) return;
-    const max = Number(range.max);
-    const min = Number(range.min) || 0;
-    const span = Number.isFinite(max) && max > min ? max - min : Math.max(total - 1, 1);
-    range.value = String(min + Math.round((clamped / Math.max(total - 1, 1)) * span));
-    range.dispatchEvent(new Event("input", { bubbles: true }));
-    range.dispatchEvent(new Event("change", { bubbles: true }));
+    const track = findVisualizerTrack(hostRef.current);
+    if (!track) return;
+    seekVisualizerTrack(track, visualizerPlayPercent(clamped, total));
   };
 
   const visible: ReplayStep[] = steps.length
@@ -101,6 +105,7 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
                 key={step.id}
                 className={`demo-step ${status}`}
                 data-status={status}
+                data-kind={step.kind}
                 data-testid={status === "current" ? "demo-step-current" : undefined}
               >
                 <button type="button" className="demo-step-btn" onClick={() => seek(step.index)}>

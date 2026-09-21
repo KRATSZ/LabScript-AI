@@ -84,11 +84,20 @@ function commandLabel(kind: string): string {
     .replace(/^\w/, (ch) => ch.toUpperCase());
 }
 
+/** Official Watch playback skips load* and home; the demo list must use that same set. */
+export function isVisualizerPlayCommand(commandType: string): boolean {
+  const kind = String(commandType || "").trim();
+  if (!kind) return false;
+  return !kind.includes("load") && kind !== "home";
+}
+
 export function analyzeReplaySteps(analyze: Record<string, unknown> | null | undefined): ReplayStep[] {
   if (!analyze || !Array.isArray(analyze.commands)) return [];
   const out: ReplayStep[] = [];
   for (const raw of analyze.commands) {
     const cmd = asRecord(raw);
+    const rawType = String(cmd.commandType ?? cmd.command_type ?? cmd.type ?? "").trim();
+    if (!isVisualizerPlayCommand(rawType)) continue;
     const kind = commandKind(cmd);
     if (!kind) continue;
     const params = asRecord(cmd.params);

@@ -183,6 +183,8 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(otDeck, /@opentrons\/components\/styles["']/);
     assert.match(readFileSync(path.join(webSrc, "FlexReplayTicks.tsx"), "utf8"), /flex-replay-ticks/);
     assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /demo-progress-range/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /seekVisualizerTrack/);
+    assert.match(readFileSync(path.join(webSrc, "replaySteps.ts"), "utf8"), /isVisualizerPlayCommand/);
     assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /Previous steps stay listed/);
     assert.match(readFileSync(path.join(webSrc, "SummaryCard.tsx"), "utf8"), /Protocol summary/);
     assert.match(readFileSync(path.join(webSrc, "LanguageSwitch.tsx"), "utf8"), /lang-zh/);
