@@ -134,11 +134,13 @@ describe("AnimationOverlay code-split", () => {
     );
     assert.match(componentsCss, /track_container/);
     const sync = readFileSync(path.join(webSrc, "otPlaybackSync.ts"), "utf8");
+    assert.match(sync, /setSelectedCommand/);
+    assert.match(sync, /seekVisualizerPlayback/);
     assert.match(sync, /\[class\*=["']track_container["']\]/);
     const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
     assert.match(smoke, /AnimationOverlay/);
     assert.match(smoke, /simpleAnalysis/);
-    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /findVisualizerTrack/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /seekVisualizerPlayback/);
     assert.match(readFileSync(path.join(webRoot, "overlay-smoke.html"), "utf8"), /overlaySmoke\.tsx/);
   });
 
@@ -208,7 +210,7 @@ describe("AnimationOverlay code-split", () => {
     assert.doesNotMatch(otDeck, /@opentrons\/components\/styles["']/);
     assert.match(readFileSync(path.join(webSrc, "FlexReplayTicks.tsx"), "utf8"), /flex-replay-ticks/);
     assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /demo-progress-range/);
-    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /seekVisualizerTrack/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /seekVisualizerPlayback/);
     assert.match(readFileSync(path.join(webSrc, "replaySteps.ts"), "utf8"), /isVisualizerPlayCommand/);
     assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /Previous steps stay listed/);
     assert.match(readFileSync(path.join(webSrc, "SummaryCard.tsx"), "utf8"), /Protocol summary/);

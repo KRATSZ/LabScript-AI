@@ -2,9 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ProtocolSummaryCard } from "./SummaryCard";
 import {
   findVisualizerTrack,
-  pauseVisualizer,
   readTrackPercent,
-  seekVisualizerTrack,
+  seekVisualizerPlayback,
   visualizerIndexFromPercent,
   visualizerPlayPercent,
 } from "./otPlaybackSync";
@@ -73,15 +72,16 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
 
   const seek = (next: number) => {
     const clamped = clampStepIndex(next, total);
-    suppressUntil.current = Date.now() + 160;
+    suppressUntil.current = Date.now() + 400;
     setIndex(clamped);
     onSeek?.(clamped);
     const host = hostRef.current;
     if (!host) return;
-    pauseVisualizer(host);
-    const track = findVisualizerTrack(host);
-    if (!track || track.getBoundingClientRect().width <= 0) return;
-    seekVisualizerTrack(track, visualizerPlayPercent(clamped, total));
+    const commandId = steps[clamped]?.id;
+    seekVisualizerPlayback(host, {
+      commandId: commandId && !commandId.startsWith("slot-") ? commandId : undefined,
+      percent: visualizerPlayPercent(clamped, total),
+    });
   };
 
   const visible: ReplayStep[] = steps.length
@@ -112,7 +112,12 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
                 data-kind={step.kind}
                 data-testid={status === "current" ? "demo-step-current" : undefined}
               >
-                <button type="button" className="demo-step-btn" onClick={() => seek(step.index)}>
+                <button
+                  type="button"
+                  className="demo-step-btn"
+                  data-command-id={step.id}
+                  onClick={() => seek(step.index)}
+                >
                   <span className="demo-step-index">{step.index + 1}</span>
                   <span className="demo-step-body">
                     <strong>{step.label}</strong>
@@ -138,6 +143,7 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
           value={index}
           aria-label={t("Demo progress")}
           data-testid="demo-progress-range"
+          onInput={(event) => seek(Number(event.currentTarget.value))}
           onChange={(event) => seek(Number(event.target.value))}
         />
       </div>

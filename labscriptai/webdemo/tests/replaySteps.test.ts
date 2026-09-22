@@ -10,8 +10,10 @@ import {
 } from "../web/src/replaySteps.ts";
 import {
   clientXForTrackPercent,
+  seekVisualizerPlayback,
   visualizerIndexFromPercent,
   visualizerPlayPercent,
+  visualizerPlaybackFromNode,
 } from "../web/src/otPlaybackSync.ts";
 
 describe("replaySteps", () => {
@@ -67,5 +69,51 @@ describe("replaySteps", () => {
     const track = { getBoundingClientRect: () => ({ x: 10, width: 112, left: 10, top: 0, height: 8 }) } as HTMLElement;
     assert.equal(clientXForTrackPercent(track, 0), 16);
     assert.equal(clientXForTrackPercent(track, 100), 116);
+  });
+
+  it("seeks official Watch by calling setSelectedCommand on the visualizer fiber", () => {
+    const selected: string[] = [];
+    const pauses: number[] = [];
+    const node = {
+      __reactFiber$test: {
+        memoizedProps: {
+          className: "track_container",
+        },
+        return: {
+          memoizedProps: {
+            track: { id: "protocol-timeline", value: 0 },
+            onChange: (id: string, percent: number) => selected.push(`${id}:${percent}`),
+          },
+          return: {
+            memoizedProps: {
+              isPlaying: true,
+              handlePlayPause: () => pauses.push(1),
+              setSelectedCommand: (id: string | null) => selected.push(String(id)),
+              commands: [{ id: "cmd-pick" }, { id: "cmd-dispense" }],
+            },
+            return: null,
+          },
+        },
+      },
+    };
+    const playback = visualizerPlaybackFromNode(node);
+    assert.equal(typeof playback?.setSelectedCommand, "function");
+    playback?.setSelectedCommand?.("cmd-dispense");
+    assert.deepEqual(selected, ["cmd-dispense"]);
+
+    const host = {
+      classList: { contains: (name: string) => name === "ot-deck-embed" },
+      querySelector: (sel: string) => (String(sel).includes("track_container") ? node : null),
+      querySelectorAll: () => [],
+    } as unknown as HTMLElement;
+    Object.assign(node, {
+      querySelector: () => null,
+      querySelectorAll: () => [],
+      getBoundingClientRect: () => ({ x: 0, width: 100, left: 0, top: 0, height: 8 }),
+    });
+    (node as { classList?: { contains: () => boolean } }).classList = { contains: () => false };
+    assert.equal(seekVisualizerPlayback(host, { commandId: "cmd-pick", percent: 40 }), true);
+    assert.ok(selected.includes("cmd-pick"));
+    assert.equal(pauses.length, 1);
   });
 });

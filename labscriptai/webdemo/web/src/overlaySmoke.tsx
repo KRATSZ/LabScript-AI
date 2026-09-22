@@ -7,7 +7,7 @@ import "./styles.css";
 import type { SessionSnapshot } from "./types";
 
 // Cloud hang still referenced for contract: simpleAnalysisFile.json
-// Seek contract: DemoReplay → findVisualizerTrack → [class*="track_container"] (pinned @opentrons/protocol-visualization).
+// Seek contract: DemoReplay → seekVisualizerPlayback(setSelectedCommand) → official Watch command id.
 const empty = new URLSearchParams(window.location.search).has("empty");
 const analyze = empty ? null : (fixture as Record<string, unknown>);
 const session: SessionSnapshot = {
