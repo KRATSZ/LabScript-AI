@@ -117,6 +117,31 @@ describe("AnimationOverlay code-split", () => {
     assert.match(issues, /status-word/);
   });
 
+  it("pins protocol-visualization and overlay-smoke still seeks the TimelineScrubber track", () => {
+    const webRoot = path.resolve(webSrc, "..");
+    const demoRoot = path.resolve(webSrc, "../..");
+    const pkg = JSON.parse(readFileSync(path.join(demoRoot, "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
+    };
+    assert.equal(pkg.dependencies?.["@opentrons/protocol-visualization"], "0.3.18-alpha.0");
+    const vizPkg = JSON.parse(
+      readFileSync(path.join(demoRoot, "node_modules/@opentrons/protocol-visualization/package.json"), "utf8")
+    ) as { version?: string };
+    assert.equal(vizPkg.version, "0.3.18-alpha.0");
+    const componentsCss = readFileSync(
+      path.join(demoRoot, "node_modules/@opentrons/components/lib/style.css"),
+      "utf8"
+    );
+    assert.match(componentsCss, /track_container/);
+    const sync = readFileSync(path.join(webSrc, "otPlaybackSync.ts"), "utf8");
+    assert.match(sync, /\[class\*=["']track_container["']\]/);
+    const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
+    assert.match(smoke, /AnimationOverlay/);
+    assert.match(smoke, /simpleAnalysis/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /findVisualizerTrack/);
+    assert.match(readFileSync(path.join(webRoot, "overlay-smoke.html"), "utf8"), /overlaySmoke\.tsx/);
+  });
+
   it("overlay smoke uses simpleAnalysisFile and AnimatorGuard exposes errors", () => {
     const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
     assert.match(smoke, /simpleAnalysisFile\.json/);

@@ -68,6 +68,23 @@ describe("protocolSummary", () => {
     assert.equal(tips[0]?.slot, "1");
   });
 
+  it("maps fixed trash to Trash instead of a load-name leak", () => {
+    const model = protocolSummary(
+      snap({
+        analyze: {
+          labware: [
+            { loadName: "opentrons_1_trash_1100ml_fixed", displayName: "Opentrons Fixed Trash" },
+          ],
+        },
+      })
+    );
+    assert.ok(model);
+    const trash = model.consumables.filter((item) => item.role === "trash");
+    assert.equal(trash.length, 1);
+    assert.equal(trash[0]?.name, "Trash");
+    assert.doesNotMatch(trash[0]?.name || "", /1100|t100ml|fixed/i);
+  });
+
   it("returns null when the session is empty", () => {
     assert.equal(
       protocolSummary(

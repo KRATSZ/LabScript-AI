@@ -31,7 +31,8 @@
   "labware": [
     { "id": "tips", "loadName": "opentrons_96_tiprack_300ul", "slot": "1" },
     { "id": "plate", "loadName": "nest_96_wellplate_100ul_pcr_full_skirt", "slot": "2" },
-    { "id": "res", "loadName": "nest_12_reservoir_15ml", "slot": "3" }
+    { "id": "res", "loadName": "nest_12_reservoir_15ml", "slot": "3" },
+    { "id": "trash", "loadName": "opentrons_1_trash_1100ml_fixed", "displayName": "Opentrons Fixed Trash", "slot": "12" }
   ],
   "pipettes": [{ "id": "left", "pipetteName": "p300_single_gen2" }],
   "modules": [],
