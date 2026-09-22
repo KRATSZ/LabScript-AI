@@ -18,7 +18,19 @@ Writing automation scripts for liquid-handling robots is often tedious. Asking a
 > **Try the web demo (no hardware needed):** [labscriptai.cn](https://labscriptai.cn/)  
 > Or run it locally at [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
-<!-- Demo video placeholder: video walkthroughs and screencasts will be linked here -->
+---
+
+## Project Overview Video
+
+<p align="center">
+  <a href="assets/intro-video.mp4">
+    <img src="assets/intro-video-thumbnail.png" alt="LabscriptAI Overview Video" width="720" style="max-width: 100%; border: 1px solid #e1e4e8; border-radius: 6px;" />
+  </a>
+  <br />
+  <em>▶ <strong><a href="assets/intro-video.mp4">Watch the project overview video (1:29)</a></strong> — Real Opentrons Flex footage, closed-loop protocol authoring, and runtime recovery.</em>
+</p>
+
+> **Video file:** [`assets/intro-video.mp4`](assets/intro-video.mp4) (also symlinked as [`assets/介绍视频.mp4`](assets/介绍视频.mp4), copied from [`介绍视频.mp4` on the `manuscript` branch](https://github.com/KRATSZ/LabScript-AI/blob/manuscript/%E4%BB%8B%E7%BB%8D%E8%A7%86%E9%A2%91.mp4)). Click the card above or the link to stream directly in GitHub's video player or download the MP4.
 
 ---
 
