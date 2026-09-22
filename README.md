@@ -1,194 +1,250 @@
 # LabscriptAI
 
-LabscriptAI turns a liquid-handling protocol written in ordinary language into robot-ready files, checks them in simulation, and — on a live Opentrons Flex — watches the run. When a command fails (no tip in the well, empty reservoir, and similar), it proposes a recovery. A separate gate, not the language model, decides whether that recovery may run, must wait for a person, or must stop.
+**Natural-language liquid handling with closed-loop simulation, deck visualization, and gated live recovery.**
 
 [![Canonical release](https://img.shields.io/github/v/tag/KRATSZ/LabScript-AI?label=v1.0-canonical)](https://github.com/KRATSZ/LabScript-AI/releases/tag/v1.0-canonical)
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.17697326.svg)](https://doi.org/10.5281/zenodo.17697326)
 
-**Browser demo (no robot):** [labscriptai.cn](https://labscriptai.cn/)
+Writing automation scripts for liquid-handling robots is often tedious. Asking a general-purpose LLM for help usually leads to a frustrating cycle: you get a snippet of Python, paste it into your robot software, hit a `LabwareNotFoundError` or volume error, paste the traceback back into chat, and repeat. And when something fails on the physical deck—like an empty tip box or a dry source well—standard scripts just crash.
+
+**LabscriptAI** connects protocol authoring, simulation, and hardware execution into a reliable workflow:
+1. **Closed-loop protocol authoring:** You describe your experiment in plain language. The agent writes the protocol, runs it against platform simulators and logic checkers, and automatically patches errors until the script passes.
+2. **Interactive web agent with "Watch" playback:** Through a browser interface, you can author protocols across five robot platforms. For Opentrons OT-2 and Flex, once checks pass, the **Watch** deck viewer lets you step through commands and inspect the animated deck layout before touching real hardware.
+3. **Gated live recovery on Opentrons:** When running on a live Opentrons Flex, the agent monitors the command queue. If an operation fails mid-run (such as a missing tip or depleted well), it diagnoses the issue and proposes a recovery action.
+4. **Deterministic safety gate (`allow` / `ask` / `suspend`):** The language model never has raw control over robot motion. A deterministic gatekeeper evaluates every candidate action against safety rules—auto-allowing safe retries, asking an operator when human judgment is needed, and immediately halting on hardware faults or contamination risks.
 
 ---
 
-## Who this is for
+> **Try the web demo (no hardware needed):** [labscriptai.cn](https://labscriptai.cn/)  
+> Or run it locally at [http://127.0.0.1:5173](http://127.0.0.1:5173).
 
-People who already run, or are about to run, **Opentrons OT-2 / Flex**, **Hamilton STAR / Vantage**, or **Tecan Fluent** liquid handlers — automation engineers, core-lab staff, iGEM and synbio teams.
+<!-- Demo video placeholder: video walkthroughs and screencasts will be linked here -->
 
-It is not a general lab chatbot. It does not replace a human on a live deck.
+---
 
-## What it does in practice
+## System Overview
 
-**At the desk (authoring).** You give a goal plus your SOP and hardware setup. LabscriptAI writes a protocol package — Python for Opentrons, or a step list / worklist for Hamilton and Tecan — then a simulator and a logic checker try to catch empty sources, missing tips, and volume mistakes before anything moves.
+LabscriptAI separates protocol creation at your desk from live execution on the robot deck:
 
-**On the robot (runtime, Opentrons).** The same agent can play a package that already passed simulation, watch the command queue, and recover from a small set of known failures. Camera frames and pipette-pressure traces are extra evidence only. What the controller reports is the deck of record.
+![System architecture and end-to-end workflow](assets/fig-a-architecture.png)
 
-Those are two loops on purpose. Authoring must not move hardware. Runtime must not silently rewrite the protocol.
+- **The Authoring Loop (Desk):** Converts your natural-language intent and SOP into a verified protocol package (`protocol.py`, step manifests, and execution traces). A platform simulator catches labware mismatches, volume overflows, and trajectory issues before anything touches hardware.
+- **The Runtime Loop (Robot):** Runs only validated packages. While the robot executes commands, the agent tracks live status. If a command fails, the agent looks up recovery playbooks and proposes a fix.
+- **Human-in-the-Loop & Safety Gates:** Operators confirm initial SOP plans and review edge-case recoveries. Critical safety rules—like collision prevention and tip budget limits—are hardcoded and deterministic.
+- *A note on biosecurity:* While the architecture supports biosecurity screening and containment checkpoints (as illustrated above), sequence-level biosecurity screening in practical deployment is the operator's responsibility; it is not automated by this code repository.
 
-![Pipeline from intent through package authoring, simulation, physical execution, and memory, with a separate authoring loop and runtime loop](assets/fig-a-architecture.png)
+---
 
-The figure is the product shape: a goal becomes a package you can simulate, then (if you choose) a physical run. The language model sits in the middle. Around it, the figure shows human SOP confirmation, biosecurity screening, and approval checkpoints. **This clone implements the authoring/runtime loops and the robot gates.** Sequence-level biosecurity review is still an operator responsibility — it is not an automated feature of `git clone`.
+## Closed-Loop Authoring vs. Manual Chat Debugging
 
-## Authoring is not “chat until the traceback goes away”
+Most LLM coding tools leave you acting as the manual error-fetcher:
 
-A typical LLM session looks like: generate Python → paste it into Opentrons or PyLabRobot → hit `LabwareNotFoundError` → paste the traceback back → get a new script that is wrong in a different place.
+![Manual trial-and-error versus LabscriptAI closed-loop authoring](assets/fig-b-authoring-vs-manual.png)
 
-LabscriptAI keeps the model inside a closed authoring loop: plan → write `protocol.py` → simulate → targeted patch → repeat until the simulator passes. You get a package (`protocol.py`, manifests, a trace), not a one-off code block. On a live run, sensing and recovery are a second loop with their own gate.
+Instead of handing you raw code to debug yourself:
+- **Plan & Generate:** The agent structures the SOP into formal steps (volumes, labware slots, pipetting mechanics).
+- **Simulate & Verify:** The script is immediately run against Opentrons simulation and the `LogicPass` validation engine.
+- **Targeted Self-Correction:** When simulation fails (e.g., missing labware definition or invalid tip rack slot), the agent applies focused search/replace patches directly to the protocol file and re-simulates.
+- **Ready-to-Run Packages:** You receive complete, downloadable protocol packages with verified step tables and manifests rather than a one-off code snippet.
 
-![Side-by-side of manual LLM trial-and-error versus LabscriptAI closed-loop authoring, then protocols.io to code to robotic liquid handling on Flex, OT-2, Tecan Fluent, and Hamilton Vantage](assets/fig-b-authoring-vs-manual.png)
+---
 
-Same kind of request (here: an iGEM fluorescein serial dilution). Left: you are the debugger. Right: the simulator is. Below: that class of protocol authored toward Flex, OT-2, Tecan Fluent, and Hamilton Vantage.
+## Safety Architecture: The Allow / Ask / Suspend Gate
 
-## How a robot action is allowed
+LLMs are creative, but physical lab hardware cannot tolerate hallucinated movements or rogue jogs. In LabscriptAI, the language model can only submit **candidate actions**. Every action must pass through an independent, deterministic gatekeeper:
 
-Every live action goes through a three-way gate:
+![Execution-aware agent harness with the three-way gate](assets/fig-c-execution-harness.png)
 
-| Gate | Meaning |
-| --- | --- |
-| **allow** | On the safe list; may run now |
-| **ask** | A person has to confirm (or name a spare slot, a spare source, …) |
-| **suspend** | Stop. Hardware faults, deck collisions, and unknowns always land here |
+| Gate Decision | What It Means | Examples |
+|---|---|---|
+| **`allow`** | Safe and pre-authorized. May execute immediately without operator interruption. | Retrying tip pickup from the next valid well in the rack; switching to a pre-mapped spare buffer well. |
+| **`ask`** | Needs human confirmation. The system pauses and prompts the operator to approve or provide details. | Selecting an unconfirmed substitute reagent; ambiguous sensor readings. *(In non-interactive daemon mode, `ask` automatically upgrades to `suspend`.)* |
+| **`suspend`** | Immediate halt. Execution stops safely to protect hardware and samples. | Physical deck collision; hardware actuator faults; tip budget exhausted; risk of a contaminated tip entering common stock; unknown errors. |
 
-The model may **propose**. It does not get to **release** motion. A failed simulation blocks unattended play. After a few targeted patches, retries stop instead of looping forever.
+---
 
-![Execution-aware agent harness: authoring with a human SOP checkpoint and simulation gate, then runtime observe–propose–gate–act with allow, ask, or suspend](assets/fig-c-execution-harness.png)
+## Real-Time Monitoring and Recovery
 
-Authoring (top) ends in a validated package. Runtime (bottom) is observe → propose → gate → act → write the result back. Orange is human, teal is the model, white is ordinary deterministic code.
+On a live Opentrons Flex, runs proceed through an active command queue:
 
-## When a command fails on the deck
+![Live command monitoring, advisory sensor tiers, and recovery decision flow](assets/fig-d-recovery.png)
 
-The run is a command queue. A failure (for example `pickUpTip` / “No Tip Detected”) does not let the model invent a jog. The agent classifies the event, looks up a playbook, and submits a **candidate** action to the same gate.
+### Tiered Sensor Stack
+To avoid hallucinations or sensor misreads causing hardware errors, inputs are organized into distinct trust tiers:
+1. **Tier 1 & 2 (Authoritative):** Robot controller HTTP status and MCP state. What the controller reports is the ground truth of the deck.
+2. **Tier 3 (Advisory Evidence):** On-deck camera captures (with YOLO/VLM component detection overlays) and pipette pressure traces. These provide helpful diagnostic context for the agent, but they can never override controller telemetry or force a resume.
 
-Vision (on-deck camera, detection overlay) and pressure traces can support a decision. They never override the controller.
+### Playbooks and Case Memory
+When a command fails (such as an empty reservoir or unseated tip):
+- The agent classifies the error against a standardized taxonomy (`labscriptai/plugins/skills/error-taxonomy.md`).
+- It selects a recovery playbook (`labscriptai/plugins/skills/recovery-playbooks.md`) to craft a safe candidate response.
+- If a similar issue was resolved previously—for example, switching from an empty fluorescein well at A3 to a reserve well at A4—the system recalls that case memory to streamline the recovery while still verifying through the gatekeeper.
 
-If a similar case was already reviewed — “fluorescein stock empty, spare in A4” — that memory can make the next substitution faster. It still goes through the gate.
+---
 
-![Failed command in the execution queue, vision and pressure as advisory evidence, and a live recovery path through the gatekeeper](assets/fig-d-recovery.png)
+## Supported Robots: Live Execution vs. Authoring-Only
 
-Failed command → candidate action → allow / ask / suspend. HTTP and the robot API are the source of truth; camera and pressure are advisory.
+Different robots have different interfaces and access levels. Here is exactly what this repository supports:
 
-Always stop and call a person for **hardware fault**, **deck collision**, and **unknown**. Also stop when the enforced tip budget cannot finish the run, the time window has expired, or a sample-contaminated tip would enter common stock.
+| Robot Platform | Authoring & Verification | Deck Replay ("Watch") | Live Control & Recovery |
+|---|---|---|---|
+| **Opentrons Flex** | Full Python protocol generation + Opentrons simulator | Yes (web demo Stage view) | Yes — documented live path via HTTP API (`:31950`) with automated recovery playbooks |
+| **Opentrons OT-2** | Full Python protocol generation + Opentrons simulator | Yes (web demo Stage view) | Yes — connects via port `:31950`; recovery playbooks were primarily developed for Flex |
+| **Hamilton STAR** | Step JSON + runnable PyLabRobot (`.py`) scripts | No | Authoring-only (no live hardware driver in this repo) |
+| **Hamilton Vantage** | Step JSON + runnable PyLabRobot (`.py`) scripts | No | Authoring-only (no live hardware driver in this repo) |
+| **Tecan Fluent** | Step JSON + `.gwl` worklists | No | Authoring-only (no live hardware driver in this repo) |
 
-Do not drive the same robot from this agent and a second HTTP client at the same time.
+### The "Watch" Deck Visualizer
+In the web demo, **Watch** is the built-in Opentrons deck visualizer. When an OT-2 or Flex protocol passes simulation, the Watch button appears on the Stage tab. It renders the deck layout, labware placements, and lets you scrub through each pipetting step. (Because Hamilton and Tecan use distinct proprietary runtimes, their protocols output clean step tables and script downloads without web deck playback).
 
-Before a live Flex, read:
+---
 
-- [`labscriptai/plugins/skills/safety-brief.md`](labscriptai/plugins/skills/safety-brief.md)
-- [`labscriptai/plugins/skills/error-taxonomy.md`](labscriptai/plugins/skills/error-taxonomy.md)
-- [`labscriptai/plugins/skills/recovery-playbooks.md`](labscriptai/plugins/skills/recovery-playbooks.md)
+## Real-World Applications
 
-## Robots this repository actually supports
+LabscriptAI has been tested on real-world synthetic biology workflows, including high-throughput plate mapping and assembly for the iGEM parts distribution kit:
 
-| Robot | Authoring in this repo | Live run and recovery |
-| --- | --- | --- |
-| **Opentrons Flex** | Python protocol + Opentrons simulation | Yes — this is the documented live path (`labscriptai chat --robot …`) |
-| **Opentrons OT-2** | Same Python path; official deck replay in the web demo | Same robot-server port (`:31950`); Flex is the live recovery target the playbooks were written for |
-| **Hamilton STAR** | Step JSON + PyLabRobot script | Not live-controlled here |
-| **Hamilton Vantage** | Step JSON + PyLabRobot script | Not live-controlled here |
-| **Tecan Fluent** | Step JSON + `.gwl` worklist | Not live-controlled here |
+![Synthetic biology applications, transformation workflows, and plate mapping](assets/fig-e-applications.png)
 
-The **local web demo** is the multi-robot authoring UI (device card + goal, downloads, on-screen deck). **`labscriptai chat`** is Flex-oriented authoring plus live Opentrons control. Live motion is not something the web demo does.
+Workflows demonstrated include:
+- *E. coli* transformation and outgrowth setup
+- Clonal culture isolation and liquid cultivation
+- Bead-based plasmid DNA extraction
+- High-throughput distribution kit assembly: taking sequencing, concentration, and inventory manifests to calculate volume normalizations and map liquid transfers across 96-well and 384-well plates.
 
-![Flex deck hardware, iGEM / distribution-kit workflows, and kit-assembly plate maps](assets/fig-e-applications.png)
+---
 
-Where this has been used: a Flex station, transformation / culture / kit-assembly / extraction workflows, and iGEM parts-kit plate mapping. The figure is the evidence; this README is not the paper.
+## Getting Started
 
-## Run it
+### Prerequisites
+- **Python 3.10+**
+- **Node.js 18+** (required for the Opentrons robot backend and web demo)
+- An API key for DeepSeek (`DEEPSEEK_API_KEY`) or an OpenAI-compatible provider.
 
-You need **Python 3.10+**. The Opentrons robot backend also needs **Node 18+**. The default model is DeepSeek (`DEEPSEEK_API_KEY`). `labscriptai chat --provider offline` smokes the CLI without an API key.
+---
 
-### Browser demo (no robot)
+### Option 1: Browser Web Demo (Recommended for protocol authoring)
 
-Hosted: [labscriptai.cn](https://labscriptai.cn/)
+You can try the hosted version directly at [labscriptai.cn](https://labscriptai.cn/).
 
-Or locally. The demo binds **127.0.0.1 only**.
+To run the web interface locally on your machine (binds strictly to `127.0.0.1`):
 
 ```bash
 cd labscriptai/webdemo
-cp .env.example .env          # set LABSCRIPTAI_DEEPSEEK_API_KEY
+cp .env.example .env          # Add your LABSCRIPTAI_DEEPSEEK_API_KEY
 pip install -r python/requirements-code-service.txt
-# optional, for Hamilton/Tecan simulation:
-# pip install pylabrobot
 npm install
 npm run dev
 ```
 
-Open http://127.0.0.1:5173
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser.
 
-That starts the UI (`5173`), the agent server (`8787`), and the Opentrons analyze service (`8010`). If `8010` is down, OT-2/Flex still give you a step table and downloads; they will not pretend the official deck replay passed. Checks are **pass**, **fail**, or **cannot verify** — cannot-verify is not a pass.
+This command starts:
+- The frontend UI on port `5173`
+- The web agent server on port `8787`
+- The local Opentrons code analyze service on port `8010` (used for Python simulation and generating Watch deck playback)
 
-Details: [`labscriptai/webdemo/README.md`](labscriptai/webdemo/README.md).
+For more details on web demo configuration, see [`labscriptai/webdemo/README.md`](labscriptai/webdemo/README.md).
 
-### CLI (desk, or a live Opentrons)
+---
 
-The installable package is **`labscriptai/`**. Use a fresh virtualenv. Do not install a second tree that also ships a `labscriptai` console script.
+### Option 2: CLI Agent (Desk authoring & live Opentrons control)
+
+Install the package in an isolated virtual environment:
 
 ```bash
 git clone https://github.com/KRATSZ/LabScript-AI.git
 cd LabScript-AI/labscriptai
+
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e .
-pip install "opentrons>=7,<9"   # Opentrons simulation; doctor warns if this is missing
-pip install -e ".[dev]"         # optional: pytest
+pip install "opentrons>=7,<9"   # Required for local Opentrons simulation
+pip install -e ".[dev]"         # Optional: for running pytest
 
+# Install the Node-based Opentrons robot backend
 cd plugins/mcp/opentrons-mcp && npm install && cd -
-
-# Put this in a .env at the repo root or in labscriptai/:
-#   DEEPSEEK_API_KEY=...
-#   ROBOT_IP=192.168.x.x     # optional until you talk to a robot
-
-labscriptai doctor                 # toolchain; add --robot <IP> to ping :31950/health
-labscriptai chat                   # default: DeepSeek
-labscriptai chat --provider offline
 ```
 
-`labscriptai chat` is the operator entry. `doctor` is only a health check.
-
-On a live run you can also:
-
+Configure environment variables (in a `.env` file or exported in your shell):
 ```bash
-labscriptai recover --robot <IP> --run-id <ID>
-labscriptai daemon  --robot <IP> --run-id <ID>
+DEEPSEEK_API_KEY=your_api_key_here
+ROBOT_IP=192.168.x.x           # Optional until connecting to physical hardware
 ```
 
-`recover` is one recovery turn. `daemon` polls for a failed command (or an outbox wake) and runs the same loop. When the process is non-interactive, **ask** becomes **suspend**.
+#### Run Health Check
+Verify your environment, dependencies, and optional robot connectivity:
+```bash
+labscriptai doctor                 # Check toolchain, Node, Python, and API key
+labscriptai doctor --robot <IP>    # Also ping the robot's :31950/health endpoint
+```
 
-Optional env: `LABSCRIPTAI_WORKSPACE`, `LABSCRIPTAI_MCP_INDEX` (override the robot backend `index.js`), `ROBOT_IP`.
+#### Start Interactive Chat
+```bash
+labscriptai chat                   # Interactive agent (default: DeepSeek)
+labscriptai chat --provider offline # Smoke test the REPL without making API calls
+```
 
-`plugins/mcp/opentrons-mcp/` is the **robot backend** for chat. It is not a Cursor plugin and not a second CLI.
+#### Live Recovery and Daemon Modes (Opentrons)
+If a run on your robot has failed or paused:
+```bash
+# Run a single recovery turn to diagnose and propose a fix
+labscriptai recover --robot <IP> --run-id <RUN_ID>
 
-Without a Flex, you can still exercise recovery against a local fake robot:
+# Or run the background daemon to watch the command queue and handle issues automatically
+labscriptai daemon --robot <IP> --run-id <RUN_ID>
+```
+
+#### Testing Without Hardware (`fake_robot`)
+You don't need a physical Opentrons robot to test recovery workflows. You can run the built-in mock server:
 
 ```bash
+# In terminal 1: start the mock robot server simulating a tip pickup failure
 python -m labscriptai.fake_robot --host 127.0.0.1 --port 31950 --scenario tip_missing_budget_block
+
+# In terminal 2: probe the mock robot
 labscriptai doctor --robot 127.0.0.1
 ```
 
-See [`labscriptai/fake_robot/README.md`](labscriptai/fake_robot/README.md).
+See [`labscriptai/fake_robot/README.md`](labscriptai/fake_robot/README.md) for available mock scenarios (liquid depletion, door open, e-stop, etc.).
 
+To run the package test suite:
 ```bash
 cd labscriptai && pytest -q
 ```
 
-## What's in the tree
+---
+
+## Repository Structure
 
 ```
 labscriptai/
-  agent/                     chat / recover / daemon / doctor
-                             (five tools: bash, edit, robot, memory, skill)
-  benchmark/logicpass/       logic checker used during authoring
-  planir/                    Hamilton/Tecan step plans + simulation
-  fake_robot/                local stand-in for Opentrons robot-server
-  plugins/skills/            playbooks the agent loads on demand
-  plugins/mcp/opentrons-mcp/ Node backend for live Opentrons
-  webdemo/                   local browser demo
-  tests/
+  agent/                     # CLI agent implementation (chat, doctor, recover, daemon) and safety gate
+  benchmark/logicpass/       # LogicPass / FinalPass_v2 protocol verification engine
+  planir/                    # Step plan intermediate representation (Hamilton / Tecan)
+  fake_robot/                # Mock Opentrons HTTP server for offline testing
+  plugins/skills/            # Recovery playbooks, error taxonomies, and safety briefs
+  plugins/mcp/opentrons-mcp/ # Node backend for Opentrons HTTP / WebSocket communication
+  webdemo/                   # Interactive browser UI, agent server, and analyze service
+  tests/                     # Test suite
+assets/                      # Architectural and workflow figures
 ```
 
-Skills and MCP sources ship in the package; `node_modules/` does not. Run `npm install` after clone.
+---
 
-## Citation
+## Safety Guidelines for Live Hardware
 
-- **Code:** [github.com/KRATSZ/LabScript-AI](https://github.com/KRATSZ/LabScript-AI)
-- **Benchmark / shard data:** [Zenodo 10.5281/zenodo.17697326](https://doi.org/10.5281/zenodo.17697326)
+Before running live protocols on physical equipment, please review the safety specifications:
+- [`labscriptai/plugins/skills/safety-brief.md`](labscriptai/plugins/skills/safety-brief.md) — Operational guidelines and boundaries
+- [`labscriptai/plugins/skills/error-taxonomy.md`](labscriptai/plugins/skills/error-taxonomy.md) — How errors are detected and classified
+- [`labscriptai/plugins/skills/recovery-playbooks.md`](labscriptai/plugins/skills/recovery-playbooks.md) — Pre-approved recovery strategies
+
+*Important:* Never run multiple automated clients or manual scripts against the same robot at the same time.
+
+---
+
+## Citation & References
+
+- **Code Repository:** [github.com/KRATSZ/LabScript-AI](https://github.com/KRATSZ/LabScript-AI)
+- **Dataset & Shards:** [Zenodo DOI: 10.5281/zenodo.17697326](https://doi.org/10.5281/zenodo.17697326)
 
 ## License
 
