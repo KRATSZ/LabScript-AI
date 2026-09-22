@@ -704,4 +704,31 @@ describe("goal vs notes conflict gate", () => {
     assert.equal(session.draftConflictResolved, false);
     assert.equal(session.goal, GOAL_50);
   });
+
+  it("localizes a real volume fight in Chinese and ignores tip/PCR capacity notes", async () => {
+    const capacity = createSession();
+    applyForm(capacity, {
+      goal: "Prepare a PCR mix: dispense 20 µL of master mix into 8 sample wells.",
+      doc: "Dispense 20 µL of master mix. 300 µL tips. nest_96_wellplate_100ul_pcr_full_skirt",
+      robot: "OT-2",
+      language: "zh",
+    });
+    const capacityAsk = JSON.parse(toolText(await tool(capacity, "ask_user").execute("1", {})));
+    assert.equal(capacityAsk.conflict, undefined);
+    assert.match(capacityAsk.ask || "", /若相符请回复/);
+    assert.match(capacityAsk.ask || "", /300 µL 枪头/);
+
+    const fight = createSession();
+    applyForm(fight, {
+      goal: "Transfer 20 µL A1 to B1.",
+      doc: "Dispense 50 µL A1 to B1",
+      robot: "OT-2",
+      language: "zh",
+    });
+    const asked = JSON.parse(toolText(await tool(fight, "ask_user").execute("1", {})));
+    assert.equal(asked.wait, true);
+    assert.match(asked.conflict || "", /目标 20 µL，备注 50 µL/);
+    assert.match(asked.ask || "", /目标 20 µL，备注 50 µL/);
+    assert.doesNotMatch(asked.ask || "", /goal 20/);
+  });
 });

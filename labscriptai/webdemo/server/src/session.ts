@@ -3,6 +3,7 @@ import type { ChecksResult, LogicPassResult } from "./gate.ts";
 import {
   DEVICE_REGISTRY,
   HARDWARE_PRESETS,
+  PCR_PLATE_OT,
   PRESET_ROBOT,
   ROBOT_PRESET,
   deviceFor,
@@ -12,7 +13,7 @@ import {
 } from "./devices.ts";
 
 export type { HardwarePresetId, PlanBackend, RobotModel };
-export { DEVICE_REGISTRY, HARDWARE_PRESETS, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
+export { DEVICE_REGISTRY, HARDWARE_PRESETS, PCR_PLATE_OT, deviceFor, deviceForId, usesFluentCompile, usesHamiltonCompile, hamiltonFamily } from "./devices.ts";
 export type { DeviceProfile } from "./devices.ts";
 
 export type Phase =
@@ -21,6 +22,39 @@ export type Phase =
   | "need_robot"
   | "need_hw_slots"
   | "ready";
+
+export type UiLang = "en" | "zh";
+
+export function parseUiLang(value: unknown): UiLang {
+  const raw = String(value ?? "").trim().toLowerCase();
+  if (raw === "zh" || raw === "zh-cn" || raw === "zh-hans" || raw === "chinese" || raw === "中文") {
+    return "zh";
+  }
+  return "en";
+}
+
+export function goalMentionsPcr(...texts: Array<string | undefined>): boolean {
+  return texts.some((text) => /\bpcr\b|聚合酶链式|热循环|扩增仪|上机pcr/i.test(text || ""));
+}
+
+function plateSlotFor(robot: RobotModel | undefined): string | undefined {
+  if (robot === "OT-2" || robot === "Hamilton" || robot === "Vantage" || robot === "Tecan") return "2";
+  if (robot === "Flex") return "D2";
+  return undefined;
+}
+
+/** PCR mix uses a PCR plate on OT-2/Flex without treating it as extra labware. */
+export function applyPcrFriendlyDeck(session: SessionState): void {
+  if (!session.robot || !session.deckAssumed) return;
+  if (!goalMentionsPcr(session.goal, session.doc === "none" ? "" : session.doc)) return;
+  const slot = plateSlotFor(session.robot);
+  if (!slot) return;
+  const current = session.hardware.deck[slot];
+  if (!current || !/wellplate|plate/i.test(current) || /pcr/i.test(current)) return;
+  if (session.robot === "OT-2" || session.robot === "Flex") {
+    session.hardware.deck[slot] = PCR_PLATE_OT;
+  }
+}
 
 export interface HardwareState {
   leftPipette?: string;
@@ -70,6 +104,8 @@ export interface SessionState {
   draftConflictResolved?: boolean;
   /** True after the user answers the first clarifying round (not the start-form goal). */
   intakeDone?: boolean;
+  /** Chat + SOP language. Default English. */
+  language?: UiLang;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -155,8 +191,9 @@ const TENS: Record<string, number> = {
   eighty: 80,
   ninety: 90,
 };
+/** Tip / PCR-well / reservoir *capacity* in notes is not a transfer-volume fight. */
 const CAPACITY_CTX =
-  /\b(hold|holds|capacity|max(?:imum)?|already|contains|start(?:s|ing)?|initial|tiprack|diti|reservoir|\d+-well|well plate)\b/;
+  /hold|holds|capacity|max(?:imum)?|already|contains|start(?:s|ing)?|initial|tip[\s_-]*rack|\btips?\b|枪头|diti|reservoir|储液槽|trough|trash|废液|\d+-well|well[\s_-]*plate|wellplate|pcr|_[\d.]+ul_|孔\s*pcr|孔板/i;
 const TRANSFER_LEAD = `\\b(?:transfer(?:red|s|ing)?|aspirate[ds]?|dispense[ds]?)\\s+`;
 const REAL_LEAD = `\\b(?:real(?:ly)?|actual(?:ly)?)\\b[\\s\\S]{0,48}?`;
 
@@ -266,14 +303,24 @@ function competingNoteVolumes(goal = "", notes = ""): { goalVols: number[]; extr
   return { goalVols, extra: [...new Set(competing)], ignoreGoal };
 }
 
+export function formatGoalNotesVolumeConflict(
+  goalVols: number[],
+  extra: number[],
+  language: UiLang = "en"
+): string {
+  const notes = extra.length ? extra.join("/") : language === "zh" ? "覆盖" : "override";
+  if (language === "zh") return `目标 ${goalVols.join("/")} µL，备注 ${notes} µL`;
+  return `goal ${goalVols.join("/")} µL vs notes ${notes} µL`;
+}
+
 /** Goal vs notes transfer-volume fight. Capacity / initial-fill numbers are not a fight. */
-export function goalNotesVolumeConflict(goal = "", doc = ""): string | null {
+export function goalNotesVolumeConflict(goal = "", doc = "", language: UiLang = "en"): string | null {
   const notes = doc.trim();
   if (!notes || notes === "none") return null;
   const { goalVols, extra, ignoreGoal } = competingNoteVolumes(goal, notes);
   if (!goalVols.length) return null;
   if (!ignoreGoal && extra.length === 0) return null;
-  return `goal ${goalVols.join("/")} µL vs notes ${extra.length ? extra.join("/") : "override"} µL`;
+  return formatGoalNotesVolumeConflict(goalVols, extra, language);
 }
 
 export function conflictChoiceVolumes(goal = "", doc = ""): number[] {
@@ -323,7 +370,7 @@ export function chosenVolumeInText(
 
 export function unresolvedGoalNotesConflict(session: SessionState): string | null {
   if (session.draftConflictResolved) return null;
-  return goalNotesVolumeConflict(session.goal ?? "", session.doc ?? "");
+  return goalNotesVolumeConflict(session.goal ?? "", session.doc ?? "", session.language ?? "en");
 }
 
 /** First ask_user during a conflict: record the question, do not take a side. */
@@ -450,6 +497,8 @@ const DECK_SLOT_LABELS: Record<string, string> = {
   opentrons_96_tiprack_300ul: "300 µL tips",
   opentrons_flex_96_tiprack_1000ul: "1000 µL tips",
   nest_96_wellplate_200ul_flat: "96-well plate",
+  nest_96_wellplate_100ul_pcr_full_skirt: "96-well PCR plate",
+  opentrons_96_wellplate_200ul_pcr_full_skirt: "96-well PCR plate",
   nest_12_reservoir_15ml: "12-well reservoir",
   tecan_diti_200ul_tiprack: "200 µL DiTi tips",
   tecan_96_wellplate: "96-well plate",
@@ -457,8 +506,25 @@ const DECK_SLOT_LABELS: Record<string, string> = {
   corning_96_wellplate_360ul_flat: "96-well plate",
 };
 
+const DECK_SLOT_LABELS_ZH: Record<string, string> = {
+  opentrons_96_tiprack_300ul: "300 µL 枪头",
+  opentrons_flex_96_tiprack_1000ul: "1000 µL 枪头",
+  nest_96_wellplate_200ul_flat: "96 孔板",
+  nest_96_wellplate_100ul_pcr_full_skirt: "96 孔 PCR 板",
+  opentrons_96_wellplate_200ul_pcr_full_skirt: "96 孔 PCR 板",
+  nest_12_reservoir_15ml: "12 孔储液槽",
+  tecan_diti_200ul_tiprack: "200 µL DiTi 枪头",
+  tecan_96_wellplate: "96 孔板",
+  hamilton_96_tiprack_300ul: "300 µL 枪头",
+  corning_96_wellplate_360ul_flat: "96 孔板",
+};
+
 function deckSlotLabel(labware: string): string {
   return DECK_SLOT_LABELS[labware] ?? DECK_SLOT_LABELS[labware.toLowerCase()] ?? labware.replace(/_/g, " ");
+}
+
+function deckSlotLabelZh(labware: string): string {
+  return DECK_SLOT_LABELS_ZH[labware] ?? DECK_SLOT_LABELS_ZH[labware.toLowerCase()] ?? deckSlotLabel(labware);
 }
 
 function hamiltonDeckPhrase(deck: Record<string, string>): string {
@@ -486,9 +552,33 @@ function namedDeckPhrase(robot: RobotModel | undefined, deck: Record<string, str
   return slots.map(([slot, labware]) => `${deckSlotLabel(labware)} in slot ${slot}`).join(", ");
 }
 
+function namedDeckPhraseZh(robot: RobotModel | undefined, deck: Record<string, string>): string {
+  const slots = Object.entries(deck).sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
+  if (!slots.length) return "枪头、96 孔板、12 孔储液槽";
+  if (robot === "Hamilton") {
+    const tips = deckSlotLabelZh(deck["1"] || "hamilton_96_tiprack_300ul");
+    const plate = deckSlotLabelZh(deck["2"] || "corning_96_wellplate_360ul_flat");
+    const trough = deckSlotLabelZh(deck["3"] || "nest_12_reservoir_15ml");
+    return `${tips}在吸头载架（导轨 1–6），${plate}在板载架（导轨 8–13），${trough}在试剂槽（导轨 15）`;
+  }
+  if (robot === "Vantage") {
+    const tips = deckSlotLabelZh(deck["1"] || "hamilton_96_tiprack_300ul");
+    const plate = deckSlotLabelZh(deck["2"] || "corning_96_wellplate_360ul_flat");
+    const trough = deckSlotLabelZh(deck["3"] || "nest_12_reservoir_15ml");
+    return `${tips}、${plate}、${trough}在 1.3 m 导轨上`;
+  }
+  if (robot === "Flex") {
+    return slots.map(([slot, labware]) => `${deckSlotLabelZh(labware)}在 ${slot}`).join("，");
+  }
+  return slots.map(([slot, labware]) => `${deckSlotLabelZh(labware)}在 ${slot} 号槽`).join("，");
+}
+
 /** One-line first-turn confirm. Never “nothing is written yet.” */
 export function intakeConfirmLine(session: SessionState): string {
   const label = deviceFor(session.robot)?.label ?? "this robot";
+  if (session.language === "zh") {
+    return `${label}，标准台面：${namedDeckPhraseZh(session.robot, session.hardware.deck)}。若相符请回复。`;
+  }
   const deck = namedDeckPhrase(session.robot, session.hardware.deck);
   return `${label}, standard deck: ${deck}. Reply if that matches.`;
 }
@@ -505,11 +595,12 @@ export function assumeStandardDeck(session: SessionState): void {
     session.hardware.apiVersion = preset.apiVersion;
   }
   session.deckAssumed = true;
+  applyPcrFriendlyDeck(session);
 }
 
 export function applyForm(
   session: SessionState,
-  input: { goal: string; doc?: string; robot?: string }
+  input: { goal: string; doc?: string; robot?: string; language?: string }
 ): SessionState {
   const explicit = input.robot != null && String(input.robot).trim() !== "";
   const selectedRobot = explicit
@@ -525,6 +616,7 @@ export function applyForm(
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
   session.intakeDone = undefined;
+  if (input.language != null) session.language = parseUiLang(input.language);
   if (selectedRobot) {
     session.robot = selectedRobot;
   } else {
@@ -538,6 +630,7 @@ export function applyForm(
     }
   }
   assumeStandardDeck(session);
+  applyPcrFriendlyDeck(session);
   refreshPhase(session);
   return session;
 }
@@ -576,6 +669,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
   session.hardware.apiVersion = preset.apiVersion;
   session.hardware.deck = { ...preset.deck };
   session.deckAssumed = true;
+  applyPcrFriendlyDeck(session);
   if (switching) {
     session.sop = undefined;
     session.code = undefined;
@@ -688,6 +782,7 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
     session.deckAssumed = false;
   } else {
     assumeStandardDeck(session);
+    applyPcrFriendlyDeck(session);
   }
   refreshPhase(session);
   return session;
@@ -736,6 +831,11 @@ export function shouldCallCompactSop(session: SessionState, force?: boolean): bo
 
 export const SOP_CHAR_CAP = 1200;
 
+export function setSessionLanguage(session: SessionState, language: unknown): UiLang {
+  session.language = parseUiLang(language);
+  return session.language;
+}
+
 export function capSop(text: string, max = SOP_CHAR_CAP): string {
   const trimmed = text.trim();
   return trimmed.length <= max ? trimmed : trimmed.slice(0, max);
@@ -762,6 +862,11 @@ export function formatHardwareConfig(session: SessionState): string {
   if (device?.id === "tecan_fluent") {
     lines.push(
       "PLR sim: PyLabRobot has no Fluent deck — virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent FluentControl .gwl, not EVOware."
+    );
+  }
+  if (goalMentionsPcr(session.goal, session.doc === "none" ? "" : session.doc)) {
+    lines.push(
+      "PCR: mix/setup is liquid handling on the sample plate (PCR plate is a standard-deck variant, 100 µL wells on OT-2/Flex). 8 samples = A1–H1 unless named. Do not refuse PCR. Thermocycler cycling is optional OT-2/Flex Python (load_module) only if the user asked to cycle temperatures — not required for mix prep. Hamilton/Tecan: liquid setup only. Stay within tip and well max volumes."
     );
   }
   lines.push("Deck Layout:", deck);
@@ -793,6 +898,7 @@ export function snapshot(session: SessionState) {
     device_label: deviceFor(session.robot)?.label ?? null,
     device_note: deviceFor(session.robot)?.note ?? null,
     intake_done: Boolean(session.intakeDone),
+    language: session.language ?? "en",
   };
 }
 

@@ -28,6 +28,18 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.match(first, /Doc: none/);
     assert.match(first, /Robot: Flex/);
     assert.doesNotMatch(first, /Robot: unset/);
+    assert.doesNotMatch(first, /简体中文/);
+  });
+
+  it("steers Chinese sessions to reply in Chinese", () => {
+    const session = createSession();
+    applyForm(session, { goal: "PCR mix", doc: "", robot: "OT-2", language: "zh" });
+    const first = nextUserMessage(session, "");
+    assert.match(first, /简体中文/);
+    assert.match(first, /Goal: PCR mix/);
+    session.messages = [{ role: "user", content: "already started" }];
+    assert.match(nextUserMessage(session, ""), /简体中文/);
+    assert.match(nextUserMessage(session, "确认标准台面"), /简体中文/);
   });
 
   it("explicit robot first turn hints ask_user until the user answers", () => {
@@ -41,6 +53,7 @@ describe("nextUserMessage / LIVE SESSION", () => {
     assert.match(first, /Robot: Flex/);
     assert.match(liveSessionBlock(session), /next_tool: ask_user/);
     assert.match(liveSessionBlock(session), /intake: pending/);
+    assert.match(liveSessionBlock(session), /language: en \(reply in English\)/);
     assert.doesNotMatch(CONTINUE_STEER, /robot is unknown/);
     markIntakeReply(session, "yes, 50 µL from A1 to B1 on the standard deck");
     assert.equal(nextToolHint(session), "generate_sop");

@@ -1,4 +1,5 @@
 import type { ArchivedThread } from "./threadArchive";
+import { useLang } from "./LangContext";
 
 interface Props {
   threads: ArchivedThread[];
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Props) {
+  const { t } = useLang();
   const present = Boolean(threads.length || currentId);
   const classes = ["history-rail"];
   if (present) classes.push("present");
@@ -21,7 +23,7 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
           className="history-rail-toggle"
           aria-expanded={open}
           onClick={onToggle}
-          title={open ? "Hide runs" : "Show runs"}
+          title={open ? t("Hide runs") : t("Show runs")}
         >
           History
         </button>

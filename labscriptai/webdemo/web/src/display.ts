@@ -4,12 +4,16 @@ const LABWARE_LABELS: Record<string, string> = {
   opentrons_96_tiprack_300ul: "300 µL tips",
   opentrons_flex_96_tiprack_1000ul: "1000 µL tips",
   nest_96_wellplate_200ul_flat: "96-well plate",
+  nest_96_wellplate_100ul_pcr_full_skirt: "96-well PCR plate",
+  opentrons_96_wellplate_200ul_pcr_full_skirt: "96-well PCR plate",
   nest_12_reservoir_15ml: "12-well reservoir",
   tecan_diti_200ul_tiprack: "200 µL DiTi tips",
   tecan_96_wellplate: "96-well plate",
   hamilton_96_tiprack_300ul: "300 µL tips",
   corning_96_wellplate_360ul_flat: "96-well plate",
-  trash_bin: "trash",
+  trash_bin: "Trash",
+  opentrons_1_trash_1100ml_fixed: "Trash",
+  opentrons_1_trash_850ml_fixed: "Trash",
 };
 
 const PRIM_LABELS: Record<string, string> = {
@@ -157,6 +161,7 @@ export function labwareLabel(id: string): string {
   if (!key) return "";
   const mapped = LABWARE_LABELS[key] ?? LABWARE_LABELS[key.toLowerCase()];
   if (mapped) return mapped;
+  if (/trash/i.test(key)) return "Trash";
   if (!key.includes("_") && key.length < 24) return key;
   return key
     .replace(/_/g, " ")

@@ -26,15 +26,19 @@ import {
   chosenVolumeInText,
   normalizePlanInput,
   normalizePlanTipPositions,
+  parseUiLang,
+  PCR_PLATE_OT,
   planPickTipWells,
   presetMismatchWarning,
   requestedTipWells,
   resolveGoalNotesConflict,
   reviewIntent,
+  setSessionLanguage,
   shouldCallCompactSop,
   shouldReuseSop,
   snapshot,
   unresolvedGoalNotesConflict,
+  goalMentionsPcr,
 } from "../server/src/session.ts";
 import { refuseEmptySop } from "../server/src/gate.ts";
 
@@ -681,6 +685,33 @@ describe("goal vs notes volume conflict", () => {
       ),
       null
     );
+    const pcrGoal = "Prepare a PCR mix: dispense 20 µL of master mix into 8 sample wells.";
+    assert.equal(
+      goalNotesVolumeConflict(
+        pcrGoal,
+        "OT-2, standard deck: 300 µL tips in slot 1, 96-well PCR plate in slot 2, 12-well reservoir in slot 3. nest_96_wellplate_100ul_pcr_full_skirt"
+      ),
+      null
+    );
+    assert.equal(
+      goalNotesVolumeConflict(
+        pcrGoal,
+        "OT-2，标准台面：300 µL 枪头在 1 号槽，96 孔 PCR 板在 2 号槽，12 孔储液槽在 3 号槽。"
+      ),
+      null
+    );
+    assert.match(
+      goalNotesVolumeConflict("Transfer 20 µL A1 to B1.", "Dispense 50 µL A1 to B1") || "",
+      /goal 20 µL vs notes 50 µL/
+    );
+    assert.match(
+      goalNotesVolumeConflict("Transfer 20 µL A1 to B1.", "Dispense 50 µL A1 to B1", "zh") || "",
+      /目标 20 µL，备注 50 µL/
+    );
+    assert.doesNotMatch(
+      goalNotesVolumeConflict("Transfer 20 µL A1 to B1.", "Dispense 50 µL A1 to B1", "zh") || "",
+      /goal 20/
+    );
   });
 
   it("catches 0.25 mL, two hundred fifty microliters, 250微升, and 二百五十微升 vs goal 50 µL", () => {
@@ -792,5 +823,43 @@ describe("goal vs notes volume conflict", () => {
     markConflictUserReply(session, "use 250 not 50");
     assert.equal(canResolveGoalNotesConflict(session, "do not use 50"), false);
     assert.equal(canResolveGoalNotesConflict(session, "Transfer 250 µL A1 to B1."), true);
+  });
+});
+
+describe("PCR-friendly deck and language", () => {
+  it("swaps the OT-2/Flex sample plate to a PCR plate without extra confirmation", () => {
+    assert.equal(goalMentionsPcr("Prepare a PCR mix"), true);
+    assert.equal(goalMentionsPcr("transfer 50 µL"), false);
+    const ot = createSession();
+    applyForm(ot, { goal: "Prepare a PCR mix: 20 µL into 8 wells", doc: "", robot: "OT-2" });
+    assert.equal(ot.hardware.deck["2"], PCR_PLATE_OT);
+    assert.equal(ot.deckAssumed, true);
+    assert.match(formatHardwareConfig(ot), /PCR: mix\/setup/);
+    assert.match(intakeConfirmLine(ot), /PCR plate/);
+    applyForm(ot, { goal: "Prepare a PCR mix: 20 µL into 8 wells", doc: "", robot: "OT-2", language: "zh" });
+    const zhLine = intakeConfirmLine(ot);
+    assert.match(zhLine, /标准台面/);
+    assert.match(zhLine, /若相符请回复/);
+    assert.match(zhLine, /300 µL 枪头/);
+    assert.match(zhLine, /96 孔 PCR 板/);
+    assert.match(zhLine, /12 孔储液槽/);
+    assert.doesNotMatch(zhLine, /300 µL tips|PCR plate|12-well reservoir/);
+    assert.doesNotMatch(zhLine, /Reply if that matches/);
+    assert.doesNotMatch(zhLine, /opentrons_|nest_/);
+    const flex = createSession();
+    applyForm(flex, { goal: "PCR setup", doc: "", robot: "Flex" });
+    assert.equal(flex.hardware.deck.D2, PCR_PLATE_OT);
+    const star = createSession();
+    applyForm(star, { goal: "PCR mix 20 µL", doc: "", robot: "Hamilton" });
+    assert.equal(star.hardware.deck["2"], "corning_96_wellplate_360ul_flat");
+  });
+
+  it("stores session language for Chinese replies", () => {
+    const session = createSession();
+    applyForm(session, { goal: "PCR", doc: "", robot: "OT-2", language: "zh" });
+    assert.equal(session.language, "zh");
+    assert.equal(parseUiLang("中文"), "zh");
+    assert.equal(setSessionLanguage(session, "en"), "en");
+    assert.equal(snapshot(session).language, "en");
   });
 });

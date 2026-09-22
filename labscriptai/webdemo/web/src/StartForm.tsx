@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
+import { useLang } from "./LangContext";
 import type { StartInput } from "./types";
 
 const TILE_MARK: Record<string, string> = {
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function StartForm({ busy, onSubmit }: Props) {
+  const { t } = useLang();
   const [goal, setGoal] = useState("");
   const [doc, setDoc] = useState("");
   const [fileName, setFileName] = useState("");
@@ -40,8 +42,8 @@ export function StartForm({ busy, onSubmit }: Props) {
 
   return (
     <form className="card form" onSubmit={submit}>
-      <label>Which robot?</label>
-      <p className="hint">Pick a robot.</p>
+      <label>{t("Which robot?")}</label>
+      <p className="hint">{t("Pick a robot.")}</p>
       <div className="device-grid">
         {DEVICE_CARDS.map((card) => (
           <button
@@ -59,23 +61,23 @@ export function StartForm({ busy, onSubmit }: Props) {
               </span>
               {card.label}
             </strong>
-            <span className="device-blurb">{card.blurb}</span>
+            <span className="device-blurb">{t(card.blurb)}</span>
           </button>
         ))}
       </div>
 
-      <label htmlFor="goal">What should we run?</label>
+      <label htmlFor="goal">{t("What should we run?")}</label>
       <textarea
         id="goal"
         required
         rows={2}
-        placeholder="e.g. Transfer 50 µL from well A1 to B1"
+        placeholder={t("e.g. Transfer 50 µL from well A1 to B1")}
         value={goal}
         onChange={(e) => setGoal(e.target.value)}
       />
 
       <label htmlFor="doc" className="notes-head">
-        <span>Notes (optional)</span>
+        <span>{t("Notes (optional)")}</span>
         <span className="file-label">
           <input
             type="file"
@@ -87,13 +89,13 @@ export function StartForm({ busy, onSubmit }: Props) {
               setDoc(await file.text());
             }}
           />
-          {fileName || "or attach a file"}
+          {fileName || t("or attach a file")}
         </span>
       </label>
       <textarea
         id="doc"
         rows={2}
-        placeholder="Paste a draft, or leave blank"
+        placeholder={t("Paste a draft, or leave blank")}
         value={doc}
         onChange={(e) => setDoc(e.target.value)}
       />
@@ -113,7 +115,7 @@ export function StartForm({ busy, onSubmit }: Props) {
       </div>
 
       <button className="primary" type="submit" disabled={busy || !canStart(goal, deviceId)}>
-        {busy ? "Starting…" : "Let’s go"}
+        {busy ? t("Starting…") : t("Let’s go")}
       </button>
     </form>
   );

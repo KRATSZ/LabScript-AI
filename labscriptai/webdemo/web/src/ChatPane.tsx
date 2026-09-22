@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeAssistantText } from "./display";
+import { useLang } from "./LangContext";
 import type { ChatMessage } from "./types";
 
 const THINK_DISPLAY_CAP = 8000;
@@ -31,6 +32,7 @@ function Bubble({
   busy: boolean;
   robot?: string | null;
 }) {
+  const { t } = useLang();
   const showThinking = last && busy && msg.role === "assistant" && Boolean(msg.thinking) && !msg.text;
   const emptyAssistant = msg.role === "assistant" && !msg.text && !msg.thinking;
   if (emptyAssistant && !(busy && last)) return null;
@@ -41,14 +43,14 @@ function Bubble({
   return (
     <div className={`bubble-row ${msg.role}`}>
       <div className={`bubble ${msg.role === "user" ? "user" : "bot"}`}>
-        {msg.meta ? <div className="meta">{msg.meta}</div> : null}
+        {msg.meta ? <div className="meta">{t(msg.meta)}</div> : null}
         {showThinking ? (
           <details className="thinking-box">
-            <summary>Thinking</summary>
+            <summary>{t("Thinking")}</summary>
             <div className="thinking">{shown}</div>
           </details>
         ) : null}
-        {emptyBusy && !showThinking ? <div className="typing" aria-label="Writing" /> : null}
+        {emptyBusy && !showThinking ? <div className="typing" aria-label={t("Writing")} /> : null}
         {body ? <MarkdownBody text={body} className={msg.role === "user" ? "md md-user" : "md"} /> : null}
       </div>
     </div>
@@ -56,6 +58,7 @@ function Bubble({
 }
 
 export function ChatPane({ messages, busy, onSend, robot }: Props) {
+  const { t } = useLang();
   const [text, setText] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -91,7 +94,7 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
         <textarea
           ref={areaRef}
           rows={1}
-          placeholder="Volume, wells, or a confirm…"
+          placeholder={t("Volume, wells, or a confirm…")}
           value={text}
           disabled={busy}
           onChange={(e) => {
@@ -105,8 +108,8 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
             }
           }}
         />
-        <button className="send" type="submit" disabled={busy || !text.trim()} aria-label="Send">
-          Send
+        <button className="send" type="submit" disabled={busy || !text.trim()} aria-label={t("Send")}>
+          {t("Send")}
         </button>
       </form>
     </div>

@@ -125,4 +125,23 @@ describe("HTTP device API", () => {
     assert.equal(health.status, 200);
     assert.equal(((await health.json()) as { ok?: boolean }).ok, true);
   });
+
+  it("POST /api/session stores language and can switch it", async () => {
+    const created = await fetch(`${baseUrl}/api/session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal: "PCR mix", robot: "OT-2", language: "zh" }),
+    });
+    assert.equal(created.status, 200);
+    const snap = (await created.json()) as { id: string; language?: string; hardware?: { deck?: Record<string, string> } };
+    assert.equal(snap.language, "zh");
+    assert.equal(snap.hardware?.deck?.["2"], "nest_96_wellplate_100ul_pcr_full_skirt");
+    const switched = await fetch(`${baseUrl}/api/session/${snap.id}/language`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: "en" }),
+    });
+    assert.equal(switched.status, 200);
+    assert.equal(((await switched.json()) as { language?: string }).language, "en");
+  });
 });

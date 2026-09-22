@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useLang } from "./LangContext";
 
 export function OverlayChrome({
   onClose,
@@ -7,14 +8,15 @@ export function OverlayChrome({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { t } = useLang();
   return (
     <div className="overlay">
       <div className="overlay-backdrop" onClick={onClose} />
       <div className="overlay-card">
         <div className="overlay-head">
-          <strong>Watch the protocol</strong>
+          <strong>{t("Watch the protocol")}</strong>
           <button className="ghost" type="button" onClick={onClose}>
-            Close
+            {t("Close")}
           </button>
         </div>
         {children}

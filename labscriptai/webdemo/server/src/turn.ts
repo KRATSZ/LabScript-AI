@@ -6,6 +6,19 @@ import { deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConfli
 export const CONTINUE_STEER =
   "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the deck (Hamilton: tip carrier / plate carrier / trough, never slots 1/2/3) — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
 
+export function continueSteer(session: SessionState): string {
+  if (session.language === "zh") {
+    return `用户可见回复必须用简体中文。${CONTINUE_STEER}`;
+  }
+  return CONTINUE_STEER;
+}
+
+export function userFacingLangLine(session: SessionState): string {
+  return session.language === "zh"
+    ? "User-facing reply MUST be Simplified Chinese (简体中文)."
+    : "";
+}
+
 export function nextToolHint(session: SessionState): string {
   const snap = snapshot(session);
   if (snap.phase !== "ready") return "ask_user";
@@ -62,6 +75,7 @@ export function liveSessionBlock(session: SessionState): string {
     `sop_chars: ${snap.sop.length}`,
     `plan_steps: ${Array.isArray(snap.plan?.steps) ? snap.plan.steps.length : 0}`,
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,
+    `language: ${session.language === "zh" ? "zh (reply in Chinese)" : "en (reply in English)"}`,
     ...(capacity ? [`assumed_capacity: ${capacity}`] : []),
     `code_service: ${snap.code_service}`,
     `code_chars: ${snap.code.length}`,
@@ -78,13 +92,17 @@ export function composeSystemPrompt(session: SessionState): string {
 }
 
 export function nextUserMessage(session: SessionState, text: string): string {
-  if (text.trim()) return text;
+  if (text.trim()) {
+    const langLine = userFacingLangLine(session);
+    return langLine ? `${langLine}\n${text}` : text;
+  }
   const history = Array.isArray(session.messages) ? session.messages.length : 0;
-  if (history > 0) return CONTINUE_STEER;
+  if (history > 0) return continueSteer(session);
   const capacity = session.deckAssumed
     ? assumedCapacityLine(session.robot, session.hardware.deck)
     : "";
   return [
+    userFacingLangLine(session),
     `Goal: ${session.goal ?? ""}`,
     `Doc: ${session.doc === "none" || !session.doc ? "none (agent should write SOP later)" : "SOP draft provided"}`,
     `Robot: ${deviceFor(session.robot)?.label ?? session.robot ?? "unset"}`,

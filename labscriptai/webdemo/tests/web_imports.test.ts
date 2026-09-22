@@ -35,7 +35,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(src, /Opening…/);
     const chrome = readFileSync(path.join(webSrc, "OverlayChrome.tsx"), "utf8");
     assert.match(chrome, /overlay-backdrop/);
-    assert.match(chrome, />\s*Close\s*</);
+    assert.match(chrome, /Close/);
     assert.doesNotMatch(chrome, /ProtocolOperationAnimator/);
   });
 
@@ -117,6 +117,33 @@ describe("AnimationOverlay code-split", () => {
     assert.match(issues, /status-word/);
   });
 
+  it("pins protocol-visualization and overlay-smoke still seeks the TimelineScrubber track", () => {
+    const webRoot = path.resolve(webSrc, "..");
+    const demoRoot = path.resolve(webSrc, "../..");
+    const pkg = JSON.parse(readFileSync(path.join(demoRoot, "package.json"), "utf8")) as {
+      dependencies?: Record<string, string>;
+    };
+    assert.equal(pkg.dependencies?.["@opentrons/protocol-visualization"], "0.3.18-alpha.0");
+    const vizPkg = JSON.parse(
+      readFileSync(path.join(demoRoot, "node_modules/@opentrons/protocol-visualization/package.json"), "utf8")
+    ) as { version?: string };
+    assert.equal(vizPkg.version, "0.3.18-alpha.0");
+    const componentsCss = readFileSync(
+      path.join(demoRoot, "node_modules/@opentrons/components/lib/style.css"),
+      "utf8"
+    );
+    assert.match(componentsCss, /track_container/);
+    const sync = readFileSync(path.join(webSrc, "otPlaybackSync.ts"), "utf8");
+    assert.match(sync, /setSelectedCommand/);
+    assert.match(sync, /seekVisualizerPlayback/);
+    assert.match(sync, /\[class\*=["']track_container["']\]/);
+    const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
+    assert.match(smoke, /AnimationOverlay/);
+    assert.match(smoke, /simpleAnalysis/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /seekVisualizerPlayback/);
+    assert.match(readFileSync(path.join(webRoot, "overlay-smoke.html"), "utf8"), /overlaySmoke\.tsx/);
+  });
+
   it("overlay smoke uses simpleAnalysisFile and AnimatorGuard exposes errors", () => {
     const smoke = readFileSync(path.join(webSrc, "overlaySmoke.tsx"), "utf8");
     assert.match(smoke, /simpleAnalysisFile\.json/);
@@ -182,5 +209,13 @@ describe("AnimationOverlay code-split", () => {
     assert.match(otDeck, /@opentrons\/components\/styles\/global/);
     assert.doesNotMatch(otDeck, /@opentrons\/components\/styles["']/);
     assert.match(readFileSync(path.join(webSrc, "FlexReplayTicks.tsx"), "utf8"), /flex-replay-ticks/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /demo-progress-range/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /seekVisualizerPlayback/);
+    assert.match(readFileSync(path.join(webSrc, "replaySteps.ts"), "utf8"), /isVisualizerPlayCommand/);
+    assert.match(readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8"), /Previous steps stay listed/);
+    assert.match(readFileSync(path.join(webSrc, "SummaryCard.tsx"), "utf8"), /Protocol summary/);
+    assert.match(readFileSync(path.join(webSrc, "LanguageSwitch.tsx"), "utf8"), /lang-zh/);
+    assert.match(css, /\.demo-replay/);
+    assert.match(css, /\.lang-switch/);
   });
 });

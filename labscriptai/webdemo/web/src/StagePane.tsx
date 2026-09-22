@@ -3,10 +3,13 @@ import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
 import { deckLabware, deckSketchAxes, deckSketchRows, hamiltonStarSketch, hamiltonVantageSketch, usesStarSketch, usesVantageSketch } from "./deckSketch";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
+import { DemoReplay } from "./DemoReplay";
 import { IssuesPanel } from "./IssuesPanel";
 import { OtDeckReplay } from "./OtDeckReplay";
 import { Pipeline } from "./Pipeline.tsx";
 import { PlrDeckReplay } from "./PlrDeckReplay";
+import { ProtocolSummaryCard } from "./SummaryCard";
+import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
 
 interface Props {
@@ -121,6 +124,7 @@ function DeckSketch({ session }: { session: SessionSnapshot }) {
 }
 
 export function StagePane({ session, runningTool, busy, canWatch }: Props) {
+  const { t } = useLang();
   const steps = isPlanCodegen(session.robot) || !session.code?.trim() ? planSteps(session.plan) : [];
   const watchReady = canWatch && robotSupportsWatch(session.robot);
   const watchGap = watchUnavailableCopy(
@@ -139,28 +143,35 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
     Boolean(session.plan && typeof session.plan === "object") &&
     session.code_service !== "down";
   const hasDeck = watchReady || plrReady;
-  const waitHint = watchGap || previewDown;
+  const waitHint = waitGapCopy(watchGap, previewDown);
   return (
     <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
       {watchReady ? (
-        <OtDeckReplay
-          analyze={session.analyze}
-          robot={session.robot}
-          protocolName={session.goal}
-          appType="desktop"
-        />
+        <DemoReplay session={session}>
+          <OtDeckReplay
+            analyze={session.analyze}
+            robot={session.robot}
+            protocolName={session.goal}
+            appType="desktop"
+          />
+        </DemoReplay>
       ) : plrReady ? (
-        <PlrDeckReplay plan={session.plan} robot={session.robot} previewUp={session.code_service !== "down"} />
+        <PlrDeckReplay
+          plan={session.plan}
+          robot={session.robot}
+          previewUp={session.code_service !== "down"}
+          session={session}
+        />
       ) : (
         <div className="stage-wait">
           <div className="stage-wait-copy">
-            <h2>Standard deck</h2>
+            <h2>{t("Standard deck")}</h2>
             <p>
               {isPlanCodegen(session.robot) && session.code_service === "down"
-                ? "The bench preview stays off while the preview service is down."
+                ? t("The bench preview stays off while the preview service is down.")
                 : isPlanCodegen(session.robot)
-                  ? "The bench preview fills this pane after checks pass."
-                  : "The deck preview fills this pane after checks pass."}
+                  ? t("The bench preview fills this pane after checks pass.")
+                  : t("The deck preview fills this pane after checks pass.")}
             </p>
           </div>
           <DeckSketch session={session} />
@@ -170,9 +181,10 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
               {waitHint}
             </p>
           ) : null}
+          <ProtocolSummaryCard session={session} />
           {steps.length ? (
             <div className="plan-block">
-              <div className="plan-heading">Transfer steps</div>
+              <div className="plan-heading">{t("Transfer steps")}</div>
               <div className="plan-steps">
                 {steps.slice(0, 20).map((step, index) => (
                   <p key={index} className="file">
@@ -187,4 +199,8 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
       )}
     </div>
   );
+}
+
+function waitGapCopy(watchGap: string | null, previewDown: string | null): string | null {
+  return watchGap || previewDown;
 }

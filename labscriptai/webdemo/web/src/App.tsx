@@ -5,6 +5,8 @@ import { ChatPane } from "./ChatPane";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { OverlayChrome } from "./OverlayChrome";
 import { headerGoalPreview, hasAttachedNotes } from "./display";
+import { LanguageSwitch } from "./LanguageSwitch";
+import { useLang } from "./LangContext";
 import { headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { clampChatPct, loadChatPct, saveChatPct } from "./paneSplit.ts";
 import { RightStage } from "./RightStage";
@@ -32,6 +34,7 @@ function ErrorNote({ error }: { error: string }) {
 }
 
 export function App() {
+  const { lang, t } = useLang();
   const [session, setSession] = useState<SessionSnapshot | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [events, setEvents] = useState<AgentEvent[]>([]);
@@ -73,6 +76,15 @@ export function App() {
       cancelled = true;
     };
   }, [session?.id]);
+
+  useEffect(() => {
+    if (!session?.id) return;
+    void fetch(`/api/session/${session.id}/language`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ language: lang }),
+    }).catch(() => undefined);
+  }, [lang, session?.id]);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
     robotRef.current = snap.robot;
@@ -148,7 +160,7 @@ export function App() {
     setEvents([]);
     setNotesAttached(hasAttachedNotes(input.doc));
     try {
-      const snap = await createSession(input);
+      const snap = await createSession({ ...input, language: lang });
       robotRef.current = snap.robot;
       setSession(snap);
       if (Array.isArray(snap.events)) setEvents(snap.events);
@@ -217,45 +229,48 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            {!session ? <p>On-screen preview only</p> : null}
+            {!session ? <p>{t("On-screen preview only")}</p> : null}
           </div>
         </div>
         {session ? (
           <div className="header-status">
             <strong className={tone ? `status-${tone}` : undefined}>
-              {phaseLabel(
-                session.phase,
-                status,
-                canWatch,
-                planBackend,
-                session.checks,
-                session.intake_done,
-                Boolean(session.sop?.trim()),
-                deckPreview,
-                busy
+              {t(
+                phaseLabel(
+                  session.phase,
+                  status,
+                  canWatch,
+                  planBackend,
+                  session.checks,
+                  session.intake_done,
+                  Boolean(session.sop?.trim()),
+                  deckPreview,
+                  busy
+                )
               )}
             </strong>
             <span>
               {robotLabel}
               {session.goal ? ` · ${headerGoalPreview(robotLabel, session.goal)}` : ""}
             </span>
-            {notesAttached ? <span>Notes attached</span> : null}
+            {notesAttached ? <span>{t("Notes attached")}</span> : null}
             {session.code_service === "down" && !planBackend ? (
-              <span className="code-offline">Preview service down — OT-2 and Flex scripts stay off</span>
+              <span className="code-offline">{t("Preview service down — OT-2 and Flex scripts stay off")}</span>
             ) : null}
             <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
-              Change robot
+              {t("Change robot")}
             </button>
           </div>
         ) : health && (!health.hasKey || health.code_service !== "up") ? (
           <p className="demo-health" data-testid="demo-health">
-            {health.hasKey ? "preview down" : "No DeepSeek key"}
+            {health.hasKey ? t("preview down") : t("No DeepSeek key")}
           </p>
         ) : health ? (
           <p className="demo-health" data-testid="demo-health">
-            preview ready
+            {t("preview ready")}
           </p>
         ) : null}
+        <LanguageSwitch />
       </header>
 
       <div
@@ -293,7 +308,7 @@ export function App() {
           className="split-seam"
           role="separator"
           aria-orientation="vertical"
-          aria-label="Resize chat"
+          aria-label={t("Resize chat")}
           data-testid="split-seam"
           onPointerDown={onSeamPointerDown}
           onPointerMove={onSeamPointerMove}
@@ -327,12 +342,13 @@ export function App() {
         <Suspense
           fallback={
             <OverlayChrome onClose={() => setOverlay(false)}>
-              <p className="file">Opening…</p>
+              <p className="file">{t("Opening…")}</p>
             </OverlayChrome>
           }
         >
           <AnimationOverlay
             key={session?.robot ?? ""}
+            session={session}
             analyze={session?.analyze ?? null}
             robot={session?.robot}
             onClose={() => setOverlay(false)}
