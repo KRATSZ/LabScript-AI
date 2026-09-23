@@ -6,16 +6,14 @@ LabscriptAI turns natural-language protocols into validated robot scripts and su
 
 [![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.22054311.svg)](https://doi.org/10.5281/zenodo.22054311)
 
-[Try the web demo (no hardware needed)](https://labscriptai.cn/) · [Run locally](#getting-started) · [Watch the full project video](https://github.com/KRATSZ/LabScript-AI/releases/download/v1.0.1/intro-video.mp4) · [Read the preprint (v2)](https://www.biorxiv.org/content/10.1101/2025.09.30.679666v2)
+[Try the web demo (no hardware needed)](https://labscriptai.cn/) · [Run locally](#getting-started) · [Project overview](#project-overview) · [Read the preprint (v2)](https://www.biorxiv.org/content/10.1101/2025.09.30.679666v2)
 
 ## Live Flex Recovery
 
 A tip-pickup failure on an Opentrons Flex: without runtime perception, the run remains paused; with the full system, the failure is detected, a recovery action is selected, and the run resumes. This is one filmed comparison, not a claim that every fault is recoverable.
 
 <p align="center">
-  <a href="https://github.com/KRATSZ/LabScript-AI/releases/download/v1.0.1/intro-video.mp4">
-    <img src="assets/live-flex-tip-recovery.gif" alt="Opentrons Flex tip-pickup failure comparison: run stays paused without runtime perception; with LabscriptAI, the failure is detected and the run recovers" width="960" />
-  </a>
+  <img src="assets/live-flex-tip-recovery.gif" alt="Opentrons Flex tip-pickup failure comparison: run stays paused without runtime perception; with LabscriptAI, the failure is detected and the run recovers" width="800" />
 </p>
 
 The clip shows the robot outcome, not the underlying authorization log. Recovery proposals are checked by a deterministic gatekeeper; actions that need confirmation wait for an operator, and unsafe or unknown cases stop.
@@ -26,12 +24,10 @@ The clip shows the robot outcome, not the underlying authorization log. Recovery
 2. **Observe the live run:** Track controller-reported command and run state; camera images and pressure traces provide advisory evidence but cannot override controller state.
 3. **Recover within bounds:** Propose an action for a failed command. The gatekeeper decides `allow`, `ask`, or `suspend`; only authorized actions reach the robot.
 
-## Project Overview Video
+## Project Overview
 
 <p align="center">
-  <a href="https://github.com/KRATSZ/LabScript-AI/releases/download/v1.0.1/intro-video.mp4">
-    <img src="assets/intro-video-thumbnail.png" alt="Watch the full LabscriptAI project overview video" width="720" />
-  </a>
+  <img src="assets/intro-video-preview.gif" alt="Animated overview of LabscriptAI" width="640" />
 </p>
 
 ---
@@ -40,7 +36,7 @@ The clip shows the robot outcome, not the underlying authorization log. Recovery
 
 LabscriptAI separates protocol creation at your desk from live execution on the robot deck:
 
-![System architecture and end-to-end workflow](assets/fig-a-architecture.png)
+<img src="assets/fig-a-architecture.png" alt="System architecture and end-to-end workflow" width="680" />
 
 - **The Authoring Loop (Desk):** Converts your natural-language intent and SOP into a verified protocol package (`protocol.py`, step manifests, and execution traces). A platform simulator catches labware mismatches, volume overflows, and trajectory issues before anything touches hardware.
 - **The Runtime Loop (Robot):** Runs only validated packages. While the robot executes commands, the agent tracks live status. If a command fails, the agent looks up recovery playbooks and proposes a fix.
@@ -53,7 +49,7 @@ LabscriptAI separates protocol creation at your desk from live execution on the 
 
 Most LLM coding tools leave you acting as the manual error-fetcher:
 
-![Manual trial-and-error versus LabscriptAI closed-loop authoring](assets/fig-b-authoring-vs-manual.png)
+<img src="assets/fig-b-authoring-vs-manual.png" alt="Manual trial-and-error versus LabscriptAI closed-loop authoring" width="620" />
 
 Instead of handing you raw code to debug yourself:
 - **Plan & Generate:** The agent structures the SOP into formal steps (volumes, labware slots, pipetting mechanics).
@@ -67,7 +63,7 @@ Instead of handing you raw code to debug yourself:
 
 LLMs are creative, but physical lab hardware cannot tolerate hallucinated movements or rogue jogs. In LabscriptAI, the language model can only submit **candidate actions**. Every action must pass through an independent, deterministic gatekeeper:
 
-![Execution-aware agent harness with the three-way gate](assets/fig-c-execution-harness.png)
+<img src="assets/fig-c-execution-harness.png" alt="Execution-aware agent harness with the three-way gate" width="680" />
 
 | Gate Decision | What It Means | Examples |
 |---|---|---|
@@ -81,7 +77,7 @@ LLMs are creative, but physical lab hardware cannot tolerate hallucinated moveme
 
 On a live Opentrons Flex, runs proceed through an active command queue:
 
-![Live command monitoring, advisory sensor tiers, and recovery decision flow](assets/fig-d-recovery.png)
+<img src="assets/fig-d-recovery.png" alt="Live command monitoring, advisory sensor tiers, and recovery decision flow" width="680" />
 
 ### Tiered Sensor Stack
 To avoid hallucinations or sensor misreads causing hardware errors, inputs are organized into distinct trust tiers:
@@ -117,7 +113,9 @@ In the web demo, **Watch** is the built-in Opentrons deck visualizer. When an OT
 
 Research deployments include standardized characterization of 854 GFP designs from 171 student teams across the 2025 and 2026 CAPE rounds, as well as preparation and quality assurance of 531 genetic parts for the 2025 iGEM Distribution Kit. These are study-wide workflows, not features fully automated by this repository:
 
-![Synthetic biology applications, transformation workflows, and plate mapping](assets/fig-e-applications.png)
+<a href="assets/fig-5-igem-distribution-kit.png">
+  <img src="assets/fig-5-igem-distribution-kit.png" alt="Figure 5 from the September 2026 manuscript: Tecan Fluent deck, iGEM Distribution Kit workflow, quality assurance, and plate mapping" width="760" />
+</a>
 
 Workflows demonstrated include:
 - *E. coli* transformation and outgrowth setup
