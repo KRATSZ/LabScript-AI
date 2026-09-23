@@ -12,7 +12,7 @@ import { clampChatPct, loadChatPct, saveChatPct } from "./paneSplit.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
 import { HistoryRail } from "./HistoryRail";
-import { archiveThread, loadThreads, railThreads, type ArchivedThread } from "./threadArchive";
+import { archiveThread, loadThreads, persistFinished, railThreads, type ArchivedThread } from "./threadArchive";
 import { thoughtNotesFromChat, thoughtTurnsFromChat } from "./trajectoryLogic";
 import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
@@ -140,6 +140,10 @@ export function App() {
 
   const parkCurrent = useCallback(() => {
     setThreads((prev) => archiveThread(prev, session, messages, events));
+  }, [session, messages, events]);
+
+  useEffect(() => {
+    setThreads((prev) => persistFinished(prev, session, messages, events));
   }, [session, messages, events]);
 
   const changeDevice = () => {

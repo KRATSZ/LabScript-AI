@@ -12,7 +12,9 @@ export interface ArchivedThread {
 }
 
 export const THREAD_KEY = "labscriptai.threads";
-const MAX_THREADS = 12;
+export const MAX_THREADS = 12;
+export const THREAD_RETENTION =
+  "Stored only in this browser. At most 12 runs. Removed when site data is cleared.";
 
 export function threadTitle(goal: string, robot: string): string {
   const g = goal.replace(/\s+/g, " ").trim() || "Untitled run";
@@ -70,7 +72,18 @@ export function archiveThread(
   return out;
 }
 
-/** Current run sits at the top of the rail without writing storage until parked. */
+/** Write a finished run (checks present) so refresh keeps it. */
+export function persistFinished(
+  existing: ArchivedThread[],
+  session: SessionSnapshot | null,
+  messages: ChatMessage[],
+  events: AgentEvent[]
+): ArchivedThread[] {
+  if (!session?.id || !messages.length || !session.checks) return existing;
+  return archiveThread(existing, session, messages, events);
+}
+
+/** Current run sits at the top of the rail. Finished runs are also in storage. */
 export function railThreads(
   existing: ArchivedThread[],
   session: SessionSnapshot | null,

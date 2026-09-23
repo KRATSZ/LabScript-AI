@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { CHAT_DEFAULT, CHAT_MAX, CHAT_MIN, clampChatPct, historyWidthPx } from "../web/src/paneSplit.ts";
-import { archiveThread, railThreads, threadTitle } from "../web/src/threadArchive.ts";
+import { archiveThread, persistFinished, railThreads, THREAD_RETENTION, threadTitle } from "../web/src/threadArchive.ts";
 import type { SessionSnapshot } from "../web/src/types.ts";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -32,6 +32,22 @@ describe("threadArchive", () => {
     const live = railThreads([], session, [{ role: "user", text: "go" }], []);
     assert.equal(live[0].id, "s1");
     assert.equal(live.length, 1);
+    const unfinished = persistFinished([], session, [{ role: "user", text: "go" }], []);
+    assert.equal(unfinished.length, 0);
+    const finished = persistFinished(
+      [],
+      {
+        ...session,
+        checks: { status: "pass", sim: { ok: true }, logicpass: { outcome: "pass" }, statepass: {} },
+      },
+      [{ role: "user", text: "go" }],
+      []
+    );
+    assert.equal(finished.length, 1);
+    assert.equal(finished[0].id, "s1");
+    assert.match(THREAD_RETENTION, /this browser/);
+    assert.match(THREAD_RETENTION, /12 runs/);
+    assert.match(THREAD_RETENTION, /site data is cleared/);
   });
 });
 
@@ -51,6 +67,7 @@ describe("locked right-pane layout", () => {
     assert.doesNotMatch(css, /\.activity-pane[\s\S]{0,120}width:\s*min\(520px/);
     assert.match(app, /data-testid="split-seam"/);
     assert.match(app, /HistoryRail/);
+    assert.match(app, /persistFinished/);
     assert.doesNotMatch(app, /10%\s*[–-]\s*90%/);
     assert.match(traj, /activity-stream/);
     assert.match(traj, /activity-line/);

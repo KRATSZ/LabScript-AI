@@ -978,6 +978,12 @@ body {
   flex-direction: column;
   gap: 2px;
 }
+.history-rail-retention {
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--muted);
+  padding: 6px 8px 8px;
+}
 .history-rail-item {
   width: 100%;
   border: 0;

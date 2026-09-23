@@ -48,6 +48,8 @@ const ZH: Record<string, string> = {
   Consumables: "耗材",
   Steps: "步骤",
   History: "记录",
+  "Stored only in this browser. At most 12 runs. Removed when site data is cleared.":
+    "仅保存在此浏览器。最多 12 条。清除网站数据后删除。",
   "Hide runs": "收起记录",
   "Show runs": "展开记录",
   "Downloads land here.": "下载会出现在这里。",
