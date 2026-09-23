@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { ChecksAudit } from "./ChecksAudit";
 import type { AgentEvent, SessionSnapshot } from "./types";
 import {
   THINK_STEP,
@@ -109,6 +110,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
           );
         })}
       </ol>
+      <ChecksAudit session={session} />
     </div>
   );
 }
