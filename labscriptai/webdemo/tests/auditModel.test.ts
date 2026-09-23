@@ -27,6 +27,13 @@ describe("checksAudit", () => {
     );
     assert.equal(model.checks[0].tone, "pass");
     assert.ok(model.assumptions.some((line) => /50 µL/.test(line) && /A1/.test(line)));
+    const filled = checksAudit(pass, {
+      ...session,
+      source_fill: { well: "A1", ul: 200 },
+      confirmed_fill_line: "Checked using the 200 µL you confirmed in A1",
+    });
+    assert.ok(filled?.assumptions.some((line) => /200 µL you confirmed in A1/.test(line)));
+    assert.equal(filled?.assumptions.some((line) => /holds at least/.test(line)), false);
     assert.ok(model.unverified.some((line) => /not a live-hardware safety clearance/i.test(line)));
     assert.ok(model.unverified.some((line) => /authoring-only/i.test(line)));
   });

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeAssistantText } from "./display";
+import { IssuesPanel } from "./IssuesPanel";
 import { useLang } from "./LangContext";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, SessionSnapshot } from "./types";
 
 const THINK_DISPLAY_CAP = 8000;
 
@@ -10,7 +11,11 @@ interface Props {
   messages: ChatMessage[];
   busy: boolean;
   onSend: (text: string) => void;
+  onCancel?: () => void;
+  onRetry?: () => void;
+  canRetry?: boolean;
   robot?: string | null;
+  session?: SessionSnapshot | null;
 }
 
 function MarkdownBody({ text, className }: { text: string; className?: string }) {
@@ -57,7 +62,7 @@ function Bubble({
   );
 }
 
-export function ChatPane({ messages, busy, onSend, robot }: Props) {
+export function ChatPane({ messages, busy, onSend, onCancel, onRetry, canRetry, robot, session }: Props) {
   const { t } = useLang();
   const [text, setText] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
@@ -94,6 +99,11 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
         {messages.map((msg, i) => (
           <Bubble key={i} msg={msg} last={i === messages.length - 1} busy={busy} robot={robot} />
         ))}
+        {session?.checks ? (
+          <div data-testid="chat-verdict">
+            <IssuesPanel checks={session.checks} session={session} />
+          </div>
+        ) : null}
       </div>
       <form className="composer" onSubmit={submit}>
         <textarea
@@ -116,6 +126,16 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
         <button className="send" type="submit" disabled={busy || !text.trim()} aria-label={t("Send")}>
           {t("Send")}
         </button>
+        {busy && onCancel ? (
+          <button type="button" className="send cancel-turn" data-testid="cancel-turn" onClick={onCancel}>
+            {t("Cancel")}
+          </button>
+        ) : null}
+        {!busy && canRetry && onRetry ? (
+          <button type="button" className="send retry-turn" data-testid="retry-turn" onClick={onRetry}>
+            {t("Retry")}
+          </button>
+        ) : null}
       </form>
     </div>
   );

@@ -299,7 +299,8 @@ export async function promptWithAutoContinue(
 export async function runChatTurn(
   session: SessionState,
   userText: string,
-  sse: SseWriter
+  sse: SseWriter,
+  signal?: AbortSignal
 ): Promise<boolean> {
   const env = loadDemoEnv();
   if (!env.apiKey) {
@@ -335,13 +336,32 @@ export async function runChatTurn(
       ),
   });
 
-  const ok = await promptWithAutoContinue(
-    agent,
-    nextUserMessage(session, userText),
-    session,
-    tracked,
-    autoContinue
-  );
-  emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok } });
+  const onAbort = () => {
+    session.regenSop = true;
+    agent.abort();
+  };
+  if (signal?.aborted) {
+    session.regenSop = true;
+    emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok: false, cancelled: true } });
+    return false;
+  }
+  signal?.addEventListener("abort", onAbort);
+  let ok = false;
+  try {
+    ok = await promptWithAutoContinue(
+      agent,
+      nextUserMessage(session, userText),
+      session,
+      tracked,
+      autoContinue
+    );
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
+  }
+  if (signal?.aborted) {
+    session.regenSop = true;
+    ok = false;
+  }
+  emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok, cancelled: Boolean(signal?.aborted) } });
   return ok;
 }

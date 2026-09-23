@@ -23,6 +23,14 @@ describe("ui language", () => {
     assert.equal(t("300 µL tips", "zh"), "300 µL 枪头");
     assert.equal(t("Unknown string", "zh"), "Unknown string");
     assert.equal(t("Choose file", "zh"), "选择文件");
+    assert.equal(t("Aspirate", "zh"), "吸液");
+    assert.equal(t("Dispense", "zh"), "放液");
+    assert.equal(t("Pick up tip", "zh"), "取枪头");
+    assert.equal(t("Cancel", "zh"), "取消");
+    assert.equal(t("Retry", "zh"), "重试");
+    assert.equal(t("Hamilton STAR", "zh"), "汉密尔顿 STAR");
+    assert.equal(t("Human-readable protocol write-up", "zh"), "可读的方案说明");
+    assert.match(t("Notes are .md, .txt, .py, or .json. They are notes, not the run.", "zh"), /\.md/);
     assert.equal(t("Transfer 50 µL A1→B1", "zh"), "转移 50 µL A1→B1");
     assert.equal(t("Wrote the protocol", "zh"), "已写方案");
     assert.equal(t("Earlier messages stay in the language they were written in.", "zh"), "此前的消息保持生成时的语言。");

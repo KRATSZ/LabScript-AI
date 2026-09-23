@@ -6,8 +6,9 @@ import {
   downloadText,
   planSteps,
 } from "./artifacts";
-import { planStepDisplay } from "./display";
+import { localizeStepLabel, planStepDisplay } from "./display";
 import { isPythonCodegen } from "./devices";
+import { useLang } from "./LangContext";
 import { statusTone } from "./pipelineLogic";
 import type { SessionSnapshot } from "./types";
 
@@ -29,6 +30,7 @@ export function ExportsPanel({
   session: SessionSnapshot;
   filesOnly?: boolean;
 }) {
+  const { t } = useLang();
   const files = downloadable(session);
   const showPlanTable = !filesOnly && (!isPythonCodegen(session.robot) || !session.code?.trim());
   const steps = showPlanTable ? planSteps(session.plan) : [];
@@ -48,21 +50,25 @@ export function ExportsPanel({
                 className="export-btn"
                 onClick={() => downloadFor(session, kind)}
               >
-                {DOWNLOAD_LABELS[kind]}
-                {marker ? <span className={tone ? `status-${tone}` : undefined}>{marker}</span> : null}
+                {t(DOWNLOAD_LABELS[kind])}
+                {marker ? (
+                  <span className={tone ? `status-${tone}` : undefined} data-testid="file-verdict">
+                    {t(marker)}
+                  </span>
+                ) : null}
               </button>
-              <p className="export-hint">{downloadHint(kind, session.robot)}</p>
+              <p className="export-hint">{t(downloadHint(kind, session.robot))}</p>
             </div>
           ))}
         </div>
       ) : null}
       {steps.length ? (
         <div className="plan-block">
-          <div className="plan-heading">Transfer steps</div>
+          <div className="plan-heading">{t("Transfer steps")}</div>
           <div className="plan-steps">
             {steps.slice(0, 20).map((step, index) => (
               <p key={index} className="file">
-                {planStepDisplay(step)}
+                {localizeStepLabel(planStepDisplay(step), t)}
               </p>
             ))}
           </div>

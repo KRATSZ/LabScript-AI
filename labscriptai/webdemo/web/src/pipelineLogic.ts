@@ -53,6 +53,24 @@ export function unevalDetail(checks: ChecksResult | null | undefined): string {
   return typeof line === "string" ? line.trim() : "";
 }
 
+/** Deck availability. Never replaces the check verdict. */
+export function deckReadyLine(
+  canWatch: boolean,
+  busy: boolean,
+  status: CheckStatus | null | undefined
+): string | null {
+  if (status === "fail" || status === "unevaluable") return null;
+  if (canWatch && !busy) return "Ready to watch";
+  return null;
+}
+
+export function verdictLabel(status: CheckStatus | null | undefined, checks?: ChecksResult | null): string | null {
+  if (status === "pass") return "Checks passed";
+  if (status === "fail") return "Checks failed";
+  if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
+  return null;
+}
+
 export function phaseLabel(
   phase: string,
   status: CheckStatus | null | undefined,
@@ -64,12 +82,12 @@ export function phaseLabel(
   deckPreview = false,
   busy = false
 ): string {
-  if (canWatch && !busy) return "Ready to watch";
-  if (canWatch) return "In progress";
+  void canWatch;
+  void planBackend;
   void deckPreview;
-  if (status === "pass") return "Checks passed";
-  if (status === "fail") return "Checks failed";
-  if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
+  void busy;
+  const verdict = verdictLabel(status, checks);
+  if (verdict) return verdict;
   if (phase === "need_hw_slots") return "Missing deck details";
   if (phase === "ready") {
     if (!hasSop && intakeDone === false) return "Quick check";

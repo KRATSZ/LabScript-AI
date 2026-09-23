@@ -187,9 +187,14 @@ export async function handleRequest(
       return;
     }
     const sse = createSseWriter(res);
+    const ac = new AbortController();
+    const stopIfClientLeft = () => {
+      if (!res.writableEnded) ac.abort();
+    };
+    res.on("close", stopIfClientLeft);
     try {
-      const ok = await runChatTurn(session, message, sse);
-      sse.write("done", { ok });
+      const ok = await runChatTurn(session, message, sse, ac.signal);
+      if (!ac.signal.aborted) sse.write("done", { ok });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       sse.write("error", { message });
