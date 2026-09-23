@@ -149,7 +149,7 @@ describe("phaseLabel", () => {
     assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed");
     assert.equal(
       phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true),
-      "Ready to watch"
+      "Checks passed"
     );
     assert.equal(phaseLabel("ready", "fail", false, false), "Checks failed");
     assert.equal(phaseLabel("ready", "fail", false, true), "Checks failed");
@@ -212,7 +212,7 @@ describe("robot switch snapshot", () => {
     assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed");
     assert.equal(
       phaseLabel(ham.phase, ham.checks?.status, false, true, undefined, undefined, undefined, true),
-      "Ready to watch"
+      "Checks passed"
     );
     assert.deepEqual(pipelineStates(ham, null).slice(0, 3), ["ok", "ok", "ok"]);
     assert.deepEqual(pipelineSteps(ot.robot), ["Run", "Protocol", "Script", "Checks", "Deck"]);

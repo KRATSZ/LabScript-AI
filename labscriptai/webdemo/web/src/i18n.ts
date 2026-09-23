@@ -89,6 +89,8 @@ const ZH: Record<string, string> = {
   "The bench preview fills this pane after checks pass.": "校验通过后，实验台预览会填满此栏。",
   "The bench preview stays off while the preview service is down.": "预览服务未启动时，实验台预览保持关闭。",
   "Opening the bench preview…": "正在打开实验台预览…",
+  "The bench preview needs a confirmed deck or plan labware. The step list stays available if one exists.":
+    "实验台预览需要已确认的台面或方案耗材。若有步骤列表，仍可使用。",
   Done: "完成",
 };
 

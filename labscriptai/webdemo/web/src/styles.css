@@ -674,8 +674,20 @@ body {
   flex: 1;
   min-height: 420px;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
   background: #f4f5f7;
+}
+.plr-deck-inpage {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  padding: 16px;
+  min-height: 0;
+}
+.plr-deck-inpage .star-sketch,
+.plr-deck-inpage .vantage-sketch,
+.plr-deck-inpage .deck-sketch {
+  width: 100%;
 }
 .replay-progress {
   position: absolute;
