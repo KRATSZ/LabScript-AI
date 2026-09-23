@@ -197,8 +197,12 @@ body {
 }
 .stage-body:has(.stage-wait) {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* safe: when the deck pane is taller than the tab body, start at the top
+     instead of vertically centering (which clips the title under the tabs). */
+  justify-content: safe center;
+  overflow: auto;
   padding: 24px 28px;
 }
 .stage-body:has(.artifacts-pane) {
@@ -253,6 +257,7 @@ body {
   flex-direction: column;
   align-items: stretch;
   gap: 16px;
+  flex-shrink: 0;
 }
 .stage-wait-copy {
   text-align: center;
