@@ -64,9 +64,8 @@ export function phaseLabel(
   deckPreview = false,
   busy = false
 ): string {
-  if (canWatch && !busy) return "Ready to watch";
-  if (canWatch) return "In progress";
-  void deckPreview;
+  if ((canWatch || deckPreview) && !busy) return "Ready to watch";
+  if (canWatch || deckPreview) return "In progress";
   if (status === "pass") return "Checks passed";
   if (status === "fail") return "Checks failed";
   if (status === "unevaluable") return unevalDetail(checks) || "Cannot verify";
