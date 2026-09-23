@@ -1,7 +1,7 @@
 import { assumedCapacityLine } from "./devices.ts";
 import { animationAllowed, compactChecks } from "./gate.ts";
 import { SYSTEM_PROMPT } from "./prompt.ts";
-import { deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
+import { confirmGateOpen, deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
 
 export const CONTINUE_STEER =
   "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the deck (Hamilton: tip carrier / plate carrier / trough, never slots 1/2/3) — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
@@ -24,6 +24,7 @@ export function nextToolHint(session: SessionState): string {
   if (snap.phase !== "ready") return "ask_user";
   if (unresolvedGoalNotesConflict(session)) return "ask_user";
   if (intakeOpen(session)) return "ask_user";
+  if (confirmGateOpen(session)) return "ask_user";
   if (!snap.sop.trim()) return "generate_sop";
   if (isOpentrons(session) && !snap.code.trim()) {
     if (snap.code_service === "down") return "emit_plan";
@@ -75,6 +76,7 @@ export function liveSessionBlock(session: SessionState): string {
     `sop_chars: ${snap.sop.length}`,
     `plan_steps: ${Array.isArray(snap.plan?.steps) ? snap.plan.steps.length : 0}`,
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,
+    `deck_confirmed: ${Boolean(snap.deck_confirmed)}`,
     `language: ${session.language === "zh" ? "zh (reply in Chinese)" : "en (reply in English)"}`,
     ...(capacity ? [`assumed_capacity: ${capacity}`] : []),
     `code_service: ${snap.code_service}`,

@@ -28,7 +28,30 @@ function roleFor(labware: string): string {
   return "labware";
 }
 
+function slotKey(slot?: string): string {
+  return (slot || "").trim().toLowerCase();
+}
+
+function nameQuality(name: string): number {
+  if (/µl|ul|μl|well|pcr|diti|reservoir|trough/i.test(name) && !/^(tips|plate|labware)$/i.test(name)) {
+    return 2;
+  }
+  if (/^(tips|plate|labware|reservoir)$/i.test(name)) return 0;
+  return 1;
+}
+
 function pushUnique(list: Consumable[], item: Consumable): void {
+  const sk = slotKey(item.slot);
+  if (sk) {
+    const existing = list.find((entry) => slotKey(entry.slot) === sk);
+    if (existing) {
+      if (nameQuality(item.name) > nameQuality(existing.name)) existing.name = item.name;
+      if (item.role && (existing.role === "labware" || nameQuality(item.role) > nameQuality(existing.role))) {
+        existing.role = item.role;
+      }
+      return;
+    }
+  }
   const nameKey = item.name.trim().toLowerCase();
   const existing = list.find((entry) => entry.name.trim().toLowerCase() === nameKey);
   if (existing) {
@@ -106,13 +129,15 @@ function pipetteList(session: Pick<SessionSnapshot, "hardware" | "analyze">): st
 export function protocolSummary(session: SessionSnapshot | null | undefined): ProtocolSummaryModel | null {
   if (!session) return null;
   const steps: ReplayStep[] = replayStepsFor(session);
-  const consumables = [
-    ...fromDeck(session.hardware?.deck),
-    ...fromAnalyze(session.analyze),
-    ...fromPlan(session.plan),
-  ];
+  const deck = session.hardware?.deck ?? {};
+  const confirmedSlots = new Set(Object.keys(deck).map((slot) => slotKey(slot)).filter(Boolean));
   const unique: Consumable[] = [];
-  for (const item of consumables) pushUnique(unique, item);
+  for (const item of fromDeck(deck)) pushUnique(unique, item);
+  const extras = [...fromAnalyze(session.analyze), ...fromPlan(session.plan)];
+  for (const item of extras) {
+    if (confirmedSlots.size && item.slot && !confirmedSlots.has(slotKey(item.slot))) continue;
+    pushUnique(unique, item);
+  }
   const actionCount = actionStepCount(steps);
   const stepCount = steps.length;
   if (!unique.length && !stepCount && !session.sop?.trim()) return null;

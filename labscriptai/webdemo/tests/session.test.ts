@@ -1,14 +1,16 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
-  applyAskUser,
-  applyForm,
+    applyAskUser,
+    applyDeckRejection,
+    applyForm,
   applyPreset,
   applyTipCountOverlay,
   authoringGoal,
   canEmitPlan,
   canGenerateCode,
   canGenerateSop,
+  confirmGateOpen,
   canResolveGoalNotesConflict,
   canRunPipeline,
   checksRoute,
@@ -89,6 +91,8 @@ describe("session machine", () => {
     assert.match(line, /96-well plate in slot 2/);
     assert.match(line, /12-well reservoir in slot 3/);
     assert.match(line, /Reply if that matches/);
+    assert.match(line, /Confirm A1 holds at least 20 µL/);
+    assert.match(line, /whether B1 is empty/);
     assert.doesNotMatch(line, /nothing is written yet/);
   });
 
@@ -110,6 +114,32 @@ describe("session machine", () => {
     assert.match(line, /^Hamilton Vantage, standard deck:/);
     assert.match(line, /1\.3 m rails/);
     assert.doesNotMatch(line, /rails 1–6|rails 8–13|rail 15|tip carrier|slot 1/);
+    assert.match(line, /Confirm A1 holds at least 50 µL/);
+  });
+
+  it("rejecting a reservoir removes it and blocks generation until reconfirm", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1", doc: "", robot: "Tecan" });
+    markIntakeReply(session, "there is no 12-well reservoir");
+    assert.equal(session.hardware.deck["3"], undefined);
+    assert.deepEqual(session.removedLabware, ["12-well reservoir"]);
+    assert.equal(session.deckConfirmed, false);
+    assert.equal(confirmGateOpen(session), true);
+    assert.equal(canGenerateSop(session), false);
+    assert.match(intakeConfirmLine(session), /12-well reservoir removed/);
+    assert.ok(missingList(session).some((item) => item.includes("updated deck")));
+    markIntakeReply(session, "yes, that matches, A1 has 50 µL and B1 is empty");
+    assert.equal(session.deckConfirmed, true);
+    assert.equal(confirmGateOpen(session), false);
+    assert.equal(canGenerateSop(session), true);
+    assert.deepEqual(applyDeckRejection(session, "looks good"), []);
+  });
+
+  it("a vague goal asks for the experiment before the deck", () => {
+    const session = createSession();
+    applyForm(session, { goal: "xyz", doc: "", robot: "OT-2" });
+    assert.match(intakeConfirmLine(session), /What should we transfer, how much, and which wells/);
+    assert.doesNotMatch(intakeConfirmLine(session), /standard deck:/);
   });
 
   it("form notes stay in doc; generate_sop is still required", () => {
