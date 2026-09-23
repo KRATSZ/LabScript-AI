@@ -10,8 +10,7 @@ LabscriptAI turns natural-language protocols into validated robot scripts and su
 
 ## Live Flex Recovery
 
-A tip-pickup failure on an Opentrons Flex: without runtime perception, the run remains paused; with the full system, the failure is detected, a recovery action is selected, and the run resumes. This is one filmed comparison, not a claim that every fault is recoverable.
-
+A tip-pickup failure on an Opentrons Flex: without runtime perception, the run remains paused; with the full system, the failure is detected, a recovery action is selected, and the run resumes. 
 <p align="center">
   <img src="assets/live-flex-tip-recovery.gif" alt="Opentrons Flex tip-pickup failure comparison: run stays paused without runtime perception; with LabscriptAI, the failure is detected and the run recovers" width="800" />
 </p>
