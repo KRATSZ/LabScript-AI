@@ -1,6 +1,7 @@
+import { ChecksAudit } from "./ChecksAudit";
 import { statusTone, statusWord } from "./pipelineLogic";
 import { useLang } from "./LangContext";
-import type { ChecksResult } from "./types";
+import type { ChecksResult, SessionSnapshot } from "./types";
 
 function issueText(item: unknown): string {
   if (typeof item === "string") return item;
@@ -20,7 +21,13 @@ function fallbackLines(checks: ChecksResult): string[] {
   return [...findings, ...issues].map(issueText).filter(Boolean).slice(0, 5);
 }
 
-export function IssuesPanel({ checks }: { checks: ChecksResult | null }) {
+export function IssuesPanel({
+  checks,
+  session = null,
+}: {
+  checks: ChecksResult | null;
+  session?: SessionSnapshot | null;
+}) {
   const { t } = useLang();
   if (!checks) return null;
   const tone = statusTone(checks.status);
@@ -36,6 +43,7 @@ export function IssuesPanel({ checks }: { checks: ChecksResult | null }) {
           <p key={index}>{line}</p>
         ))}
       </div>
+      <ChecksAudit session={session} checks={checks} />
       <details className="issues">
         <summary>{t("Lab-check details")}</summary>
         <pre>

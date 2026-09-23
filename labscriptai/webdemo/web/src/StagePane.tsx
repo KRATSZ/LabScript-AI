@@ -78,7 +78,7 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
               </div>
             </div>
           ) : null}
-          <IssuesPanel checks={session.checks} />
+          <IssuesPanel checks={session.checks} session={session} />
         </div>
       )}
     </div>
