@@ -279,6 +279,8 @@ export function App() {
           dragging ? "dragging" : "",
           hasRail ? "has-history" : "",
           hasRail && historyOpen ? "history-open" : "",
+          session ? "session-mode" : "start-mode",
+          canWatch ? "watch-ready" : "",
         ]
           .filter(Boolean)
           .join(" ")}

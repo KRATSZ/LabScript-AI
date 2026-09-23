@@ -42,8 +42,14 @@ describe("AnimationOverlay code-split", () => {
   it("demo start form does not link smoke pages", () => {
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     const start = readFileSync(path.join(webSrc, "StartForm.tsx"), "utf8");
-    assert.doesNotMatch(app, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
-    assert.doesNotMatch(start, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
+    assert.doesNotMatch(
+      app,
+      /overlay-smoke|start-smoke|stage-wait-smoke|watch-stage-smoke|overlaySmoke|startSmoke|stageWaitSmoke|watchStageSmoke/
+    );
+    assert.doesNotMatch(
+      start,
+      /overlay-smoke|start-smoke|stage-wait-smoke|watch-stage-smoke|overlaySmoke|startSmoke|stageWaitSmoke|watchStageSmoke/
+    );
   });
 
   it("scientist-facing copy names five robots and prompt supports emit_plan", () => {
@@ -115,6 +121,44 @@ describe("AnimationOverlay code-split", () => {
     const issues = readFileSync(path.join(webSrc, "IssuesPanel.tsx"), "utf8");
     assert.match(issues, /statusWord/);
     assert.match(issues, /status-word/);
+  });
+
+  it("stage-wait body uses overflow-safe vertical alignment so the deck title stays visible", () => {
+    const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
+    const waitBody = css.match(/\.stage-body:has\(\.stage-wait\)\s*\{[^}]+\}/)?.[0] ?? "";
+    assert.match(waitBody, /flex-direction:\s*column/);
+    assert.match(waitBody, /justify-content:\s*safe center/);
+    assert.match(waitBody, /overflow:\s*auto/);
+    assert.doesNotMatch(waitBody, /align-items:\s*center\s*;[\s\S]*justify-content:\s*center/);
+    const waitPane = css.match(/\.stage-wait\s*\{[^}]+\}/)?.[0] ?? "";
+    assert.match(waitPane, /flex-shrink:\s*0/);
+    const webRoot = path.resolve(webSrc, "..");
+    assert.match(readFileSync(path.join(webRoot, "stage-wait-smoke.html"), "utf8"), /stageWaitSmoke\.tsx/);
+    assert.match(readFileSync(path.join(webSrc, "stageWaitSmoke.tsx"), "utf8"), /data-smoke="stage-wait"/);
+    assert.match(readFileSync(path.join(webSrc, "stageWaitSmoke.tsx"), "utf8"), /canWatch=\{false\}/);
+  });
+
+  it("phone stack keeps start form, Stage wait, and Watch on one column", () => {
+    const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
+    const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
+    const start = css.indexOf("@media (max-width: 860px)");
+    const next = css.indexOf("@media (max-width: 400px)");
+    const phone = start >= 0 ? css.slice(start, next > start ? next : undefined) : "";
+    assert.match(app, /session \? "session-mode" : "start-mode"/);
+    assert.match(app, /canWatch \? "watch-ready" : ""/);
+    assert.match(phone, /\.workspace\.start-mode \.stage-column \{ display:\s*none/);
+    assert.match(phone, /flex-direction:\s*column/);
+    assert.match(phone, /\.demo-replay \{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    assert.match(phone, /\.demo-replay-side \{[\s\S]*grid-row:\s*3/);
+    assert.match(phone, /\.stage-pane\.has-deck \.ot-deck-embed[\s\S]*min-height:\s*0/);
+    assert.match(phone, /\.overlay-card \{[\s\S]*min-height:\s*0/);
+    assert.match(phone, /\.lang-switch \{ grid-area:\s*lang/);
+    const webRoot = path.resolve(webSrc, "..");
+    assert.match(readFileSync(path.join(webRoot, "watch-stage-smoke.html"), "utf8"), /watchStageSmoke\.tsx/);
+    assert.match(readFileSync(path.join(webSrc, "watchStageSmoke.tsx"), "utf8"), /data-smoke="watch-stage"/);
+    assert.match(readFileSync(path.join(webSrc, "watchStageSmoke.tsx"), "utf8"), /watch-ready/);
+    assert.match(readFileSync(path.join(webSrc, "startSmoke.tsx"), "utf8"), /LanguageSwitch/);
+    assert.match(readFileSync(path.join(webSrc, "stageWaitSmoke.tsx"), "utf8"), /LanguageSwitch/);
   });
 
   it("pins protocol-visualization and overlay-smoke still seeks the TimelineScrubber track", () => {

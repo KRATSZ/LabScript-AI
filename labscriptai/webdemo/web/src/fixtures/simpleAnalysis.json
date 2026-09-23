@@ -1,40 +1,115 @@
 {
   "createdAt": "2026-01-01T00:00:00.000000+00:00",
   "robotType": "OT-2 Standard",
+  "config": { "protocolType": "python", "apiVersion": [2, 15] },
   "commands": [
     {
-      "id": "cmd-1",
+      "id": "cmd-load-pipette",
+      "commandType": "loadPipette",
+      "status": "succeeded",
+      "params": { "pipetteName": "p300_single_gen2", "mount": "left", "pipetteId": "left" },
+      "result": { "pipetteId": "left" }
+    },
+    {
+      "id": "cmd-load-tips",
       "commandType": "loadLabware",
-      "params": { "loadName": "opentrons_96_tiprack_300ul", "wellName": "" }
+      "status": "succeeded",
+      "params": {
+        "loadName": "opentrons_96_tiprack_300ul",
+        "namespace": "opentrons",
+        "version": 1,
+        "location": { "slotName": "1" },
+        "labwareId": "tips",
+        "displayName": "300 µL tips"
+      },
+      "result": { "labwareId": "tips" }
     },
     {
-      "id": "cmd-2",
+      "id": "cmd-load-plate",
+      "commandType": "loadLabware",
+      "status": "succeeded",
+      "params": {
+        "loadName": "nest_96_wellplate_100ul_pcr_full_skirt",
+        "namespace": "opentrons",
+        "version": 1,
+        "location": { "slotName": "2" },
+        "labwareId": "plate"
+      },
+      "result": { "labwareId": "plate" }
+    },
+    {
+      "id": "cmd-load-res",
+      "commandType": "loadLabware",
+      "status": "succeeded",
+      "params": {
+        "loadName": "nest_12_reservoir_15ml",
+        "namespace": "opentrons",
+        "version": 1,
+        "location": { "slotName": "3" },
+        "labwareId": "res"
+      },
+      "result": { "labwareId": "res" }
+    },
+    {
+      "id": "cmd-pickup",
       "commandType": "pickUpTip",
-      "params": { "wellName": "A1" }
+      "status": "succeeded",
+      "params": { "pipetteId": "left", "labwareId": "tips", "wellName": "A1" }
     },
     {
-      "id": "cmd-3",
+      "id": "cmd-aspirate",
       "commandType": "aspirate",
-      "params": { "wellName": "A1", "volume": 20 }
+      "status": "succeeded",
+      "params": { "pipetteId": "left", "labwareId": "res", "wellName": "A1", "volume": 20 }
     },
     {
-      "id": "cmd-4",
+      "id": "cmd-dispense",
       "commandType": "dispense",
-      "params": { "wellName": "B1", "volume": 20 }
+      "status": "succeeded",
+      "params": { "pipetteId": "left", "labwareId": "plate", "wellName": "B1", "volume": 20 }
     },
     {
-      "id": "cmd-5",
+      "id": "cmd-drop",
       "commandType": "dropTip",
-      "params": { "wellName": "A1" }
+      "status": "succeeded",
+      "params": { "pipetteId": "left", "labwareId": "tips", "wellName": "A1" }
     }
   ],
   "labware": [
-    { "id": "tips", "loadName": "opentrons_96_tiprack_300ul", "slot": "1" },
-    { "id": "plate", "loadName": "nest_96_wellplate_100ul_pcr_full_skirt", "slot": "2" },
-    { "id": "res", "loadName": "nest_12_reservoir_15ml", "slot": "3" },
-    { "id": "trash", "loadName": "opentrons_1_trash_1100ml_fixed", "displayName": "Opentrons Fixed Trash", "slot": "12" }
+    {
+      "id": "tips",
+      "loadName": "opentrons_96_tiprack_300ul",
+      "definitionUri": "opentrons/opentrons_96_tiprack_300ul/1",
+      "labwareDefURI": "opentrons/opentrons_96_tiprack_300ul/1",
+      "location": { "slotName": "1" },
+      "displayName": "300 µL tips"
+    },
+    {
+      "id": "plate",
+      "loadName": "nest_96_wellplate_100ul_pcr_full_skirt",
+      "definitionUri": "opentrons/nest_96_wellplate_100ul_pcr_full_skirt/2",
+      "labwareDefURI": "opentrons/nest_96_wellplate_100ul_pcr_full_skirt/2",
+      "location": { "slotName": "2" },
+      "displayName": "96-well PCR plate"
+    },
+    {
+      "id": "res",
+      "loadName": "nest_12_reservoir_15ml",
+      "definitionUri": "opentrons/nest_12_reservoir_15ml/1",
+      "labwareDefURI": "opentrons/nest_12_reservoir_15ml/1",
+      "location": { "slotName": "3" },
+      "displayName": "12-well reservoir"
+    },
+    {
+      "id": "trash",
+      "loadName": "opentrons_1_trash_1100ml_fixed",
+      "definitionUri": "opentrons/opentrons_1_trash_1100ml_fixed/1",
+      "labwareDefURI": "opentrons/opentrons_1_trash_1100ml_fixed/1",
+      "location": { "slotName": "12" },
+      "displayName": "Trash"
+    }
   ],
-  "pipettes": [{ "id": "left", "pipetteName": "p300_single_gen2" }],
+  "pipettes": [{ "id": "left", "pipetteName": "p300_single_gen2", "mount": "left" }],
   "modules": [],
   "liquids": [],
   "errors": [],

@@ -61,6 +61,35 @@ function tiprackIds(analyze: Record<string, unknown>): Set<string> {
   return ids;
 }
 
+function labwareDefUriFrom(rec: Record<string, unknown>): string {
+  const existing = rec.labwareDefURI ?? rec.definitionUri ?? rec.definition_uri;
+  if (typeof existing === "string" && existing.trim()) return existing.trim();
+  const load = typeof rec.loadName === "string" ? rec.loadName.trim() : "";
+  if (!load) return "";
+  return `opentrons/${load}/1`;
+}
+
+function padLabwareRecord(item: unknown): unknown {
+  if (!item || typeof item !== "object") return item;
+  const rec = item as Record<string, unknown>;
+  const uri = labwareDefUriFrom(rec);
+  const slot =
+    rec.slot == null
+      ? ""
+      : String(rec.slot);
+  const location =
+    rec.location && typeof rec.location === "object"
+      ? rec.location
+      : slot
+        ? { slotName: slot }
+        : rec.location;
+  return {
+    ...rec,
+    ...(uri ? { definitionUri: uri, labwareDefURI: uri } : {}),
+    ...(location ? { location } : {}),
+  };
+}
+
 function rewriteTrashDropTips(analyze: Record<string, unknown>): unknown[] {
   const racks = tiprackIds(analyze);
   const commands = Array.isArray(analyze.commands) ? analyze.commands : [];
@@ -111,7 +140,7 @@ export function padAnalysisForAnimator(
     config,
     commands: rewriteTrashDropTips(analyze),
     liquids: asList(analyze.liquids),
-    labware: asList(analyze.labware),
+    labware: asList(analyze.labware).map(padLabwareRecord),
     pipettes: asList(analyze.pipettes),
     modules: asList(analyze.modules),
     errors: asList(analyze.errors),

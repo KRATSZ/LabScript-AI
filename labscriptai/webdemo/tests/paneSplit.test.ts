@@ -89,4 +89,19 @@ describe("locked right-pane layout", () => {
     assert.match(css, /\.chat-column-body,\n\.chat,\n\.history,\n\.bubble-row,\n\.bubble,\n\.composer,\n\.composer textarea \{\n\s*min-width:\s*0;/);
     assert.match(css, /@media \(max-width:\s*860px\)[\s\S]{0,900}\.workspace-header \{[\s\S]{0,180}height:\s*auto;/);
   });
+
+  it("stacks chat over Stage on phones and keeps Watch from using a 560px min-height", () => {
+    const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+    const css = readFileSync(path.join(root, "web/src/styles.css"), "utf8");
+    const app = readFileSync(path.join(root, "web/src/App.tsx"), "utf8");
+    const start = css.indexOf("@media (max-width: 860px)");
+    const next = css.indexOf("@media (max-width: 400px)");
+    const phone = css.slice(start, next);
+    assert.match(app, /start-mode/);
+    assert.match(app, /watch-ready/);
+    assert.match(phone, /\.workspace\.start-mode \.stage-column/);
+    assert.match(phone, /\.demo-replay-side \{[\s\S]*grid-row:\s*3/);
+    assert.match(phone, /min-height:\s*0/);
+    assert.doesNotMatch(phone, /min-height:\s*560px/);
+  });
 });
