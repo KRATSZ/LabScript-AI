@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ChecksAudit } from "./ChecksAudit";
+import { useLang } from "./LangContext";
 import type { AgentEvent, SessionSnapshot } from "./types";
 import {
   THINK_STEP,
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function TrajectoryPane({ events, runningTool = null, live = {}, session = null }: Props) {
+  const { t } = useLang();
   const streamRef = useRef<HTMLDivElement>(null);
   const pinRef = useRef(true);
   const steps = activitySteps(events, runningTool, live, session);
@@ -31,8 +33,8 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
   if (!steps.length) {
     return (
       <div className="stage-empty" data-testid="trajectory-empty">
-        <h2>Activity</h2>
-        <p>Confirms and checks land here.</p>
+        <h2>{t("Activity")}</h2>
+        <p>{t("Confirms and checks land here.")}</p>
       </div>
     );
   }
@@ -48,7 +50,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
       }}
     >
       <div className="activity-head">
-        <h2>Activity</h2>
+        <h2>{t("Activity")}</h2>
         <p>{activitySummary(steps)}</p>
       </div>
       <ol className="activity-timeline">
@@ -56,7 +58,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
           const rows = steps.filter((step) => step.turn === turn);
           return (
             <li key={turn} className="activity-turn">
-              {turns.length > 1 ? <h3>{turn === 1 ? "Start" : "After you replied"}</h3> : null}
+              {turns.length > 1 ? <h3>{turn === 1 ? t("Start") : t("After you replied")}</h3> : null}
               <ol className="activity-list">
                 {rows.map((step) => {
                   const time = step.status === "run" ? "" : formatDuration(step.durationMs);
@@ -70,7 +72,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
                       data-kind={step.name}
                       data-line={line}
                       data-status={step.status}
-                      aria-label={`${step.label}, ${status}`}
+                      aria-label={`${t(step.label)}, ${t(status)}`}
                     >
                       <span className="activity-line" aria-hidden>
                         {line}
@@ -80,10 +82,10 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
                         aria-hidden
                       />
                       <span className="activity-copy">
-                        <span className="activity-label">{step.label}</span>
+                        <span className="activity-label">{t(step.label)}</span>
                         {step.note ? (
                           <span className="activity-note" data-testid="activity-note">
-                            {step.note}
+                            {t(step.note)}
                           </span>
                         ) : null}
                         {step.file ? (
@@ -93,13 +95,13 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
                         ) : null}
                         {step.extra ? (
                           <details className="activity-extra">
-                            <summary>More</summary>
+                            <summary>{t("More")}</summary>
                             {step.extra}
                           </details>
                         ) : null}
                       </span>
                       <span className="activity-meta">
-                        <span className={`activity-status status-${step.status}`}>{status}</span>
+                        <span className={`activity-status status-${step.status}`}>{t(status)}</span>
                         {time ? <span className="activity-time">{time}</span> : null}
                       </span>
                     </li>

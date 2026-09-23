@@ -83,6 +83,8 @@ describe("StartForm device cards", () => {
     assert.match(src, /matchDeviceFromText/);
     assert.match(src, /Pick a robot/);
     assert.match(src, /Paste a draft, or leave blank/);
+    assert.match(src, /t\(item\.label\)/);
+    assert.match(src, /Choose file/);
     assert.match(src, /device-emoji/);
     assert.match(src, /device-blurb/);
     assert.match(src, /TILE_MARK/);

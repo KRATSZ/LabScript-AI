@@ -83,9 +83,8 @@ describe("locked right-pane layout", () => {
     const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
     const css = readFileSync(path.join(root, "web/src/styles.css"), "utf8");
     const rail = readFileSync(path.join(root, "web/src/HistoryRail.tsx"), "utf8");
-    assert.match(rail, /aria-label="History"/);
-    assert.match(rail, />\s*History\s*</);
-    assert.doesNotMatch(rail, /记录/);
+    assert.match(rail, /aria-label=\{t\("History"\)\}/);
+    assert.match(rail, /\{t\("History"\)\}/);
     assert.match(
       css,
       /\.history-rail-toggle \{[\s\S]*?writing-mode:\s*vertical-rl;[\s\S]*?text-orientation:\s*mixed;[\s\S]*?transform:\s*none;/
