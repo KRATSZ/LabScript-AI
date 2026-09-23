@@ -17,6 +17,8 @@ const ZH: Record<string, string> = {
   "Downloadable script": "可下载脚本",
   "Downloadable worklist": "可下载工作表",
   "e.g. Transfer 50 µL from well A1 to B1": "例如：从 A1 孔转移 50 µL 到 B1",
+  "Name a transfer, a volume, or wells — for example Transfer 50 µL from A1 to B1.":
+    "请写出操作、体积或孔位，例如：从 A1 转移 50 µL 到 B1。",
   "Change robot": "更换仪器",
   "Notes attached": "已附备注",
   "Preview service down — OT-2 and Flex scripts stay off": "预览服务未启动 — OT-2 与 Flex 脚本暂不可用",

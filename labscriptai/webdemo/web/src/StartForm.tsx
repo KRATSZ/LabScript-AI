@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
+import { DEVICE_CARDS, canStart, goalHasProtocolIntent, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
 import { useLang } from "./LangContext";
 import type { StartInput } from "./types";
@@ -75,6 +75,11 @@ export function StartForm({ busy, onSubmit }: Props) {
         value={goal}
         onChange={(e) => setGoal(e.target.value)}
       />
+      {goal.trim() && !goalHasProtocolIntent(goal) ? (
+        <p className="hint" data-testid="goal-intent-hint">
+          {t("Name a transfer, a volume, or wells — for example Transfer 50 µL from A1 to B1.")}
+        </p>
+      ) : null}
 
       <label htmlFor="doc" className="notes-head">
         <span>{t("Notes (optional)")}</span>
