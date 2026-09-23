@@ -110,7 +110,7 @@ In the web demo, **Watch** is the built-in Opentrons deck visualizer. When an OT
 
 ## Real-World Applications
 
-Research deployments include standardized characterization of 854 GFP designs from 171 student teams across the 2025 and 2026 CAPE rounds, as well as preparation and quality assurance of 531 genetic parts for the 2025 iGEM Distribution Kit. These are study-wide workflows, not features fully automated by this repository:
+Research deployments include standardized characterization of 854 GFP designs from 171 student teams across the 2025 and 2026 CAPE rounds, as well as preparation and quality assurance of 531 genetic parts for the 2025 iGEM Distribution Kit. These are study-wide workflows:
 
 <a href="assets/fig-5-igem-distribution-kit.png">
   <img src="assets/fig-5-igem-distribution-kit.png" alt="Figure 5 from the September 2026 manuscript: Tecan Fluent deck, iGEM Distribution Kit workflow, quality assurance, and plate mapping" width="760" />
@@ -238,17 +238,6 @@ labscriptai/
   tests/                     # Test suite
 assets/                      # Architectural and workflow figures
 ```
-
----
-
-## Safety Guidelines for Live Hardware
-
-Before running live protocols on physical equipment, please review the safety specifications:
-- [`labscriptai/plugins/skills/safety-brief.md`](labscriptai/plugins/skills/safety-brief.md) — Operational guidelines and boundaries
-- [`labscriptai/plugins/skills/error-taxonomy.md`](labscriptai/plugins/skills/error-taxonomy.md) — How errors are detected and classified
-- [`labscriptai/plugins/skills/recovery-playbooks.md`](labscriptai/plugins/skills/recovery-playbooks.md) — Pre-approved recovery strategies
-
-*Important:* Never run multiple automated clients or manual scripts against the same robot at the same time.
 
 ---
 
