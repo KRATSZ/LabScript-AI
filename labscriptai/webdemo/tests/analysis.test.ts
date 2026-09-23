@@ -114,6 +114,23 @@ describe("padAnalysisForAnimator", () => {
     );
   });
 
+  it("copies definitionUri onto labwareDefURI so the official visualizer can resolve defs", () => {
+    const padded = padAnalysisForAnimator({
+      commands: [{ commandType: "home" }],
+      labware: [
+        { id: "tips", loadName: "opentrons_96_tiprack_300ul", slot: "1" },
+        {
+          id: "plate",
+          definitionUri: "opentrons/nest_96_wellplate_100ul_pcr_full_skirt/2",
+        },
+      ],
+    });
+    const labware = padded.labware as Array<Record<string, unknown>>;
+    assert.equal(labware[0].labwareDefURI, "opentrons/opentrons_96_tiprack_300ul/1");
+    assert.deepEqual(labware[0].location, { slotName: "1" });
+    assert.equal(labware[1].labwareDefURI, "opentrons/nest_96_wellplate_100ul_pcr_full_skirt/2");
+  });
+
   it("rewrites dropTip on trash to dropTipInPlace, keeps tiprack dropTip", () => {
     const padded = padAnalysisForAnimator({
       labware: [

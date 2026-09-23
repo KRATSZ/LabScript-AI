@@ -543,6 +543,12 @@ body {
   flex-direction: column;
   gap: 6px;
 }
+.demo-replay-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
 .demo-step-list {
   list-style: none;
   margin: 0;
@@ -1669,4 +1675,75 @@ body {
 @keyframes typing {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
+}
+
+/* Phone overrides after later desktop rules so they actually win. */
+@media (max-width: 860px) {
+  html, body, #root, .app { overflow-x: hidden; }
+  .device-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .device-card strong { white-space: normal; }
+  .device-blurb {
+    text-align: left;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+  .chip { min-height: 36px; padding: 8px 12px; }
+  .primary { width: 100%; min-height: 44px; }
+  .composer { padding-bottom: max(6px, env(safe-area-inset-bottom)); }
+  .send { min-width: 56px; min-height: 44px; }
+  .overlay-card {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    min-height: 0;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+  }
+  .demo-replay {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(200px, 1fr) auto minmax(140px, 38%);
+  }
+  .demo-replay-side {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .demo-replay-steps {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    order: 1;
+  }
+  .demo-replay-side .protocol-summary {
+    order: 2;
+    flex: 0 1 auto;
+    max-height: 42%;
+    overflow: auto;
+    margin-bottom: 0;
+    padding-top: 6px;
+    border-top: 0.5px solid var(--line);
+  }
+  .ot-deck-embed,
+  .plr-deck-embed,
+  .stage-pane.has-deck .ot-deck-embed,
+  .stage-pane.has-deck .plr-deck-embed {
+    min-height: 0;
+    height: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .card.form { padding: 12px 12px; gap: 6px; }
+  .device-card { padding: 7px 10px; min-height: 0; }
+  .form textarea, .form input[type="text"] { padding: 8px 10px; }
+  .chip { min-height: 32px; padding: 6px 10px; }
+  .primary { min-height: 40px; }
 }

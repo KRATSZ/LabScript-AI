@@ -98,10 +98,10 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
     <div className="demo-replay" data-testid="demo-replay" ref={hostRef}>
       <div className="demo-replay-deck">{children}</div>
       <aside className="demo-replay-side" data-testid="demo-replay-side">
-        <ProtocolSummaryCard session={session} />
-        <div className="plan-heading">{t("Steps")}</div>
-        <p className="hint">{t("Previous steps stay listed")}</p>
-        <ul className="demo-step-list" ref={listRef} data-testid="demo-step-list">
+        <div className="demo-replay-steps">
+          <div className="plan-heading">{t("Steps")}</div>
+          <p className="hint">{t("Previous steps stay listed")}</p>
+          <ul className="demo-step-list" ref={listRef} data-testid="demo-step-list">
           {visible.map((step) => {
             const status = stepStatus(step.index, index);
             return (
@@ -127,7 +127,9 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
+        <ProtocolSummaryCard session={session} />
       </aside>
       <div className="demo-replay-scrub" data-testid="demo-progress">
         <label className="replay-progress-label" htmlFor="demo-progress-range">

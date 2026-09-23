@@ -11,7 +11,9 @@ function StartSmoke() {
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      document.querySelector<HTMLButtonElement>(".chip")?.click();
+      const chips = document.querySelectorAll<HTMLButtonElement>(".chip");
+      const pcr = [...chips].find((btn) => /PCR/i.test(btn.textContent || ""));
+      (pcr || chips[0])?.click();
     });
     return () => cancelAnimationFrame(id);
   }, []);
