@@ -1,30 +1,36 @@
 # LabscriptAI
 
-**Natural-language liquid handling with closed-loop simulation, deck visualization, and gated live recovery.**
+**An execution-aware agent harness for liquid-handling robots.**
 
-[![Canonical release](https://img.shields.io/github/v/tag/KRATSZ/LabScript-AI?label=v1.0-canonical)](https://github.com/KRATSZ/LabScript-AI/releases/tag/v1.0-canonical)
-[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.17697326.svg)](https://doi.org/10.5281/zenodo.17697326)
+LabscriptAI turns natural-language protocols into validated robot scripts and supports bounded recovery on a live Opentrons Flex, subject to deterministic authorization and human oversight.
 
-Writing automation scripts for liquid-handling robots is often tedious. Asking a general-purpose LLM for help usually leads to a frustrating cycle: you get a snippet of Python, paste it into your robot software, hit a `LabwareNotFoundError` or volume error, paste the traceback back into chat, and repeat. And when something fails on the physical deck—like an empty tip box or a dry source well—standard scripts just crash.
+[![Zenodo](https://zenodo.org/badge/DOI/10.5281/zenodo.22054311.svg)](https://doi.org/10.5281/zenodo.22054311)
 
-**LabscriptAI** connects protocol authoring, simulation, and hardware execution into a reliable workflow:
-1. **Closed-loop protocol authoring:** You describe your experiment in plain language. The agent writes the protocol, runs it against platform simulators and logic checkers, and automatically patches errors until the script passes.
-2. **Interactive web agent with "Watch" playback:** Through a browser interface, you can author protocols across five robot platforms. For Opentrons OT-2 and Flex, once checks pass, the **Watch** deck viewer lets you step through commands and inspect the animated deck layout before touching real hardware.
-3. **Gated live recovery on Opentrons:** When running on a live Opentrons Flex, the agent monitors the command queue. If an operation fails mid-run (such as a missing tip or depleted well), it diagnoses the issue and proposes a recovery action.
-4. **Deterministic safety gate (`allow` / `ask` / `suspend`):** The language model never has raw control over robot motion. A deterministic gatekeeper evaluates every candidate action against safety rules—auto-allowing safe retries, asking an operator when human judgment is needed, and immediately halting on hardware faults or contamination risks.
+[Try the web demo (no hardware needed)](https://labscriptai.cn/) · [Run locally](#getting-started) · [Watch the full project video](https://github.com/KRATSZ/LabScript-AI/releases/download/v1.0.1/intro-video.mp4) · [Read the preprint (v2)](https://www.biorxiv.org/content/10.1101/2025.09.30.679666v2)
 
----
+## Live Flex Recovery
 
-> **Try the web demo (no hardware needed):** [labscriptai.cn](https://labscriptai.cn/)  
-> Or run it locally at [http://127.0.0.1:5173](http://127.0.0.1:5173).
+A tip-pickup failure on an Opentrons Flex: without runtime perception, the run remains paused; with the full system, the failure is detected, a recovery action is selected, and the run resumes. This is one filmed comparison, not a claim that every fault is recoverable.
 
----
+<p align="center">
+  <a href="https://github.com/KRATSZ/LabScript-AI/releases/download/v1.0.1/intro-video.mp4">
+    <img src="assets/live-flex-tip-recovery.gif" alt="Opentrons Flex tip-pickup failure comparison: run stays paused without runtime perception; with LabscriptAI, the failure is detected and the run recovers" width="960" />
+  </a>
+</p>
+
+The clip shows the robot outcome, not the underlying authorization log. Recovery proposals are checked by a deterministic gatekeeper; actions that need confirmation wait for an operator, and unsafe or unknown cases stop.
+
+## How It Works
+
+1. **Author and verify:** Turn a human-confirmed procedure into a platform-specific script, then use simulation and validation feedback to repair errors before execution.
+2. **Observe the live run:** Track controller-reported command and run state; camera images and pressure traces provide advisory evidence but cannot override controller state.
+3. **Recover within bounds:** Propose an action for a failed command. The gatekeeper decides `allow`, `ask`, or `suspend`; only authorized actions reach the robot.
 
 ## Project Overview Video
 
 <p align="center">
   <a href="https://github.com/KRATSZ/LabScript-AI/releases/download/v1.0.1/intro-video.mp4">
-    <img src="assets/intro-video-preview.gif" alt="LabscriptAI Intro Video" width="720" style="max-width: 100%; border: 1px solid #e1e4e8; border-radius: 6px;" />
+    <img src="assets/intro-video-thumbnail.png" alt="Watch the full LabscriptAI project overview video" width="720" />
   </a>
 </p>
 
@@ -109,7 +115,7 @@ In the web demo, **Watch** is the built-in Opentrons deck visualizer. When an OT
 
 ## Real-World Applications
 
-LabscriptAI has been tested on real-world synthetic biology workflows, including high-throughput plate mapping and assembly for the iGEM parts distribution kit:
+Research deployments include standardized characterization of 854 GFP designs from 171 student teams across the 2025 and 2026 CAPE rounds, as well as preparation and quality assurance of 531 genetic parts for the 2025 iGEM Distribution Kit. These are study-wide workflows, not features fully automated by this repository:
 
 ![Synthetic biology applications, transformation workflows, and plate mapping](assets/fig-e-applications.png)
 
@@ -249,10 +255,11 @@ Before running live protocols on physical equipment, please review the safety sp
 
 ---
 
-## Citation & References
+## Cite
 
-- **Code Repository:** [github.com/KRATSZ/LabScript-AI](https://github.com/KRATSZ/LabScript-AI)
-- **Dataset & Shards:** [Zenodo DOI: 10.5281/zenodo.17697326](https://doi.org/10.5281/zenodo.17697326)
+Gao, Y. et al. *Autonomous Liquid-handling Robotics Scripting for Accessible and Responsible Protein Engineering.* bioRxiv (2025). [doi:10.1101/2025.09.30.679666, version 2](https://www.biorxiv.org/content/10.1101/2025.09.30.679666v2). The 854-design figure above comes from a newer manuscript draft, not this preprint version.
+
+**Code:** [this repository](https://github.com/KRATSZ/LabScript-AI) · **Study data:** [Zenodo v2, doi:10.5281/zenodo.22054311](https://doi.org/10.5281/zenodo.22054311) (source code is not included in the Zenodo deposit).
 
 ## License
 
