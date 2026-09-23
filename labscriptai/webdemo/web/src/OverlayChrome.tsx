@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LanguageSwitch } from "./LanguageSwitch";
 import { useLang } from "./LangContext";
 
 export function OverlayChrome({
@@ -15,9 +16,12 @@ export function OverlayChrome({
       <div className="overlay-card">
         <div className="overlay-head">
           <strong>{t("Watch the protocol")}</strong>
-          <button className="ghost" type="button" onClick={onClose}>
-            {t("Close")}
-          </button>
+          <div className="overlay-head-actions">
+            <LanguageSwitch />
+            <button className="ghost" type="button" onClick={onClose}>
+              {t("Close")}
+            </button>
+          </div>
         </div>
         {children}
       </div>

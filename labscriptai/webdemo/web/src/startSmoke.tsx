@@ -1,10 +1,12 @@
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { StartForm } from "./StartForm";
-import { LangProvider } from "./LangContext";
+import { LanguageSwitch } from "./LanguageSwitch";
+import { LangProvider, useLang } from "./LangContext";
 import "./styles.css";
 
 function StartSmoke() {
+  const { t } = useLang();
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
@@ -15,8 +17,24 @@ function StartSmoke() {
   }, []);
 
   return (
-    <div className="shell" data-smoke="start" {...(submitted ? { "data-submitted": "1" } : {})}>
-      <StartForm busy={false} onSubmit={() => setSubmitted(true)} />
+    <div className="app" data-smoke="start" {...(submitted ? { "data-submitted": "1" } : {})}>
+      <header className="workspace-header">
+        <div className="brand">
+          <div className="brand-mark" />
+          <div>
+            <h1>LabscriptAI</h1>
+            <p>{t("On-screen preview only")}</p>
+          </div>
+        </div>
+        <LanguageSwitch />
+      </header>
+      <div className="workspace start-mode" data-testid="shell">
+        <section className="chat-column" data-testid="chat-column">
+          <div className="start-scroll">
+            <StartForm busy={false} onSubmit={() => setSubmitted(true)} />
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
