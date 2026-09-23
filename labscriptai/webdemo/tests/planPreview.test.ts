@@ -56,8 +56,8 @@ describe("planPreview", () => {
     assert.equal(session?.hardware.deck["1"], "tips");
   });
 
-  it("does not call a passing plan-backend run Ready to watch", () => {
-    assert.equal(phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true), "Checks passed");
+  it("calls a passing plan-backend run Ready to watch when the bench preview is up", () => {
+    assert.equal(phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true), "Ready to watch");
     assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
   });
 });

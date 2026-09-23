@@ -30,11 +30,17 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
     session.checks?.status,
     session.analyze ?? null
   );
+  const previewDown =
+    session.code_service === "down" && isPlanCodegen(session.robot)
+      ? "Preview service down. The bench preview stays off until that service is up."
+      : null;
   const plrReady =
     isPlanCodegen(session.robot) &&
     session.checks?.status === "pass" &&
-    Boolean(session.plan && typeof session.plan === "object");
+    Boolean(session.plan && typeof session.plan === "object") &&
+    session.code_service !== "down";
   const hasDeck = watchReady || plrReady;
+  const waitHint = watchGap || previewDown;
   return (
     <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
       {watchReady ? (
@@ -47,22 +53,29 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
           />
         </DemoReplay>
       ) : plrReady ? (
-        <PlrDeckReplay plan={session.plan} robot={session.robot} session={session} />
+        <PlrDeckReplay
+          plan={session.plan}
+          robot={session.robot}
+          previewUp={session.code_service !== "down"}
+          session={session}
+        />
       ) : (
         <div className="stage-wait">
           <div className="stage-wait-copy">
             <h2>{t("Standard deck")}</h2>
             <p>
-              {isPlanCodegen(session.robot)
-                ? t("The bench preview fills this pane after checks pass.")
-                : t("The deck preview fills this pane after checks pass.")}
+              {isPlanCodegen(session.robot) && session.code_service === "down"
+                ? t("The bench preview stays off while the preview service is down.")
+                : isPlanCodegen(session.robot)
+                  ? t("The bench preview fills this pane after checks pass.")
+                  : t("The deck preview fills this pane after checks pass.")}
             </p>
           </div>
           <DeckSketch session={session} />
           <Pipeline session={session} runningTool={runningTool} busy={busy} compact />
-          {watchGap ? (
+          {waitHint ? (
             <p className="hint" data-testid="watch-unavailable">
-              {watchGap}
+              {waitHint}
             </p>
           ) : null}
           <ProtocolSummaryCard session={session} />
