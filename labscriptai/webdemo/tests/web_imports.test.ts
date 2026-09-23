@@ -42,8 +42,8 @@ describe("AnimationOverlay code-split", () => {
   it("demo start form does not link smoke pages", () => {
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     const start = readFileSync(path.join(webSrc, "StartForm.tsx"), "utf8");
-    assert.doesNotMatch(app, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
-    assert.doesNotMatch(start, /overlay-smoke|start-smoke|overlaySmoke|startSmoke/);
+    assert.doesNotMatch(app, /overlay-smoke|start-smoke|stage-wait-smoke|overlaySmoke|startSmoke|stageWaitSmoke/);
+    assert.doesNotMatch(start, /overlay-smoke|start-smoke|stage-wait-smoke|overlaySmoke|startSmoke|stageWaitSmoke/);
   });
 
   it("scientist-facing copy names five robots and prompt supports emit_plan", () => {
@@ -115,6 +115,21 @@ describe("AnimationOverlay code-split", () => {
     const issues = readFileSync(path.join(webSrc, "IssuesPanel.tsx"), "utf8");
     assert.match(issues, /statusWord/);
     assert.match(issues, /status-word/);
+  });
+
+  it("stage-wait body uses overflow-safe vertical alignment so the deck title stays visible", () => {
+    const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
+    const waitBody = css.match(/\.stage-body:has\(\.stage-wait\)\s*\{[^}]+\}/)?.[0] ?? "";
+    assert.match(waitBody, /flex-direction:\s*column/);
+    assert.match(waitBody, /justify-content:\s*safe center/);
+    assert.match(waitBody, /overflow:\s*auto/);
+    assert.doesNotMatch(waitBody, /align-items:\s*center\s*;[\s\S]*justify-content:\s*center/);
+    const waitPane = css.match(/\.stage-wait\s*\{[^}]+\}/)?.[0] ?? "";
+    assert.match(waitPane, /flex-shrink:\s*0/);
+    const webRoot = path.resolve(webSrc, "..");
+    assert.match(readFileSync(path.join(webRoot, "stage-wait-smoke.html"), "utf8"), /stageWaitSmoke\.tsx/);
+    assert.match(readFileSync(path.join(webSrc, "stageWaitSmoke.tsx"), "utf8"), /data-smoke="stage-wait"/);
+    assert.match(readFileSync(path.join(webSrc, "stageWaitSmoke.tsx"), "utf8"), /canWatch=\{false\}/);
   });
 
   it("pins protocol-visualization and overlay-smoke still seeks the TimelineScrubber track", () => {
