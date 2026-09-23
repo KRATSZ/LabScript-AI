@@ -100,13 +100,14 @@ export function checksAudit(
   if (session?.hardware?.deck && Object.keys(session.hardware.deck).length) {
     assumptions.push(session.deck_assumed ? "Standard deck (assumed, then confirmed in chat)" : "Deck as last confirmed");
   }
-  if (session?.source_fill) {
+  if (session?.source_fill && checks.status !== "fail") {
     assumptions.push(
       session.confirmed_fill_line ||
         `Checked using the ${session.source_fill.ul} µL you confirmed in ${session.source_fill.well}`
     );
-  } else if (vol && wells) assumptions.push(`Source ${wells[1]} holds at least ${vol[1]} µL; destination ${wells[2]} well state as confirmed`);
-  else if (vol) assumptions.push(`Transfer volume ${vol[1]} µL as stated`);
+  } else if (!session?.source_fill && vol && wells) {
+    assumptions.push(`Source ${wells[1]} holds at least ${vol[1]} µL; destination ${wells[2]} well state as confirmed`);
+  } else if (!session?.source_fill && vol) assumptions.push(`Transfer volume ${vol[1]} µL as stated`);
   if (!assumptions.length) assumptions.push("Volumes, wells, and deck as confirmed in chat");
 
   const unverified = [

@@ -1913,13 +1913,19 @@ body {
     flex: none;
   }
   .demo-replay-deck .ot-deck-embed,
-  .demo-replay-deck .plr-deck-embed,
-  .stage-pane.has-deck .ot-deck-embed,
-  .stage-pane.has-deck .plr-deck-embed,
-  .plr-deck-viewport {
+  .stage-pane.has-deck .ot-deck-embed {
     height: 300px;
     min-height: 280px;
     max-height: 320px;
+    overflow: hidden;
+    flex: none;
+  }
+  .demo-replay-deck .plr-deck-embed,
+  .stage-pane.has-deck .plr-deck-embed,
+  .plr-deck-viewport {
+    height: auto;
+    min-height: 280px;
+    max-height: none;
     overflow: visible;
     flex: none;
   }
