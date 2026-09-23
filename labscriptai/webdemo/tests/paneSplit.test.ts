@@ -120,5 +120,8 @@ describe("locked right-pane layout", () => {
     assert.match(phone, /\.demo-replay-side \{[\s\S]*grid-row:\s*3/);
     assert.match(phone, /min-height:\s*0/);
     assert.doesNotMatch(phone, /min-height:\s*560px/);
+    assert.match(phone, /\.history-rail\.present\.open \{[\s\S]*max-height:\s*28vh/);
+    assert.doesNotMatch(phone, /\.history-rail\.present\.open \{\s*display:\s*none/);
+    assert.match(phone, /\.workspace\.session-mode \.stage-column \{[\s\S]*min-height:\s*240px/);
   });
 });
