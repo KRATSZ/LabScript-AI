@@ -1,4 +1,4 @@
-import type { ArchivedThread } from "./threadArchive";
+import { THREAD_RETENTION, type ArchivedThread } from "./threadArchive";
 import { useLang } from "./LangContext";
 
 interface Props {
@@ -30,6 +30,9 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
       ) : null}
       {present && open ? (
         <ol className="history-rail-list">
+          <li className="history-rail-retention" data-testid="history-retention">
+            {t(THREAD_RETENTION)}
+          </li>
           {threads.map((thread) => (
             <li key={thread.id}>
               <button
