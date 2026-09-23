@@ -62,7 +62,7 @@ export function TrajectoryPane({ events, runningTool = null, live = {}, session 
               <ol className="activity-list">
                 {rows.map((step) => {
                   const time = step.status === "run" ? "" : formatDuration(step.durationMs);
-                  const status = activityStatusWord(step.status);
+                  const status = step.statusText || activityStatusWord(step.status);
                   const think = step.name === THINK_STEP;
                   const line = String(steps.indexOf(step) + 1).padStart(2, "0");
                   return (

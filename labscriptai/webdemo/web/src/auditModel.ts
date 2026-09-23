@@ -42,7 +42,10 @@ function stateOutcome(statepass: ChecksResult["statepass"]): AuditTone {
 
 export function checksAudit(
   checks: ChecksResult | null | undefined,
-  session?: Pick<SessionSnapshot, "robot" | "goal" | "hardware" | "deck_assumed" | "checks"> | null
+  session?: Pick<
+    SessionSnapshot,
+    "robot" | "goal" | "hardware" | "deck_assumed" | "checks" | "source_fill" | "confirmed_fill_line"
+  > | null
 ): ChecksAuditModel | null {
   if (!checks) return null;
   const robot = session?.robot as RobotModel | null | undefined;
@@ -97,8 +100,14 @@ export function checksAudit(
   if (session?.hardware?.deck && Object.keys(session.hardware.deck).length) {
     assumptions.push(session.deck_assumed ? "Standard deck (assumed, then confirmed in chat)" : "Deck as last confirmed");
   }
-  if (vol && wells) assumptions.push(`Source ${wells[1]} holds at least ${vol[1]} µL; destination ${wells[2]} well state as confirmed`);
-  else if (vol) assumptions.push(`Transfer volume ${vol[1]} µL as stated`);
+  if (session?.source_fill && checks.status !== "fail") {
+    assumptions.push(
+      session.confirmed_fill_line ||
+        `Checked using the ${session.source_fill.ul} µL you confirmed in ${session.source_fill.well}`
+    );
+  } else if (!session?.source_fill && vol && wells) {
+    assumptions.push(`Source ${wells[1]} holds at least ${vol[1]} µL; destination ${wells[2]} well state as confirmed`);
+  } else if (!session?.source_fill && vol) assumptions.push(`Transfer volume ${vol[1]} µL as stated`);
   if (!assumptions.length) assumptions.push("Volumes, wells, and deck as confirmed in chat");
 
   const unverified = [

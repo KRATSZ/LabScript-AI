@@ -60,6 +60,7 @@ export function planSteps(plan: Record<string, unknown> | null): unknown[] {
 }
 
 export function downloadSuffix(status?: string): string {
+  if (status === "pass") return " (checks passed)";
   if (status === "fail") return " (checks failed)";
   if (status === "unevaluable") return " (cannot verify)";
   return "";
@@ -80,9 +81,11 @@ export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): str
 
 type DownloadSource = Pick<SessionSnapshot, "sop" | "code" | "plan" | "artifacts"> & {
   robot?: SessionSnapshot["robot"];
+  downloads_withheld?: boolean;
 };
 
 export function downloadable(session: DownloadSource): DownloadKind[] {
+  if (session.downloads_withheld) return [];
   const robot = session.robot ?? null;
   const pythonDevice = isPythonCodegen(robot);
   const planDevice = isPlanCodegen(robot);

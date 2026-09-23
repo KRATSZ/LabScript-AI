@@ -143,7 +143,7 @@ describe("e2e regression (buildTools + session; runChatTurn needs DeepSeek)", ()
 
     const snap = snapshot(session);
     assert.deepEqual(downloadable(snap), ["sop", "plan"]);
-    assert.equal(downloadSuffix(snap.checks?.status), "");
+    assert.equal(downloadSuffix(snap.checks?.status), " (checks passed)");
     assert.equal(isPlayableAnalyze(snap.analyze), false);
     assert.equal(snap.checks?.status === "pass" && isPlayableAnalyze(snap.analyze), false);
   });

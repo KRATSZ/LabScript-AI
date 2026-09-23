@@ -4,6 +4,7 @@ import {
   pipelineStates,
   pipelineSteps,
   phaseLabel,
+  deckReadyLine,
   statusWord,
   statusTone,
   headerTone,
@@ -143,8 +144,11 @@ describe("pipelineStates", () => {
 
 describe("phaseLabel", () => {
   it("maps three check states and leaves pre-check phases alone", () => {
-    assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
-    assert.equal(phaseLabel("ready", "pass", true, false, undefined, undefined, undefined, false, true), "In progress");
+    assert.equal(phaseLabel("ready", "pass", true, false), "Checks passed");
+    assert.equal(phaseLabel("ready", "pass", true, false, undefined, undefined, undefined, false, true), "Checks passed");
+    assert.equal(deckReadyLine(true, false, "pass"), "Ready to watch");
+    assert.equal(deckReadyLine(true, true, "pass"), null);
+    assert.equal(deckReadyLine(true, false, "fail"), null);
     assert.equal(phaseLabel("ready", "pass", false, false), "Checks passed");
     assert.equal(phaseLabel("ready", "pass", false, true), "Checks passed");
     assert.equal(
@@ -208,7 +212,8 @@ describe("robot switch snapshot", () => {
     assert.equal(ham.code, "");
     assert.equal(ham.analyze, null);
     assert.notEqual(ot.sop, ham.sop);
-    assert.equal(phaseLabel(ot.phase, ot.checks?.status, true, false), "Ready to watch");
+    assert.equal(phaseLabel(ot.phase, ot.checks?.status, true, false), "Checks passed");
+    assert.equal(deckReadyLine(true, false, ot.checks?.status), "Ready to watch");
     assert.equal(phaseLabel(ham.phase, ham.checks?.status, false, true), "Checks passed");
     assert.equal(
       phaseLabel(ham.phase, ham.checks?.status, false, true, undefined, undefined, undefined, true),
