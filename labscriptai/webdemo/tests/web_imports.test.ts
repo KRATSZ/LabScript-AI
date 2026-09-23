@@ -109,8 +109,8 @@ describe("AnimationOverlay code-split", () => {
     assert.match(app, /fetchHealth/);
     assert.match(app, /Preview service down/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /watchUnavailableCopy/);
-    assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /vantage-sketch/);
-    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /Preview service down/);
+    assert.match(readFileSync(path.join(webSrc, "DeckSketchView.tsx"), "utf8"), /vantage-sketch/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /planPreviewGap/);
     assert.doesNotMatch(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /DeckPlay|WatchPlayer|Run preview/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /sanitizeAssistantText/);
     assert.match(readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8"), /busy && msg\.role === "assistant"/);
@@ -218,9 +218,12 @@ describe("AnimationOverlay code-split", () => {
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /OtDeckReplay/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /PlrDeckReplay/);
     assert.match(readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8"), /appType="desktop"/);
-    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/start/);
-    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /plr-progress/);
-    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/status/);
+    assert.doesNotMatch(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/start/);
+    assert.doesNotMatch(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /\/api\/plr\/visualizer\/status/);
+    assert.doesNotMatch(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /<iframe/);
+    assert.doesNotMatch(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /127\.0\.0\.1|localhost/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /DeckSketch/);
+    assert.match(readFileSync(path.join(webSrc, "PlrDeckReplay.tsx"), "utf8"), /DemoReplay/);
     const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
     assert.match(css, /playbackcontrols-module__container/);
     assert.match(css, /replay-progress/);
