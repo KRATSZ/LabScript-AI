@@ -86,6 +86,11 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
   return (
     <div className="chat">
       <div className="history" ref={historyRef}>
+        {messages.length ? (
+          <p className="hint lang-policy" data-testid="lang-policy">
+            {t("Earlier messages stay in the language they were written in.")}
+          </p>
+        ) : null}
         {messages.map((msg, i) => (
           <Bubble key={i} msg={msg} last={i === messages.length - 1} busy={busy} robot={robot} />
         ))}

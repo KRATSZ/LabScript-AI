@@ -89,7 +89,7 @@ export function StartForm({ busy, onSubmit }: Props) {
               setDoc(await file.text());
             }}
           />
-          {fileName || t("or attach a file")}
+          {fileName || t("Choose file")}
         </span>
       </label>
       <textarea
@@ -109,7 +109,7 @@ export function StartForm({ busy, onSubmit }: Props) {
             disabled={busy}
             onClick={() => pickExample(item)}
           >
-            {item.label}
+            {t(item.label)}
           </button>
         ))}
       </div>

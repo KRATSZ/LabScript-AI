@@ -22,5 +22,9 @@ describe("ui language", () => {
     assert.equal(t("Trash", "zh"), "废液槽");
     assert.equal(t("300 µL tips", "zh"), "300 µL 枪头");
     assert.equal(t("Unknown string", "zh"), "Unknown string");
+    assert.equal(t("Choose file", "zh"), "选择文件");
+    assert.equal(t("Transfer 50 µL A1→B1", "zh"), "转移 50 µL A1→B1");
+    assert.equal(t("Wrote the protocol", "zh"), "已写方案");
+    assert.equal(t("Earlier messages stay in the language they were written in.", "zh"), "此前的消息保持生成时的语言。");
   });
 });
