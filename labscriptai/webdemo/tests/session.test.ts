@@ -96,6 +96,14 @@ describe("session machine", () => {
     assert.doesNotMatch(line, /nothing is written yet/);
   });
 
+  it("a goal with no action, volume, or wells asks for the experiment first", () => {
+    const session = createSession();
+    applyForm(session, { goal: "xyz", doc: "", robot: "OT-2" });
+    const line = intakeConfirmLine(session);
+    assert.match(line, /What should we transfer, how much, and which wells/);
+    assert.doesNotMatch(line, /standard deck:/);
+  });
+
   it("intakeConfirmLine names STAR carriers instead of slots 1/2/3", () => {
     const session = createSession();
     applyForm(session, { goal: "Transfer 20 µL A1 to B1", doc: "", robot: "Hamilton" });

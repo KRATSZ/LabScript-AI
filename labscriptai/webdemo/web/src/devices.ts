@@ -65,8 +65,20 @@ export function isHamiltonRobot(robot: RobotModel | null | undefined): boolean {
   return robot === "Hamilton" || robot === "Vantage";
 }
 
+const ACTION_RE =
+  /\b(transfer|aspirate|dispense|mix|dilut|aliquot|prepare|pcr|move|pipette|spot|wash|serial|protocol)\b|转移|移液|稀释|混合|分装|制备|聚合酶/i;
+const VOLUME_RE = /\d+(?:\.\d+)?\s*(?:µl|ul|μl|nl|ml)\b/i;
+const WELL_RE = /\b[A-H]\s*\d{1,2}\b/i;
+
+/** A start goal needs an operation, a volume, or wells — not just leftover typing. */
+export function goalHasProtocolIntent(goal: string): boolean {
+  const text = goal.trim();
+  if (!text) return false;
+  return ACTION_RE.test(text) || VOLUME_RE.test(text) || WELL_RE.test(text);
+}
+
 export function canStart(goal: string, deviceId: string | undefined): boolean {
-  return Boolean(goal.trim() && DEVICE_CARDS.some((card) => card.id === deviceId));
+  return Boolean(goalHasProtocolIntent(goal) && DEVICE_CARDS.some((card) => card.id === deviceId));
 }
 
 function namedIn(text: string, name: string): boolean {
