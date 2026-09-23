@@ -24,6 +24,7 @@ import {
 } from "./gate.ts";
 import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import {
+  alignPlanToConfirmedDeck,
   applyAskUser,
   authoringGoal,
   beginGoalNotesConflictAsk,
@@ -31,6 +32,7 @@ import {
   canGenerateCode,
   canResolveGoalNotesConflict,
   canRunPipeline,
+  confirmGateOpen,
   reviewIntent,
   checksRoute,
   capSop,
@@ -167,7 +169,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (conflictBefore) {
         resolveGoalNotesConflict(session);
       }
-      if (intakeOpen(session)) {
+      if (intakeOpen(session) || session.deckConfirmed === false) {
         const ask = intakeConfirmLine(session);
         if (!sseHasUserText(sse)) {
           sse.write("text", { token: `\n\n${ask}\n` });
@@ -180,12 +182,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
                 {
                   wait: true,
                   intake: true,
+                  deck_revision: session.deckConfirmed === false,
                   ask,
                   next_tool: "ask_user",
                   phase: session.phase,
                   missing: missingList(session),
                   ready: false,
-                  hint: "One short confirm in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
+                  hint: session.deckConfirmed === false
+                    ? "Show the updated deck. Stop. Do not generate_sop, emit_plan, generate_code, or run_checks until they confirm the revised deck."
+                    : "One short confirm in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
                 },
                 null,
                 2
@@ -243,13 +248,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           sop_markdown: session.sop,
         });
       }
-      if (intakeOpen(session)) {
+      if (intakeOpen(session) || confirmGateOpen(session)) {
         return ok({
           blocked: true,
           wait: true,
           intake: true,
           missing: missingList(session),
-          hint: "Ask 1–2 lab questions, call ask_user, and stop. Do not generate a protocol yet.",
+          hint: confirmGateOpen(session) && session.deckConfirmed === false
+            ? "The deck changed. Call ask_user, show the updated deck, and stop. Do not generate a protocol yet."
+            : "Ask 1–2 lab questions, call ask_user, and stop. Do not generate a protocol yet.",
         });
       }
       if (!shouldCallCompactSop(session, force)) {
@@ -290,8 +297,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
         });
       }
-      if (!canRunPipeline(session)) {
-        return ok({ blocked: true, missing: missingList(session) });
+      if (!canRunPipeline(session) || confirmGateOpen(session)) {
+        return ok({
+          blocked: true,
+          wait: confirmGateOpen(session),
+          missing: missingList(session),
+          hint: confirmGateOpen(session)
+            ? "Confirm the deck, source volume, and destination well state first. Call ask_user and stop."
+            : undefined,
+        });
       }
       if (deviceFor(session.robot)?.codegen !== "opentrons_python") {
         return ok({
@@ -392,10 +406,17 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
         });
       }
-      if (!canEmitPlan(session)) {
+      if (!canEmitPlan(session) || confirmGateOpen(session)) {
         const missing = missingList(session);
         if (!session.sop?.trim()) missing.push("sop");
-        return ok({ blocked: true, missing });
+        return ok({
+          blocked: true,
+          wait: confirmGateOpen(session),
+          missing,
+          hint: confirmGateOpen(session)
+            ? "Confirm the revised deck and well premises first. Do not emit a plan yet."
+            : undefined,
+        });
       }
       const input = args as {
         plan?: Record<string, unknown>;
@@ -439,7 +460,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (!checked.ok || !checked.plan) {
         return ok({ ok: false, errors: explainPlanErrors(checked.errors ?? ["invalid_plan"]) });
       }
-      session.plan = checked.plan;
+      session.plan = alignPlanToConfirmedDeck(checked.plan, session.hardware.deck);
       if (isPatch) session.patchesUsed = (session.patchesUsed ?? 0) + 1;
       session.lastChecks = undefined;
       session.analyze = undefined;
@@ -462,6 +483,14 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     parameters: Type.Object({}),
     executionMode: "sequential",
     execute: async () => {
+      if (confirmGateOpen(session)) {
+        return ok({
+          blocked: true,
+          wait: true,
+          missing: missingList(session),
+          hint: "Confirm the deck and well premises first. Call ask_user and stop. Do not run_checks yet.",
+        });
+      }
       const route = checksRoute(session);
       if (route === "blocked") {
         return ok({
