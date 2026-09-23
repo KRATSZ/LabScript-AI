@@ -1053,7 +1053,38 @@ body {
   .history-rail,
   .history-rail.present,
   .history-rail.present.open {
-    display: none;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    max-height: 28vh;
+    border-left: 0;
+    border-top: 0.5px solid var(--line);
+    flex: 0 0 auto;
+    order: 5;
+  }
+  .history-rail.present {
+    height: 36px;
+    max-height: 36px;
+  }
+  .history-rail.present.open {
+    height: auto;
+    max-height: 28vh;
+  }
+  .history-rail-toggle,
+  .history-rail.open .history-rail-toggle {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    transform: none;
+    padding: 8px 12px;
+    width: auto;
+    align-self: stretch;
+  }
+  .stage-body {
+    min-height: 160px;
+    overflow: auto;
   }
   .chat-column {
     border-right: 0;
@@ -1755,6 +1786,16 @@ body {
   .stage-pane.has-deck .plr-deck-embed {
     min-height: 0;
     height: 100%;
+  }
+  .history-rail,
+  .history-rail.present,
+  .history-rail.present.open {
+    display: flex;
+    width: 100%;
+    max-height: 28vh;
+  }
+  .workspace.session-mode .stage-column {
+    min-height: 240px;
   }
 }
 
