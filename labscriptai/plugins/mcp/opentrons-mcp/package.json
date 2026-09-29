@@ -24,5 +24,10 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "overrides": {
+    "ajv": {
+      "fast-uri": "4.1.4"
+    }
   }
 }
