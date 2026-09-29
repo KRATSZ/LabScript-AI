@@ -173,6 +173,17 @@ describe("activity steps", () => {
     );
     assert.equal(withDeck.length, 1);
     assert.equal(withDeck[0].label, "Checked the bench — deck is up");
+    const failedChecks = activitySteps(
+      [
+        event({ seq: 1, kind: "tool/call", name: "run_checks" }),
+        event({ seq: 2, kind: "tool/result", name: "run_checks", detail: { duration_ms: 200, ok: true } }),
+      ],
+      null,
+      {},
+      { checks: { status: "fail" } } as SessionSnapshot
+    );
+    assert.equal(failedChecks[0].label, "Checks failed");
+    assert.equal(failedChecks[0].statusText, "Checks failed");
     assert.equal(
       withDeck.some((step) => /opened the preview/i.test(step.label)),
       false

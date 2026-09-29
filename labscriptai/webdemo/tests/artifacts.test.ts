@@ -141,12 +141,22 @@ describe("downloadable", () => {
       }),
       ["sop", "plan"]
     );
+    assert.deepEqual(
+      downloadable({
+        robot: "OT-2",
+        sop: "# SOP uses a reservoir",
+        code: "def run(): pass",
+        plan: null,
+        downloads_withheld: true,
+      }),
+      []
+    );
   });
 });
 
 describe("downloadSuffix", () => {
-  it("marks fail and unevaluable without blocking", () => {
-    assert.equal(downloadSuffix("pass"), "");
+  it("marks pass, fail, and unevaluable", () => {
+    assert.equal(downloadSuffix("pass"), " (checks passed)");
     assert.equal(downloadSuffix(undefined), "");
     assert.equal(downloadSuffix("fail"), " (checks failed)");
     assert.equal(downloadSuffix("unevaluable"), " (cannot verify)");

@@ -25,6 +25,12 @@ describe("StartForm examples", () => {
     assert.doesNotMatch(blob, /standard3|standard 3-slot/i);
     assert.match(EXAMPLES[2].goal, /Hamilton/);
     assert.match(EXAMPLES[2].goal, /Tecan/);
+    assert.match(EXAMPLES[0].goalZh, /转移/);
+    assert.match(EXAMPLES[1].goalZh, /PCR/);
+    assert.match(EXAMPLES[2].goalZh, /方案/);
+    for (const item of EXAMPLES) {
+      assert.equal(goalHasProtocolIntent(item.goalZh), true, item.label);
+    }
   });
 });
 

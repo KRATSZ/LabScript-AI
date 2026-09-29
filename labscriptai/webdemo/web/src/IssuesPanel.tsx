@@ -1,5 +1,5 @@
 import { ChecksAudit } from "./ChecksAudit";
-import { statusTone, statusWord } from "./pipelineLogic";
+import { statusTone, statusWord, verdictLabel } from "./pipelineLogic";
 import { useLang } from "./LangContext";
 import type { ChecksResult, SessionSnapshot } from "./types";
 
@@ -31,6 +31,7 @@ export function IssuesPanel({
   const { t } = useLang();
   if (!checks) return null;
   const tone = statusTone(checks.status);
+  const word = verdictLabel(checks.status, checks) || statusWord(checks.status);
   const consequences =
     Array.isArray(checks.consequences) && checks.consequences.length
       ? checks.consequences.slice(0, 5)
@@ -38,7 +39,7 @@ export function IssuesPanel({
   return (
     <div>
       <div className={`issues-human${tone ? ` ${tone}` : ""}`}>
-        <p className="status-word">{statusWord(checks.status)}</p>
+        <p className="status-word" data-testid="check-verdict">{t(word)}</p>
         {consequences.map((line, index) => (
           <p key={index}>{line}</p>
         ))}

@@ -1,6 +1,6 @@
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
-import { planStepDisplay } from "./display";
+import { localizeStepLabel, planStepDisplay } from "./display";
 import { DeckSketch } from "./DeckSketchView";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { DemoReplay } from "./DemoReplay";
@@ -85,7 +85,7 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
               <div className="plan-steps">
                 {steps.slice(0, 20).map((step, index) => (
                   <p key={index} className="file">
-                    {planStepDisplay(step)}
+                    {localizeStepLabel(planStepDisplay(step), t)}
                   </p>
                 ))}
               </div>
@@ -94,6 +94,7 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
           <IssuesPanel checks={session.checks} session={session} />
         </div>
       )}
+      {hasDeck ? <IssuesPanel checks={session.checks} session={session} /> : null}
     </div>
   );
 }

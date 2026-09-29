@@ -66,7 +66,7 @@ export function isHamiltonRobot(robot: RobotModel | null | undefined): boolean {
 }
 
 const ACTION_RE =
-  /\b(transfer|aspirate|dispense|mix|dilut|aliquot|prepare|pcr|move|pipette|spot|wash|serial|protocol)\b|转移|移液|稀释|混合|分装|制备|聚合酶/i;
+  /\b(transfer|aspirate|dispense|mix|dilut|aliquot|prepare|pcr|move|pipette|spot|wash|serial|protocol)\b|转移|移液|稀释|混合|分装|制备|聚合酶|方案/i;
 const VOLUME_RE = /\d+(?:\.\d+)?\s*(?:µl|ul|μl|nl|ml)\b/i;
 const WELL_RE = /\b[A-H]\s*\d{1,2}\b/i;
 

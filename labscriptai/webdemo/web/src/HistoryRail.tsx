@@ -25,12 +25,15 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
           onClick={onToggle}
           title={open ? t("Hide runs") : t("Show runs")}
         >
-          {t("History")}
+          <span className="history-rail-word">{t("History")}</span>
+          <span className="history-rail-retention history-rail-retention-inline" data-testid="history-retention">
+            {t(THREAD_RETENTION)}
+          </span>
         </button>
       ) : null}
       {present && open ? (
         <ol className="history-rail-list">
-          <li className="history-rail-retention" data-testid="history-retention">
+          <li className="history-rail-retention history-rail-retention-open">
             {t(THREAD_RETENTION)}
           </li>
           {threads.map((thread) => (

@@ -7,7 +7,7 @@ import { OverlayChrome } from "./OverlayChrome";
 import { headerGoalPreview, hasAttachedNotes } from "./display";
 import { LanguageSwitch } from "./LanguageSwitch";
 import { useLang } from "./LangContext";
-import { headerTone, phaseLabel } from "./pipelineLogic.ts";
+import { deckReadyLine, headerTone, phaseLabel } from "./pipelineLogic.ts";
 import { clampChatPct, loadChatPct, saveChatPct } from "./paneSplit.ts";
 import { RightStage } from "./RightStage";
 import { StartForm } from "./StartForm";
@@ -39,6 +39,13 @@ export function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [busy, setBusy] = useState(false);
+  const [canRetry, setCanRetry] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const lastRequest = useRef<
+    | { kind: "start"; input: StartInput }
+    | { kind: "chat"; sessionId: string; text: string }
+    | null
+  >(null);
   const [overlay, setOverlay] = useState(false);
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
@@ -101,6 +108,10 @@ export function App() {
 
   const runTurn = useCallback(
     async (sessionId: string, text: string, alreadyAddedUser: boolean) => {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      lastRequest.current = { kind: "chat", sessionId, text };
+      setCanRetry(false);
       setBusy(true);
       setError("");
       if (!alreadyAddedUser && text.trim()) {
@@ -127,10 +138,14 @@ export function App() {
           onAnimation: () => undefined,
           onError: (message) => setError(message),
           onDone: () => undefined,
-        });
+        }, controller.signal);
+        if (!controller.signal.aborted) setCanRetry(false);
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
+        const aborted = controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError");
+        if (aborted) setCanRetry(true);
+        else setError(err instanceof Error ? err.message : String(err));
       } finally {
+        if (abortRef.current === controller) abortRef.current = null;
         setRunningTool(null);
         setBusy(false);
       }
@@ -157,14 +172,35 @@ export function App() {
     setNotesAttached(false);
   };
 
+  const cancelTurn = () => {
+    abortRef.current?.abort();
+    setCanRetry(true);
+    setRunningTool(null);
+    setBusy(false);
+  };
+
+  const retryTurn = () => {
+    const last = lastRequest.current;
+    if (!last || busy) return;
+    if (last.kind === "start") {
+      void start(last.input);
+      return;
+    }
+    void runTurn(last.sessionId, last.text, true);
+  };
+
   const start = async (input: StartInput) => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    lastRequest.current = { kind: "start", input };
     parkCurrent();
+    setCanRetry(false);
     setBusy(true);
     setError("");
     setEvents([]);
     setNotesAttached(hasAttachedNotes(input.doc));
     try {
-      const snap = await createSession({ ...input, language: lang });
+      const snap = await createSession({ ...input, language: lang }, controller.signal);
       robotRef.current = snap.robot;
       setSession(snap);
       if (Array.isArray(snap.events)) setEvents(snap.events);
@@ -175,9 +211,16 @@ export function App() {
           meta: hasAttachedNotes(input.doc) ? "Notes attached" : undefined,
         },
       ]);
+      if (controller.signal.aborted) {
+        setCanRetry(true);
+        setBusy(false);
+        return;
+      }
       await runTurn(snap.id, "", true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const aborted = controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError");
+      if (aborted) setCanRetry(true);
+      else setError(err instanceof Error ? err.message : String(err));
       setBusy(false);
     }
   };
@@ -238,7 +281,7 @@ export function App() {
         </div>
         {session ? (
           <div className="header-status">
-            <strong className={tone ? `status-${tone}` : undefined}>
+            <strong className={tone ? `status-${tone}` : undefined} data-testid="check-verdict">
               {t(
                 phaseLabel(
                   session.phase,
@@ -253,8 +296,11 @@ export function App() {
                 )
               )}
             </strong>
+            {deckReadyLine(canWatch, busy, status) ? (
+              <span data-testid="deck-ready">{t(deckReadyLine(canWatch, busy, status) || "")}</span>
+            ) : null}
             <span>
-              {robotLabel}
+              {t(robotLabel)}
               {session.goal ? ` · ${headerGoalPreview(robotLabel, session.goal)}` : ""}
             </span>
             {notesAttached ? <span>{t("Notes attached")}</span> : null}
@@ -295,8 +341,13 @@ export function App() {
         <section className="chat-column" data-testid="chat-column">
           {!session ? (
             <div className="start-scroll">
-              <StartForm busy={busy} onSubmit={start} />
+              <StartForm busy={busy} onSubmit={start} onCancel={cancelTurn} />
               <ErrorNote error={error} />
+              {!busy && canRetry ? (
+                <button type="button" className="primary retry-turn" data-testid="retry-turn" onClick={retryTurn}>
+                  {t("Retry")}
+                </button>
+              ) : null}
             </div>
           ) : (
             <div className="chat-column-body">
@@ -304,6 +355,10 @@ export function App() {
                 messages={messages}
                 busy={busy}
                 robot={session.robot}
+                session={session}
+                canRetry={canRetry}
+                onCancel={cancelTurn}
+                onRetry={retryTurn}
                 onSend={(text) => runTurn(session.id, text, false)}
               />
               <ErrorNote error={error} />

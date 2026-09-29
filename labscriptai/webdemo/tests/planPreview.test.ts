@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { deckFromPlan, PLAN_PREVIEW_GAP, planPreviewGap, sessionForPlanSketch } from "../web/src/planPreview.ts";
-import { phaseLabel } from "../web/src/pipelineLogic.ts";
+import { deckReadyLine, phaseLabel } from "../web/src/pipelineLogic.ts";
 import type { SessionSnapshot } from "../web/src/types.ts";
 
 function snap(over: Partial<SessionSnapshot> = {}): SessionSnapshot {
@@ -56,8 +56,9 @@ describe("planPreview", () => {
     assert.equal(session?.hardware.deck["1"], "tips");
   });
 
-  it("calls a passing plan-backend run Ready to watch when the bench preview is up", () => {
-    assert.equal(phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true), "Ready to watch");
-    assert.equal(phaseLabel("ready", "pass", true, false), "Ready to watch");
+  it("does not call a passing plan-backend run Ready to watch", () => {
+    assert.equal(phaseLabel("ready", "pass", false, true, undefined, undefined, undefined, true), "Checks passed");
+    assert.equal(phaseLabel("ready", "pass", true, false), "Checks passed");
+    assert.equal(deckReadyLine(true, false, "pass"), "Ready to watch");
   });
 });

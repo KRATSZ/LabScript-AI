@@ -186,6 +186,43 @@ function primitiveLabel(step: PlanStepLike): string {
   return PRIM_LABELS[prim] ?? titleCase(prim);
 }
 
+const STEP_VERBS = [
+  "Pick up tip",
+  "Drop tip",
+  "Pick tips",
+  "Drop tips",
+  "Aspirate",
+  "Dispense",
+  "Blow out",
+  "Touch tip",
+  "Move to well",
+  "Move to liquid",
+  "Air gap",
+  "Thermocycler profile",
+  "Set block temperature",
+  "Set lid temperature",
+  "Close thermocycler lid",
+  "Open thermocycler lid",
+  "Load labware",
+  "Load pipette",
+  "Load module",
+  "Load liquid",
+  "Mix",
+  "Move",
+  "Wait",
+  "Pause",
+  "Home",
+];
+
+/** Translate a leading step verb. Wells and volumes stay as written. */
+export function localizeStepLabel(label: string, translate: (text: string) => string): string {
+  const hit = STEP_VERBS.find(
+    (verb) => label === verb || label.startsWith(`${verb} `) || label.startsWith(`${verb} —`)
+  );
+  if (!hit) return label;
+  return translate(hit) + label.slice(hit.length);
+}
+
 /** Stage/Artifacts line: Pick tips — A1, not PICK_TIPS. */
 export function planStepDisplay(step: unknown): string {
   const s = asStep(step);

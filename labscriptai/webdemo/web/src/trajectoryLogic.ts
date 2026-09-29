@@ -18,6 +18,8 @@ export interface ActivityStep {
   name: string;
   label: string;
   status: ActivityStatus;
+  /** Check verdict, when this row is run_checks and session.checks is known. */
+  statusText?: string;
   durationMs: number | null;
   note?: string;
   file?: string;
@@ -34,9 +36,23 @@ const DONE_LABELS: Record<string, string> = {
   [THINK_STEP]: "Thought it through",
 };
 
-function foldDeckIntoChecks(steps: ActivityStep[], status: ActivityStatus): boolean {
+function checkVerdict(status: string | undefined): { status: ActivityStatus; text: string } | null {
+  if (status === "pass") return { status: "ok", text: "Checks passed" };
+  if (status === "fail") return { status: "fail", text: "Checks failed" };
+  if (status === "unevaluable") return { status: "fail", text: "Cannot verify" };
+  return null;
+}
+
+function foldDeckIntoChecks(steps: ActivityStep[], status: ActivityStatus, checksStatus?: string): boolean {
   const checks = [...steps].reverse().find((step) => step.name === "run_checks");
   if (!checks) return false;
+  const verdict = checkVerdict(checksStatus);
+  if (verdict) {
+    checks.status = verdict.status;
+    checks.statusText = verdict.text;
+    checks.label = verdict.text;
+    return true;
+  }
   if (status === "ok" || checks.status === "ok") checks.label = "Checked the bench — deck is up";
   else checks.label = "Checking the bench — deck next…";
   return true;
@@ -269,7 +285,7 @@ export function activitySteps(
       continue;
     }
     if (event.kind === "tool/call" && event.name) {
-      if (event.name === "open_animation" && foldDeckIntoChecks(steps, "run")) continue;
+      if (event.name === "open_animation" && foldDeckIntoChecks(steps, "run", session?.checks?.status)) continue;
       steps.push({
         key: `${event.seq}-${event.name}`,
         turn: turn || 1,
@@ -282,28 +298,31 @@ export function activitySteps(
     }
     if (event.kind === "tool/result" && event.name) {
       const open = [...steps].reverse().find((step) => step.name === event.name && step.status === "run");
-      const ok = event.name === "ask_user" ? true : event.detail?.ok !== false;
+      const toolOk = event.name === "ask_user" ? true : event.detail?.ok !== false;
+      const verdict = event.name === "run_checks" ? checkVerdict(session?.checks?.status) : null;
       const duration = typeof event.detail?.duration_ms === "number" ? event.detail.duration_ms : null;
-      const status: ActivityStatus = ok ? "ok" : "fail";
-      if (event.name === "open_animation" && !open && foldDeckIntoChecks(steps, status)) continue;
+      const status: ActivityStatus = verdict ? verdict.status : toolOk ? "ok" : "fail";
+      if (event.name === "open_animation" && !open && foldDeckIntoChecks(steps, status, session?.checks?.status)) continue;
       if (open) {
         open.status = status;
         open.durationMs = duration;
-        open.label = activityLabel(event.name, status);
-        if (event.name === "open_animation") foldDeckIntoChecks(steps, status);
+        open.statusText = verdict?.text;
+        open.label = verdict?.text || activityLabel(event.name, status);
+        if (event.name === "open_animation") foldDeckIntoChecks(steps, status, session?.checks?.status);
       } else {
         steps.push({
           key: `${event.seq}-${event.name}`,
           turn: turn || 1,
           name: event.name,
-          label: activityLabel(event.name, status),
+          label: verdict?.text || activityLabel(event.name, status),
           status,
+          statusText: verdict?.text,
           durationMs: duration,
         });
       }
     }
   }
-  if (runningTool === "open_animation" && foldDeckIntoChecks(steps, "run")) {
+  if (runningTool === "open_animation" && foldDeckIntoChecks(steps, "run", session?.checks?.status)) {
     return decorateLabSteps(insertThinkRows(steps, events, live), session);
   }
   if (runningTool && runningTool !== THINK_STEP && !steps.some((step) => step.name === runningTool && step.status === "run")) {

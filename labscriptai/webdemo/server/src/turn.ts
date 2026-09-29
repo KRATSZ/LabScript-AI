@@ -1,7 +1,17 @@
 import { assumedCapacityLine } from "./devices.ts";
 import { animationAllowed, compactChecks } from "./gate.ts";
 import { SYSTEM_PROMPT } from "./prompt.ts";
-import { confirmGateOpen, deviceFor, intakeOpen, isOpentrons, snapshot, unresolvedGoalNotesConflict, type SessionState } from "./session.ts";
+import {
+  confirmGateOpen,
+  deviceFor,
+  intakeOpen,
+  isOpentrons,
+  sessionFillLine,
+  sessionFillShortfall,
+  snapshot,
+  unresolvedGoalNotesConflict,
+  type SessionState,
+} from "./session.ts";
 
 export const CONTINUE_STEER =
   "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the deck (Hamilton: tip carrier / plate carrier / trough, never slots 1/2/3) — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
@@ -78,6 +88,15 @@ export function liveSessionBlock(session: SessionState): string {
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,
     `deck_confirmed: ${Boolean(snap.deck_confirmed)}`,
     `language: ${session.language === "zh" ? "zh (reply in Chinese)" : "en (reply in English)"}`,
+    ...(session.removedLabware?.length
+      ? [`removed_labware: ${session.removedLabware.join(", ")} (do not put it back)`]
+      : []),
+    ...(session.sourceFill
+      ? [`confirmed_source_fill: ${session.sourceFill.well}=${session.sourceFill.ul} µL on hand, not tip capacity`]
+      : []),
+    ...(sessionFillShortfall(session) ? [`fill_shortfall: ${sessionFillShortfall(session)}`] : []),
+    ...(sessionFillLine(session) ? [`checked_fill: ${sessionFillLine(session)}`] : []),
+    ...(session.regenSop ? ["regen_sop: true"] : []),
     ...(capacity ? [`assumed_capacity: ${capacity}`] : []),
     `code_service: ${snap.code_service}`,
     `code_chars: ${snap.code.length}`,

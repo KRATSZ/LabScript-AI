@@ -104,6 +104,10 @@ export interface SessionSnapshot {
   device_note?: string | null;
   intake_done?: boolean;
   language?: UiLang;
+  source_fill?: { well: string; ul: number } | null;
+  removed_labware?: string[];
+  downloads_withheld?: boolean;
+  confirmed_fill_line?: string | null;
 }
 
 export interface ChatMessage {
