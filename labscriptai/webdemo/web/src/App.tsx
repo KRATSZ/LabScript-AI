@@ -355,7 +355,6 @@ export function App() {
                 messages={messages}
                 busy={busy}
                 robot={session.robot}
-                session={session}
                 canRetry={canRetry}
                 onCancel={cancelTurn}
                 onRetry={retryTurn}

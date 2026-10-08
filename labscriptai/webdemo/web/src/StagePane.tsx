@@ -94,8 +94,8 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
           <IssuesPanel checks={session.checks} session={session} />
         </div>
       )}
-      {/* Verdict stays in the chat column. A sibling IssuesPanel here is min-height:auto
-          beside .demo-replay (min-height:0) and collapses the deck to the scrub bar. */}
+      {/* The passing replay owns this pane. The check card lives in the side column
+          (DemoReplay), not as a sibling — a sibling with min-height:auto collapses the deck. */}
     </div>
   );
 }

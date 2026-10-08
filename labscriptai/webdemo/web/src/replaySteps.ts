@@ -35,6 +35,8 @@ const COMMAND_LABELS: Record<string, string> = {
   moveToWell: "Move to well",
   movetowell: "Move to well",
   movetocoordinates: "Move",
+  movetoaddressablearea: "Move",
+  movetoaddressableareafordroptip: "Move",
   movetoliquid: "Move to liquid",
   airgap: "Air gap",
   waitforduration: "Wait",

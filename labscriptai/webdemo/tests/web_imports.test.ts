@@ -106,6 +106,22 @@ describe("AnimationOverlay code-split", () => {
     );
     assert.ok(stagePane.indexOf("stage-wait") < stagePane.indexOf("<IssuesPanel"));
     assert.doesNotMatch(stagePane, /hasDeck \? <IssuesPanel/);
+    const chat = readFileSync(path.join(webSrc, "ChatPane.tsx"), "utf8");
+    assert.doesNotMatch(chat, /IssuesPanel|chat-verdict/);
+    const replay = readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8");
+    assert.match(replay, /demo-replay-verdict/);
+    assert.match(replay, /<IssuesPanel/);
+    assert.ok(replay.indexOf("demo-step-list") < replay.indexOf("<ProtocolSummaryCard"));
+    assert.ok(replay.indexOf("<ProtocolSummaryCard") < replay.indexOf("demo-replay-verdict"));
+    const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
+    const stepsRule = css.match(/\.demo-replay-steps \{[^}]+\}/)?.[0] ?? "";
+    assert.match(stepsRule, /overflow:\s*auto/);
+    assert.match(stepsRule, /min-height:\s*8rem/);
+    assert.match(stepsRule, /flex:\s*1 1 0/);
+    assert.match(
+      css,
+      /\.demo-replay-side \.protocol-summary,\s*\.demo-replay-verdict \{[^}]*flex:\s*0 1 auto[^}]*overflow:\s*auto/
+    );
     assert.match(app, /from ["']\.\/RightStage["']/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /session\?\.id/);
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);

@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { sanitizeAssistantText } from "./display";
-import { IssuesPanel } from "./IssuesPanel";
 import { useLang } from "./LangContext";
-import type { ChatMessage, SessionSnapshot } from "./types";
+import type { ChatMessage } from "./types";
 
 const THINK_DISPLAY_CAP = 8000;
 
@@ -15,7 +14,6 @@ interface Props {
   onRetry?: () => void;
   canRetry?: boolean;
   robot?: string | null;
-  session?: SessionSnapshot | null;
 }
 
 function MarkdownBody({ text, className }: { text: string; className?: string }) {
@@ -62,7 +60,7 @@ function Bubble({
   );
 }
 
-export function ChatPane({ messages, busy, onSend, onCancel, onRetry, canRetry, robot, session }: Props) {
+export function ChatPane({ messages, busy, onSend, onCancel, onRetry, canRetry, robot }: Props) {
   const { t } = useLang();
   const [text, setText] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
@@ -99,11 +97,6 @@ export function ChatPane({ messages, busy, onSend, onCancel, onRetry, canRetry, 
         {messages.map((msg, i) => (
           <Bubble key={i} msg={msg} last={i === messages.length - 1} busy={busy} robot={robot} />
         ))}
-        {session?.checks ? (
-          <div data-testid="chat-verdict">
-            <IssuesPanel checks={session.checks} session={session} />
-          </div>
-        ) : null}
       </div>
       <form className="composer" onSubmit={submit}>
         <textarea

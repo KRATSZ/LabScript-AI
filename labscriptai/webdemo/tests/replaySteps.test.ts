@@ -37,6 +37,10 @@ describe("replaySteps", () => {
     assert.equal(isVisualizerPlayCommand("home"), false);
     assert.equal(isVisualizerPlayCommand("pickUpTip"), true);
     assert.equal(isVisualizerPlayCommand("moveLabware"), true);
+    const move = analyzeReplaySteps({
+      commands: [{ id: "m1", commandType: "moveToAddressableAreaForDropTip" }],
+    });
+    assert.equal(move[0].label, "Move");
   });
 
   it("formats plan IR steps for the demo list", () => {

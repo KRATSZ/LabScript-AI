@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { IssuesPanel } from "./IssuesPanel";
 import { ProtocolSummaryCard } from "./SummaryCard";
 import {
   findVisualizerTrack,
@@ -131,6 +132,9 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
           </ul>
         </div>
         <ProtocolSummaryCard session={session} />
+        <div className="demo-replay-verdict">
+          <IssuesPanel checks={session.checks} session={session} />
+        </div>
       </aside>
       <div className="demo-replay-scrub" data-testid="demo-progress">
         <label className="replay-progress-label" htmlFor="demo-progress-range">
