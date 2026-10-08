@@ -94,7 +94,8 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
           <IssuesPanel checks={session.checks} session={session} />
         </div>
       )}
-      {hasDeck ? <IssuesPanel checks={session.checks} session={session} /> : null}
+      {/* Verdict stays in the chat column. A sibling IssuesPanel here is min-height:auto
+          beside .demo-replay (min-height:0) and collapses the deck to the scrub bar. */}
     </div>
   );
 }

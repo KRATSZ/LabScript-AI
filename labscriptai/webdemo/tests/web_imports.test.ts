@@ -99,6 +99,13 @@ describe("AnimationOverlay code-split", () => {
       stagePane.indexOf("Transfer steps") < stagePane.indexOf("<IssuesPanel"),
       "step list must sit above lab-check JSON"
     );
+    assert.equal(
+      (stagePane.match(/<IssuesPanel/g) || []).length,
+      1,
+      "check verdict stays on the wait pane; a second copy beside the replay collapses the deck"
+    );
+    assert.ok(stagePane.indexOf("stage-wait") < stagePane.indexOf("<IssuesPanel"));
+    assert.doesNotMatch(stagePane, /hasDeck \? <IssuesPanel/);
     assert.match(app, /from ["']\.\/RightStage["']/);
     assert.match(readFileSync(path.join(webSrc, "RightStage.tsx"), "utf8"), /session\?\.id/);
     assert.doesNotMatch(app, /from ["']\.\/AnimationOverlay["']/);
