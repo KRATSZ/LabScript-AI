@@ -93,6 +93,17 @@ describe("AnimationOverlay code-split", () => {
     const stagePane = readFileSync(path.join(webSrc, "StagePane.tsx"), "utf8");
     assert.match(artifactsPane, /from ["']\.\/ExportsPanel["']/);
     assert.match(artifactsPane, /<ExportsPanel session=\{session\} filesOnly \/>/);
+    assert.doesNotMatch(artifactsPane, /ProtocolSummaryCard/);
+    assert.ok(artifactsPane.indexOf("<ExportsPanel") < artifactsPane.indexOf("activity-head"));
+    const replay = readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8");
+    assert.match(replay, /Demo steps/);
+    assert.ok(replay.indexOf("<ProtocolSummaryCard") < replay.indexOf("demo-replay-steps"));
+    const css = readFileSync(path.join(webSrc, "styles.css"), "utf8");
+    const stepsRule = css.match(/\.demo-replay-steps \{[^}]+\}/)?.[0] ?? "";
+    assert.match(stepsRule, /overflow:\s*auto/);
+    assert.match(stepsRule, /min-height:\s*8rem/);
+    assert.match(css, /\.demo-replay \{[^}]*height:\s*100%/);
+    assert.match(readFileSync(path.join(webSrc, "ExportsPanel.tsx"), "utf8"), /t\("Download"\)/);
     assert.match(stagePane, /from ["']\.\/IssuesPanel["']/);
     assert.match(stagePane, /Transfer steps/);
     assert.ok(

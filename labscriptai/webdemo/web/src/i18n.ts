@@ -47,6 +47,8 @@ const ZH: Record<string, string> = {
   "Protocol summary": "方案摘要",
   Consumables: "耗材",
   Steps: "步骤",
+  "Demo steps": "演示步骤",
+  Download: "下载",
   History: "记录",
   "Hide runs": "收起记录",
   "Show runs": "展开记录",
