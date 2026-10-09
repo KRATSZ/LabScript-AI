@@ -8,6 +8,7 @@ import {
 } from "./artifacts";
 import { planStepDisplay } from "./display";
 import { isPythonCodegen } from "./devices";
+import { useLang } from "./LangContext";
 import { statusTone } from "./pipelineLogic";
 import type { SessionSnapshot } from "./types";
 
@@ -29,6 +30,7 @@ export function ExportsPanel({
   session: SessionSnapshot;
   filesOnly?: boolean;
 }) {
+  const { t } = useLang();
   const files = downloadable(session);
   const showPlanTable = !filesOnly && (!isPythonCodegen(session.robot) || !session.code?.trim());
   const steps = showPlanTable ? planSteps(session.plan) : [];
@@ -48,7 +50,7 @@ export function ExportsPanel({
                 className="export-btn"
                 onClick={() => downloadFor(session, kind)}
               >
-                {DOWNLOAD_LABELS[kind]}
+                {t("Download")} {DOWNLOAD_LABELS[kind]}
                 {marker ? <span className={tone ? `status-${tone}` : undefined}>{marker}</span> : null}
               </button>
               <p className="export-hint">{downloadHint(kind, session.robot)}</p>

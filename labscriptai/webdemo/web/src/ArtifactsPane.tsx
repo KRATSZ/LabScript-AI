@@ -1,5 +1,4 @@
 import { ExportsPanel } from "./ExportsPanel";
-import { ProtocolSummaryCard } from "./SummaryCard";
 import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
 
@@ -10,12 +9,11 @@ export function ArtifactsPane({ session }: { session: SessionSnapshot | null }) 
   }
   return (
     <div className="artifacts-pane" data-testid="artifacts-pane">
+      <ExportsPanel session={session} filesOnly />
       <div className="activity-head">
         <h2>{t("Files")}</h2>
         <p>{t("Downloads after checks.")}</p>
       </div>
-      <ProtocolSummaryCard session={session} />
-      <ExportsPanel session={session} filesOnly />
       {!session.sop?.trim() && !session.plan && !session.code?.trim() ? (
         <p className="hint">{t("Nothing to download yet.")}</p>
       ) : null}
