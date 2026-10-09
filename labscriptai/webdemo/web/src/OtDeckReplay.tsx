@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode, useMemo, useRef } from "react";
+import { Component, type ErrorInfo, type ReactNode, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
 import {
   ProtocolVisualization,
   type ProtocolAnalysisOutput,
@@ -6,6 +6,7 @@ import {
 import "@opentrons/components/styles/global";
 import "@opentrons/protocol-visualization/styles";
 import { analysisResetKey, padAnalysisForAnimator } from "./analysis";
+import { PHONE_LAYOUT_QUERY, syncPhoneDeckSvg } from "./deckSvgFit";
 import { FlexReplayTicks } from "./FlexReplayTicks";
 
 class AnimatorGuard extends Component<
@@ -41,6 +42,34 @@ class AnimatorGuard extends Component<
   }
 }
 
+function PhoneDeckSvgFit({ hostRef }: { hostRef: RefObject<HTMLElement | null> }) {
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    let raf = 0;
+    const fit = () => {
+      cancelAnimationFrame(raf);
+      syncPhoneDeckSvg(host);
+      raf = requestAnimationFrame(() => syncPhoneDeckSvg(host));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(host);
+    const mo = new MutationObserver(fit);
+    mo.observe(host, { childList: true, subtree: true });
+    const mq = window.matchMedia(PHONE_LAYOUT_QUERY);
+    const onChange = () => fit();
+    mq.addEventListener("change", onChange);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      mo.disconnect();
+      mq.removeEventListener("change", onChange);
+    };
+  }, [hostRef]);
+  return null;
+}
+
 export function OtDeckReplay({
   analyze,
   robot,
@@ -70,6 +99,7 @@ export function OtDeckReplay({
       data-robot={robot ?? ""}
       ref={hostRef}
     >
+      <PhoneDeckSvgFit hostRef={hostRef} />
       <AnimatorGuard resetKey={resetKey}>
         <ProtocolVisualization
           analysis={analysis}

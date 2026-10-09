@@ -170,7 +170,16 @@ describe("AnimationOverlay code-split", () => {
     assert.match(phoneFit, /deckview-module__deck_svg_wrapper[\s\S]*min-width:\s*0/);
     assert.match(phoneFit, /\.demo-replay-side \.protocol-summary \{[\s\S]*order:\s*1[\s\S]*max-height:\s*none/);
     assert.match(phoneFit, /\.demo-replay-steps \{[\s\S]*order:\s*2[\s\S]*max-height:\s*none/);
+    assert.match(phoneFit, /deckview-module__deck_svg_wrapper[\s\S]*position:\s*relative/);
+    assert.match(phoneFit, /overflow-anchor:\s*none/);
+    assert.match(phoneFit, /touch-action:\s*none/);
     assert.match(css, /\.demo-replay \{[^}]*height:\s*100%/);
+    const replay = readFileSync(path.join(webSrc, "DemoReplay.tsx"), "utf8");
+    const phoneGuard = replay.indexOf("PHONE_LAYOUT_QUERY");
+    const scrollCall = replay.indexOf("scrollIntoView");
+    assert.ok(phoneGuard >= 0 && scrollCall > phoneGuard);
+    assert.match(readFileSync(path.join(webSrc, "OtDeckReplay.tsx"), "utf8"), /syncPhoneDeckSvg/);
+    assert.match(readFileSync(path.join(webSrc, "deckSvgFit.ts"), "utf8"), /foreignObject/);
     const webRoot = path.resolve(webSrc, "..");
     assert.match(readFileSync(path.join(webRoot, "watch-stage-smoke.html"), "utf8"), /watchStageSmoke\.tsx/);
     assert.match(readFileSync(path.join(webSrc, "watchStageSmoke.tsx"), "utf8"), /data-smoke="watch-stage"/);
