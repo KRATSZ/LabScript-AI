@@ -1743,6 +1743,7 @@ body {
      at their own height. */
   .stage-body:has(.has-deck) {
     overflow: auto;
+    overflow-anchor: none;
   }
   .stage-pane.has-deck {
     flex: 0 0 auto;
@@ -1797,6 +1798,7 @@ body {
     padding: 4px;
   }
   .demo-replay .ot-deck-embed [class*="deckview-module__deck_svg_wrapper"] {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1847,6 +1849,9 @@ body {
   .demo-replay-side .protocol-summary,
   .demo-replay-side .protocol-summary * {
     overflow-wrap: anywhere;
+  }
+  .demo-replay-scrub input[type="range"] {
+    touch-action: none;
   }
 }
 

@@ -8,6 +8,7 @@ import {
   visualizerPlayPercent,
 } from "./otPlaybackSync";
 import { clampStepIndex, replayStepsFor, type ReplayStep } from "./replaySteps";
+import { PHONE_LAYOUT_QUERY } from "./deckSvgFit";
 import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
 
@@ -66,6 +67,9 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
   }, [total]);
 
   useEffect(() => {
+    // On a phone the step list sits below the deck in the same scroller.
+    // scrollIntoView would jump the page down to 演示步骤 and hide the animation.
+    if (typeof window.matchMedia === "function" && window.matchMedia(PHONE_LAYOUT_QUERY).matches) return;
     const el = listRef.current?.querySelector('[data-status="current"]');
     if (el instanceof HTMLElement) el.scrollIntoView({ block: "nearest" });
   }, [index]);
