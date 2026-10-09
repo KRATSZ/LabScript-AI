@@ -2,13 +2,18 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   applyAskUser,
+  applyDeckRejection,
   applyForm,
+  applyIntakeGates,
+  stampSessionFill,
+  sessionFillShortfall,
   applyPreset,
   applyTipCountOverlay,
   authoringGoal,
   canEmitPlan,
   canGenerateCode,
   canGenerateSop,
+  confirmGateOpen,
   canResolveGoalNotesConflict,
   canRunPipeline,
   checksRoute,
@@ -89,7 +94,17 @@ describe("session machine", () => {
     assert.match(line, /96-well plate in slot 2/);
     assert.match(line, /12-well reservoir in slot 3/);
     assert.match(line, /Reply if that matches/);
+    assert.match(line, /Confirm A1 holds at least 20 µL/);
+    assert.match(line, /whether B1 is empty/);
     assert.doesNotMatch(line, /nothing is written yet/);
+  });
+
+  it("a goal with no action, volume, or wells asks for the experiment first", () => {
+    const session = createSession();
+    applyForm(session, { goal: "xyz", doc: "", robot: "OT-2" });
+    const line = intakeConfirmLine(session);
+    assert.match(line, /What should we transfer, how much, and which wells/);
+    assert.doesNotMatch(line, /standard deck:/);
   });
 
   it("intakeConfirmLine names STAR carriers instead of slots 1/2/3", () => {
@@ -110,6 +125,32 @@ describe("session machine", () => {
     assert.match(line, /^Hamilton Vantage, standard deck:/);
     assert.match(line, /1\.3 m rails/);
     assert.doesNotMatch(line, /rails 1–6|rails 8–13|rail 15|tip carrier|slot 1/);
+    assert.match(line, /Confirm A1 holds at least 50 µL/);
+  });
+
+  it("rejecting a reservoir removes it and blocks generation until reconfirm", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1", doc: "", robot: "Tecan" });
+    markIntakeReply(session, "there is no 12-well reservoir");
+    assert.equal(session.hardware.deck["3"], undefined);
+    assert.deepEqual(session.removedLabware, ["12-well reservoir"]);
+    assert.equal(session.deckConfirmed, false);
+    assert.equal(confirmGateOpen(session), true);
+    assert.equal(canGenerateSop(session), false);
+    assert.match(intakeConfirmLine(session), /12-well reservoir removed/);
+    assert.ok(missingList(session).some((item) => item.includes("updated deck")));
+    markIntakeReply(session, "yes, that matches, A1 has 50 µL and B1 is empty");
+    assert.equal(session.deckConfirmed, true);
+    assert.equal(confirmGateOpen(session), false);
+    assert.equal(canGenerateSop(session), true);
+    assert.deepEqual(applyDeckRejection(session, "looks good"), []);
+  });
+
+  it("a vague goal asks for the experiment before the deck", () => {
+    const session = createSession();
+    applyForm(session, { goal: "xyz", doc: "", robot: "OT-2" });
+    assert.match(intakeConfirmLine(session), /What should we transfer, how much, and which wells/);
+    assert.doesNotMatch(intakeConfirmLine(session), /standard deck:/);
   });
 
   it("form notes stay in doc; generate_sop is still required", () => {
@@ -861,5 +902,102 @@ describe("PCR-friendly deck and language", () => {
     assert.equal(parseUiLang("中文"), "zh");
     assert.equal(setSessionLanguage(session, "en"), "en");
     assert.equal(snapshot(session).language, "en");
+  });
+
+  it("不用储液槽 drops the reservoir on OT-2, Flex, and STAR and does not put it back", () => {
+    for (const robot of ["OT-2", "Flex", "Hamilton"] as const) {
+      const session = createSession();
+      applyForm(session, {
+        goal: "不用储液槽，从 A1 转移 50 µL 到 B1",
+        doc: "",
+        robot,
+        language: "zh",
+      });
+      assert.equal(
+        Object.values(session.hardware.deck).some((name) => /reservoir|储液/i.test(name)),
+        false,
+        robot
+      );
+      assert.ok(session.removedLabware?.some((name) => /reservoir|储液/.test(name)), robot);
+      const line = intakeConfirmLine(session);
+      assert.doesNotMatch(line, /储液槽在|reagents trough|reservoir in/, robot);
+      markIntakeReply(session, "相符，A1 有 50 µL，B1 是空的");
+      assert.equal(
+        Object.values(session.hardware.deck).some((name) => /reservoir|储液/i.test(name)),
+        false,
+        robot
+      );
+      session.sop = "Aspirate from the reservoir.";
+      session.plan = {
+        resources: [{ id: "res", type: "reservoir", slot: "3" }],
+        steps: [{ primitive_type: "ASPIRATE", source: "reservoir:A1", volume_ul: 50 }],
+      };
+      const gated = applyIntakeGates(session, {
+        sim: { ok: true },
+        logicpass: { outcome: "pass", logic_pass: true, final_pass_v2: true },
+        statepass: {},
+        fab: { lit: true },
+        status: "pass",
+      });
+      assert.equal(gated.status, "fail", robot);
+      assert.match(gated.consequences?.join("\n") ?? "", /储液槽/);
+      assert.equal(snapshot(session).downloads_withheld, true, robot);
+    }
+  });
+
+  it("STAR quotes a confirmed 200 µL fill and does not ask for at least 300", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL from A1 to B1", doc: "", robot: "Hamilton" });
+    markIntakeReply(session, "A1 only has 200 µL, B1 is empty, deck matches");
+    assert.equal(session.sourceFill?.well, "A1");
+    assert.equal(session.sourceFill?.ul, 200);
+    const line = intakeConfirmLine(session);
+    assert.match(line, /200/);
+    assert.doesNotMatch(line, /at least 300/);
+    assert.doesNotMatch(line, /至少有 300/);
+    session.plan = {
+      steps: [{ primitive_type: "ASPIRATE", source: "plate:A1", volume_ul: 50 }],
+      initial_volumes_ul: { "plate:A1": 360 },
+    };
+    stampSessionFill(session);
+    assert.equal((session.plan.initial_volumes_ul as Record<string, number>)["plate:A1"], 200);
+    const gated = applyIntakeGates(session, {
+      sim: { ok: true },
+      logicpass: { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      statepass: {},
+      fab: { lit: true },
+      status: "pass",
+    });
+    assert.equal(gated.status, "pass");
+    assert.match(snapshot(session).confirmed_fill_line ?? "", /200/);
+  });
+
+  it("a 300 µL transfer against a confirmed 200 µL fill does not pass", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 300 µL from A1 to B1", doc: "", robot: "Hamilton", language: "zh" });
+    markIntakeReply(session, "A1 只有 200 µL");
+    assert.equal(canGenerateSop(session), false);
+    const shortfall = sessionFillShortfall(session);
+    assert.equal(shortfall, "你确认 A1 只有 200 µL，这次要吸 300 µL。");
+    assert.match(intakeConfirmLine(session), /你确认 A1 只有 200 µL，这次要吸 300 µL/);
+    const gated = applyIntakeGates(session, {
+      sim: { ok: true },
+      logicpass: { outcome: "pass", logic_pass: true, final_pass_v2: true },
+      statepass: {},
+      fab: { lit: true },
+      status: "pass",
+    });
+    assert.equal(gated.status, "fail");
+    assert.match(gated.consequences?.join("\n") ?? "", /200 µL/);
+  });
+
+  it("a cancelled turn can regenerate a partial SOP", () => {
+    const session = createSession();
+    applyForm(session, { goal: "Transfer 50 µL A1 to B1", doc: "", robot: "OT-2" });
+    markIntakeReply(session, "yes, 50 µL A1 to B1, B1 is empty");
+    session.sop = "# partial";
+    assert.equal(shouldReuseSop(session), true);
+    session.regenSop = true;
+    assert.equal(shouldReuseSop(session), false);
   });
 });

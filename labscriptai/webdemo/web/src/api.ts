@@ -46,11 +46,12 @@ export async function fetchHealth(): Promise<DemoHealth> {
   return response.json() as Promise<DemoHealth>;
 }
 
-export async function createSession(input: StartInput): Promise<SessionSnapshot> {
+export async function createSession(input: StartInput, signal?: AbortSignal): Promise<SessionSnapshot> {
   const response = await fetch("/api/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    signal,
   });
   if (!response.ok) {
     throw new Error(await response.text());
@@ -61,12 +62,14 @@ export async function createSession(input: StartInput): Promise<SessionSnapshot>
 export async function streamChat(
   sessionId: string,
   message: string,
-  handlers: StreamHandlers
+  handlers: StreamHandlers,
+  signal?: AbortSignal
 ): Promise<void> {
   const response = await fetch("/api/chat/stream", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
     body: JSON.stringify({ sessionId, message }),
+    signal,
   });
   if (!response.ok || !response.body) {
     throw new Error(`chat stream failed: ${response.status}`);

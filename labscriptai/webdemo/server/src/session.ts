@@ -1,4 +1,18 @@
 import { randomUUID } from "node:crypto";
+import {
+  confirmedFillLine,
+  draftMentionsReservoir,
+  fillGap,
+  fillMismatchLine,
+  fillShortfallLine,
+  isReservoirName,
+  parseSourceFill,
+  planMatchesFill,
+  reservoirRuledOutLine,
+  stampConfirmedFill,
+  textRejectsReservoir,
+  type SourceFill,
+} from "./constraints.ts";
 import type { ChecksResult, LogicPassResult } from "./gate.ts";
 import {
   DEVICE_REGISTRY,
@@ -104,6 +118,16 @@ export interface SessionState {
   draftConflictResolved?: boolean;
   /** True after the user answers the first clarifying round (not the start-form goal). */
   intakeDone?: boolean;
+  /** True after the user affirms the current deck. False after a rejection or edit. */
+  deckConfirmed?: boolean;
+  /** True after source volume and destination well state were confirmed. */
+  premisesConfirmed?: boolean;
+  /** User-facing labels removed from the deck. Sticky until the robot changes. */
+  removedLabware?: string[];
+  /** On-hand volume the user stated for a well. Not tip capacity. */
+  sourceFill?: SourceFill;
+  /** Set when a turn is cancelled so the next message may rewrite a partial SOP. */
+  regenSop?: boolean;
   /** Chat + SOP language. Default English. */
   language?: UiLang;
 }
@@ -411,10 +435,192 @@ export function markConflictUserReply(session: SessionState, userText: string): 
   session.conflictReplyText = userText.trim();
 }
 
-/** Follow-up chat (not the empty first turn) unlocks SOP/plan generation. */
+const ACTION_RE =
+  /\b(transfer|aspirate|dispense|mix|dilut|aliquot|prepare|pcr|move|pipette|spot|wash|serial|protocol)\b|转移|移液|稀释|混合|分装|制备|聚合酶|方案/i;
+const VOLUME_RE = /\d+(?:\.\d+)?\s*(?:µl|ul|μl|nl|ml)\b/i;
+const WELL_RE = /\b[A-H]\s*\d{1,2}\b/i;
+const CONFIRM_RE =
+  /\b(yes|yep|yeah|ok|okay|sure|confirm|confirmed|matches|standard deck|go ahead|looks good|proceed|correct|fine)\b|好的?|可以|确认|没问题|相符|标准台面/i;
+const DENY_RE =
+  /(?:\bno\b|\bnot\b|\bdon'?t\b|\bdo not\b|\bwithout\b|\bremove\b|\bmissing\b|\bisn'?t\b|没有|不是|不要|取消|去掉)/i;
+
+export function goalHasProtocolIntent(goal: string): boolean {
+  const text = goal.trim();
+  if (!text) return false;
+  return ACTION_RE.test(text) || VOLUME_RE.test(text) || WELL_RE.test(text);
+}
+
+export function goalNeedsClarify(session: SessionState): boolean {
+  const goal = session.goal ?? "";
+  if (!goalHasProtocolIntent(goal)) return true;
+  const hasAction = ACTION_RE.test(goal);
+  const hasVolume = VOLUME_RE.test(goal);
+  const hasWell = WELL_RE.test(goal);
+  return !hasAction || (!hasVolume && !hasWell);
+}
+
+function wellMentions(text: string): string[] {
+  return [...text.toUpperCase().matchAll(/\b([A-H])\s*(\d{1,2})\b/g)].map((m) => `${m[1]}${m[2]}`);
+}
+
+function volumeMention(text: string): string | undefined {
+  const hit = text.match(/(\d+(?:\.\d+)?)\s*(?:µl|ul|μl)/i);
+  return hit ? `${hit[1]} µL` : undefined;
+}
+
+function destStateMention(text: string): "empty" | "has_liquid" | undefined {
+  if (/\bempty\b|空/.test(text)) return "empty";
+  if (/\balready\b|\bcontains\b|\bhas\s+\d+|\boccupied\b|已有|含液/.test(text)) return "has_liquid";
+  return undefined;
+}
+
+function labwareAliases(labware: string, label: string): string[] {
+  const aliases = [label, labware, labware.replace(/_/g, " ")];
+  const blob = `${label} ${labware}`.toLowerCase();
+  if (/reservoir|trough|储液/.test(blob)) {
+    aliases.push("12-well reservoir", "12 well reservoir", "reservoir", "trough", "储液槽", "12孔");
+  }
+  if (/tip/.test(blob)) aliases.push("tips", "tip rack", "tiprack", "枪头");
+  if (/plate|pcr/.test(blob)) aliases.push("96-well plate", "plate", "pcr plate", "孔板");
+  return aliases;
+}
+
+export function rejectedDeckSlots(text: string, deck: Record<string, string>): string[] {
+  if (!DENY_RE.test(text)) return [];
+  const lower = text.toLowerCase();
+  const out: string[] = [];
+  for (const [slot, labware] of Object.entries(deck)) {
+    const label = deckSlotLabel(labware);
+    if (labwareAliases(labware, label).some((alias) => lower.includes(alias.toLowerCase()))) {
+      out.push(slot);
+    }
+    if (new RegExp(`\\bslot\\s*${slot}\\b`, "i").test(text)) out.push(slot);
+  }
+  return [...new Set(out)];
+}
+
+function looksLikeConfirm(text: string): boolean {
+  if (DENY_RE.test(text) && /(reservoir|trough|plate|tip|labware|slot|储液|孔板|枪头)/i.test(text)) {
+    return false;
+  }
+  return CONFIRM_RE.test(text) || (VOLUME_RE.test(text) && WELL_RE.test(text));
+}
+
+function clearGenerated(session: SessionState): void {
+  session.sop = undefined;
+  session.code = undefined;
+  session.plan = undefined;
+  session.analyze = undefined;
+  session.artifacts = undefined;
+  session.lastChecks = undefined;
+  session.hasPassedChecks = undefined;
+}
+
+/** Drop rejected labware, clear generated files, and require a new confirm. */
+export function applyDeckRejection(session: SessionState, userText: string): string[] {
+  const slots = rejectedDeckSlots(userText, session.hardware.deck);
+  if (!slots.length) return [];
+  const removed: string[] = [];
+  for (const slot of slots) {
+    const labware = session.hardware.deck[slot];
+    if (!labware) continue;
+    removed.push(deckSlotLabel(labware));
+    delete session.hardware.deck[slot];
+  }
+  if (!removed.length) return [];
+  session.removedLabware = [...new Set([...(session.removedLabware ?? []), ...removed])];
+  session.deckAssumed = false;
+  session.deckConfirmed = false;
+  session.premisesConfirmed = false;
+  clearGenerated(session);
+  refreshPhase(session);
+  return removed;
+}
+
+export function confirmGateOpen(session: SessionState): boolean {
+  return session.deckConfirmed === false;
+}
+
+function rememberConstraints(session: SessionState, text: string): void {
+  const fill = parseSourceFill(text);
+  if (fill) session.sourceFill = fill;
+  if (!textRejectsReservoir(text)) return;
+  dropReservoir(session);
+}
+
+/** Drop every reservoir on the deck and remember that it must not come back. */
+export function dropReservoir(session: SessionState): string[] {
+  const removed: string[] = [];
+  for (const [slot, labware] of Object.entries(session.hardware.deck)) {
+    if (!isReservoirName(`${labware} ${deckSlotLabel(labware)}`)) continue;
+    removed.push(deckSlotLabel(labware));
+    delete session.hardware.deck[slot];
+  }
+  const labels = removed.length ? removed : ["12-well reservoir"];
+  session.removedLabware = [...new Set([...(session.removedLabware ?? []), ...labels])];
+  if (removed.length) {
+    session.deckConfirmed = false;
+    session.premisesConfirmed = false;
+    clearGenerated(session);
+    refreshPhase(session);
+  }
+  return session.removedLabware;
+}
+
+export function sessionFillShortfall(session: SessionState): string | null {
+  return fillShortfallLine(session.goal ?? "", session.sourceFill, session.language === "zh" ? "zh" : "en");
+}
+
+export function sessionFillLine(session: SessionState): string | null {
+  if (sessionFillShortfall(session)) return null;
+  return confirmedFillLine(session.sourceFill, session.language === "zh" ? "zh" : "en");
+}
+
+export function draftStillUsesRemovedLabware(session: SessionState): boolean {
+  if (!session.removedLabware?.some((name) => isReservoirName(name))) return false;
+  return draftMentionsReservoir(session.sop ?? "", session.plan ?? null);
+}
+
+/** Fail the verdict when a ruled-out reservoir or a confirmed fill was ignored. */
+export function applyIntakeGates(session: SessionState, checks: ChecksResult): ChecksResult {
+  const lang = session.language === "zh" ? "zh" : "en";
+  const extra: string[] = [];
+  if (draftStillUsesRemovedLabware(session)) extra.push(reservoirRuledOutLine(lang));
+  const shortfall = sessionFillShortfall(session);
+  if (shortfall) extra.push(shortfall);
+  else if (session.sourceFill && session.plan && !planMatchesFill(session.plan, session.sourceFill)) {
+    extra.push(fillMismatchLine(session.sourceFill, lang));
+  }
+  if (!extra.length) return checks;
+  return {
+    ...checks,
+    fab: { lit: false },
+    status: "fail",
+    consequences: [...(checks.consequences ?? []), ...extra],
+  };
+}
+
+export function stampSessionFill(session: SessionState): void {
+  if (!session.sourceFill || !session.plan || fillGap(session.goal ?? "", session.sourceFill)) return;
+  const stamped = stampConfirmedFill(session.plan, session.sourceFill);
+  if (stamped.applied) session.plan = stamped.plan;
+}
+
+/** Follow-up chat (not the empty first turn) unlocks SOP/plan generation unless the deck was rejected. */
 export function markIntakeReply(session: SessionState, userText: string): void {
   if (!userText.trim()) return;
+  const removed = applyDeckRejection(session, userText);
+  rememberConstraints(session, userText);
   session.intakeDone = true;
+  if (removed.length || textRejectsReservoir(userText)) return;
+  if (sessionFillShortfall(session)) {
+    session.premisesConfirmed = false;
+    return;
+  }
+  if (looksLikeConfirm(userText) || destStateMention(userText) || !goalNeedsClarify(session)) {
+    session.deckConfirmed = true;
+    session.premisesConfirmed = true;
+  }
 }
 
 export function intakeOpen(session: SessionState): boolean {
@@ -486,6 +692,15 @@ export function missingList(session: SessionState): string[] {
   if (intakeOpen(session)) {
     missing.push("ask_user — confirm volume, wells, and assumed deck with the user first");
   }
+  const shortfall = sessionFillShortfall(session);
+  if (shortfall) {
+    missing.push(`ask_user — ${shortfall}`);
+  }
+  if (session.deckConfirmed === false) {
+    missing.push("ask_user — show the updated deck and wait for confirm before writing anything");
+  } else if (goalNeedsClarify(session) && intakeOpen(session)) {
+    missing.push("ask_user — ask what to transfer, how much, and which wells");
+  }
   return missing;
 }
 
@@ -530,15 +745,21 @@ function deckSlotLabelZh(labware: string): string {
 function hamiltonDeckPhrase(deck: Record<string, string>): string {
   const tips = deckSlotLabel(deck["1"] || "hamilton_96_tiprack_300ul");
   const plate = deckSlotLabel(deck["2"] || "corning_96_wellplate_360ul_flat");
-  const trough = deckSlotLabel(deck["3"] || "nest_12_reservoir_15ml");
-  return `${tips} on the tip carrier (rails 1–6), ${plate} on the plate carrier (rails 8–13), ${trough} in the reagents trough (rail 15)`;
+  const parts = [
+    `${tips} on the tip carrier (rails 1–6)`,
+    `${plate} on the plate carrier (rails 8–13)`,
+  ];
+  if (deck["3"]) parts.push(`${deckSlotLabel(deck["3"])} in the reagents trough (rail 15)`);
+  return parts.join(", ");
 }
 
 function vantageDeckPhrase(deck: Record<string, string>): string {
   const tips = deckSlotLabel(deck["1"] || "hamilton_96_tiprack_300ul");
   const plate = deckSlotLabel(deck["2"] || "corning_96_wellplate_360ul_flat");
-  const trough = deckSlotLabel(deck["3"] || "nest_12_reservoir_15ml");
-  return `${tips}, ${plate}, and ${trough} on the 1.3 m rails`;
+  const bits = [tips, plate];
+  if (deck["3"]) bits.push(deckSlotLabel(deck["3"]));
+  if (bits.length === 3) return `${bits[0]}, ${bits[1]}, and ${bits[2]} on the 1.3 m rails`;
+  return `${bits.join(" and ")} on the 1.3 m rails`;
 }
 
 function namedDeckPhrase(robot: RobotModel | undefined, deck: Record<string, string>): string {
@@ -558,14 +779,16 @@ function namedDeckPhraseZh(robot: RobotModel | undefined, deck: Record<string, s
   if (robot === "Hamilton") {
     const tips = deckSlotLabelZh(deck["1"] || "hamilton_96_tiprack_300ul");
     const plate = deckSlotLabelZh(deck["2"] || "corning_96_wellplate_360ul_flat");
-    const trough = deckSlotLabelZh(deck["3"] || "nest_12_reservoir_15ml");
-    return `${tips}在吸头载架（导轨 1–6），${plate}在板载架（导轨 8–13），${trough}在试剂槽（导轨 15）`;
+    const parts = [`${tips}在吸头载架（导轨 1–6）`, `${plate}在板载架（导轨 8–13）`];
+    if (deck["3"]) parts.push(`${deckSlotLabelZh(deck["3"])}在试剂槽（导轨 15）`);
+    return parts.join("，");
   }
   if (robot === "Vantage") {
     const tips = deckSlotLabelZh(deck["1"] || "hamilton_96_tiprack_300ul");
     const plate = deckSlotLabelZh(deck["2"] || "corning_96_wellplate_360ul_flat");
-    const trough = deckSlotLabelZh(deck["3"] || "nest_12_reservoir_15ml");
-    return `${tips}、${plate}、${trough}在 1.3 m 导轨上`;
+    const bits = [tips, plate];
+    if (deck["3"]) bits.push(deckSlotLabelZh(deck["3"]));
+    return `${bits.join("、")}在 1.3 m 导轨上`;
   }
   if (robot === "Flex") {
     return slots.map(([slot, labware]) => `${deckSlotLabelZh(labware)}在 ${slot}`).join("，");
@@ -573,14 +796,53 @@ function namedDeckPhraseZh(robot: RobotModel | undefined, deck: Record<string, s
   return slots.map(([slot, labware]) => `${deckSlotLabelZh(labware)}在 ${slot} 号槽`).join("，");
 }
 
+function premisesAsk(session: SessionState, zh: boolean): string {
+  const quoted = sessionFillLine(session);
+  if (quoted && session.sourceFill) {
+    return zh
+      ? `已确认 ${session.sourceFill.well} 有 ${session.sourceFill.ul} µL。`
+      : `You confirmed ${session.sourceFill.well} holds ${session.sourceFill.ul} µL.`;
+  }
+  const shortfall = sessionFillShortfall(session);
+  if (shortfall) return shortfall;
+  const goal = session.goal ?? "";
+  const wells = wellMentions(goal);
+  const volume = volumeMention(goal);
+  const source = wells[0];
+  const dest = wells[1];
+  if (session.language === "zh" || zh) {
+    const src = source ? `${source} 至少有 ${volume || "所需体积"}` : "源孔有足够体积";
+    const dst = dest ? `${dest} 是空的还是已有液体` : "目标孔是空的还是已有液体";
+    return `请确认${src}，以及${dst}。`;
+  }
+  const src = source
+    ? `${source} holds at least ${volume || "the transfer volume"}`
+    : "the source well holds at least the transfer volume";
+  const dst = dest ? `whether ${dest} is empty` : "whether the destination well is empty or already contains liquid";
+  return `Confirm ${src}, and ${dst}.`;
+}
+
 /** One-line first-turn confirm. Never “nothing is written yet.” */
 export function intakeConfirmLine(session: SessionState): string {
   const label = deviceFor(session.robot)?.label ?? "this robot";
+  if (goalNeedsClarify(session) && session.deckConfirmed !== false) {
+    return session.language === "zh"
+      ? "要转移什么、多少体积、哪些孔？确认实验后再对台面。"
+      : "What should we transfer, how much, and which wells? I will confirm the deck after that.";
+  }
+  const removedLabels = (session.removedLabware ?? []).map((name) =>
+    session.language === "zh" && name === "12-well reservoir" ? "12 孔储液槽" : name
+  );
+  const removed = removedLabels.length
+    ? session.language === "zh"
+      ? `已去掉${removedLabels.join("、")}。`
+      : `${removedLabels.join(", ")} removed. `
+    : "";
   if (session.language === "zh") {
-    return `${label}，标准台面：${namedDeckPhraseZh(session.robot, session.hardware.deck)}。若相符请回复。`;
+    return `${removed}${label}，标准台面：${namedDeckPhraseZh(session.robot, session.hardware.deck)}。若相符请回复。${premisesAsk(session, true)}`;
   }
   const deck = namedDeckPhrase(session.robot, session.hardware.deck);
-  return `${label}, standard deck: ${deck}. Reply if that matches.`;
+  return `${removed}${label}, standard deck: ${deck}. Reply if that matches. ${premisesAsk(session, false)}`;
 }
 
 export function assumeStandardDeck(session: SessionState): void {
@@ -616,6 +878,9 @@ export function applyForm(
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
   session.intakeDone = undefined;
+  session.deckConfirmed = undefined;
+  session.premisesConfirmed = undefined;
+  session.removedLabware = undefined;
   if (input.language != null) session.language = parseUiLang(input.language);
   if (selectedRobot) {
     session.robot = selectedRobot;
@@ -631,6 +896,8 @@ export function applyForm(
   }
   assumeStandardDeck(session);
   applyPcrFriendlyDeck(session);
+  rememberConstraints(session, session.goal ?? "");
+  if (session.doc && session.doc !== "none") rememberConstraints(session, session.doc);
   refreshPhase(session);
   return session;
 }
@@ -682,6 +949,9 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
     session.conflictUserReplied = undefined;
     session.conflictReplyText = undefined;
     session.draftConflictResolved = undefined;
+    session.deckConfirmed = undefined;
+    session.premisesConfirmed = undefined;
+    session.removedLabware = undefined;
   }
   refreshPhase(session);
   return session;
@@ -731,6 +1001,9 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.conflictUserReplied = undefined;
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
+  session.deckConfirmed = undefined;
+  session.premisesConfirmed = undefined;
+  session.removedLabware = undefined;
 }
 
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {
@@ -780,9 +1053,15 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
       session.hardware.deck[String(item.slot).trim()] = String(item.labware).trim();
     }
     session.deckAssumed = false;
+    session.deckConfirmed = false;
+    session.premisesConfirmed = false;
+    clearGenerated(session);
   } else {
     assumeStandardDeck(session);
     applyPcrFriendlyDeck(session);
+  }
+  if (textRejectsReservoir(session.goal ?? "") || session.removedLabware?.some((name) => isReservoirName(name))) {
+    dropReservoir(session);
   }
   refreshPhase(session);
   return session;
@@ -793,7 +1072,7 @@ export function canRunPipeline(session: SessionState): boolean {
 }
 
 export function canGenerateSop(session: SessionState): boolean {
-  return canRunPipeline(session);
+  return canRunPipeline(session) && !confirmGateOpen(session) && !sessionFillShortfall(session);
 }
 
 export function isOpentrons(session: Pick<SessionState, "robot">): boolean {
@@ -813,15 +1092,41 @@ export function canGenerateCode(session: SessionState): boolean {
     canRunPipeline(session) &&
     Boolean(session.sop?.trim()) &&
     isOpentrons(session) &&
-    !unresolvedGoalNotesConflict(session)
+    !unresolvedGoalNotesConflict(session) &&
+    !confirmGateOpen(session) &&
+    !sessionFillShortfall(session)
   );
 }
 
+/** Drop plan resources whose slot is no longer on the confirmed deck. */
+export function alignPlanToConfirmedDeck(
+  plan: Record<string, unknown>,
+  deck: Record<string, string>
+): Record<string, unknown> {
+  const slots = new Set(Object.keys(deck).map((slot) => slot.trim().toLowerCase()));
+  if (!slots.size) return plan;
+  const resources = Array.isArray(plan.resources) ? plan.resources : [];
+  const kept = resources.filter((item) => {
+    if (!item || typeof item !== "object") return false;
+    const slot = String((item as { slot?: unknown }).slot ?? "").trim().toLowerCase();
+    return !slot || slots.has(slot);
+  });
+  if (kept.length === resources.length) return plan;
+  return { ...plan, resources: kept };
+}
+
 export function canEmitPlan(session: SessionState): boolean {
-  return canRunPipeline(session) && Boolean(session.sop?.trim()) && !unresolvedGoalNotesConflict(session);
+  return (
+    canRunPipeline(session) &&
+    Boolean(session.sop?.trim()) &&
+    !unresolvedGoalNotesConflict(session) &&
+    !confirmGateOpen(session) &&
+    !sessionFillShortfall(session)
+  );
 }
 
 export function shouldReuseSop(session: SessionState, force?: boolean): boolean {
+  if (session.regenSop) return false;
   return Boolean(session.sop?.trim()) && force !== true;
 }
 
@@ -864,6 +1169,17 @@ export function formatHardwareConfig(session: SessionState): string {
       "PLR sim: PyLabRobot has no Fluent deck — virtual_deck/plr_sim reuse Freedom EVO 200 µL LiHa DiTi geometry. Compile is pyFluent FluentControl .gwl, not EVOware."
     );
   }
+  if (session.removedLabware?.length) {
+    lines.push(`Removed labware (do not put it back): ${session.removedLabware.join(", ")}`);
+  }
+  if (session.sourceFill) {
+    lines.push(
+      `Confirmed on-hand volume (not tip capacity): ${session.sourceFill.well} = ${session.sourceFill.ul} µL`
+    );
+  }
+  if (session.regenSop) {
+    lines.push("Previous turn was cancelled. Rewrite the SOP even if one is already stored.");
+  }
   if (goalMentionsPcr(session.goal, session.doc === "none" ? "" : session.doc)) {
     lines.push(
       "PCR: mix/setup is liquid handling on the sample plate (PCR plate is a standard-deck variant, 100 µL wells on OT-2/Flex). 8 samples = A1–H1 unless named. Do not refuse PCR. Thermocycler cycling is optional OT-2/Flex Python (load_module) only if the user asked to cycle temperatures — not required for mix prep. Hamilton/Tecan: liquid setup only. Stay within tip and well max volumes."
@@ -892,6 +1208,12 @@ export function snapshot(session: SessionState) {
     checks: checks ?? null,
     fab: { lit: Boolean(checks?.fab.lit) },
     deck_assumed: Boolean(session.deckAssumed),
+    deck_confirmed: session.deckConfirmed === true,
+    premises_confirmed: session.premisesConfirmed === true,
+    source_fill: session.sourceFill ?? null,
+    removed_labware: session.removedLabware ?? [],
+    downloads_withheld: draftStillUsesRemovedLabware(session),
+    confirmed_fill_line: sessionFillLine(session),
     code_service: session.codeService ?? "down",
     events: session.events ?? [],
     device_id: deviceFor(session.robot)?.id ?? null,

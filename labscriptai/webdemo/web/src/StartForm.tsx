@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { DEVICE_CARDS, canStart, matchDeviceFromText } from "./devices";
+import { useRef, useState } from "react";
+import { DEVICE_CARDS, canStart, goalHasProtocolIntent, matchDeviceFromText } from "./devices";
 import { EXAMPLES } from "./startExamples";
 import { useLang } from "./LangContext";
 import type { StartInput } from "./types";
@@ -15,10 +15,12 @@ const TILE_MARK: Record<string, string> = {
 interface Props {
   busy: boolean;
   onSubmit: (input: StartInput) => void;
+  onCancel?: () => void;
 }
 
-export function StartForm({ busy, onSubmit }: Props) {
-  const { t } = useLang();
+export function StartForm({ busy, onSubmit, onCancel }: Props) {
+  const { t, lang } = useLang();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [goal, setGoal] = useState("");
   const [doc, setDoc] = useState("");
   const [fileName, setFileName] = useState("");
@@ -34,8 +36,10 @@ export function StartForm({ busy, onSubmit }: Props) {
 
   const pickExample = (item: (typeof EXAMPLES)[number]) => {
     if (busy) return;
-    setGoal(item.goal);
-    setDoc(item.doc);
+    const nextGoal = lang === "zh" ? item.goalZh : item.goal;
+    const nextDoc = lang === "zh" ? item.docZh : item.doc;
+    setGoal(nextGoal);
+    setDoc(nextDoc);
     const hit = matchDeviceFromText(`${item.label}\n${item.goal}\n${item.doc}`);
     if (hit) setDeviceId(hit);
   };
@@ -59,7 +63,7 @@ export function StartForm({ busy, onSubmit }: Props) {
               <span className="device-emoji" aria-hidden="true">
                 {TILE_MARK[card.id] ?? ""}
               </span>
-              {card.label}
+              {t(card.label)}
             </strong>
             <span className="device-blurb">{t(card.blurb)}</span>
           </button>
@@ -73,30 +77,51 @@ export function StartForm({ busy, onSubmit }: Props) {
         rows={2}
         placeholder={t("e.g. Transfer 50 µL from well A1 to B1")}
         value={goal}
+        disabled={busy}
         onChange={(e) => setGoal(e.target.value)}
       />
+      {goal.trim() && !goalHasProtocolIntent(goal) ? (
+        <p className="hint" data-testid="goal-intent-hint">
+          {t("Name a transfer, a volume, or wells — for example Transfer 50 µL from A1 to B1.")}
+        </p>
+      ) : null}
 
-      <label htmlFor="doc" className="notes-head">
-        <span>{t("Notes (optional)")}</span>
-        <span className="file-label">
-          <input
-            type="file"
-            accept=".md,.txt,.py,.json"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setFileName(file.name);
-              setDoc(await file.text());
-            }}
-          />
-          {fileName || t("or attach a file")}
-        </span>
-      </label>
+      <label htmlFor="doc">{t("Notes (optional)")}</label>
+      <p className="hint" data-testid="notes-file-hint">
+        {t("Notes are .md, .txt, .py, or .json. They are notes, not the run.")}
+      </p>
+      <div className="file-pick">
+        <button
+          type="button"
+          className="file-btn"
+          data-testid="notes-file"
+          aria-label={t("Choose file")}
+          disabled={busy}
+          onClick={() => fileRef.current?.click()}
+        >
+          {fileName || t("Choose file")}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".md,.txt,.py,.json"
+          className="file-input-native"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            setFileName(file.name);
+            setDoc(await file.text());
+          }}
+        />
+      </div>
       <textarea
         id="doc"
         rows={2}
         placeholder={t("Paste a draft, or leave blank")}
         value={doc}
+        disabled={busy}
         onChange={(e) => setDoc(e.target.value)}
       />
 
@@ -109,7 +134,7 @@ export function StartForm({ busy, onSubmit }: Props) {
             disabled={busy}
             onClick={() => pickExample(item)}
           >
-            {item.label}
+            {t(item.label)}
           </button>
         ))}
       </div>
@@ -117,6 +142,11 @@ export function StartForm({ busy, onSubmit }: Props) {
       <button className="primary" type="submit" disabled={busy || !canStart(goal, deviceId)}>
         {busy ? t("Starting…") : t("Let’s go")}
       </button>
+      {busy && onCancel ? (
+        <button type="button" className="file-btn cancel-turn" data-testid="cancel-turn" onClick={onCancel}>
+          {t("Cancel")}
+        </button>
+      ) : null}
     </form>
   );
 }

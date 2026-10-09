@@ -1,4 +1,4 @@
-import type { ArchivedThread } from "./threadArchive";
+import { THREAD_RETENTION, type ArchivedThread } from "./threadArchive";
 import { useLang } from "./LangContext";
 
 interface Props {
@@ -16,7 +16,7 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
   if (present) classes.push("present");
   if (present && open) classes.push("open");
   return (
-    <aside className={classes.join(" ")} data-testid="history-rail" aria-label="History">
+    <aside className={classes.join(" ")} data-testid="history-rail" aria-label={t("History")}>
       {present ? (
         <button
           type="button"
@@ -25,11 +25,17 @@ export function HistoryRail({ threads, currentId, open, onToggle, onSelect }: Pr
           onClick={onToggle}
           title={open ? t("Hide runs") : t("Show runs")}
         >
-          History
+          <span className="history-rail-word">{t("History")}</span>
+          <span className="history-rail-retention history-rail-retention-inline" data-testid="history-retention">
+            {t(THREAD_RETENTION)}
+          </span>
         </button>
       ) : null}
       {present && open ? (
         <ol className="history-rail-list">
+          <li className="history-rail-retention history-rail-retention-open">
+            {t(THREAD_RETENTION)}
+          </li>
           {threads.map((thread) => (
             <li key={thread.id}>
               <button

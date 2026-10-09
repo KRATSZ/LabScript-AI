@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { IssuesPanel } from "./IssuesPanel";
 import { ProtocolSummaryCard } from "./SummaryCard";
 import {
   findVisualizerTrack,
@@ -7,6 +8,7 @@ import {
   visualizerIndexFromPercent,
   visualizerPlayPercent,
 } from "./otPlaybackSync";
+import { localizeStepLabel } from "./display";
 import { clampStepIndex, replayStepsFor, type ReplayStep } from "./replaySteps";
 import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
@@ -120,7 +122,7 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
                 >
                   <span className="demo-step-index">{step.index + 1}</span>
                   <span className="demo-step-body">
-                    <strong>{step.label}</strong>
+                    <strong>{localizeStepLabel(step.label, t)}</strong>
                     {step.detail ? <span>{step.detail}</span> : null}
                   </span>
                 </button>
@@ -130,11 +132,14 @@ export function DemoReplay({ session, children, current = 0, totalHint, onSeek }
           </ul>
         </div>
         <ProtocolSummaryCard session={session} />
+        <div className="demo-replay-verdict">
+          <IssuesPanel checks={session.checks} session={session} />
+        </div>
       </aside>
       <div className="demo-replay-scrub" data-testid="demo-progress">
         <label className="replay-progress-label" htmlFor="demo-progress-range">
           {t("Demo progress")}
-          {visible[index] ? ` · ${visible[index].label} · ${index + 1} / ${visible.length}` : ""}
+          {visible[index] ? ` · ${localizeStepLabel(visible[index].label, t)} · ${index + 1} / ${visible.length}` : ""}
         </label>
         <input
           id="demo-progress-range"

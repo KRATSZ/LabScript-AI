@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { DEVICE_REGISTRY } from "../server/src/devices.ts";
-import { DEVICE_CARDS, canStart, matchDeviceFromText } from "../web/src/devices.ts";
+import { DEVICE_CARDS, canStart, goalHasProtocolIntent, matchDeviceFromText } from "../web/src/devices.ts";
 import { EXAMPLES } from "../web/src/startExamples.ts";
 
 const webSrc = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../web/src");
@@ -25,6 +25,12 @@ describe("StartForm examples", () => {
     assert.doesNotMatch(blob, /standard3|standard 3-slot/i);
     assert.match(EXAMPLES[2].goal, /Hamilton/);
     assert.match(EXAMPLES[2].goal, /Tecan/);
+    assert.match(EXAMPLES[0].goalZh, /转移/);
+    assert.match(EXAMPLES[1].goalZh, /PCR/);
+    assert.match(EXAMPLES[2].goalZh, /方案/);
+    for (const item of EXAMPLES) {
+      assert.equal(goalHasProtocolIntent(item.goalZh), true, item.label);
+    }
   });
 });
 
@@ -59,6 +65,9 @@ describe("StartForm device cards", () => {
     assert.equal(canStart("transfer", "nope"), false);
     assert.equal(canStart("transfer", "ot2"), true);
     assert.equal(canStart("  PCR  ", "tecan_fluent"), true);
+    assert.equal(canStart("xyz", "ot2"), false);
+    assert.equal(goalHasProtocolIntent("xyz"), false);
+    assert.equal(goalHasProtocolIntent("Transfer 50 µL from A1 to B1"), true);
   });
 
   it("example chips select a card only when they name exactly one device", () => {
@@ -83,6 +92,8 @@ describe("StartForm device cards", () => {
     assert.match(src, /matchDeviceFromText/);
     assert.match(src, /Pick a robot/);
     assert.match(src, /Paste a draft, or leave blank/);
+    assert.match(src, /t\(item\.label\)/);
+    assert.match(src, /Choose file/);
     assert.match(src, /device-emoji/);
     assert.match(src, /device-blurb/);
     assert.match(src, /TILE_MARK/);

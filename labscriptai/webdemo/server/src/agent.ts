@@ -62,7 +62,7 @@ export const POST_RUN_CHECKS_WITHHELD_HINT =
 export const POST_NOTES_CONFLICT_HINT =
   "SYSTEM HINT: Notes conflict with the goal. Call ask_user, tell the user both volumes, and STOP. Do not generate_sop, emit_plan, run_checks, or say a .gwl is ready until the user answers.";
 export const POST_INTAKE_HINT =
-  "SYSTEM HINT: One short confirm naming the deck (Hamilton: carriers, not slots 1/2/3). Ask in chat, call ask_user, and STOP. Never say nothing is written yet. Do not quiz starting volume in A1. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. After they confirm the standard deck, do not ask pipette vs tip size. Do not mention liters unless they wrote liters. No tool names in the user-facing message.";
+  "SYSTEM HINT: One short confirm naming the deck (Hamilton: carriers, not slots 1/2/3), source available volume, and destination well state. Ask in chat, call ask_user, and STOP. Never say nothing is written yet. Do not generate_sop, emit_plan, generate_code, or a .gwl until they reply. If they reject or change labware, show the updated deck and STOP — do not write a protocol until they confirm the revised layout. After they confirm the standard deck and well premises, do not ask pipette vs tip size. Do not mention liters unless they wrote liters. No tool names in the user-facing message.";
 
 export function isNotesConflictWait(details: unknown): boolean {
   if (!details || typeof details !== "object") return false;
@@ -299,7 +299,8 @@ export async function promptWithAutoContinue(
 export async function runChatTurn(
   session: SessionState,
   userText: string,
-  sse: SseWriter
+  sse: SseWriter,
+  signal?: AbortSignal
 ): Promise<boolean> {
   const env = loadDemoEnv();
   if (!env.apiKey) {
@@ -335,13 +336,32 @@ export async function runChatTurn(
       ),
   });
 
-  const ok = await promptWithAutoContinue(
-    agent,
-    nextUserMessage(session, userText),
-    session,
-    tracked,
-    autoContinue
-  );
-  emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok } });
+  const onAbort = () => {
+    session.regenSop = true;
+    agent.abort();
+  };
+  if (signal?.aborted) {
+    session.regenSop = true;
+    emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok: false, cancelled: true } });
+    return false;
+  }
+  signal?.addEventListener("abort", onAbort);
+  let ok = false;
+  try {
+    ok = await promptWithAutoContinue(
+      agent,
+      nextUserMessage(session, userText),
+      session,
+      tracked,
+      autoContinue
+    );
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
+  }
+  if (signal?.aborted) {
+    session.regenSop = true;
+    ok = false;
+  }
+  emitAgentEvent(session, tracked, { kind: "turn/end", detail: { ok, cancelled: Boolean(signal?.aborted) } });
   return ok;
 }

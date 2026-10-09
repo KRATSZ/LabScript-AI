@@ -24,6 +24,8 @@ import {
 } from "./gate.ts";
 import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import {
+  alignPlanToConfirmedDeck,
+  applyIntakeGates,
   applyAskUser,
   authoringGoal,
   beginGoalNotesConflictAsk,
@@ -31,11 +33,15 @@ import {
   canGenerateCode,
   canResolveGoalNotesConflict,
   canRunPipeline,
+  confirmGateOpen,
   reviewIntent,
   checksRoute,
   capSop,
+  draftStillUsesRemovedLabware,
   explainPlanErrors,
   formatHardwareConfig,
+  sessionFillShortfall,
+  stampSessionFill,
   intakeConfirmLine,
   intakeOpen,
   isOpentrons,
@@ -72,6 +78,19 @@ function refusePatchBudget(): ToolResult {
 
 function toolGoal(session: SessionState): string {
   return authoringGoal(session);
+}
+
+function refuseFill(session: SessionState, sse: SseWriter): ToolResult | null {
+  const line = sessionFillShortfall(session);
+  if (!line) return null;
+  if (!sseHasUserText(sse)) sse.write("text", { token: `\n\n${line}\n` });
+  return ok({
+    blocked: true,
+    wait: true,
+    fill_shortfall: true,
+    ask: line,
+    hint: "Stop. The confirmed on-hand volume does not cover this transfer. Do not generate.",
+  });
 }
 
 function robotArgValues(): string[] {
@@ -167,7 +186,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (conflictBefore) {
         resolveGoalNotesConflict(session);
       }
-      if (intakeOpen(session)) {
+      if (intakeOpen(session) || session.deckConfirmed === false) {
         const ask = intakeConfirmLine(session);
         if (!sseHasUserText(sse)) {
           sse.write("text", { token: `\n\n${ask}\n` });
@@ -180,12 +199,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
                 {
                   wait: true,
                   intake: true,
+                  deck_revision: session.deckConfirmed === false,
                   ask,
                   next_tool: "ask_user",
                   phase: session.phase,
                   missing: missingList(session),
                   ready: false,
-                  hint: "One short confirm in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
+                  hint: session.deckConfirmed === false
+                    ? "Show the updated deck. Stop. Do not generate_sop, emit_plan, generate_code, or run_checks until they confirm the revised deck."
+                    : "One short confirm in chat if you have not. Stop. Do not generate_sop, emit_plan, or a .gwl until they reply.",
                 },
                 null,
                 2
@@ -226,6 +248,8 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     }),
     executionMode: "sequential",
     execute: async (_id, args, _signal, onUpdate) => {
+      const held = refuseFill(session, sse);
+      if (held) return held;
       const force = Boolean((args as { force?: boolean }).force);
       const conflict = unresolvedGoalNotesConflict(session);
       if (conflict) {
@@ -243,13 +267,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           sop_markdown: session.sop,
         });
       }
-      if (intakeOpen(session)) {
+      if (intakeOpen(session) || confirmGateOpen(session)) {
         return ok({
           blocked: true,
           wait: true,
           intake: true,
           missing: missingList(session),
-          hint: "Ask 1–2 lab questions, call ask_user, and stop. Do not generate a protocol yet.",
+          hint: confirmGateOpen(session) && session.deckConfirmed === false
+            ? "The deck changed. Call ask_user, show the updated deck, and stop. Do not generate a protocol yet."
+            : "Ask 1–2 lab questions, call ask_user, and stop. Do not generate a protocol yet.",
         });
       }
       if (!shouldCallCompactSop(session, force)) {
@@ -266,6 +292,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       );
       if (!sop) throw new Error("generate_sop returned empty SOP");
       session.sop = capSop(sop);
+      session.regenSop = false;
       sse.write("snapshot", snapshot(session));
       return ok({ chars: session.sop.length, sop_markdown: session.sop });
     },
@@ -281,6 +308,8 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     }),
     executionMode: "sequential",
     execute: async (_id, args, _signal, onUpdate) => {
+      const held = refuseFill(session, sse);
+      if (held) return held;
       const conflict = unresolvedGoalNotesConflict(session);
       if (conflict) {
         return ok({
@@ -290,8 +319,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
         });
       }
-      if (!canRunPipeline(session)) {
-        return ok({ blocked: true, missing: missingList(session) });
+      if (!canRunPipeline(session) || confirmGateOpen(session)) {
+        return ok({
+          blocked: true,
+          wait: confirmGateOpen(session),
+          missing: missingList(session),
+          hint: confirmGateOpen(session)
+            ? "Confirm the deck, source volume, and destination well state first. Call ask_user and stop."
+            : undefined,
+        });
       }
       if (deviceFor(session.robot)?.codegen !== "opentrons_python") {
         return ok({
@@ -383,6 +419,8 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     }),
     executionMode: "sequential",
     execute: async (_id, args) => {
+      const held = refuseFill(session, sse);
+      if (held) return held;
       const conflict = unresolvedGoalNotesConflict(session);
       if (conflict) {
         return ok({
@@ -392,10 +430,17 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
         });
       }
-      if (!canEmitPlan(session)) {
+      if (!canEmitPlan(session) || confirmGateOpen(session)) {
         const missing = missingList(session);
         if (!session.sop?.trim()) missing.push("sop");
-        return ok({ blocked: true, missing });
+        return ok({
+          blocked: true,
+          wait: confirmGateOpen(session),
+          missing,
+          hint: confirmGateOpen(session)
+            ? "Confirm the revised deck and well premises first. Do not emit a plan yet."
+            : undefined,
+        });
       }
       const input = args as {
         plan?: Record<string, unknown>;
@@ -439,7 +484,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       if (!checked.ok || !checked.plan) {
         return ok({ ok: false, errors: explainPlanErrors(checked.errors ?? ["invalid_plan"]) });
       }
-      session.plan = checked.plan;
+      session.plan = alignPlanToConfirmedDeck(checked.plan, session.hardware.deck);
       if (isPatch) session.patchesUsed = (session.patchesUsed ?? 0) + 1;
       session.lastChecks = undefined;
       session.analyze = undefined;
@@ -462,6 +507,16 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     parameters: Type.Object({}),
     executionMode: "sequential",
     execute: async () => {
+      const held = refuseFill(session, sse);
+      if (held) return held;
+      if (confirmGateOpen(session)) {
+        return ok({
+          blocked: true,
+          wait: true,
+          missing: missingList(session),
+          hint: "Confirm the deck and well premises first. Call ask_user and stop. Do not run_checks yet.",
+        });
+      }
       const route = checksRoute(session);
       if (route === "blocked") {
         return ok({
@@ -483,26 +538,30 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
             hint: "Notes conflict with the goal. Call ask_user and wait. Do not emit a .gwl.",
           });
         }
+        stampSessionFill(session);
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
           reviewIntent(session),
           { robot: session.robot }
         );
-        session.lastChecks = checks;
-        if (checks.status === "pass") session.hasPassedChecks = true;
         if (plan) session.plan = plan;
-        session.artifacts = checks.status === "pass" ? artifacts : undefined;
-        sse.write("checks", checks);
+        stampSessionFill(session);
+        const gated = applyIntakeGates(session, checks);
+        session.lastChecks = gated;
+        if (gated.status === "pass") session.hasPassedChecks = true;
+        session.artifacts = gated.status === "pass" && !draftStillUsesRemovedLabware(session) ? artifacts : undefined;
+        sse.write("checks", gated);
         sse.write("snapshot", snapshot(session));
-        return ok(compactChecks(checks, session.patchesUsed ?? 0));
+        return ok(compactChecks(gated, session.patchesUsed ?? 0));
       }
       const { checks, analyze } = await runChecks(session.code as string, session.goal ?? "");
-      session.lastChecks = checks;
-      if (checks.status === "pass") session.hasPassedChecks = true;
+      const gated = applyIntakeGates(session, checks);
+      session.lastChecks = gated;
+      if (gated.status === "pass") session.hasPassedChecks = true;
       session.analyze = analyze ?? undefined;
-      sse.write("checks", checks);
+      sse.write("checks", gated);
       sse.write("snapshot", snapshot(session));
-      return ok(compactChecks(checks, session.patchesUsed ?? 0));
+      return ok(compactChecks(gated, session.patchesUsed ?? 0));
     },
   };
 

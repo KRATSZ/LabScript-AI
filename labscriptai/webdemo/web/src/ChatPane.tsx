@@ -10,6 +10,9 @@ interface Props {
   messages: ChatMessage[];
   busy: boolean;
   onSend: (text: string) => void;
+  onCancel?: () => void;
+  onRetry?: () => void;
+  canRetry?: boolean;
   robot?: string | null;
 }
 
@@ -57,7 +60,7 @@ function Bubble({
   );
 }
 
-export function ChatPane({ messages, busy, onSend, robot }: Props) {
+export function ChatPane({ messages, busy, onSend, onCancel, onRetry, canRetry, robot }: Props) {
   const { t } = useLang();
   const [text, setText] = useState("");
   const historyRef = useRef<HTMLDivElement>(null);
@@ -86,6 +89,11 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
   return (
     <div className="chat">
       <div className="history" ref={historyRef}>
+        {messages.length ? (
+          <p className="hint lang-policy" data-testid="lang-policy">
+            {t("Earlier messages stay in the language they were written in.")}
+          </p>
+        ) : null}
         {messages.map((msg, i) => (
           <Bubble key={i} msg={msg} last={i === messages.length - 1} busy={busy} robot={robot} />
         ))}
@@ -111,6 +119,16 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
         <button className="send" type="submit" disabled={busy || !text.trim()} aria-label={t("Send")}>
           {t("Send")}
         </button>
+        {busy && onCancel ? (
+          <button type="button" className="send cancel-turn" data-testid="cancel-turn" onClick={onCancel}>
+            {t("Cancel")}
+          </button>
+        ) : null}
+        {!busy && canRetry && onRetry ? (
+          <button type="button" className="send retry-turn" data-testid="retry-turn" onClick={onRetry}>
+            {t("Retry")}
+          </button>
+        ) : null}
       </form>
     </div>
   );

@@ -1,6 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { labwareLabel, planStepDisplay, sanitizeAssistantText, headerGoalPreview, hasAttachedNotes } from "../web/src/display.ts";
+import { labwareLabel, localizeStepLabel, planStepDisplay, sanitizeAssistantText, headerGoalPreview, hasAttachedNotes } from "../web/src/display.ts";
+import { t } from "../web/src/i18n.ts";
 
 describe("labwareLabel", () => {
   it("maps standard deck ids to short names", () => {
@@ -27,6 +28,11 @@ describe("planStepDisplay", () => {
       }),
       "Aspirate — 50 µL — reservoir A1 → plate B2"
     );
+    assert.equal(
+      localizeStepLabel("Aspirate — 50 µL — plate A1", (text) => t(text, "zh")),
+      "吸液 — 50 µL — plate A1"
+    );
+    assert.equal(localizeStepLabel("Pick up tip", (text) => t(text, "zh")), "取枪头");
   });
 });
 

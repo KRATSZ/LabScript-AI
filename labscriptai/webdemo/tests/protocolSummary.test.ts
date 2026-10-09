@@ -85,6 +85,35 @@ describe("protocolSummary", () => {
     assert.doesNotMatch(trash[0]?.name || "", /1100|t100ml|fixed/i);
   });
 
+  it("keeps one row per deck slot and prefers the user-facing name", () => {
+    const model = protocolSummary(
+      snap({
+        robot: "Hamilton",
+        hardware: {
+          deck: {
+            "1": "hamilton_96_tiprack_300ul",
+            "2": "corning_96_wellplate_360ul_flat",
+          },
+        },
+        plan: {
+          resources: [
+            { id: "tips", type: "tiprack", slot: "1" },
+            { id: "plate", type: "plate", slot: "2" },
+            { id: "trough", type: "reservoir", slot: "3" },
+          ],
+        },
+      })
+    );
+    assert.ok(model);
+    assert.equal(model.consumables.filter((item) => item.slot === "1").length, 1);
+    assert.equal(model.consumables.filter((item) => item.slot === "2").length, 1);
+    assert.equal(model.consumables.some((item) => item.name === "tips"), false);
+    assert.equal(model.consumables.some((item) => item.name === "plate"), false);
+    assert.ok(model.consumables.some((item) => /300 µL tips/i.test(item.name)));
+    assert.ok(model.consumables.some((item) => /96-well plate/i.test(item.name)));
+    assert.equal(model.consumables.some((item) => item.slot === "3"), false);
+  });
+
   it("returns null when the session is empty", () => {
     assert.equal(
       protocolSummary(
