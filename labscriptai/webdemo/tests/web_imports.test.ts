@@ -164,6 +164,13 @@ describe("AnimationOverlay code-split", () => {
     assert.match(phone, /\.stage-pane\.has-deck \.ot-deck-embed[\s\S]*min-height:\s*0/);
     assert.match(phone, /\.overlay-card \{[\s\S]*min-height:\s*0/);
     assert.match(phone, /\.lang-switch \{ grid-area:\s*lang/);
+    const phoneFit = css.slice(css.lastIndexOf("@media (max-width: 860px)"));
+    assert.match(phoneFit, /aspect-ratio:\s*855\s*\/\s*582/);
+    assert.match(phoneFit, /deckview-module__body_container[\s\S]*min-width:\s*0/);
+    assert.match(phoneFit, /deckview-module__deck_svg_wrapper[\s\S]*min-width:\s*0/);
+    assert.match(phoneFit, /\.demo-replay-side \.protocol-summary \{[\s\S]*order:\s*1[\s\S]*max-height:\s*none/);
+    assert.match(phoneFit, /\.demo-replay-steps \{[\s\S]*order:\s*2[\s\S]*max-height:\s*none/);
+    assert.match(css, /\.demo-replay \{[^}]*height:\s*100%/);
     const webRoot = path.resolve(webSrc, "..");
     assert.match(readFileSync(path.join(webRoot, "watch-stage-smoke.html"), "utf8"), /watchStageSmoke\.tsx/);
     assert.match(readFileSync(path.join(webSrc, "watchStageSmoke.tsx"), "utf8"), /data-smoke="watch-stage"/);
