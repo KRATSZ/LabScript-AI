@@ -1862,3 +1862,134 @@ body {
   .chip { min-height: 32px; padding: 6px 10px; }
   .primary { min-height: 40px; }
 }
+
+.flex3d {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+.flex3d-top {
+  flex: 1 0 300px;
+  min-height: 300px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.flex3d-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.flex3d-bar input[type="range"] { flex: 1; min-width: 120px; }
+.flex3d-time {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 108px;
+  text-align: right;
+}
+.flex3d-speed {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px 6px;
+  background: #fff;
+}
+.flex3d-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 31%);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "main close" "main steps";
+  gap: 8px;
+}
+.flex3d-main { grid-area: main; }
+.flex3d-close { grid-area: close; }
+.flex3d-steps-win {
+  grid-area: steps;
+  background: #fff;
+  border: 1px solid var(--line);
+  overflow: auto;
+  cursor: default;
+}
+.flex3d-win {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  background: #e7e9ee;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.flex3d-win img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+.flex3d-tag {
+  position: absolute;
+  left: 8px;
+  top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(17, 24, 39, 0.6);
+  color: #fff;
+  font-size: 12px;
+  pointer-events: none;
+}
+.flex3d-steps { list-style: none; margin: 0; padding: 6px; }
+.flex3d-steps li button {
+  width: 100%;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 4px 6px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.flex3d-steps li.active button { background: #dbeafe; font-weight: 600; }
+.flex3d-step-time {
+  min-width: 52px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.flex3d-msg {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 8px;
+}
+.flex3d-bottom {
+  flex: 1 0 460px;
+  min-height: 460px;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+}
+.flex3d-note {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}

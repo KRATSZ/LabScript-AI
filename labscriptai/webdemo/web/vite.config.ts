@@ -53,6 +53,10 @@ export default defineConfig({
         target: "http://127.0.0.1:8787",
         changeOrigin: false,
       },
+      "/flex3d": {
+        target: "http://127.0.0.1:8791",
+        changeOrigin: false,
+      },
     },
   },
   resolve: {

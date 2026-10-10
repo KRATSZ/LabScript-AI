@@ -1,5 +1,6 @@
 import { createServer } from "node:net";
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -40,6 +41,23 @@ const children = [
   }),
 ];
 
+const flex3dPort = 8791;
+const virtualLab = path.resolve(repoRoot, "../../virtual-lab");
+const playerReady =
+  existsSync("/usr/bin/python3") &&
+  existsSync(path.join(virtualLab, "sim", "web_player.py")) &&
+  (await canBind(host, flex3dPort));
+const player = playerReady
+  ? spawn("/usr/bin/python3", ["-m", "sim.web_player"], {
+      cwd: virtualLab,
+      stdio: "inherit",
+      env: { ...process.env, PYTHONPATH: virtualLab, PYTHONUNBUFFERED: "1" },
+    })
+  : null;
+if (!playerReady) {
+  console.error(`3D player not started (${host}:${flex3dPort}, ${virtualLab}). The chat site will still start.`);
+}
+
 if (await canBind(host, 8010)) {
   children.push(
     spawn(python, ["python/code_service.py"], {
@@ -53,8 +71,8 @@ if (await canBind(host, 8010)) {
 }
 
 const stop = () => {
-  for (const child of children) {
-    if (!child.killed) child.kill("SIGTERM");
+  for (const child of [...children, player]) {
+    if (child && !child.killed) child.kill("SIGTERM");
   }
 };
 
@@ -69,4 +87,6 @@ for (const child of children) {
   });
 }
 
-console.log("webdemo: server http://127.0.0.1:8787  ui http://127.0.0.1:5173  code http://127.0.0.1:8010");
+console.log(
+  `webdemo: server http://127.0.0.1:8787  ui http://127.0.0.1:5173  code http://127.0.0.1:8010  flex3d http://127.0.0.1:${flex3dPort}`
+);

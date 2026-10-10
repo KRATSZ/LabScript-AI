@@ -18,6 +18,7 @@ const ZH: Record<string, string> = {
   "Downloadable worklist": "可下载工作表",
   "e.g. Transfer 50 µL from well A1 to B1": "例如：从 A1 孔转移 50 µL 到 B1",
   "Change robot": "更换仪器",
+  "3D": "三维",
   "Notes attached": "已附备注",
   "Preview service down — OT-2 and Flex scripts stay off": "预览服务未启动 — OT-2 与 Flex 脚本暂不可用",
   "preview down": "预览不可用",

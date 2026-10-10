@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
-import { sessionCanWatch } from "./analysis";
+import { analysisResetKey, sessionCanWatch } from "./analysis";
 import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
@@ -17,6 +17,7 @@ import { thoughtNotesFromChat, thoughtTurnsFromChat } from "./trajectoryLogic";
 import type { AgentEvent, ChatMessage, SessionSnapshot, StartInput } from "./types";
 
 const AnimationOverlay = lazy(() => import("./AnimationOverlay"));
+const Flex3dOverlay = lazy(() => import("./Flex3dOverlay"));
 
 function patchLastAssistant(prev: ChatMessage[], field: "text" | "thinking", token: string): ChatMessage[] {
   const last = prev[prev.length - 1];
@@ -40,6 +41,7 @@ export function App() {
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [busy, setBusy] = useState(false);
   const [overlay, setOverlay] = useState(false);
+  const [flex3d, setFlex3d] = useState(false);
   const [error, setError] = useState("");
   const [runningTool, setRunningTool] = useState<string | null>(null);
   const [health, setHealth] = useState<DemoHealth | null>(null);
@@ -145,6 +147,7 @@ export function App() {
   const changeDevice = () => {
     parkCurrent();
     setOverlay(false);
+    setFlex3d(false);
     setSession(null);
     setMessages([]);
     setEvents([]);
@@ -257,6 +260,9 @@ export function App() {
             {session.code_service === "down" && !planBackend ? (
               <span className="code-offline">{t("Preview service down — OT-2 and Flex scripts stay off")}</span>
             ) : null}
+            <button type="button" className="ghost" onClick={() => { setOverlay(false); setFlex3d(true); }}>
+              {t("3D")}
+            </button>
             <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
               {t("Change robot")}
             </button>
@@ -340,6 +346,21 @@ export function App() {
         />
       </div>
 
+      {flex3d ? (
+        <Suspense
+          fallback={
+            <OverlayChrome onClose={() => setFlex3d(false)}>
+              <p className="file">{t("Opening…")}</p>
+            </OverlayChrome>
+          }
+        >
+          <Flex3dOverlay
+            onClose={() => setFlex3d(false)}
+            sessionId={session?.id ?? null}
+            resetKey={analysisResetKey(session?.analyze ?? null)}
+          />
+        </Suspense>
+      ) : null}
       {overlay && canWatch && robotSupportsWatch(robotRef.current) ? (
         <Suspense
           fallback={

@@ -12,6 +12,7 @@ import { DEVICE_REGISTRY, deviceFor } from "./devices.ts";
 import { createSseWriter } from "./sse.ts";
 import { runChatTurn } from "./agent.ts";
 import { checkCodeService } from "./backend.ts";
+import { Flex3dError, flex3dForSession } from "./flex3d.ts";
 import { loadDemoEnv } from "./env.ts";
 
 const HOST = "127.0.0.1";
@@ -130,6 +131,26 @@ export async function handleRequest(
     const body = parseJsonObject(await readBody(req)) ?? {};
     setSessionLanguage(session, body.language);
     json(res, 200, snapshot(session));
+    return;
+  }
+
+  const flex3dMatch = path.match(/^\/api\/session\/([^/]+)\/flex3d$/);
+  if (req.method === "GET" && flex3dMatch) {
+    const session = getSession(flex3dMatch[1]);
+    if (!session) {
+      json(res, 404, { error: "unknown_session" });
+      return;
+    }
+    try {
+      json(res, 200, await flex3dForSession(session));
+    } catch (error) {
+      if (error instanceof Flex3dError) {
+        json(res, error.status, { error: error.code, message: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      json(res, 500, { error: "flex3d_failed", message });
+    }
     return;
   }
 
