@@ -58,6 +58,7 @@ SupportedLeafCommandType = Literal[
     "dropTipInPlace",
     "aspirate",
     "dispense",
+    "dispenseInPlace",
 ]
 
 SUPPORTED_LEAF_COMMANDS: frozenset[str] = frozenset(
@@ -68,6 +69,7 @@ SUPPORTED_LEAF_COMMANDS: frozenset[str] = frozenset(
         "dropTipInPlace",
         "aspirate",
         "dispense",
+        "dispenseInPlace",
     }
 )
 
@@ -79,8 +81,10 @@ SUPPORTED_LEAF_COMMANDS: frozenset[str] = frozenset(
 # stays allowlisted because it has no volume transfer in the L1/L4 model.
 #
 # Conservative exclusions that remain LP-L5: transfer/consolidate/distribute,
-# aspirateInPlace/dispenseInPlace, liquidProbe, moveLabware, setTipState,
-# custom. ``mix`` is *not* a compound parent here — same zero-net-volume
+# aspirateInPlace, liquidProbe, moveLabware, setTipState, custom.
+# ``dispenseInPlace`` into trash / waste chute / trash_bin is a discard
+# (empty the tip; same family as dropTipInPlace), not LP-L5.
+# ``mix`` is *not* a compound parent here — same zero-net-volume
 # family as blowout (PE 8.8.1 expands ``pipette.mix`` to aspirate/dispense).
 # Note: ``moveLabware`` is *not* allowlisted → disposition ``lp_l5``.
 ALLOWLISTED_NON_STATE_COMMANDS: frozenset[str] = frozenset(
@@ -149,7 +153,6 @@ PARENT_OR_COMPOUND_COMMANDS: frozenset[str] = frozenset(
 UNSUPPORTED_LIQUID_AFFECTING_EXAMPLES: frozenset[str] = frozenset(
     {
         "aspirateInPlace",
-        "dispenseInPlace",
         "configureForVolume",
         "liquidProbe",
         "moveLabware",

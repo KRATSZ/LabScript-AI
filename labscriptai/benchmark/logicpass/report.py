@@ -8,7 +8,7 @@ from typing import Any, Literal, Mapping, Sequence
 IssueSeverity = Literal["error", "report", "terminal"]
 
 SUPPORTED_LEAF_SUBSET = (
-    "loadLiquid,pickUpTip,dropTip,dropTipInPlace,aspirate,dispense"
+    "loadLiquid,pickUpTip,dropTip,dropTipInPlace,aspirate,dispense,dispenseInPlace"
 )
 
 

@@ -185,5 +185,43 @@ class EvalLogicpassTests(unittest.TestCase):
         self.assertFalse(payload["final_pass_v2"])
 
 
+    def test_trash_dispense_in_place_is_not_unevaluable(self) -> None:
+        sys.path.insert(0, PYTHONPATH)
+        from labscriptai.benchmark.logicpass import evaluate_logicpass, load_analyze_json
+
+        adapter = load_analyze_json(
+            payload={
+                "commands": [
+                    {
+                        "id": "cmd-move",
+                        "commandType": "moveToAddressableArea",
+                        "status": "succeeded",
+                        "params": {
+                            "pipetteId": "pipette-left",
+                            "addressableAreaName": "movableTrashA3",
+                        },
+                    },
+                    {
+                        "id": "cmd-dump",
+                        "commandType": "dispenseInPlace",
+                        "status": "succeeded",
+                        "params": {"pipetteId": "pipette-left", "volume": 100},
+                    },
+                    {
+                        "id": "cmd-drop",
+                        "commandType": "dropTipInPlace",
+                        "status": "succeeded",
+                        "params": {"pipetteId": "pipette-left"},
+                    },
+                ]
+            }
+        )
+        result = evaluate_logicpass(sim_pass=True, adapter=adapter)
+        payload = result.to_dict()
+        self.assertFalse(adapter.unevaluable)
+        self.assertNotEqual(payload["outcome"], "unevaluable")
+        self.assertNotIn("LP-L5", [issue["code"] for issue in payload["issues"]])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -244,6 +244,8 @@ class StateLedger:
             event = self._step_aspirate(command)
         elif ctype == "dispense":
             event = self._step_dispense(command)
+        elif ctype == "dispenseInPlace":
+            event = self._step_discard_inplace(command)
         elif ctype == "loadLiquid":
             event = self._step_load_liquid(command)
         else:
@@ -442,6 +444,32 @@ class StateLedger:
             tip_current_ul=tip.current_volume_ul,
             volume_unknown=unknown,
             notes=tuple(notes),
+        )
+
+    def _step_discard_inplace(self, command: ExpectedCommand) -> LedgerStepEvent:
+        """Dump remaining tip volume (trash / waste chute / trash_bin). Keep the tip."""
+
+        if not command.pipette_id:
+            raise ValueError(f"{command.command_id}: dispenseInPlace requires pipette_id")
+        tip = self._tip(command.pipette_id)
+        dumped = tip.current_volume_ul
+        if command.volume_ul is not None and dumped is not None:
+            dumped = min(dumped, float(command.volume_ul))
+        tip.current_volume_ul = 0.0
+        tip.fluid_kind = None
+        return LedgerStepEvent(
+            step_index=command.step_index,
+            command_id=command.command_id,
+            command_type=command.command_type,
+            pipette_id=command.pipette_id,
+            labware_id=command.labware_id,
+            well_name=command.well_name,
+            volume_ul=float(command.volume_ul) if command.volume_ul is not None else dumped,
+            tip_has_tip=tip.has_tip,
+            tip_dirty=tip.dirty,
+            tip_dirty_from=tip.dirty_from,
+            tip_current_ul=0.0,
+            notes=("discard_inplace",),
         )
 
     def _step_load_liquid(self, command: ExpectedCommand) -> LedgerStepEvent:

@@ -145,6 +145,67 @@ def test_missing_analyze_unevaluable() -> None:
     assert loaded.outcome == "unevaluable"
 
 
+def test_trash_dispense_in_place_is_discard_not_unevaluable() -> None:
+    adapter = load_analyze_json(
+        payload={
+            "commands": [
+                {
+                    "id": "cmd-pickup",
+                    "commandType": "pickUpTip",
+                    "status": "succeeded",
+                    "params": {
+                        "pipetteId": "pipette-left",
+                        "labwareId": "labware-tips",
+                        "wellName": "A1",
+                    },
+                },
+                {
+                    "id": "cmd-asp",
+                    "commandType": "aspirate",
+                    "status": "succeeded",
+                    "params": {
+                        "pipetteId": "pipette-left",
+                        "labwareId": "labware-plate",
+                        "wellName": "A11",
+                        "volume": 100,
+                    },
+                },
+                {
+                    "id": "cmd-move-trash",
+                    "commandType": "moveToAddressableArea",
+                    "status": "succeeded",
+                    "params": {
+                        "pipetteId": "pipette-left",
+                        "addressableAreaName": "movableTrashA3",
+                    },
+                },
+                {
+                    "id": "cmd-dump",
+                    "commandType": "dispenseInPlace",
+                    "status": "succeeded",
+                    "params": {"pipetteId": "pipette-left", "volume": 100},
+                },
+                {
+                    "id": "cmd-drop",
+                    "commandType": "dropTipInPlace",
+                    "status": "succeeded",
+                    "params": {"pipetteId": "pipette-left"},
+                },
+            ]
+        }
+    )
+    dump = next(d for d in adapter.dispositions if d.command_type == "dispenseInPlace")
+    assert dump.kind == "consumed_supported_atomic_leaf"
+    assert adapter.unevaluable is False
+    result = evaluate_logicpass(sim_pass=True, adapter=adapter)
+    assert result.outcome != "unevaluable"
+    assert "LP-L5" not in _issue_codes(result)
+    assert result.ledger is not None
+    dump_event = next(event for event in result.ledger.events if event.command_type == "dispenseInPlace")
+    assert dump_event.tip_current_ul == 0.0
+    assert "discard_inplace" in dump_event.notes
+
+
 def test_assumed_physical_setup_from_protocol_skips_missing_volume() -> None:
     source = """
 from opentrons import protocol_api
