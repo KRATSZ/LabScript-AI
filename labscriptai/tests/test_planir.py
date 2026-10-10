@@ -257,6 +257,29 @@ def test_known_capacity_clean_plan_passes() -> None:
     assert out["fab"]["lit"] is True
 
 
+def test_tip_overfill_fails() -> None:
+    payload = {
+        **DEMO,
+        "resources": [
+            {"id": "hamilton_96_tiprack_300ul", "type": "tiprack", "slot": "1", "max_volume_ul": 300},
+            {"id": "plate", "type": "plate", "slot": "2", "max_volume_ul": 1000},
+        ],
+        "initial_volumes_ul": {"plate:A1": 500, "plate:B1": 0},
+        "steps": [
+            DEMO["steps"][0],
+            {**DEMO["steps"][1], "volume_ul": 400},
+            {**DEMO["steps"][2], "volume_ul": 400},
+            DEMO["steps"][3],
+        ],
+    }
+    deck = evaluate_virtual_deck(load_plan(payload))
+    assert deck.ok is False
+    assert deck.issues[0].code == "LP-TIP-OVERFILL"
+    out = run_plan_checks(payload, sim=_ok_sim(None), skip_review=True)
+    assert out["logicpass"]["outcome"] == "fail"
+    assert out["fab"]["lit"] is False
+
+
 def test_skills_are_read_only() -> None:
     names = {item["name"] for item in list_skills()}
     assert "authoring-guide" in names

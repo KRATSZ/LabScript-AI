@@ -172,6 +172,13 @@ def _normalize_leaf(
             return None, "unresolved_ids"
         if volume_ul is None:
             return None, "nonnumeric_volume"
+    elif command_type == "dispenseInPlace":
+        # Trash / waste-chute / trash_bin dump: PE encodes this as in-place
+        # dispense (no well). Empty the tip; do not LP-L5 the run.
+        if pipette_id is None:
+            return None, "unresolved_ids"
+        if volume_ul is None:
+            return None, "nonnumeric_volume"
     elif command_type == "loadLiquid":
         if liquid_id is None or labware_id is None:
             return None, "unresolved_ids"

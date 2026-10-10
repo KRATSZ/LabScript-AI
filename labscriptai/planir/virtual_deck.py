@@ -5,7 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import re
+
 from labscriptai.planir.schema import PlanDocument, PlanStep, split_locs
+
+_TIP_UL_RE = re.compile(r"(\d+)\s*ul", re.IGNORECASE)
 
 
 @dataclass
@@ -51,6 +55,20 @@ class VirtualDeckResult:
             "final_pass_v2": True,
             "issues": [],
         }
+
+
+def _tip_capacity_ul(plan: PlanDocument) -> float | None:
+    """Tip max µL from the tiprack resource, or inferred from an ``NNul`` id."""
+
+    for resource in plan.resources:
+        if resource.type != "tiprack":
+            continue
+        if resource.max_volume_ul is not None:
+            return float(resource.max_volume_ul)
+        match = _TIP_UL_RE.search(resource.id or "")
+        if match:
+            return float(match.group(1))
+    return None
 
 
 def _max_for(plan: PlanDocument, loc: str) -> float | None:
@@ -128,6 +146,14 @@ def evaluate_virtual_deck(plan: PlanDocument) -> VirtualDeckResult:
         if not has_tip:
             return fail("LP-NO-TIP", f"{kind} without a tip", step)
         volume = float(step.volume_ul or 0)
+        if kind in {"ASPIRATE", "MIX"}:
+            tip_cap = _tip_capacity_ul(plan)
+            if tip_cap is not None and volume > tip_cap + 1e-9:
+                return fail(
+                    "LP-TIP-OVERFILL",
+                    f"{kind.lower()} {volume} µL exceeds {tip_cap:.0f} µL tip",
+                    step,
+                )
         if kind == "ASPIRATE":
             locs = split_locs(step.source)
             if not locs:
