@@ -73,6 +73,9 @@ export function liveSessionBlock(session: SessionState): string {
     ...(conflict ? [`notes_conflict: ${conflict}`] : []),
     `intake: ${session.intakeDone ? "done" : "pending"}`,
     `sop_chars: ${snap.sop.length}`,
+    ...((session.fetchedPages?.length)
+      ? [`fetched_pages: ${session.fetchedPages.map((page) => page.url).join(", ")}`]
+      : []),
     `plan_steps: ${Array.isArray(snap.plan?.steps) ? snap.plan.steps.length : 0}`,
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,
     `language: ${session.language === "zh" ? "zh (reply in Chinese)" : "en (reply in English)"}`,
