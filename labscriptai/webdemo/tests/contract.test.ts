@@ -67,6 +67,9 @@ describe("demo contract lock", () => {
     assert.match(SYSTEM_PROMPT, /Hamilton Vantage is the 1\.3 m rail deck/);
     assert.doesNotMatch(SYSTEM_PROMPT, /STAR \/ Vantage use the tip carrier/);
     assert.match(SYSTEM_PROMPT, /Never say “code service\.”/);
+    assert.match(SYSTEM_PROMPT, /web_search/);
+    assert.match(SYSTEM_PROMPT, /fetch_url/);
+    assert.match(SYSTEM_PROMPT, /Never fetch localhost, private IPs, or robot APIs/);
     assert.match(prompt, /emit_plan/);
     assert.match(prompt, /generate_code \(8010 Python\)/);
     assert.match(SYSTEM_PROMPT, /Patch only mechanical issues/);

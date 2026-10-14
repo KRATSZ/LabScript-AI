@@ -90,7 +90,8 @@ export async function generateCompactSop(
   hardwareConfig: string,
   userGoal: string,
   onThink: ThinkFn,
-  language: "en" | "zh" = "en"
+  language: "en" | "zh" = "en",
+  pageText = ""
 ): Promise<string> {
   const env = loadDemoEnv();
   if (!env.apiKey) throw new Error("DeepSeek key missing for compact SOP");
@@ -98,6 +99,7 @@ export async function generateCompactSop(
     language === "zh"
       ? "Write a compact liquid-handling SOP in Chinese markdown, 400–800 characters."
       : "Write a compact liquid-handling SOP in English markdown, 400–800 characters.";
+  const pages = pageText.trim() ? `\n${pageText.trim()}\n` : "";
   const prompt = `${langLine} No Phase/Action/Tool/Tips/Workflow/Params. No essay. Do not write Python.
 
 Hardware:
@@ -105,8 +107,8 @@ ${hardwareConfig}
 
 Goal:
 ${userGoal}
-
-Notes (if any "Existing SOP draft") are intern notes, not the SOP. Write from the Goal volumes and wells. Do not copy junk or contradictory notes.
+${pages}
+Notes (if any "Existing SOP draft") are intern notes, not the SOP. Write from the Goal volumes and wells. Do not copy junk or contradictory notes. When opened pages are present, copy volumes, wells, and counts from those pages.
 
 Output only:
 # <one-line objective>

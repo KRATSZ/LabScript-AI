@@ -14,13 +14,43 @@ function toolText(result: AgentToolResult<unknown>): string {
 }
 
 describe("tools harness", () => {
-  it("exposes the seven demo tools", () => {
+  it("exposes the demo tools", () => {
     const session = createSession();
     const tools = buildTools(session, { write() {}, close() {} });
     assert.deepEqual(
       tools.map((t) => t.name),
-      ["ask_user", "generate_sop", "generate_code", "emit_plan", "run_checks", "skill", "open_animation"]
+      ["ask_user", "web_search", "fetch_url", "generate_sop", "generate_code", "emit_plan", "run_checks", "skill", "open_animation"]
     );
+  });
+
+  it("fetch_url blocks localhost, private IPs, and robot ports", async () => {
+    const session = createSession();
+    const tools = buildTools(session, { write() {}, close() {} });
+    const fetchUrl = tools.find((t) => t.name === "fetch_url");
+    assert.ok(fetchUrl);
+    for (const url of [
+      "http://127.0.0.1/",
+      "http://localhost:31950/protocols",
+      "http://192.168.1.9/api",
+      "http://10.0.0.5:4880/",
+      "https://example.com:8010/generate",
+    ]) {
+      const parsed = JSON.parse(toolText(await fetchUrl.execute("1", { url })));
+      assert.equal(parsed.blocked, true, url);
+    }
+    assert.equal(session.fetchedPages, undefined);
+  });
+
+  it("web_search with an empty query does not store hits", async () => {
+    const session = createSession();
+    const tools = buildTools(session, { write() {}, close() {} });
+    const search = tools.find((t) => t.name === "web_search");
+    assert.ok(search);
+    const parsed = JSON.parse(toolText(await search.execute("1", { query: "  " })));
+    assert.equal(parsed.ok, false);
+    assert.equal(parsed.error, "empty_query");
+    assert.equal(session.searchHits, undefined);
+    assert.equal(session.sop, undefined);
   });
 
   it("generate_sop blocked without goal returns JSON", async () => {

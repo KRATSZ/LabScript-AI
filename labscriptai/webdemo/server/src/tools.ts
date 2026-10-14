@@ -52,6 +52,7 @@ import {
   type SessionState,
 } from "./session.ts";
 import { sseHasUserText, type SseWriter } from "./sse.ts";
+import { fetchPublicUrl, formatFetchedPages, searchPublicWeb } from "./fetch_url.ts";
 
 type ToolResult = AgentToolResult<Record<string, unknown>>;
 
@@ -262,7 +263,8 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
           sse.write("thinking", { token, source });
           onUpdate?.({ content: [{ type: "text", text: token }], details: { source } });
         },
-        session.language === "zh" ? "zh" : "en"
+        session.language === "zh" ? "zh" : "en",
+        formatFetchedPages(session.fetchedPages)
       );
       if (!sop) throw new Error("generate_sop returned empty SOP");
       session.sop = capSop(sop);
@@ -568,5 +570,45 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     },
   };
 
-  return [askUser, generateSop, generateCode, emitPlan, runChecksTool, skillTool, openAnimation];
+  const webSearch: AgentTool = {
+    name: "web_search",
+    label: "Search the public web",
+    description:
+      "Search the public web. Use when the user gives no URL but asks you to look something up. Returns titles, links, and snippets. Then fetch_url. Not for robot APIs.",
+    parameters: Type.Object({
+      query: Type.String({ description: "Search query" }),
+    }),
+    executionMode: "sequential",
+    execute: async (_id, args) => {
+      const query = String((args as { query?: string }).query ?? "");
+      const result = await searchPublicWeb(query);
+      if (!result.ok) return ok(result);
+      session.searchHits = result.hits;
+      return ok({
+        query: result.query,
+        hits: result.hits,
+        hint: "Open the relevant page with fetch_url. Do not write the SOP from snippets alone.",
+      });
+    },
+  };
+
+  const fetchUrl: AgentTool = {
+    name: "fetch_url",
+    label: "Fetch public URL",
+    description:
+      "GET a public http(s) page and return its text. Use for a URL the user gave or a search hit. Not for robot or device APIs (localhost, private IPs, and ports 8010/31950/4880 are blocked). Does not write the SOP.",
+    parameters: Type.Object({
+      url: Type.String({ description: "Public http(s) URL" }),
+    }),
+    executionMode: "sequential",
+    execute: async (_id, args) => {
+      const url = String((args as { url?: string }).url ?? "").trim();
+      const result = await fetchPublicUrl(url);
+      if (!result.ok) return ok(result);
+      session.fetchedPages = [...(session.fetchedPages ?? []), result].slice(-4);
+      return ok({ url: result.url, chars: result.chars, body: result.body });
+    },
+  };
+
+  return [askUser, webSearch, fetchUrl, generateSop, generateCode, emitPlan, runChecksTool, skillTool, openAnimation];
 }

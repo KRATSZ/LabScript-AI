@@ -106,6 +106,10 @@ export interface SessionState {
   intakeDone?: boolean;
   /** Chat + SOP language. Default English. */
   language?: UiLang;
+  /** Public pages opened with fetch_url. Not a SOP. */
+  fetchedPages?: import("./fetch_url.ts").FetchedPage[];
+  /** web_search hits. Not a SOP. */
+  searchHits?: import("./fetch_url.ts").SearchHit[];
 }
 
 const sessions = new Map<string, SessionState>();
