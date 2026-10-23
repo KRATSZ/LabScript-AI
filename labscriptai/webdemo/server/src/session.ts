@@ -375,7 +375,8 @@ export function chosenVolumeInText(
   if (!text.trim() || !allowed.length) return undefined;
   const mentioned = allowedNumbersInText(text, allowed);
   const rejected = rejectedVolumesInText(text, allowed);
-  const preferred = [...text.matchAll(/(?:\b(?:use|choose|select)\s+|(?:最终)?(?:选用|采用|选择|使用|用)\s*)(?:每孔\s*)?(\d+(?:\.\d+)?)/gi)]
+  const preferred = [...text.matchAll(/(?:\b(?:use|choose|select|transfer)\s+|(?:最终)?(?:选用|采用|选择|使用|用|转移量?|转移)\s*)(?:每孔\s*)?(\d+(?:\.\d+)?)/gi)]
+    .filter(m => !/^\s*(?:µl|ul|μl|ml|微升|毫升)?\s*(?:的\s*)?(?:tips?|tiprack|pipette|plate|枪头|移液器|孔板|容量|初始)/i.test(text.slice((m.index ?? 0) + m[0].length)))
     .map(m => Number(m[1])).filter(v => allowed.includes(v) && !rejected.includes(v));
   const uniquePreferred = [...new Set(preferred)];
   if (uniquePreferred.length === 1) return uniquePreferred[0];

@@ -135,6 +135,7 @@ it("keeps the form document immutable so model-generated old notes cannot reopen
   assert.equal(unresolvedGoalNotesConflict(s), null);
   assert.equal(chosenVolumeInText("最终选用150 µL。200 µL仅是B1容量，0 µL是B1初始量，250 µL是已放弃的原始请求", [200, 150, 0, 250]), 150);
   assert.equal(chosenVolumeInText("Do not use 150. Use 250 µL", [150, 250]), 250);
+  assert.equal(chosenVolumeInText("Use 200 µL tips, transfer 150 µL. The target initially has 0 µL.", [200, 150, 0, 250]), 150);
 });
 
 it("does not treat reagent per-sample volumes or final state as inventory", () => {
