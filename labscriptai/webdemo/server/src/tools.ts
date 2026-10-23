@@ -164,6 +164,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         };
       }
       applyAskUser(session, input);
+      sse.write("snapshot", snapshot(session));
       if (conflictBefore) {
         resolveGoalNotesConflict(session);
       }
@@ -568,5 +569,18 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     },
   };
 
-  return [askUser, generateSop, generateCode, emitPlan, runChecksTool, skillTool, openAnimation];
+  const guarded = [generateSop, generateCode, emitPlan, runChecksTool, openAnimation].map((tool) => ({
+    ...tool,
+    execute: (...args: Parameters<typeof tool.execute>) => {
+      if (session.authoringSyncPending) {
+        return Promise.resolve(ok({
+          blocked: true,
+          next_tool: "ask_user",
+          hint: "First persist the complete current goal with ask_user, incorporating this user message and retaining all unchanged conditions from the goal/SOP draft. A clear amendment is already authorized; do not ask the human to confirm it again. Then regenerate SOP and downstream artifacts if the goal changed.",
+        }));
+      }
+      return tool.execute(...args);
+    },
+  }));
+  return [askUser, ...guarded.slice(0, 4), skillTool, guarded[4]];
 }

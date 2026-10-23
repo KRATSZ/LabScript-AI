@@ -165,7 +165,10 @@ describe("GET /api/session/:id/flex3d", () => {
       const session = flexSession();
       const res = await fetch(`${baseUrl}/api/session/${session.id}/flex3d`);
       assert.equal(res.status, 503);
-      assert.equal(((await res.json()) as { error: string }).error, "player_unavailable");
+      const body = await res.json() as { error: string; message: string };
+      assert.equal(body.error, "player_unavailable");
+      assert.match(body.message, /稍后重试/);
+      assert.doesNotMatch(body.message, /npm|webdemo|127\.0\.0\.1|fetch failed/);
     } finally {
       process.env.FLEX3D_URL = `http://127.0.0.1:${(player.address() as { port: number }).port}`;
     }

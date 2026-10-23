@@ -94,6 +94,7 @@ export function ChatPane({ messages, busy, onSend, robot }: Props) {
         <textarea
           ref={areaRef}
           rows={1}
+          aria-label={t("Volume, wells, or a confirm…")}
           placeholder={t("Volume, wells, or a confirm…")}
           value={text}
           disabled={busy}

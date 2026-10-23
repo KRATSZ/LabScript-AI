@@ -2011,6 +2011,10 @@ body {
   border-top: 1px solid var(--line);
   padding-top: 6px;
 }
+.flex3d-bottom:has(.animator-unavailable) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
 .flex3d-note {
   flex: 0 0 auto;
   margin: 0;

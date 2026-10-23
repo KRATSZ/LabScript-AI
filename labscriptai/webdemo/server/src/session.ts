@@ -106,6 +106,10 @@ export interface SessionState {
   intakeDone?: boolean;
   /** Chat + SOP language. Default English. */
   language?: UiLang;
+  /** Reconcile a follow-up's conditions before authoring/checking artifacts. */
+  authoringSyncPending?: boolean;
+  /** A later explicit amendment supersedes matching fields of the original draft. */
+  draftSuperseded?: boolean;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -295,6 +299,9 @@ function competingNoteVolumes(goal = "", notes = ""): { goalVols: number[]; extr
   }
   for (const { ul, index } of volumeMentions(notes)) {
     if (goalVols.includes(ul)) continue;
+    // An exported SOP records an empty destination as “0 µL（空）”.
+    // This is an initial state, not a second requested transfer volume.
+    if (ul === 0 && /^0(?:\.0+)?\s*(?:µl|μl|ul|微升)\s*[（(]\s*(?:空(?:孔)?|empty)\s*[）)]/i.test(notes.slice(index))) continue;
     const ctx = contextAt(notes, index);
     if (CAPACITY_CTX.test(ctx)) continue;
     if (/\b(?:do not|don't|not)\s+clamp\b/.test(ctx)) continue;
@@ -369,7 +376,7 @@ export function chosenVolumeInText(
 }
 
 export function unresolvedGoalNotesConflict(session: SessionState): string | null {
-  if (session.draftConflictResolved) return null;
+  if (session.draftConflictResolved || session.draftSuperseded) return null;
   return goalNotesVolumeConflict(session.goal ?? "", session.doc ?? "", session.language ?? "en");
 }
 
@@ -417,6 +424,11 @@ export function markIntakeReply(session: SessionState, userText: string): void {
   session.intakeDone = true;
 }
 
+export function beginAuthoringTurn(session: SessionState, userText: string): void {
+  if (!userText.trim()) return;
+  session.authoringSyncPending = true;
+}
+
 export function intakeOpen(session: SessionState): boolean {
   return !session.intakeDone && !session.sop?.trim();
 }
@@ -438,6 +450,9 @@ export function resolveGoalNotesConflict(session: SessionState): void {
 /** Goal (+ intern notes) for SOP authoring. After a volume pick, notes are dropped. */
 export function authoringGoal(session: SessionState): string {
   const goal = session.goal ?? "";
+  if (session.doc && session.doc !== "none" && session.draftSuperseded) {
+    return `${goal}\n\nEarlier SOP draft (reference):\n${session.doc}\n\nThe current goal includes the user's later amendments and takes precedence for changed values. Retain all unchanged draft conditions. Do not restore superseded values from the draft.`;
+  }
   if (session.draftConflictResolved) return goal;
   if (session.doc && session.doc !== "none") {
     return `${goal}\n\nExisting SOP draft:\n${session.doc}`;
@@ -447,11 +462,11 @@ export function authoringGoal(session: SessionState): string {
 
 /** llmreview intent: chosen volume + generated SOP, never stale conflicting notes. */
 export function reviewIntent(session: SessionState): string {
-  if (!session.draftConflictResolved) return authoringGoal(session);
+  if (!session.draftConflictResolved && !session.draftSuperseded) return authoringGoal(session);
   const goal = (session.goal ?? "").trim();
   const sop = session.sop?.trim();
   const parts = [
-    "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
+    "The user confirmed or amended the current goal. Review against this current goal and generated SOP only; earlier draft values have been superseded.",
   ];
   if (session.robot === "Tecan") {
     parts.push("fca_1000 is the FCA pipette (Fluent Channel Arm). Assumed Fluent tips are 200 µL DiTi.");
@@ -682,6 +697,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
     session.conflictUserReplied = undefined;
     session.conflictReplyText = undefined;
     session.draftConflictResolved = undefined;
+    session.draftSuperseded = undefined;
   }
   refreshPhase(session);
   return session;
@@ -731,9 +747,13 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.conflictUserReplied = undefined;
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
+  session.draftSuperseded = undefined;
 }
 
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {
+  const previousGoal = session.goal;
+  const previousDoc = session.doc;
+  const amendingGoal = session.authoringSyncPending === true && !unresolvedGoalNotesConflict(session);
   const previousRobot = session.robot;
   const explicitDeck = hasExplicitDeck(input);
   if (input.preset && input.preset in HARDWARE_PRESETS) {
@@ -741,10 +761,23 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   }
   if (typeof input.goal === "string" && input.goal.trim()) {
     session.goal = input.goal.trim();
+    session.authoringSyncPending = false;
+    if (previousGoal && session.goal !== previousGoal) {
+      // An explicit revision starts a new artifact set; never patch an old SOP/code
+      // against the new goal or leave an old passing preview downloadable.
+      session.sop = undefined;
+      session.code = undefined;
+      session.plan = undefined;
+      session.analyze = undefined;
+      session.artifacts = undefined;
+      session.lastChecks = undefined;
+      session.hasPassedChecks = undefined;
+    }
   }
   const named = parseRobot(input.robot) ?? (!session.robot ? inferRobotFromText(session.goal ?? "") : undefined);
   if (typeof input.doc === "string") {
     const doc = input.doc.trim();
+    if (session.doc !== (doc || "none")) session.draftSuperseded = false;
     session.doc = doc ? doc : "none";
   } else if ((hardwareTouched(input) || Boolean(named)) && session.doc === undefined) {
     session.doc = "none";
@@ -783,6 +816,11 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   } else {
     assumeStandardDeck(session);
     applyPcrFriendlyDeck(session);
+  }
+  if (amendingGoal && previousGoal && session.goal !== previousGoal && session.doc === previousDoc) {
+    // Apply after robot/preset resets so a simultaneous device change preserves
+    // the user's amendment. Keep the original draft as reference for authoring.
+    session.draftSuperseded = true;
   }
   refreshPhase(session);
   return session;

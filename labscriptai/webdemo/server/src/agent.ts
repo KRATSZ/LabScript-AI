@@ -13,7 +13,7 @@ import {
   REVIEWER_UNAVAILABLE_DISCLOSURE,
 } from "./gate.ts";
 import { emitAgentEvent, TOOL_STEP } from "./events.ts";
-import { markConflictUserReply, markIntakeReply, snapshot, type SessionState } from "./session.ts";
+import { beginAuthoringTurn, markConflictUserReply, markIntakeReply, snapshot, type SessionState } from "./session.ts";
 import { trackUserText, type SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
@@ -308,6 +308,7 @@ export async function runChatTurn(
   }
 
   session.patchesUsed = 0;
+  beginAuthoringTurn(session, userText);
   markConflictUserReply(session, userText);
   markIntakeReply(session, userText);
   const tracked = trackUserText(sse);

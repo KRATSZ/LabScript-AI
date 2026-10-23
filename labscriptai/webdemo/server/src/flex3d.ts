@@ -56,12 +56,11 @@ export function flex3dPlayerBase(): string {
 async function playerRequest(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
   try {
     return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
-  } catch (error) {
-    const reason = error instanceof Error ? error.message : String(error);
+  } catch {
     throw new Flex3dError(
       503,
       "player_unavailable",
-      `3D 播放器没有响应（${reason}）。请在 webdemo 目录用 npm run dev 启动它。`
+      "三维预演服务暂时不可用，请稍后重试。"
     );
   }
 }

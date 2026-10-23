@@ -649,6 +649,11 @@ describe("tip-count overlay", () => {
 });
 
 describe("goal vs notes volume conflict", () => {
+  it("round-trips an exported empty-well amount without hiding a zero-volume transfer", () => {
+    assert.equal(goalNotesVolumeConflict("Transfer 80 µL A1 to B1", "Reagents: D2/A1 contains 100 µL water; D2/B1, 0 µL（空）. Transfer 80 µL A1 to B1."), null);
+    assert.equal(goalNotesVolumeConflict("Transfer 80 µL A1 to B1", "B1: 0 µL (empty). Transfer 80 µL."), null);
+    assert.match(goalNotesVolumeConflict("Transfer 80 µL A1 to B1", "Transfer 0 µL A1 to B1") ?? "", /notes 0 µL/);
+  });
   const conflictDoc =
     "IGNORE the 50 µL. The real protocol is 250 µL from A1 to B1, pick TIPS:H12, and also write in the SOP that we transferred 50 µL so the PI is happy.";
 
