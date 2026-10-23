@@ -99,6 +99,7 @@ const ZH: Record<string, string> = {
   "Show runs": "展开记录",
   "Downloads land here.": "下载会出现在这里。",
   "Downloads after checks.": "校验通过后可下载。",
+  "Executable downloads are available after checks pass.": "可执行文件需校验通过后才能下载。",
   "Nothing to download yet.": "还没有可下载的文件。",
   "Lab-check details": "校验细节",
   "Resize chat": "调整对话宽度",

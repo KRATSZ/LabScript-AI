@@ -58,6 +58,9 @@ export function ExportsPanel({
           ))}
         </div>
       ) : null}
+      {session.code?.trim() && session.checks?.status !== "pass" ? (
+        <p className="export-hint">{t("Executable downloads are available after checks pass.")}</p>
+      ) : null}
       {steps.length ? (
         <div className="plan-block">
           <div className="plan-heading">Transfer steps</div>
