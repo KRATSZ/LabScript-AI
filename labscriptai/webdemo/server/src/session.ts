@@ -442,6 +442,8 @@ export function intakeOpen(session: SessionState): boolean {
 }
 
 export function resolveGoalNotesConflict(session: SessionState): void {
+  const picked = chosenVolumeInText(session.conflictReplyText ?? "", ulAmounts(session.goal ?? ""));
+  if (picked != null) session.requirements = { ...(session.requirements ?? { initial: [] }), transferUl: picked };
   session.draftConflictResolved = true;
   session.conflictUserReplied = true;
   session.conflictReplyText = undefined;

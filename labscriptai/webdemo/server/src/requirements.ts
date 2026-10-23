@@ -2,6 +2,7 @@
  * This is a deliberately bounded parser, not a general SOP interpreter. Full
  * source text still goes to semantic review. Unknown wording is not inferred.
  */
+import { knownOpentronsWellUl } from "./devices.ts";
 export interface InitialVolume { location: string; ul: number }
 export interface UserRequirements {
   initial: InitialVolume[];
@@ -22,10 +23,11 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
     ?? text.match(new RegExp(String.raw`(?:change|reduce|改|调整|降低|减少)[^\n。;；]{0,45}?(?:to|为|成|到)\s*(?:每孔\s*)?${AMOUNT}`, "i"));
   // A total/per-sample mixture is not a single transfer.
   const singleAmendment = previous?.transferUl != null && previous.destination && /change|reduce|改|调整|降低|减少/i.test(text);
-  if (transfer && (singleAmendment || !/\beach\b|每(?:孔|个|份)|\bsamples?\b|样本|[A-H]\d\s*[–-]\s*[A-H]\d/i.test(text))) {
+  const batch = /\b(?:[2-9]\d*|two|three|four|five|six|seven|eight|nine|ten)\s+(?:samples|wells|transfers)|\beach\s+(?:sample|well)|每(?:孔|个|份)|[A-H]\d\s*[–-]\s*[A-H]\d/i.test(text);
+  if (transfer && (singleAmendment || !batch)) {
     out.transferUl = ul(transfer[1], transfer[2]);
   }
-  const dest = text.match(new RegExp(String.raw`(?:\bto\b|转移到|打至|转移至|到)\s*(?:empty\s+)?(?:plate\s+)?(?:well\s+)?${LOC}`, "i"));
+  const dest = text.match(new RegExp(String.raw`(?:\bto\b|转移到|打至|转移至|到)\s*(?:empty\s+)?(?:sample\s+)?(?:plate\s+)?(?:well\s+)?${LOC}`, "i"));
   if (dest) out.destination = dest[1].replace(/\s/g, "").toUpperCase();
   const capacity = text.match(new RegExp(String.raw`${AMOUNT}\s*(?:\d+\s*[- ]?well\s*)?(?:plate|孔板|孔)`, "i"))
     ?? text.match(new RegExp(String.raw`(?:well\s+capacity|孔容量|孔的容量)\s*(?:is|为|[:：])?\s*${AMOUNT}`, "i"));
@@ -41,10 +43,11 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
     const inventory = /reagents?\s*[:：]|试剂\s*[:：]|初始|initial|start(?:ing|s)?\s+(?:with|volume)|contains/i.test(line);
     if (!inventory) continue;
     for (const clause of line.split(/[;；]/)) {
-      const match = clause.match(new RegExp(String.raw`${LOC}[^\n;；]{0,65}?${AMOUNT}`, "i"));
-      if (!match || /转移|aspirat|dispens|transfer|余约|remaining|final|\/\s*(?:孔|well|sample)|per\s+(?:well|sample)/i.test(clause)) continue;
-      const fact = { location: match[1].replace(/\s/g, "").toUpperCase(), ul: ul(match[2], match[3]) };
-      out.initial = [...out.initial.filter(f => f.location !== fact.location), fact];
+      if (/转移|aspirat|dispens|transfer|余约|remaining|final|\/\s*(?:孔|well|sample)|per\s+(?:well|sample)/i.test(clause)) continue;
+      for (const match of clause.matchAll(new RegExp(String.raw`${LOC}[^\n;；]{0,65}?${AMOUNT}`, "gi"))) {
+        const fact = { location: match[1].replace(/\s/g, "").toUpperCase(), ul: ul(match[2], match[3]) };
+        out.initial = [...out.initial.filter(f => f.location !== fact.location), fact];
+      }
     }
   }
   return out;
@@ -106,23 +109,38 @@ export function planRequirementIssues(plan: RecordValue, facts?: UserRequirement
     }
   }
   const totals = new Map<string, { ul: number; count: number }>();
+  const ledger = new Map<string, number>(Object.entries(plan.initial_volumes_ul ?? {}).map(([k, v]) => [k, Number(v)]));
+  for (const [key, amount] of ledger) {
+    const resource = resources.find(r => r.id === key.split(":")[0]);
+    const limits = [Number(resource?.max_volume_ul), ...(resource && isPlate(resource) ? [facts.wellCapacityUl ?? NaN] : [])].filter(n => Number.isFinite(n) && n > 0);
+    if (limits.length && amount > Math.min(...limits) + 1e-6) issues.push(`${key} initial ${amount} µL already exceeds its ${Math.min(...limits)} µL capacity.`);
+  }
+  const locations = (value: unknown): string[] => [value].flat().flatMap(v => String(v ?? "").split(",").map(x => x.trim())).filter(Boolean);
   for (const s of (Array.isArray(plan.steps) ? plan.steps : []) as RecordValue[]) {
     if (facts.noMix && s.primitive_type === "MIX") issues.push("The user requested no mixing, but the plan includes MIX.");
+    if (s.primitive_type === "ASPIRATE") {
+      for (const loc of locations(s.source ?? s.location)) {
+        if (!ledger.has(loc)) continue;
+        const remaining = ledger.get(loc)! - Number(s.volume_ul);
+        ledger.set(loc, remaining);
+        if (remaining < -1e-6) issues.push(`${loc} is aspirated below its user-specified initial inventory (${remaining} µL remaining).`);
+      }
+    }
     if (s.primitive_type !== "DISPENSE") continue;
-    for (const loc of [s.destination ?? s.location].flat()) {
-      const key = String(loc);
+    for (const key of locations(s.destination ?? s.location)) {
       const old = totals.get(key) ?? { ul: 0, count: 0 };
       totals.set(key, { ul: old.ul + Number(s.volume_ul), count: old.count + 1 });
+      const current = (ledger.get(key) ?? 0) + Number(s.volume_ul);
+      ledger.set(key, current);
+      const resource = resources.find(r => r.id === key.split(":")[0]);
+      const limits = [Number(resource?.max_volume_ul), ...(resource && isPlate(resource) ? [facts.wellCapacityUl ?? NaN] : [])].filter(n => Number.isFinite(n) && n > 0);
+      if (limits.length && current > Math.min(...limits) + 1e-6) issues.push(`${key} contains ${current} µL, exceeding user-specified or labware ${Math.min(...limits)} µL capacity.`);
     }
   }
   const destination = facts.destination ? resolve(facts.destination) : undefined;
   if (destination && facts.transferUl != null && totals.get(destination)?.ul !== facts.transferUl) issues.push(`Expected ${facts.transferUl} µL delivered to ${destination}; plan delivers ${totals.get(destination)?.ul ?? 0} µL.`);
   for (const [loc, total] of totals) {
     if (facts.noSplit && total.count > 1) issues.push(`The user prohibited splitting; ${loc} receives ${total.count} dispense steps.`);
-    if (facts.wellCapacityUl != null && resources.some(r => r.id === loc.split(":")[0] && isPlate(r))) {
-      const initial = Number(plan.initial_volumes_ul?.[loc] ?? 0);
-      if (initial + total.ul > facts.wellCapacityUl) issues.push(`${loc} receives ${total.ul} µL plus ${initial} µL initial liquid, exceeding user-specified ${facts.wellCapacityUl} µL capacity.`);
-    }
   }
   return [...new Set(issues)];
 }
@@ -131,11 +149,17 @@ export function planRequirementIssues(plan: RecordValue, facts?: UserRequirement
 export function analyzeRequirementIssues(analyze: RecordValue, facts?: UserRequirements): string[] {
   if (!facts) return [];
   const resources = (analyze.labware ?? []).map((l: RecordValue) => ({ id: l.id, slot: l.location?.slotName,
-    type: /wellplate|plate/.test(l.loadName ?? "") && !/tip|reservoir/.test(l.loadName ?? "") ? "plate" : "other" }));
-  const steps = (analyze.commands ?? []).filter((c: RecordValue) => c.commandType === "dispense").map((c: RecordValue) => ({
-    primitive_type: "DISPENSE", destination: `${c.params?.labwareId}:${c.params?.wellName}`, volume_ul: c.params?.volume,
+    type: /wellplate|plate/.test(l.loadName ?? "") && !/tip|reservoir/.test(l.loadName ?? "") ? "plate" : "other", max_volume_ul: knownOpentronsWellUl(l.loadName) }));
+  const steps = (analyze.commands ?? []).filter((c: RecordValue) => ["aspirate", "dispense"].includes(c.commandType)).map((c: RecordValue) => ({
+    primitive_type: c.commandType.toUpperCase(), location: `${c.params?.labwareId}:${c.params?.wellName}`, volume_ul: c.params?.volume,
   }));
-  // Analyze has no independent source-inventory truth; those input conditions
-  // stay in the SOP/review. Do not invent an initial ledger and call it tested.
-  return planRequirementIssues({ resources, steps }, { ...facts, initial: [] });
+  const initial: Record<string, number> = {};
+  for (const f of facts.initial) {
+    const parts = f.location.split("/");
+    const matched = parts.length === 2 ? resources.filter((r: RecordValue) => String(r.slot).toUpperCase() === parts[0]) : resources.filter((r: RecordValue) => r.type === "plate");
+    if (matched.length === 1) initial[`${matched[0].id}:${parts.at(-1)}`] = f.ul;
+  }
+  // User-provided inventory is the initial condition for the command ledger;
+  // it is not purported to have been measured by software or the robot.
+  return planRequirementIssues({ resources, steps, initial_volumes_ul: initial }, facts);
 }

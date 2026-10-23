@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { capacityBlocker, groundPlanCapacities, planRequirementIssues, readUserRequirements, retainInitialConditions } from "../server/src/requirements.ts";
+import { analyzeRequirementIssues, capacityBlocker, groundPlanCapacities, planRequirementIssues, readUserRequirements, retainInitialConditions } from "../server/src/requirements.ts";
 import { applyAskUser, applyForm, beginAuthoringTurn, createSession, goalNotesVolumeConflict, intakeOpen, markIntakeReply, reviewIntent } from "../server/src/session.ts";
 import { applyRequirementIssues, pipetteHardwareIssues } from "../server/src/backend.ts";
 import { needsPatch, wrapChecks } from "../server/src/gate.ts";
@@ -45,7 +45,7 @@ it("rejects a model-inflated plate and a split plan even if their internal ledge
   assert.equal(issues.length, 3);
   assert.match(issues.join(" "), /capacity 360/);
   assert.match(issues.join(" "), /prohibited splitting/);
-  assert.match(issues.join(" "), /exceeding user-specified 200/);
+  assert.match(issues.join(" "), /exceeding user-specified or labware 200/);
   const logic = applyRequirementIssues({ outcome: "pass", logic_pass: true, final_pass_v2: true }, issues);
   const checks = wrapChecks({ ok: true }, logic, {});
   assert.equal(checks.status, "fail");
@@ -73,6 +73,41 @@ it("grounds a valid recovery in the user's actual capacity without editing trans
   assert.equal(groundPlanCapacities(plan, f).resources[0].max_volume_ul, 100, "cannot enlarge a smaller known resource");
   plan.steps[0].volume_ul = 250;
   assert.ok(planRequirementIssues(groundPlanCapacities(plan, f), f).length > 0, "over-capacity steps remain blocked");
+});
+
+it("parses comma-separated inventories and an ordinary single sample well", () => {
+  const f = readUserRequirements("Transfer 50 µL from A1 to sample well B1", readUserRequirements("Reagents: water D2/A1, 100 µL, buffer D2/B1, 0 µL"));
+  assert.equal(f.transferUl, 50);
+  assert.equal(f.destination, "B1");
+  assert.deepEqual(f.initial, [{ location: "D2/A1", ul: 100 }, { location: "D2/B1", ul: 0 }]);
+});
+
+it("projects actual Opentrons commands from user inventory and checks net liquid in order", () => {
+  const f = readUserRequirements("Transfer 50 µL from A1 to B1", readUserRequirements("Reagents: D2/A1, 100 µL, D2/B1, 180 µL"));
+  const a = { labware: [{ id: "p", location: { slotName: "D2" }, loadName: "nest_96_wellplate_200ul_flat" }], commands: [
+    { commandType: "aspirate", params: { labwareId: "p", wellName: "A1", volume: 50 } },
+    { commandType: "dispense", params: { labwareId: "p", wellName: "B1", volume: 50 } },
+  ] };
+  assert.match(analyzeRequirementIssues(a, f).join(" "), /230 µL/);
+  f.initial[0].ul = 20;
+  assert.match(analyzeRequirementIssues(a, f).join(" "), /aspirated below/);
+  const p = { resources: [{ id: "p", type: "plate", slot: "D2", max_volume_ul: 200 }], initial_volumes_ul: { "p:A1": 200 }, steps: [
+    { primitive_type: "ASPIRATE", source: "p:A1", volume_ul: 100 },
+    { primitive_type: "DISPENSE", destination: "p:A1", volume_ul: 100 },
+  ] };
+  assert.deepEqual(planRequirementIssues(p, { initial: [], wellCapacityUl: 200 }), [], "withdraw then replace is not an overflow");
+});
+
+it("uses the human's conflict choice in checks without rewriting unrelated source inventory", async () => {
+  const s = createSession();
+  applyForm(s, { robot: "Hamilton", goal: "Transfer 50 µL from A1 to B1", doc: "Transfer 80 µL from A1 to B1" });
+  const ask = (await import("../server/src/tools.ts")).buildTools(s, { write() {}, close() {} }).find(t => t.name === "ask_user")!;
+  await ask.execute("question", {});
+  const { markConflictUserReply } = await import("../server/src/session.ts");
+  markConflictUserReply(s, "Use 80 µL, not 50 µL");
+  await ask.execute("choice", { goal: "Transfer 80 µL from A1 to B1" });
+  assert.equal(s.requirements?.transferUl, 80);
+  assert.deepEqual(planRequirementIssues({ resources: [{ id: "plate", type: "plate", slot: "2", max_volume_ul: 360 }], steps: [{ primitive_type: "DISPENSE", destination: "plate:B1", volume_ul: 80 }] }, s.requirements), []);
 });
 
 it("does not treat reagent per-sample volumes or final state as inventory", () => {

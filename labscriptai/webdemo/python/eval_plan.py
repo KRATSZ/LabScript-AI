@@ -48,14 +48,21 @@ def fail(reason: str, errors: list[str] | None = None) -> dict[str, Any]:
 def attach_volume_gate(result: dict[str, Any], plan: Any, robot: str) -> dict[str, Any]:
     """PR #4 backend: Chatterbox does not model over-volume; fail those plans here."""
     try:
-        from pylabrobot_backend import plan_volume_error
+        from pylabrobot_backend import plan_volume_error, plan_low_volume_reason
     except ImportError:
         return result
     if not isinstance(plan, dict):
         return result
     error = plan_volume_error(plan, robot)
     if not error:
-        return result
+        low_volume = plan_low_volume_reason(plan, robot)
+        if not low_volume:
+            return result
+        old = result.get("logicpass") or {}
+        return {**result, "logicpass": {**old, "outcome": "fail" if old.get("outcome") == "fail" else "unevaluable",
+                "logic_pass": False, "final_pass_v2": False,
+                "issues": [*(old.get("issues") or []), {"code": "LP-VOLUME-UNVERIFIED", "detail_text": low_volume}],
+                "reason": "low_volume_profile_unverified"}, "fab": {"lit": False}}
     logic = result.get("logicpass") if isinstance(result.get("logicpass"), dict) else {}
     if logic.get("outcome") == "fail":
         return result
