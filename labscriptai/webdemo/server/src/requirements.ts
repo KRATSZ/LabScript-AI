@@ -74,6 +74,18 @@ export function capacityBlocker(facts?: UserRequirements, zh = false): string | 
 }
 
 type RecordValue = Record<string, any>;
+/** A model cannot enlarge a human-specified capacity. Ground metadata before
+ * evaluating the liquid ledger; never edit transfer steps or raise a limit. */
+export function groundPlanCapacities(plan: RecordValue, facts?: UserRequirements): RecordValue {
+  if (facts?.wellCapacityUl == null || !Array.isArray(plan.resources)) return plan;
+  return { ...plan, resources: plan.resources.map((r: RecordValue) => {
+    if (!/plate/i.test(String(r.type)) || /tip|reservoir/i.test(String(r.type))) return r;
+    const declared = Number(r.max_volume_ul);
+    return { ...r, max_volume_ul: Number.isFinite(declared) && declared > 0
+      ? Math.min(declared, facts.wellCapacityUl!) : facts.wellCapacityUl };
+  }) };
+}
+
 export function planRequirementIssues(plan: RecordValue, facts?: UserRequirements): string[] {
   if (!facts) return [];
   const issues: string[] = [];

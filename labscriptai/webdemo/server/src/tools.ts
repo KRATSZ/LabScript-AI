@@ -53,7 +53,7 @@ import {
 } from "./session.ts";
 import type { ChecksResult } from "./gate.ts";
 import { sseHasUserText, type SseWriter } from "./sse.ts";
-import { retainInitialConditions, planRequirementIssues } from "./requirements.ts";
+import { retainInitialConditions, planRequirementIssues, groundPlanCapacities } from "./requirements.ts";
 
 type ToolResult = AgentToolResult<Record<string, unknown>>;
 
@@ -464,7 +464,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         }
       }
       const { plan: normalized, notes } = normalizePlanInput(candidate);
-      const checked = await validatePlan(normalized);
+      const checked = await validatePlan(groundPlanCapacities(normalized, session.requirements));
       if (!checked.ok || !checked.plan) {
         return ok({ ok: false, errors: explainPlanErrors(checked.errors ?? ["invalid_plan"]) });
       }
@@ -515,7 +515,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
           reviewIntent(session),
-          { robot: session.robot, requirementIssues: planRequirementIssues(session.plan as Record<string, unknown>, session.requirements) }
+          { robot: session.robot, hardware: session.hardware, requirementIssues: planRequirementIssues(session.plan as Record<string, unknown>, session.requirements) }
         );
         session.lastChecks = checks;
         if (checks.status === "pass") session.hasPassedChecks = true;

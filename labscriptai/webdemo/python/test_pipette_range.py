@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 from pipette_range import evaluate_pipette_ranges
 from eval_logicpass import apply_pipette_range_gate
+from eval_plan import attach_pipette_range_gate
 
 
 def analyze(name="p1000_single_flex", volume=2, configure=None):
@@ -55,6 +56,15 @@ class RangeTests(unittest.TestCase):
             self.assertEqual(out["outcome"], "fail")
             self.assertFalse(out["final_pass_v2"])
             self.assertTrue(out["issues"])
+
+    def test_plan_fallback_cannot_bypass_range_or_guess_between_pipettes(self):
+        green = {"logicpass": {"outcome": "pass", "logic_pass": True, "final_pass_v2": True}, "fab": {"lit": True}}
+        plan = {"steps": [{"primitive_type": "ASPIRATE", "volume_ul": 2}]}
+        for hardware, expected in [({"leftPipette": "flex_1channel_1000"}, "fail"), ({}, "unevaluable"),
+                                   ({"leftPipette": "flex_1channel_1000", "rightPipette": "flex_1channel_50"}, "unevaluable")]:
+            out = attach_pipette_range_gate(green, plan, {"robot": "Flex", "hardware": hardware})
+            self.assertEqual(out["logicpass"]["outcome"], expected)
+            self.assertFalse(out["fab"]["lit"])
 
 
 if __name__ == "__main__":

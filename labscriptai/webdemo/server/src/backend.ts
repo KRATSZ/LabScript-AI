@@ -846,13 +846,14 @@ export async function runPlanChecks(
     compileFn?: (plan: Record<string, unknown>) => Promise<FluentCompileResult>;
     hamiltonCompileFn?: (plan: Record<string, unknown>) => Promise<HamiltonCompileResult>;
     requirementIssues?: string[];
+    hardware?: HardwareState;
   }
 ): Promise<{
   checks: ChecksResult;
   plan: Record<string, unknown> | null;
   artifacts?: SessionArtifacts;
 }> {
-  const raw = await runPlanCli({ plan, user_intent: userIntent, robot: opts?.robot ?? "" });
+  const raw = await runPlanCli({ plan, user_intent: userIntent, robot: opts?.robot ?? "", hardware: opts?.hardware });
   const simRaw = (raw.sim && typeof raw.sim === "object" ? raw.sim : raw) as Record<string, unknown>;
   const sim: SimResult = {
     ok: simRaw.ok === true,

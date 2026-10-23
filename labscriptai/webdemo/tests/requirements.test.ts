@@ -1,6 +1,6 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
-import { capacityBlocker, planRequirementIssues, readUserRequirements, retainInitialConditions } from "../server/src/requirements.ts";
+import { capacityBlocker, groundPlanCapacities, planRequirementIssues, readUserRequirements, retainInitialConditions } from "../server/src/requirements.ts";
 import { applyAskUser, applyForm, beginAuthoringTurn, createSession, goalNotesVolumeConflict, intakeOpen, markIntakeReply, reviewIntent } from "../server/src/session.ts";
 import { applyRequirementIssues, pipetteHardwareIssues } from "../server/src/backend.ts";
 import { needsPatch, wrapChecks } from "../server/src/gate.ts";
@@ -59,6 +59,20 @@ it("validates source initial state and the revised total in plan output", () => 
   p.initial_volumes_ul["plate:A1"] = 100;
   p.steps[0].volume_ul = 80;
   assert.deepEqual(planRequirementIssues(p, f), []);
+});
+
+it("grounds a valid recovery in the user's actual capacity without editing transfer steps", () => {
+  const f = readUserRequirements("Transfer 150 µL from A1 to B1 in a 200 µL plate; do not split");
+  const plan = { resources: [{ id: "plate", type: "plate", max_volume_ul: 360, slot: "2" }], steps: [{ primitive_type: "DISPENSE", destination: "plate:B1", volume_ul: 150 }] };
+  const grounded = groundPlanCapacities(plan, f);
+  assert.equal(grounded.resources[0].max_volume_ul, 200);
+  assert.equal(plan.resources[0].max_volume_ul, 360, "do not mutate the model's input");
+  assert.equal(grounded.steps, plan.steps, "steps are unchanged");
+  assert.deepEqual(planRequirementIssues(grounded, f), []);
+  plan.resources[0].max_volume_ul = 100;
+  assert.equal(groundPlanCapacities(plan, f).resources[0].max_volume_ul, 100, "cannot enlarge a smaller known resource");
+  plan.steps[0].volume_ul = 250;
+  assert.ok(planRequirementIssues(groundPlanCapacities(plan, f), f).length > 0, "over-capacity steps remain blocked");
 });
 
 it("does not treat reagent per-sample volumes or final state as inventory", () => {
