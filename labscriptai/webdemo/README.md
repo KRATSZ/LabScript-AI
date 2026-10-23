@@ -18,11 +18,13 @@ Pick a **device card** on the start form (required, with a goal). Five cards:
 
 One shell: left chat, right Stage / Artifacts / Trajectory. Trajectory is an append-only turn/step/tool log. Live robots stay with the human.
 
-If 8010 is down, OT-2/Flex fall back to the same step table as Hamilton. Downloads stay available; they are marked when checks did not pass. One automatic patch, then the agent stops and talks.
+If 8010 is down, OT-2/Flex fall back to the same step table as Hamilton. SOP and step JSON remain available for inspection. Executable Python, PyLabRobot scripts and worklists are withheld until the current checks pass. One automatic patch, then the agent stops and talks.
 
 No live robot, no `bash`. A standard deck is assumed (tip rack, 96-well plate, reservoir). OT-2/Flex replay is the official Opentrons visualizer embedded in Stage. Other robots use the PyLabRobot scientific visualizer — not a homemade slot sketch.
 
 ## Checks
+
+Explicit user reagent inventories, destination capacity and no-split/no-mix conditions are retained separately from model-authored goals. The parser covers common inventory rows and simple transfer/capacity wording; it is not a general natural-language proof of protocol correctness. Opentrons liquid moves are additionally checked against installed official pipette working ranges and configureForVolume mode in both Python analysis and the Plan fallback. Unknown ranges or ambiguous fallback hardware cannot pass. Hardware substitutions require another confirmation. Standard Hamilton 300 µL tips and Fluent DiTi 200 profiles return cannot-verify below 10 µL until a suitable calibrated low-volume method is provided; 10 µL is the lowest published performance test point used by this demo, not a universal physical minimum.
 
 Three states, never a silent pass:
 
