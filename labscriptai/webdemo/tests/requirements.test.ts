@@ -36,6 +36,19 @@ it("blocks incompatible capacity with a complete recovery message before generat
   assert.equal(capacityBlocker(chinese), null);
 });
 
+it("explains destination initial volume overflow before code generation", () => {
+  const f = readUserRequirements("Flex 标准台面。D2/A1 中水初始100 µL；D2/B1 中水初始180 µL；D2/B1目标孔容量200 µL。请从D2/A1向D2/B1转移50 µL，禁止减量，禁止拆分，禁止混匀；使用标准1000 µL Flex枪头。");
+  assert.equal(f.source, "D2/A1");
+  assert.equal(f.destination, "D2/B1");
+  assert.equal(f.noMix, true);
+  assert.match(capacityBlocker(f, true)!, /180 µL \+ 50 µL = 230 µL.*200 µL/);
+  assert.equal(capacityBlocker(readUserRequirements("Change the transfer to 20 µL", f)), null);
+  assert.equal(capacityBlocker({ ...f, source: "D2/B1" }), null, "withdraw then return to the same well is not net addition");
+  assert.equal(capacityBlocker({ ...f, source: "B1" }), null, "a bare well may name the same destination");
+  const ambiguous = { ...f, destination: "B1", initial: [{ location: "D2/B1", ul: 180 }, { location: "C2/B1", ul: 0 }] };
+  assert.equal(capacityBlocker(ambiguous), null, "ambiguous wells require binding to actual plan resources");
+});
+
 it("rejects a model-inflated plate and a split plan even if their internal ledger passes", () => {
   const f = readUserRequirements("Transfer 250 µL from A1 to B1 in a 200 µL plate; do not split");
   const issues = planRequirementIssues({ resources: [{ id: "plate", type: "plate", slot: "2", max_volume_ul: 360 }], initial_volumes_ul: { "plate:B1": 0 }, steps: [

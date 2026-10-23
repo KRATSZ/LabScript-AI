@@ -7,6 +7,7 @@ export interface InitialVolume { location: string; ul: number; role?: "source" |
 export interface UserRequirements {
   initial: InitialVolume[];
   transferUl?: number;
+  source?: string;
   destination?: string;
   wellCapacityUl?: number;
   noSplit?: boolean;
@@ -27,14 +28,16 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
   if (transfer && (singleAmendment || !batch)) {
     out.transferUl = ul(transfer[1], transfer[2]);
   }
-  const dest = text.match(new RegExp(String.raw`(?:\bto\b|转移到|打至|转移至|到)\s*(?:empty\s+)?(?:sample\s+)?(?:plate\s+)?(?:well\s+)?${LOC}`, "i"));
+  const dest = text.match(new RegExp(String.raw`(?:\bto\b|转移到|打至|转移至|到|向)\s*(?:empty\s+)?(?:sample\s+)?(?:plate\s+)?(?:well\s+)?${LOC}`, "i"));
   if (dest) out.destination = dest[1].replace(/\s/g, "").toUpperCase();
+  const source = text.match(new RegExp(String.raw`(?:\bfrom\b|从)\s*(?:source\s+)?(?:(?:plate|well|reservoir|源板|储液槽|孔)\s*)?${LOC}`, "i"));
+  if (source) out.source = source[1].replace(/\s/g, "").toUpperCase();
   const capacity = text.match(new RegExp(String.raw`${AMOUNT}\s*(?:\d+\s*[- ]?well\s*)?(?:plate|孔板|孔)`, "i"))
     ?? text.match(new RegExp(String.raw`(?:well\s+capacity|孔容量|孔的容量|(?:\b[A-P]\d{1,2}|目标孔?|孔板)\s*容量)\s*(?:is|为|[:：])?\s*${AMOUNT}`, "i"));
   if (capacity) out.wellCapacityUl = ul(capacity[1], capacity[2]);
   if (/do not split|no split|禁止拆分|不(?:要|允许)?拆分/i.test(text)) out.noSplit = true;
   else if (/allow splitting|may split|允许拆分|可以拆分/i.test(text)) out.noSplit = false;
-  if (/no mix(?:ing)?|do not mix|不混匀|不要混匀/i.test(text)) out.noMix = true;
+  if (/no mix(?:ing)?|do not mix|不混匀|不要混匀|禁止混匀/i.test(text)) out.noMix = true;
   else if (/\bmix\s+\d|混匀\s*\d/i.test(text)) out.noMix = false;
 
   // Reagent inventory rows and explicit "initially contains" phrases only.
@@ -91,11 +94,22 @@ export function retainInitialConditions(sop: string, facts?: UserRequirements, z
 }
 
 export function capacityBlocker(facts?: UserRequirements, zh = false): string | null {
-  if (facts?.transferUl == null || facts.wellCapacityUl == null || facts.transferUl <= facts.wellCapacityUl) return null;
+  if (facts?.transferUl == null || facts.wellCapacityUl == null) return null;
   const { transferUl: v, wellCapacityUl: c } = facts;
+  const dest = facts.destination;
+  const exact = facts.initial.filter(f => f.role !== "source" && f.location === dest);
+  const candidates = exact.length ? exact : facts.initial.filter(f => f.role !== "source" && dest && !dest.includes("/") && f.location.split("/").at(-1) === dest);
+  // A unique explicit destination inventory is sufficient to reject overflow
+  // before code generation; ambiguous wells still go through the plan ledger.
+  const source = facts.source;
+  const incoming = source && dest && source !== dest &&
+    (source.split("/").at(-1) !== dest.split("/").at(-1) || source.includes("/") && dest.includes("/"));
+  const initial = incoming && candidates.length === 1 ? candidates[0].ul : 0;
+  if (initial + v <= c) return null;
+  const amount = initial > 0 ? `${initial} µL + ${v} µL = ${initial + v} µL` : `${v} µL`;
   return zh
-    ? `当前条件无法完成：${v} µL 会超过 ${c} µL 目标孔容量。同一孔分次加液也会溢出。需要你同意减小总量，或改用容量足够的容器并核对匹配的移液器和枪头；仅换大枪头不能解决孔容量不足。条件未改，未生成可执行文件。`
-    : `These conditions cannot be completed: ${v} µL exceeds the ${c} µL destination capacity. Splitting into the same well still overflows. With your approval, reduce the total or use a larger destination together with compatible pipettes and tips. A larger tip alone cannot fix well overflow. No executable file was produced.`;
+    ? `当前条件无法完成：${amount} 会超过 ${c} µL 目标孔容量。同一孔分次加液也会溢出。需要你同意减小总量，或改用容量足够的容器并核对匹配的移液器和枪头；仅换大枪头不能解决孔容量不足。条件未改，未生成可执行文件。`
+    : `These conditions cannot be completed: ${amount} exceeds the ${c} µL destination capacity. Splitting into the same well still overflows. With your approval, reduce the total or use a larger destination together with compatible pipettes and tips. A larger tip alone cannot fix well overflow. No executable file was produced.`;
 }
 
 type RecordValue = Record<string, any>;
