@@ -79,6 +79,8 @@ export interface SessionState {
   requirements?: UserRequirements;
   /** `"none"` or pasted/uploaded SOP draft. Undefined = not collected yet. */
   doc?: string;
+  /** The start form is the human source; models cannot invent/replace this draft. */
+  sourceDocLocked?: boolean;
   robot?: RobotModel;
   hardware: HardwareState;
   sop?: string;
@@ -344,7 +346,7 @@ export function conflictChoiceVolumes(goal = "", doc = ""): number[] {
 }
 
 const REJECTED_VOLUME =
-  /(?:(?:do\s+)?not|don't|dont|no|ignore|except|instead\s+of|rather\s+than|skip)\s+(?:use\s+|the\s+)?(\d+(?:\.\d+)?)/gi;
+  /(?:(?:do\s+)?not|don't|dont|no|ignore|except|instead\s+of|rather\s+than|skip|不要|不用|不选|弃用)\s+(?:(?:use|choose|select|the)\s+)?(\d+(?:\.\d+)?)/gi;
 
 function allowedNumbersInText(text: string, allowed: number[]): number[] {
   const fromUl = ulAmounts(text).filter((vol) => allowed.includes(vol));
@@ -373,6 +375,10 @@ export function chosenVolumeInText(
   if (!text.trim() || !allowed.length) return undefined;
   const mentioned = allowedNumbersInText(text, allowed);
   const rejected = rejectedVolumesInText(text, allowed);
+  const preferred = [...text.matchAll(/(?:\b(?:use|choose|select)\s+|(?:最终)?(?:选用|采用|选择|使用|用)\s*)(?:每孔\s*)?(\d+(?:\.\d+)?)/gi)]
+    .map(m => Number(m[1])).filter(v => allowed.includes(v) && !rejected.includes(v));
+  const uniquePreferred = [...new Set(preferred)];
+  if (uniquePreferred.length === 1) return uniquePreferred[0];
   const positive = mentioned.filter((vol) => !rejected.includes(vol));
   if (positive.length === 1) return positive[0];
   if (opts?.leftover !== false && rejected.length && positive.length === 0) {
@@ -638,6 +644,7 @@ export function applyForm(
   const doc = (input.doc ?? "").trim();
   session.requirements = readUserRequirements(input.goal, readUserRequirements(doc));
   session.doc = doc ? doc : "none";
+  session.sourceDocLocked = true;
   session.sop = undefined;
   session.conflictAskedAt = undefined;
   session.conflictUserReplied = undefined;
@@ -789,7 +796,7 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
     }
   }
   const named = parseRobot(input.robot) ?? (!session.robot ? inferRobotFromText(session.goal ?? "") : undefined);
-  if (typeof input.doc === "string") {
+  if (typeof input.doc === "string" && !session.sourceDocLocked) {
     const doc = input.doc.trim();
     if (session.doc !== (doc || "none")) session.draftSuperseded = false;
     session.doc = doc ? doc : "none";

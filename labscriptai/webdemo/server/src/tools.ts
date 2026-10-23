@@ -123,7 +123,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       "Persist session fields. First turn: call this after 1–2 lab questions and stop so a full protocol is not dumped. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. PCR plate is a standard-deck variant for PCR mix — do not treat PCR as missing hardware and do not demand a thermocycler for mix prep. If notes_conflict, call this, tell the user both volumes, and stop; after they answer, call again with goal set to the chosen volume. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
-      doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
+      doc: Type.Optional(Type.String({ description: "Collect an initial draft only before a start form exists. The user's form document is immutable; never copy the goal or generated SOP into doc." })),
       robot: Type.Optional(unionLiterals(robotArgValues())),
       preset: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.hardwarePreset.id))),
       left_pipette: Type.Optional(Type.String()),

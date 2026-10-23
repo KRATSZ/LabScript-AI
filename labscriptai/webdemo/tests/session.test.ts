@@ -190,10 +190,10 @@ describe("session machine", () => {
     assert.equal(session.deckAssumed, true);
   });
 
-  it("ask_user notes stay in doc, not sop", () => {
+  it("ask_user can collect draft notes before a human start form, not replace a form document", () => {
     const session = createSession();
-    applyForm(session, { goal: "transfer", doc: "" });
-    assert.equal(session.doc, "none");
+    applyAskUser(session, { goal: "transfer" });
+    assert.equal(session.doc, undefined);
     assert.equal(session.sop, undefined);
     applyAskUser(session, { doc: "# SOP\n1. A", preset: "ot2_p300_standard3" });
     assert.equal(session.doc, "# SOP\n1. A");

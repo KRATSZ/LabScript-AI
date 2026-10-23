@@ -1,7 +1,7 @@
 import { it } from "node:test";
 import assert from "node:assert/strict";
 import { analyzeRequirementIssues, capacityBlocker, groundPlanCapacities, planRequirementIssues, readUserRequirements, retainInitialConditions } from "../server/src/requirements.ts";
-import { applyAskUser, applyForm, beginAuthoringTurn, createSession, goalNotesVolumeConflict, intakeOpen, markIntakeReply, reviewIntent } from "../server/src/session.ts";
+import { applyAskUser, applyForm, beginAuthoringTurn, chosenVolumeInText, createSession, goalNotesVolumeConflict, intakeOpen, markIntakeReply, reviewIntent, unresolvedGoalNotesConflict } from "../server/src/session.ts";
 import { applyRequirementIssues, pipetteHardwareIssues } from "../server/src/backend.ts";
 import { needsPatch, wrapChecks } from "../server/src/gate.ts";
 import { checkedReply } from "../server/src/tools.ts";
@@ -108,6 +108,33 @@ it("uses the human's conflict choice in checks without rewriting unrelated sourc
   await ask.execute("choice", { goal: "Transfer 80 µL from A1 to B1" });
   assert.equal(s.requirements?.transferUl, 80);
   assert.deepEqual(planRequirementIssues({ resources: [{ id: "plate", type: "plate", slot: "2", max_volume_ul: 360 }], steps: [{ primitive_type: "DISPENSE", destination: "plate:B1", volume_ul: 80 }] }, s.requirements), []);
+});
+
+it("parses slash-separated source well inventories without confusing wells with Flex slots", () => {
+  const f = readUserRequirements("源板A1/B1/C1/D1各初始150 µL；目标板A2/B2/C2/D2为空。");
+  assert.deepEqual(f.initial.map(v => v.location), ["A1", "B1", "C1", "D1"]);
+  const plan = { resources: [{ id: "source", type: "plate", slot: "2", max_volume_ul: 200 }, { id: "target", type: "plate", slot: "4", max_volume_ul: 200 }], initial_volumes_ul: Object.fromEntries(["A1", "B1", "C1", "D1"].map(w => [`source:${w}`, 150])), steps: ["A", "B", "C", "D"].flatMap(row => [
+    { primitive_type: "ASPIRATE", source: `source:${row}1`, volume_ul: 50 }, { primitive_type: "DISPENSE", destination: `target:${row}2`, volume_ul: 50 },
+  ]) };
+  assert.deepEqual(planRequirementIssues(plan, f), []);
+  assert.equal(readUserRequirements("Reagents: D2/A1, 100 µL").initial[0].location, "D2/A1");
+});
+
+it("keeps the form document immutable so model-generated old notes cannot reopen a recovery conflict", () => {
+  const s = createSession();
+  const goal = "Tecan Fluent：从 reservoir A1 转移250 µL到 plate B1；目标 B1 初始为空，B1 容量200 µL。要求不减量、不拆分。";
+  applyForm(s, { robot: "Tecan", goal });
+  assert.equal(s.requirements?.wellCapacityUl, 200);
+  applyAskUser(s, { doc: goal });
+  assert.equal(s.doc, "none");
+  beginAuthoringTurn(s, "同意恢复：将每孔转移量改为150 µL，其余条件保持不变（目标 B1 初始为空，仍不拆分）。");
+  applyAskUser(s, { goal: "从 reservoir A1 转移150 µL到 plate B1；B1容量200 µL，初始0 µL", doc: goal });
+  assert.equal(s.doc, "none");
+  assert.equal(s.requirements?.transferUl, 150);
+  assert.equal(capacityBlocker(s.requirements), null);
+  assert.equal(unresolvedGoalNotesConflict(s), null);
+  assert.equal(chosenVolumeInText("最终选用150 µL。200 µL仅是B1容量，0 µL是B1初始量，250 µL是已放弃的原始请求", [200, 150, 0, 250]), 150);
+  assert.equal(chosenVolumeInText("Do not use 150. Use 250 µL", [150, 250]), 250);
 });
 
 it("does not treat reagent per-sample volumes or final state as inventory", () => {

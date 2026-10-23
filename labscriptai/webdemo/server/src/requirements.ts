@@ -3,7 +3,7 @@
  * source text still goes to semantic review. Unknown wording is not inferred.
  */
 import { knownOpentronsWellUl } from "./devices.ts";
-export interface InitialVolume { location: string; ul: number }
+export interface InitialVolume { location: string; ul: number; role?: "source" | "destination" }
 export interface UserRequirements {
   initial: InitialVolume[];
   transferUl?: number;
@@ -30,7 +30,7 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
   const dest = text.match(new RegExp(String.raw`(?:\bto\b|转移到|打至|转移至|到)\s*(?:empty\s+)?(?:sample\s+)?(?:plate\s+)?(?:well\s+)?${LOC}`, "i"));
   if (dest) out.destination = dest[1].replace(/\s/g, "").toUpperCase();
   const capacity = text.match(new RegExp(String.raw`${AMOUNT}\s*(?:\d+\s*[- ]?well\s*)?(?:plate|孔板|孔)`, "i"))
-    ?? text.match(new RegExp(String.raw`(?:well\s+capacity|孔容量|孔的容量)\s*(?:is|为|[:：])?\s*${AMOUNT}`, "i"));
+    ?? text.match(new RegExp(String.raw`(?:well\s+capacity|孔容量|孔的容量|(?:\b[A-P]\d{1,2}|目标孔?|孔板)\s*容量)\s*(?:is|为|[:：])?\s*${AMOUNT}`, "i"));
   if (capacity) out.wellCapacityUl = ul(capacity[1], capacity[2]);
   if (/do not split|no split|禁止拆分|不(?:要|允许)?拆分/i.test(text)) out.noSplit = true;
   else if (/allow splitting|may split|允许拆分|可以拆分/i.test(text)) out.noSplit = false;
@@ -44,9 +44,21 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
     if (!inventory) continue;
     for (const clause of line.split(/[;；]/)) {
       if (/转移|aspirat|dispens|transfer|余约|remaining|final|\/\s*(?:孔|well|sample)|per\s+(?:well|sample)/i.test(clause)) continue;
+      const source = /源板|source\s+plate/i.test(clause);
+      const destination = /目标板|destination\s+plate/i.test(clause);
+      const role = source !== destination ? source ? "source" as const : "destination" as const : undefined;
+      // "A1/B1/C1/D1 each initially 150 µL" is a well list, not Flex slot A1/well B1.
+      const list = clause.match(new RegExp(String.raw`(\b[A-P]\d{1,2}(?:\s*[/、,，]\s*[A-P]\d{1,2}){2,})\s*(?:各|each)\s*(?:初始|initial(?:ly)?\s*)?\s*${AMOUNT}`, "i"));
+      if (list) {
+        for (const location of list[1].match(/[A-P]\d{1,2}/gi) ?? []) {
+          const fact = { location: location.toUpperCase(), ul: ul(list[2], list[3]), ...(role ? { role } : {}) };
+          out.initial = [...out.initial.filter(f => f.location !== fact.location || f.role !== fact.role), fact];
+        }
+        continue;
+      }
       for (const match of clause.matchAll(new RegExp(String.raw`${LOC}[^\n;；]{0,65}?${AMOUNT}`, "gi"))) {
-        const fact = { location: match[1].replace(/\s/g, "").toUpperCase(), ul: ul(match[2], match[3]) };
-        out.initial = [...out.initial.filter(f => f.location !== fact.location), fact];
+        const fact = { location: match[1].replace(/\s/g, "").toUpperCase(), ul: ul(match[2], match[3]), ...(role ? { role } : {}) };
+        out.initial = [...out.initial.filter(f => f.location !== fact.location || f.role !== fact.role), fact];
       }
     }
   }
@@ -55,7 +67,7 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
 
 export function requirementsText(facts?: UserRequirements, zh = false): string {
   if (!facts) return "";
-  const lines = facts.initial.map(f => `${f.location}: ${f.ul} µL ${zh ? "初始量" : "initial volume"}`);
+  const lines = facts.initial.map(f => `${f.role ? (zh ? f.role === "source" ? "源板 " : "目标板 " : `${f.role} plate `) : ""}${f.location}: ${f.ul} µL ${zh ? "初始量" : "initial volume"}`);
   if (facts.wellCapacityUl != null) lines.push(`${zh ? "用户指定孔容量" : "User-specified well capacity"}: ${facts.wellCapacityUl} µL`);
   if (facts.noSplit) lines.push(zh ? "不得拆分转移" : "Do not split the transfer");
   if (facts.noMix) lines.push(zh ? "不混匀" : "No mixing");
@@ -77,6 +89,17 @@ export function capacityBlocker(facts?: UserRequirements, zh = false): string | 
 }
 
 type RecordValue = Record<string, any>;
+const locations = (value: unknown): string[] => [value].flat().flatMap(v => String(v ?? "").split(",").map(x => x.trim())).filter(Boolean);
+function resolveLocation(resources: RecordValue[], steps: RecordValue[], location: string, role?: InitialVolume["role"]): string | undefined {
+  const parts = location.split("/");
+  let candidates = parts.length === 2 ? resources.filter(r => String(r.slot).toUpperCase() === parts[0])
+    : resources.filter(r => /plate/i.test(String(r.type)) && !/tip|reservoir/i.test(String(r.type)));
+  if (parts.length === 1 && candidates.length > 1 && role) {
+    candidates = candidates.filter(r => steps.some(s => s.primitive_type === (role === "source" ? "ASPIRATE" : "DISPENSE")
+      && locations((role === "source" ? s.source : s.destination) ?? s.location).includes(`${r.id}:${parts[0]}`)));
+  }
+  return candidates.length === 1 ? `${candidates[0].id}:${parts.at(-1)}` : undefined;
+}
 /** A model cannot enlarge a human-specified capacity. Ground metadata before
  * evaluating the liquid ledger; never edit transfer steps or raise a limit. */
 export function groundPlanCapacities(plan: RecordValue, facts?: UserRequirements): RecordValue {
@@ -93,14 +116,10 @@ export function planRequirementIssues(plan: RecordValue, facts?: UserRequirement
   if (!facts) return [];
   const issues: string[] = [];
   const resources: RecordValue[] = Array.isArray(plan.resources) ? plan.resources : [];
+  const steps: RecordValue[] = Array.isArray(plan.steps) ? plan.steps : [];
   const isPlate = (r: RecordValue) => /plate/i.test(String(r.type)) && !/tip|reservoir/i.test(String(r.type));
-  const resolve = (location: string): string | undefined => {
-    const parts = location.split("/");
-    const matches = parts.length === 2 ? resources.filter(r => String(r.slot).toUpperCase() === parts[0]) : resources.filter(isPlate);
-    return matches.length === 1 ? `${matches[0].id}:${parts.at(-1)}` : undefined;
-  };
   for (const f of facts.initial) {
-    const key = resolve(f.location);
+    const key = resolveLocation(resources, steps, f.location, f.role);
     if (!key || plan.initial_volumes_ul?.[key] !== f.ul) issues.push(`Preserve the user-specified initial volume: ${f.location} = ${f.ul} µL; generated plan has ${key ? plan.initial_volumes_ul?.[key] ?? "no value" : "no unambiguous resource"}.`);
   }
   if (facts.wellCapacityUl != null) {
@@ -115,8 +134,7 @@ export function planRequirementIssues(plan: RecordValue, facts?: UserRequirement
     const limits = [Number(resource?.max_volume_ul), ...(resource && isPlate(resource) ? [facts.wellCapacityUl ?? NaN] : [])].filter(n => Number.isFinite(n) && n > 0);
     if (limits.length && amount > Math.min(...limits) + 1e-6) issues.push(`${key} initial ${amount} µL already exceeds its ${Math.min(...limits)} µL capacity.`);
   }
-  const locations = (value: unknown): string[] => [value].flat().flatMap(v => String(v ?? "").split(",").map(x => x.trim())).filter(Boolean);
-  for (const s of (Array.isArray(plan.steps) ? plan.steps : []) as RecordValue[]) {
+  for (const s of steps) {
     if (facts.noMix && s.primitive_type === "MIX") issues.push("The user requested no mixing, but the plan includes MIX.");
     if (s.primitive_type === "ASPIRATE") {
       for (const loc of locations(s.source ?? s.location)) {
@@ -137,7 +155,8 @@ export function planRequirementIssues(plan: RecordValue, facts?: UserRequirement
       if (limits.length && current > Math.min(...limits) + 1e-6) issues.push(`${key} contains ${current} µL, exceeding user-specified or labware ${Math.min(...limits)} µL capacity.`);
     }
   }
-  const destination = facts.destination ? resolve(facts.destination) : undefined;
+  const destination = facts.destination ? resolveLocation(resources, steps, facts.destination, "destination") : undefined;
+  if (facts.destination && !destination) issues.push(`Cannot identify an unambiguous destination for ${facts.destination}.`);
   if (destination && facts.transferUl != null && totals.get(destination)?.ul !== facts.transferUl) issues.push(`Expected ${facts.transferUl} µL delivered to ${destination}; plan delivers ${totals.get(destination)?.ul ?? 0} µL.`);
   for (const [loc, total] of totals) {
     if (facts.noSplit && total.count > 1) issues.push(`The user prohibited splitting; ${loc} receives ${total.count} dispense steps.`);
@@ -155,9 +174,8 @@ export function analyzeRequirementIssues(analyze: RecordValue, facts?: UserRequi
   }));
   const initial: Record<string, number> = {};
   for (const f of facts.initial) {
-    const parts = f.location.split("/");
-    const matched = parts.length === 2 ? resources.filter((r: RecordValue) => String(r.slot).toUpperCase() === parts[0]) : resources.filter((r: RecordValue) => r.type === "plate");
-    if (matched.length === 1) initial[`${matched[0].id}:${parts.at(-1)}`] = f.ul;
+    const key = resolveLocation(resources, steps, f.location, f.role);
+    if (key) initial[key] = f.ul;
   }
   // User-provided inventory is the initial condition for the command ledger;
   // it is not purported to have been measured by software or the robot.
