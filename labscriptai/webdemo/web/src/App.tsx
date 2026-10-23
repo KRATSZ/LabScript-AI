@@ -26,10 +26,11 @@ function patchLastAssistant(prev: ChatMessage[], field: "text" | "thinking", tok
 }
 
 function ErrorNote({ error }: { error: string }) {
+  const { t } = useLang();
   if (!error) return null;
   return (
     <p className="file error-note" role="alert">
-      {error}
+      {t(error)}
     </p>
   );
 }
@@ -232,7 +233,7 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            {!session ? <p>{t("On-screen preview only")}</p> : null}
+            {!session ? <p>{t("From experiment to robot protocol")}</p> : null}
           </div>
         </div>
         {session ? (
@@ -269,11 +270,11 @@ export function App() {
           </div>
         ) : health && (!health.hasKey || health.code_service !== "up") ? (
           <p className="demo-health" data-testid="demo-health">
-            {health.hasKey ? t("preview down") : t("No DeepSeek key")}
+            {health.hasKey ? t("Preview temporarily unavailable") : t("Service temporarily unavailable")}
           </p>
         ) : health ? (
           <p className="demo-health" data-testid="demo-health">
-            {t("preview ready")}
+            {t("Ready to create")}
           </p>
         ) : null}
         <LanguageSwitch />

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
@@ -5,12 +6,13 @@ import { deckLabware, deckSketchAxes, deckSketchRows, hamiltonStarSketch, hamilt
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
 import { DemoReplay } from "./DemoReplay";
 import { IssuesPanel } from "./IssuesPanel";
-import { OtDeckReplay } from "./OtDeckReplay";
 import { Pipeline } from "./Pipeline.tsx";
 import { PlrDeckReplay } from "./PlrDeckReplay";
 import { ProtocolSummaryCard } from "./SummaryCard";
 import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
+
+const OtDeckReplay = lazy(() => import("./OtDeckReplay").then((module) => ({ default: module.OtDeckReplay })));
 
 interface Props {
   session: SessionSnapshot;
@@ -148,12 +150,14 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
     <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
       {watchReady ? (
         <DemoReplay session={session}>
-          <OtDeckReplay
-            analyze={session.analyze}
-            robot={session.robot}
-            protocolName={session.goal}
-            appType="desktop"
-          />
+          <Suspense fallback={<p className="file" role="status">{t("Opening the bench preview…")}</p>}>
+            <OtDeckReplay
+              analyze={session.analyze}
+              robot={session.robot}
+              protocolName={session.goal}
+              appType="desktop"
+            />
+          </Suspense>
         </DemoReplay>
       ) : plrReady ? (
         <PlrDeckReplay

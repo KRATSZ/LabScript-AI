@@ -53,7 +53,7 @@ describe("AnimationOverlay code-split", () => {
   });
 
   it("scientist-facing copy names five robots and prompt supports emit_plan", () => {
-    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts", "RightStage.tsx"];
+    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "devices.ts", "startExamples.ts", "pipelineLogic.ts", "RightStage.tsx"];
     const blob = files.map((name) => readFileSync(path.join(webSrc, name), "utf8")).join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);

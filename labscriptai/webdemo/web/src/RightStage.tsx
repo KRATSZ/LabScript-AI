@@ -85,8 +85,14 @@ export function RightStage({ session, events, runningTool, busy, canWatch, onWat
               <p className="stage-empty-emoji" aria-hidden="true">
                 🧫
               </p>
-              <h2>{t("Deck")}</h2>
-              <p>{t("The bench shows here.")}</p>
+              <h2>{t("Your experiment, step by step")}</h2>
+              <p>{t("Start with an experiment description or an SOP. Your plan, checks, and supported previews will appear here.")}</p>
+              <ol className="start-steps">
+                <li><strong>{t("Review the plan")}</strong><span>{t("Confirm volumes, wells, and equipment in chat.")}</span></li>
+                <li><strong>{t("Generate and check")}</strong><span>{t("Inspect the script and resolve reported issues.")}</span></li>
+                <li><strong>{t("Preview and download")}</strong><span>{t("Explore supported steps and save your protocol.")}</span></li>
+              </ol>
+              <p className="start-web-note">{t("No installation or robot connection needed to try the web demo.")}</p>
             </div>
           )
         ) : null}
