@@ -51,7 +51,9 @@ import {
   type AskUserInput,
   type SessionState,
 } from "./session.ts";
+import type { ChecksResult } from "./gate.ts";
 import { sseHasUserText, type SseWriter } from "./sse.ts";
+import { retainInitialConditions, planRequirementIssues } from "./requirements.ts";
 
 type ToolResult = AgentToolResult<Record<string, unknown>>;
 
@@ -68,6 +70,32 @@ function refusePatchBudget(): ToolResult {
     details: { refused: true, next: "done" },
     terminate: true,
   };
+}
+
+/** End with the actual check/artifact state rather than a model-invented recap. */
+export function checkedReply(session: SessionState, checks: ChecksResult, sse: SseWriter): ToolResult {
+  const payload = compactChecks(checks, session.patchesUsed ?? 0);
+  if (payload.next === "patch") return ok(payload);
+  const zh = session.language === "zh";
+  let text: string;
+  if (checks.status === "pass") {
+    const files = ["SOP", ...(session.code ? ["Python"] : session.plan ? [zh ? "步骤 JSON" : "step JSON"] : []),
+      ...(session.artifacts?.hamiltonScript ? ["PyLabRobot Python"] : []),
+      ...(session.artifacts?.worklistGwl ? ["FluentControl .gwl"] : [])];
+    text = zh ? `软件检查通过，可下载 ${files.join("、")}。` : `Software checks passed. Downloads: ${files.join(", ")}.`;
+    if (payload.review.status === "unavailable") text += zh ? " 语义审查未完成，仍需核对实验条件。" : " Semantic review did not finish; experimental conditions still need review.";
+    const commands = Array.isArray(session.analyze?.commands) ? session.analyze.commands.length : 0;
+    if (animationAllowed(checks, commands)) {
+      sse.write("animation", { allowed: true });
+      text += zh ? " 台面预演已显示。" : " The deck preview is displayed.";
+    }
+  } else {
+    text = (zh ? "检查未通过，当前方案不能作为可执行协议。\n" : "Checks did not pass; this protocol is not ready to execute.\n")
+      + payload.consequences.join("\n")
+      + (zh ? "\n请先确认要调整的实验条件或硬件，再重新生成。" : "\nConfirm the experimental or hardware changes before regenerating.");
+  }
+  sse.write("text", { token: `\n\n${text}\n` });
+  return { ...ok({ ...payload, completed: true }), terminate: true };
 }
 
 function toolGoal(session: SessionState): string {
@@ -266,7 +294,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         session.language === "zh" ? "zh" : "en"
       );
       if (!sop) throw new Error("generate_sop returned empty SOP");
-      session.sop = capSop(sop);
+      session.sop = retainInitialConditions(capSop(sop), session.requirements, session.language === "zh");
       sse.write("snapshot", snapshot(session));
       return ok({ chars: session.sop.length, sop_markdown: session.sop });
     },
@@ -487,7 +515,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
           reviewIntent(session),
-          { robot: session.robot }
+          { robot: session.robot, requirementIssues: planRequirementIssues(session.plan as Record<string, unknown>, session.requirements) }
         );
         session.lastChecks = checks;
         if (checks.status === "pass") session.hasPassedChecks = true;
@@ -495,15 +523,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         session.artifacts = checks.status === "pass" ? artifacts : undefined;
         sse.write("checks", checks);
         sse.write("snapshot", snapshot(session));
-        return ok(compactChecks(checks, session.patchesUsed ?? 0));
+        return checkedReply(session, checks, sse);
       }
-      const { checks, analyze } = await runChecks(session.code as string, session.goal ?? "");
+      const { checks, analyze } = await runChecks(session.code as string, reviewIntent(session), session.hardware, session.requirements);
       session.lastChecks = checks;
       if (checks.status === "pass") session.hasPassedChecks = true;
       session.analyze = analyze ?? undefined;
       sse.write("checks", checks);
       sse.write("snapshot", snapshot(session));
-      return ok(compactChecks(checks, session.patchesUsed ?? 0));
+      return checkedReply(session, checks, sse);
     },
   };
 

@@ -354,6 +354,7 @@ export function scrubInventedLihaTipReview(
 /** Iterate when sim/logic/compile fails. Review-only mismatch is reported without auto-patching. */
 export function needsPatch(checks: ChecksResult | null | undefined): boolean {
   if (!checks) return false;
+  if ((checks.logicpass.issues ?? []).some(i => i && typeof i === "object" && ["LP-USER-REQUIREMENT", "LP-PIPETTE-RANGE", "LP-PIPETTE-UNKNOWN"].includes(String((i as { code?: string }).code)))) return false;
   if (isReviewMismatch(checks.llmreview)) return false;
   return !checks.fab.lit;
 }

@@ -24,10 +24,11 @@ import {
   attachConsequences,
   withCompile,
 } from "./gate.ts";
-import { applyTipCountOverlay, capSop } from "./session.ts";
+import { applyTipCountOverlay, capSop, type HardwareState } from "./session.ts";
 import { parseSseBuffer } from "./sse.ts";
 import { codeThinkingToken } from "./think.ts";
 import { DEEPSEEK_MAX_TOKENS } from "./agent.ts";
+import { analyzeRequirementIssues, type UserRequirements } from "./requirements.ts";
 
 export type ThinkFn = (token: string, source: "sop" | "code") => void;
 
@@ -106,7 +107,7 @@ ${hardwareConfig}
 Goal:
 ${userGoal}
 
-Notes (if any "Existing SOP draft") are intern notes, not the SOP. Write from the Goal volumes and wells. Do not copy junk or contradictory notes.
+Preserve every unchanged explicit input condition, including initial reagent volumes, source/destination, mix and tip policy. Never replace an initial volume with the transfer volume or "enough". Current user amendments override only the fields they changed. User-specified conditions are authoritative over assumptions. Do not change hardware or experiment volumes to fit a limitation.
 
 Output only:
 # <one-line objective>
@@ -844,6 +845,7 @@ export async function runPlanChecks(
     robot?: string;
     compileFn?: (plan: Record<string, unknown>) => Promise<FluentCompileResult>;
     hamiltonCompileFn?: (plan: Record<string, unknown>) => Promise<HamiltonCompileResult>;
+    requirementIssues?: string[];
   }
 ): Promise<{
   checks: ChecksResult;
@@ -866,7 +868,7 @@ export async function runPlanChecks(
     userIntent
   );
   const checks = await withOptionalReview(
-    wrapChecks(sim, logicpass, emptyStatepass(sim.ok ? undefined : String(sim.reason || "sim_failed"))),
+    wrapChecks(sim, applyRequirementIssues(logicpass, opts?.requirementIssues ?? []), emptyStatepass(sim.ok ? undefined : String(sim.reason || "sim_failed"))),
     JSON.stringify(plan),
     userIntent
   );
@@ -881,7 +883,9 @@ export async function runPlanChecks(
 
 export async function runChecks(
   code: string,
-  userIntent = ""
+  userIntent = "",
+  hardware?: HardwareState,
+  requirements?: UserRequirements
 ): Promise<{
   checks: ChecksResult;
   analyze: Record<string, unknown> | null;
@@ -936,7 +940,9 @@ export async function runChecks(
   try {
     writeFileSync(protocolPath, code, "utf8");
     const raw = await runLogicpassCli(analyze, protocolPath);
-    const logicpass: LogicPassResult = sanitizeLogicpass(raw);
+    const logicpass = applyRequirementIssues(sanitizeLogicpass(raw), [
+      ...pipetteHardwareIssues(analyze, hardware), ...analyzeRequirementIssues(analyze, requirements),
+    ]);
     const statepass: StatePassResult =
       raw.statepass && typeof raw.statepass === "object"
         ? (raw.statepass as StatePassResult)
@@ -952,4 +958,26 @@ export async function runChecks(
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+}
+
+export function applyRequirementIssues(logic: LogicPassResult, issues: string[]): LogicPassResult {
+  if (!issues.length) return logic;
+  return { ...logic, outcome: "fail", logic_pass: false, final_pass_v2: false,
+    issues: [...(logic.issues ?? []), ...issues.map(detail_text => ({ code: "LP-USER-REQUIREMENT", detail_text }))] };
+}
+
+/** Generated Python cannot silently substitute a different installed pipette. */
+export function pipetteHardwareIssues(analyze: Record<string, unknown>, hardware?: HardwareState): string[] {
+  if (!hardware) return [];
+  const canonical = (name: string) => name.replace(/^flex_(\d+)channel_(\d+)$/, "p$2_$1channel_flex")
+    .replace(/_1channel_/, "_single_").replace(/_8channel_/, "_multi_");
+  const issues: string[] = [];
+  for (const raw of (Array.isArray(analyze.pipettes) ? analyze.pipettes : [])) {
+    const p = raw as Record<string, unknown>;
+    const expected = p.mount === "left" ? hardware.leftPipette : p.mount === "right" ? hardware.rightPipette : undefined;
+    if (!expected || expected === "None" || canonical(String(p.pipetteName)) !== canonical(expected)) {
+      issues.push(`Generated ${p.mount} pipette ${p.pipetteName} differs from the confirmed hardware ${expected ?? "unset"}. Confirm a hardware change before generating with a different pipette.`);
+    }
+  }
+  return issues;
 }

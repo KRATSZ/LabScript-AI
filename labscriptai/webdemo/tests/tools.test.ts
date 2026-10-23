@@ -259,13 +259,15 @@ describe("tools harness", () => {
     assert.match(schema, /"Hamilton"/);
 
     const fluent = JSON.parse(toolText(await ask.execute("1", { robot: "Tecan Fluent" })));
-    assert.equal(fluent.ready, true);
+    assert.equal(fluent.ready, false);
+    assert.equal(fluent.wait, true, "a different hardware family must be confirmed");
     assert.equal(session.robot, "Tecan");
     assert.equal(session.hardware.leftPipette, "fca_1000");
-    assert.match(fluent.hardware_config || "", /Tecan Fluent/);
+    assert.match(fluent.ask || "", /Tecan Fluent/);
 
     const star = JSON.parse(toolText(await ask.execute("2", { robot: "Hamilton STAR" })));
-    assert.equal(star.ready, true);
+    assert.equal(star.ready, false);
+    assert.equal(star.wait, true);
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
   });
