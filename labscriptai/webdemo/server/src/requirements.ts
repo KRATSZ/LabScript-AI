@@ -40,25 +40,35 @@ export function readUserRequirements(text: string, previous?: UserRequirements):
   // Reagent inventory rows and explicit "initially contains" phrases only.
   // Exclude transfer/mix/final-volume statements, even when they name a well.
   for (const line of text.split(/\n/)) {
-    const inventory = /reagents?\s*[:：]|试剂\s*[:：]|初始|initial|start(?:ing|s)?\s+(?:with|volume)|contains/i.test(line);
+    const inventory = /reagents?\s*[:：]|试剂\s*[:：]|初始|initial|start(?:ing|s)?\s+(?:with|volume)|contains|为空|\bempty\b/i.test(line);
     if (!inventory) continue;
     for (const clause of line.split(/[;；]/)) {
-      if (/转移|aspirat|dispens|transfer|余约|remaining|final|\/\s*(?:孔|well|sample)|per\s+(?:well|sample)/i.test(clause)) continue;
       const source = /源板|source\s+plate/i.test(clause);
       const destination = /目标板|destination\s+plate/i.test(clause);
       const role = source !== destination ? source ? "source" as const : "destination" as const : undefined;
       // "A1/B1/C1/D1 each initially 150 µL" is a well list, not Flex slot A1/well B1.
       const list = clause.match(new RegExp(String.raw`(\b[A-P]\d{1,2}(?:\s*[/、,，]\s*[A-P]\d{1,2}){2,})\s*(?:各|each)\s*(?:初始|initial(?:ly)?\s*)?\s*${AMOUNT}`, "i"));
-      if (list) {
-        for (const location of list[1].match(/[A-P]\d{1,2}/gi) ?? []) {
-          const fact = { location: location.toUpperCase(), ul: ul(list[2], list[3]), ...(role ? { role } : {}) };
+      const emptyList = clause.match(/(\b[A-P]\d{1,2}(?:\s*[/、,，]\s*[A-P]\d{1,2}){2,})\s*(?:(?:各|each)\s*)?(?:(?:初始|initial(?:ly)?)\s*)?(?:为空|空(?:孔)?|empty\b)/i);
+      if (list || emptyList) {
+        for (const location of (list ?? emptyList)![1].match(/[A-P]\d{1,2}/gi) ?? []) {
+          const fact = { location: location.toUpperCase(), ul: list ? ul(list[2], list[3]) : 0, ...(role ? { role } : {}) };
           out.initial = [...out.initial.filter(f => f.location !== fact.location || f.role !== fact.role), fact];
         }
         continue;
       }
-      for (const match of clause.matchAll(new RegExp(String.raw`${LOC}[^\n;；]{0,65}?${AMOUNT}`, "gi"))) {
-        const fact = { location: match[1].replace(/\s/g, "").toUpperCase(), ul: ul(match[2], match[3]), ...(role ? { role } : {}) };
+      const record = (location: string, volume: number) => {
+        const fact = { location: location.replace(/\s/g, "").toUpperCase(), ul: volume, ...(role ? { role } : {}) };
         out.initial = [...out.initial.filter(f => f.location !== fact.location || f.role !== fact.role), fact];
+      };
+      // Initial state and capacity may be in the same clause. Bind the label,
+      // not simply the first number after a well; never cross another well.
+      const between = String.raw`(?:(?!\b[A-P]\d{1,2}\b).){0,60}?`;
+      for (const m of clause.matchAll(new RegExp(String.raw`${LOC}${between}(?:初始|initial(?:ly)?(?:\s+volume)?|starts?\s+with|contains)\s*(?:为|is|[:：=])?\s*${AMOUNT}`, "gi"))) record(m[1], ul(m[2], m[3]));
+      for (const m of clause.matchAll(new RegExp(String.raw`${LOC}\s*(?:(?:初始|initial(?:ly)?)\s*(?:为|is|[:：=])?\s*)?(?:为空|空(?:孔)?|empty\b)`, "gi"))) record(m[1], 0);
+      if (/转移|aspirat|dispens|transfer|余约|remaining|final|\/\s*(?:孔|well|sample)|per\s+(?:well|sample)/i.test(clause)) continue;
+      for (const match of clause.matchAll(new RegExp(String.raw`${LOC}[^\n;；]{0,65}?${AMOUNT}`, "gi"))) {
+        if (/容量|capacity|max(?:imum)?/i.test(match[0].slice(match[1].length))) continue;
+        record(match[1], ul(match[2], match[3]));
       }
     }
   }

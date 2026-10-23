@@ -112,8 +112,9 @@ it("uses the human's conflict choice in checks without rewriting unrelated sourc
 
 it("parses slash-separated source well inventories without confusing wells with Flex slots", () => {
   const f = readUserRequirements("源板A1/B1/C1/D1各初始150 µL；目标板A2/B2/C2/D2为空。");
-  assert.deepEqual(f.initial.map(v => v.location), ["A1", "B1", "C1", "D1"]);
-  const plan = { resources: [{ id: "source", type: "plate", slot: "2", max_volume_ul: 200 }, { id: "target", type: "plate", slot: "4", max_volume_ul: 200 }], initial_volumes_ul: Object.fromEntries(["A1", "B1", "C1", "D1"].map(w => [`source:${w}`, 150])), steps: ["A", "B", "C", "D"].flatMap(row => [
+  assert.deepEqual(f.initial.map(v => v.location), ["A1", "B1", "C1", "D1", "A2", "B2", "C2", "D2"]);
+  assert.deepEqual(f.initial.slice(4).map(v => v.ul), [0, 0, 0, 0]);
+  const plan = { resources: [{ id: "source", type: "plate", slot: "2", max_volume_ul: 200 }, { id: "target", type: "plate", slot: "4", max_volume_ul: 200 }], initial_volumes_ul: Object.fromEntries([...['A1', 'B1', 'C1', 'D1'].map(w => [`source:${w}`, 150]), ...['A2', 'B2', 'C2', 'D2'].map(w => [`target:${w}`, 0])]), steps: ["A", "B", "C", "D"].flatMap(row => [
     { primitive_type: "ASPIRATE", source: `source:${row}1`, volume_ul: 50 }, { primitive_type: "DISPENSE", destination: `target:${row}2`, volume_ul: 50 },
   ]) };
   assert.deepEqual(planRequirementIssues(plan, f), []);
@@ -125,6 +126,7 @@ it("keeps the form document immutable so model-generated old notes cannot reopen
   const goal = "Tecan Fluent：从 reservoir A1 转移250 µL到 plate B1；目标 B1 初始为空，B1 容量200 µL。要求不减量、不拆分。";
   applyForm(s, { robot: "Tecan", goal });
   assert.equal(s.requirements?.wellCapacityUl, 200);
+  assert.deepEqual(s.requirements?.initial, [{ location: "B1", ul: 0 }]);
   applyAskUser(s, { doc: goal });
   assert.equal(s.doc, "none");
   beginAuthoringTurn(s, "同意恢复：将每孔转移量改为150 µL，其余条件保持不变（目标 B1 初始为空，仍不拆分）。");
@@ -136,6 +138,8 @@ it("keeps the form document immutable so model-generated old notes cannot reopen
   assert.equal(chosenVolumeInText("最终选用150 µL。200 µL仅是B1容量，0 µL是B1初始量，250 µL是已放弃的原始请求", [200, 150, 0, 250]), 150);
   assert.equal(chosenVolumeInText("Do not use 150. Use 250 µL", [150, 250]), 250);
   assert.equal(chosenVolumeInText("Use 200 µL tips, transfer 150 µL. The target initially has 0 µL.", [200, 150, 0, 250]), 150);
+  assert.deepEqual(readUserRequirements("B1容量200 µL，初始0 µL").initial, [{ location: "B1", ul: 0 }]);
+  assert.deepEqual(readUserRequirements("B1初始180 µL，孔容量200 µL").initial, [{ location: "B1", ul: 180 }]);
 });
 
 it("does not treat reagent per-sample volumes or final state as inventory", () => {
