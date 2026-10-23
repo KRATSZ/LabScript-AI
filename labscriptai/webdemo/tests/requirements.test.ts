@@ -31,6 +31,9 @@ it("blocks incompatible capacity with a complete recovery message before generat
   assert.equal(capacityBlocker(amended), null);
   assert.equal(amended.wellCapacityUl, 200);
   assert.equal(amended.noSplit, true);
+  const chinese = readUserRequirements("同意改为每孔 150 µL，仍然从储液槽 A1 到 B1，其余条件保持不变。", f);
+  assert.equal(chinese.transferUl, 150);
+  assert.equal(capacityBlocker(chinese), null);
 });
 
 it("rejects a model-inflated plate and a split plan even if their internal ledger passes", () => {

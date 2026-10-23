@@ -19,9 +19,10 @@ const ul = (n: string, unit: string) => Number(n) * (/ml|毫升/i.test(unit) ? 1
 export function readUserRequirements(text: string, previous?: UserRequirements): UserRequirements {
   const out: UserRequirements = { ...previous, initial: [...(previous?.initial ?? [])] };
   const transfer = text.match(new RegExp(String.raw`(?:transfer|转移)\s*${AMOUNT}`, "i"))
-    ?? text.match(new RegExp(String.raw`(?:change|改|调整)[^\n。;；]{0,45}?(?:to|为|成)\s*${AMOUNT}`, "i"));
+    ?? text.match(new RegExp(String.raw`(?:change|reduce|改|调整|降低|减少)[^\n。;；]{0,45}?(?:to|为|成|到)\s*(?:每孔\s*)?${AMOUNT}`, "i"));
   // A total/per-sample mixture is not a single transfer.
-  if (transfer && !/\beach\b|每(?:孔|个|份)|\bsamples?\b|样本|[A-H]\d\s*[–-]\s*[A-H]\d/i.test(text)) {
+  const singleAmendment = previous?.transferUl != null && previous.destination && /change|reduce|改|调整|降低|减少/i.test(text);
+  if (transfer && (singleAmendment || !/\beach\b|每(?:孔|个|份)|\bsamples?\b|样本|[A-H]\d\s*[–-]\s*[A-H]\d/i.test(text))) {
     out.transferUl = ul(transfer[1], transfer[2]);
   }
   const dest = text.match(new RegExp(String.raw`(?:\bto\b|转移到|打至|转移至|到)\s*(?:empty\s+)?(?:plate\s+)?(?:well\s+)?${LOC}`, "i"));
