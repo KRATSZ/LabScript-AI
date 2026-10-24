@@ -209,6 +209,27 @@ IAB首轮无法验收下载，后续IAB一度不可用，改用独立Chrome标�
 
 证据：[修改前](ux-review/ot2-model-before-20261025.png)、[修改后](ux-review/ot2-model-after-20261025.png)为同一协议同一吸液阶段，分别采用修改前后的默认相机；[空心孔口近景](ux-review/ot2-model-open-wells-20261025.png)、[最终网页工作视角](ux-review/ot2-model-web-20261025.png)、[网页旋转视角](ux-review/ot2-model-web-orbit-20261025.png)。数值、源码哈希和范围见 [checks JSON](ux-review/ot2-model-polish-checks-20261025.json)；可复现的固定输入见 [80 µL analysis](renderer-patches/ot2-80ul-visual-fixture.analysis.json)。本机完整源/模型与前后图保留在 `virtual-lab/exports/mujoco/ot2-polish-20261024`。
 
+## OT-2 按 FLEX 细节基准继续精修（2026-10-25）
+
+用户要求细节程度对齐已精修的 FLEX，本轮在 `eb5e0a3` 基础上继续。建模子 Agent 完成主要形体，主控修复遮挡/显示问题并收拢实际网页核验。基准包括当前 `sim/flex_shell.py`、已有 `opentrons_flex_project` 精修资产及本轮实际 FLEX 网页帧；没有修改 FLEX 或新建同款库资产。外部 renderer 的三份最终源为 `ot2_shell.py`、`ot2_scene.py`、`play_ot2_protocol.py`，随同一个累计 [model-polish patch](renderer-patches/ot2-model-polish.patch) 交付，仍在底座补丁后应用。
+
+| 对照重点 | 本轮 OT-2 改善 |
+| --- | --- |
+| 整机分件与识别 | 深色立柱/侧框、浅色横梁、长竖向滑台护罩、真实后窗开口、左上圆形状态灯、接缝与脚垫；移除方向写反且悬在后窗中的旧通风片 |
+| 移液器与运动件 | 按[官方 GEN2 图片](https://docs.opentrons.com/ot-2/pipettes/)纠正为黑前壳/银侧壳，增加台阶、退枪套和喷嘴连接，缩小下端铭牌；导轨、滑块、皮带/滚轮、安装件及护罩形成可见层次 |
+| 耗材与支撑 | 枪头架/孔板底裙、承托、边框与空心孔壁，垃圾槽内衬；把外伸的视觉台面收回机架内，不移动槽位、孔或移液目标 |
+| 展示细节 | 中性背景、完整整机默认视角、主视图/特写隐藏调试 site 球但保留分析锚点；修复旧滑块挡住长罩、标识埋入表面而被裁切的问题 |
+
+当前默认相机在 home、高/中/低位置及弃枪头均能完整显示整机，上一轮的默认 home 裁切问题已在本轮解决。主控逐图查看整机、工作区、移液器及耗材近景，并通过 Chrome 实际操作同一个预览组件，复看既有 80 µL 协议的定位、播放/暂停保持、旋转/重置和弃枪头；移除错误静态片面后重新加载最终模型复看吸液帧。浏览器加载的 XML 与接受导出一致。此为实现者固定分析集成检查，没有新的协议生成、下载/手机复测、专职用户测试或真人研究。
+
+最终检查：3 关节/3 site/7 body 的原命名局部坐标变化为 0；204 个原命名孔/枪头目标几何的类型、位置、尺寸、姿态和颜色字段不变。4 个定位命令误差低于 1e-9 mm，当前单枪协议 165 个离散间隙状态通过；397 个模型资源引用无缺失，引用中没有负尺寸圆角盒。两份补丁按顺序 dry-run/应用可得到逐字节相同的最终源，语法通过。没有把此前 320 Node/54 Python 结果记成本轮重跑。
+
+保留一项额外发现：既有双枪 `ot2_probe` 在 3.20 s 报 `pipette_right_housing` 与 `lw1_A12` 交叠；旧基线为 1.8 mm，本轮为 1.2 mm。两版都未通过该离散检查，因此**不验收双枪完整运动间隙**；8 通道静态外观及 11 个定位命令核对与此分开记录。这些交叠值来自既有包围检查，不等于实物碰撞测量。没有缩小实物外观或削弱检查来换取通过。
+
+细节厚度与隐蔽连接含工程估计，仍沿用原参考坐标包络，未重新标定厂家 W/D/H；不宣称厂家 CAD、实物装配或连续碰撞自由。固定分析无 `loadLiquid`，本轮也不证明初始量。原下载、其他机型空白与 FLEX 特写问题继续保留各自验收边界。线上未更新，PR 保持草稿。
+
+同一 6.0 s、同相机/照明/背景/调试显示设置的[修改前](ux-review/ot2-flex-detail-before-20261025.png)与[修改后](ux-review/ot2-flex-detail-after-20261025.png)，保留基线自身几何及材质以区分形体提升和取景变化。另见[整机](ux-review/ot2-flex-detail-overview-20261025.png)、[移液器近景](ux-review/ot2-flex-detail-pipette-20261025.png)、[耗材近景](ux-review/ot2-flex-detail-labware-20261025.png)、[最终网页](ux-review/ot2-flex-detail-web-20261025.png)和[本轮 checks](ux-review/ot2-flex-detail-checks-20261025.json)。完整接受源、模型、官方参考与受限双枪记录在本机 `virtual-lab/exports/mujoco/ot2-flex-parity-20261025/work-note.json`。
+
 ## 下一轮真人任务测试
 
 先招募约 5 名相同目标人群的研究者或学生：懂移液实验，未用过这个网站，不要求会机器人编程。每人单独测试，以发现问题为目的；有经验的自动化工程师另作为不同人群观察。

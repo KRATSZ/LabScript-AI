@@ -1,6 +1,34 @@
 --- a/sim/ot2_shell.py
 +++ b/sim/ot2_shell.py
-@@ -114,7 +114,16 @@
+@@ -94,11 +94,19 @@
+ 
+ def materials_xml() -> str:
+     return """
++    <texture name="ot2_sky" type="skybox" builtin="gradient" rgb1="0.98 0.98 0.99" rgb2="0.78 0.81 0.86" width="512" height="512"/>
+     <material name="shell_white" rgba="0.94 0.945 0.955 1" specular="0.3" shininess="0.3"/>
+     <material name="shell_gray" rgba="0.74 0.76 0.78 1" specular="0.2" shininess="0.2"/>
+     <material name="shell_wall" rgba="0.88 0.888 0.90 1" specular="0.15" shininess="0.25"/>
++    <material name="frame_dark" rgba="0.105 0.12 0.14 1" specular="0.28" shininess="0.32"/>
+     <material name="band_gray" rgba="0.62 0.64 0.665 1" specular="0.15" shininess="0.2"/>
++    <material name="panel_edge" rgba="0.28 0.30 0.33 1" specular="0.22" shininess="0.28"/>
++    <material name="aluminum_dark" rgba="0.36 0.38 0.41 1" specular="0.55" shininess="0.58"/>
++    <material name="gantry_aluminum" rgba="0.55 0.58 0.62 1" specular="0.60" shininess="0.62"/>
++    <material name="rail_black" rgba="0.055 0.060 0.066 1" specular="0.28" shininess="0.32"/>
++    <material name="drive_belt" rgba="0.025 0.028 0.032 1" specular="0.12" shininess="0.14"/>
+     <material name="glass" rgba="0.76 0.82 0.88 0.025" specular="0.03" shininess="0.7"/>
++    <material name="rear_glass" rgba="0.72 0.77 0.83 0.34" specular="0.06" shininess="0.68"/>
+     <material name="anodized" rgba="0.16 0.17 0.185 1" specular="0.5" shininess="0.6"/>
+     <material name="graphite" rgba="0.17 0.18 0.195 1" specular="0.3" shininess="0.35"/>
+     <material name="satin_black" rgba="0.078 0.082 0.09 1" specular="0.25" shininess="0.3"/>
+@@ -110,11 +118,25 @@
+     <material name="gantry_white" rgba="0.87 0.88 0.90 1" specular="0.35" shininess="0.35"/>
+     <material name="pipette_white" rgba="0.94 0.945 0.95 1" specular="0.4" shininess="0.4"/>
+     <material name="pipette_gray" rgba="0.70 0.72 0.75 1" specular="0.25" shininess="0.25"/>
++    <material name="pipette_black" rgba="0.045 0.050 0.058 1" specular="0.32" shininess="0.38"/>
++    <material name="pipette_silver" rgba="0.62 0.65 0.69 1" specular="0.72" shininess="0.72"/>
++    <material name="pipette_metal" rgba="0.76 0.79 0.82 1" specular="0.88" shininess="0.86"/>
++    <material name="pipette_recess" rgba="0.10 0.11 0.13 1" specular="0.25" shininess="0.28"/>
+     <material name="display_dark" rgba="0.06 0.065 0.07 1" specular="0.4" shininess="0.5"/>
      <material name="led_blue" rgba="0.06 0.40 1.0 1" emission="0.65" specular="0"/>
      <material name="led_white" rgba="1 1 1 1" emission="0.85"/>
      <material name="accent_blue" rgba="0.12 0.45 0.90 1" emission="0.15"/>
@@ -14,11 +42,234 @@
 +    <material name="well_rim" rgba="0.70 0.74 0.79 1" specular="0.42" shininess="0.45"/>
 +    <material name="bin_dark" rgba="0.19 0.205 0.225 1" specular="0.18" shininess="0.2"/>
 +    <material name="bin_inner" rgba="0.085 0.095 0.11 1" specular="0.08" shininess="0.12"/>
++    <material name="bin_liner" rgba="0.23 0.25 0.28 1" specular="0.16" shininess="0.20"/>
 +    <material name="bin_rim" rgba="0.48 0.51 0.55 1" specular="0.55" shininess="0.55"/>
      """
  
  
-@@ -322,6 +331,18 @@
+@@ -148,15 +170,39 @@
+     draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=dim, width=6)
+     draw.ellipse((cx - 13, cy - 2, cx + 13, cy + 24), fill=dim)
+     draw.polygon([(cx, cy - 24), (cx - 12, cy + 6), (cx + 12, cy + 6)], fill=dim)
+-    _text_center(draw, (cx, h * 0.46), volume, _font(88, bold=True), fg)
+-    _text_center(draw, (cx, h * 0.57), f"{channels}-Channel", _font(44), dim)
+     if gen2:
+-        _text_center(draw, (cx, h * 0.64), "GEN2", _font(40), dim)
++        # GEN2 carries a compact lower capacity/channel marking on the
++        # black front.  Keep the drop mark dominant and avoid the oversized
++        # white legacy label used by the GEN1 face.
++        _text_center(draw, (cx, h * 0.73), volume, _font(48, bold=True), fg)
++        _text_center(draw, (cx, h * 0.81), f"{channels}-Channel", _font(25), dim)
++        _text_center(draw, (cx, h * 0.87), "GEN2", _font(24), dim)
++    else:
++        _text_center(draw, (cx, h * 0.46), volume, _font(88, bold=True), fg)
++        _text_center(draw, (cx, h * 0.57), f"{channels}-Channel", _font(44), dim)
++    return img
++
++
++def _drop_mark() -> Image.Image:
++    """Small light drop mark for the moving carriage cover.
++
++    The mark is deliberately a separate texture from the OT-2 wordmark.  The
++    official gantry photos show a simple drop on the tall light carriage
++    cover, while the front header carries the full ``opentrons OT-2`` label.
++    """
++
++    img = Image.new("RGB", (240, 360), (218, 222, 226))
++    draw = ImageDraw.Draw(img)
++    cx = 120
++    draw.arc((60, 112, 180, 232), 290, 250, fill=(62, 69, 77), width=12)
++    draw.polygon([(cx, 135), (96, 178), (96, 194), (cx, 210), (144, 194), (144, 178)], fill=(40, 134, 175))
++    draw.ellipse((96, 171, 144, 211), fill=(40, 134, 175))
+     return img
+ 
+ 
+ def make_textures(book: AssetBook) -> None:
+     book.texture("ot2_logo", _ot2_logo(), specular=0.25, shininess=0.3)
++    book.texture("drop_mark", _drop_mark(), specular=0.30, shininess=0.35)
+     # (volume, gen1 single, gen2 single, gen1 multi, gen2 multi)
+     catalog = (
+         ("P10", True, False, True, False),
+@@ -168,7 +214,9 @@
+     for volume, s1, s2, m1, m2 in catalog:
+         for want, channels, dark, gen2, suffix in (
+             (s1, "1", False, False, ""),
+-            (s2, "1", False, True, "_g2"),
++            # Official GEN2 instruments use the black/silver housing and a
++            # dark face label; GEN1 remains the black or white legacy body.
++            (s2, "1", True, True, "_g2"),
+             (m1, "8", True, False, "_8"),
+             (m2, "8", True, True, "_8g2"),
+         ):
+@@ -197,6 +245,9 @@
+         [(X0 + 0.025, Y0 + 0.033), (X1 - 0.025, Y0 + 0.033), (X0 + 0.025, Y1 - 0.033), (X1 - 0.025, Y1 - 0.033)]
+     ):
+         g.append(cyl(f"foot_{i}", (fx, fy, 0.0), (fx, fy, 0.024), 0.024, "rubber", 2))
++        # A shallow metal foot plate makes the four support points read as
++        # attached to the lower frame instead of four black cylinders.
++        g.append(cyl(f"foot_{i}_pad", (fx, fy, 0.001), (fx, fy, 0.006), 0.027, "aluminum_dark", 2))
+     # The band surrounds the deck; a solid slab here hides every short plate
+     # below SILL_Z (the deck's working plane is z=0). Keep the open centre.
+     band_sides = (
+@@ -208,9 +259,18 @@
+     for name, lo, hi in band_sides:
+         g.append(rbox(book, f"base_band_{name}", (*lo, 0.018), (*hi, SILL_Z), "shell_wall", 0.006, 2))
+         g.append(rbox(book, f"base_trim_{name}", (*lo, SILL_Z - 0.012), (*hi, SILL_Z), "band_gray", 0.004, 2))
++    # The lower enclosure is made from separate folded panels.  These dark
++    # seams are shallow surface details, kept inside the measured envelope.
++    g.extend(
++        (
++            rbox(book, "base_front_panel", (X0 + 0.050, Y0 - 0.001, 0.020), (X1 - 0.050, Y0 + 0.002, SILL_Z - 0.004), "band_gray", 0.003, 2),
++            rbox(book, "base_front_seam", (cx - 0.002, Y0 - 0.002, 0.020), (cx + 0.002, Y0 + 0.003, SILL_Z - 0.004), "panel_edge", 0.001, 2),
++            rbox(book, "base_front_lower_seam", (X0 + 0.050, Y0 - 0.002, 0.024), (X1 - 0.050, Y0 + 0.003, 0.027), "panel_edge", 0.001, 2),
++        )
++    )
+     # Corner posts up to the door head height, framing the front.
+     for name, lo, hi in (("l", X0, X0 + WALL), ("r", X1 - WALL, X1)):
+-        g.append(rbox(book, f"post_f_{name}", (lo, Y0, 0.018), (hi, Y0 + WALL, DOOR_Z1), "shell_wall", 0.006, 2))
++        g.append(rbox(book, f"post_f_{name}", (lo, Y0, 0.018), (hi, Y0 + WALL, DOOR_Z1), "frame_dark", 0.006, 2))
+ 
+     # Side walls: white frame with a tall window hole, then the glass.
+     win_y = (Y0 + 0.052, Y1 - 0.052)
+@@ -218,17 +278,39 @@
+     side = rrect(Y0, Y1, 0.0, Z1, 0.008, 0.020)
+     hole = rrect(win_y[0], win_y[1], win_z[0], win_z[1], 0.016, 0.016)
+     for name, lo, hi in (("left", X0, X0 + WALL), ("right", X1 - WALL, X1)):
+-        g.append(mesh_geom(f"side_{name}", book.extrusion(f"side_{name}", side, hole, 0, lo, hi), "shell_wall", 2))
++        g.append(mesh_geom(f"side_{name}", book.extrusion(f"side_{name}", side, hole, 0, lo, hi), "frame_dark", 2))
+         g.append(
+             f'<geom name="window_{name}" type="box" pos="{_v((lo + hi) / 2, (win_y[0] + win_y[1]) / 2, (win_z[0] + win_z[1]) / 2)}" '
+             f'size="{_v((hi - lo) / 2 - 0.001, (win_y[1] - win_y[0]) / 2, (win_z[1] - win_z[0]) / 2)}" material="glass" group="2"/>'
+         )
+-
+-    # Back wall with vent slots.
+-    g.append(mesh_geom("back_panel", book.extrusion("back_panel", rrect(X0, X1, 0.0, Z1, 0.008, 0.020), None, 1, inner_y1, Y1), "shell_wall", 2))
+-    for k in range(3):
+-        z = 0.10 + 0.05 * k
+-        g.append(rbox(book, f"vent_{k}", (X1 - 0.14, Y1 - 0.001, z), (X1 - 0.05, Y1 - 0.0125, z + 0.022), "matte_black", 0.002, 2))
++        # A lower panel break and a vertical return at the rear of the side
++        # window give the sheet-metal frame the layered look of the product
++        # photos without altering the window opening.
++        g.append(rbox(book, f"side_{name}_lower_seam", (lo - 0.001, win_y[0], 0.098), (hi + 0.001, win_y[1], 0.103), "panel_edge", 0.001, 2))
++        g.append(rbox(book, f"side_{name}_rear_return", (lo - 0.001, Y1 - 0.060, win_z[0]), (hi + 0.001, Y1 - 0.056, WIN_Z1), "band_gray", 0.002, 2))
++
++    # Back wall: a real framed window rather than a solid gray slab.  The
++    # inner glass keeps the rear of the machine readable in the default
++    # camera, while the extrusion hole is what creates the actual opening in
++    # the visible sheet-metal frame.
++    back_outer = rrect(X0, X1, 0.0, Z1, 0.008, 0.020)
++    back_hole = rrect(X0 + 0.052, X1 - 0.052, 0.110, WIN_Z1 - 0.012, 0.014, 0.014)
++    g.append(mesh_geom("back_panel", book.extrusion("back_panel", back_outer, back_hole, 1, inner_y1, Y1), "shell_wall", 2))
++    g.append(
++        f'<geom name="back_glass" type="box" pos="{_v((X0 + X1) / 2, inner_y1 + 0.004, (0.110 + WIN_Z1 - 0.012) / 2)}" '
++        f'size="{_v((X1 - X0) / 2 - 0.054, 0.004, (WIN_Z1 - 0.012 - 0.110) / 2)}" material="rear_glass" group="2"/>'
++    )
++    # Thin dark returns make the opening edge visible from the front without
++    # narrowing the physical shell bounds.
++    g.extend(
++        (
++            rbox(book, "back_window_header", (X0 + 0.042, inner_y1 - 0.002, WIN_Z1 - 0.018), (X1 - 0.042, inner_y1 + 0.003, WIN_Z1 - 0.010), "frame_dark", 0.002, 2),
++            rbox(book, "back_window_sill", (X0 + 0.042, inner_y1 - 0.002, 0.100), (X1 - 0.042, inner_y1 + 0.003, 0.108), "frame_dark", 0.002, 2),
++        )
++    )
++    # Leave the clear rear opening unobstructed. The old decorative louvers
++    # had reversed Y bounds and floated across this window; no verified rear
++    # panel detail requires them.
+     # No interior LED strip geoms: emissive bars above the side walls mirror
+     # off the window panes at grazing angles and wash out the deck view.
+ 
+@@ -256,14 +338,24 @@
+         ("left", (dx0 - 0.012, door_y - 0.007, dz0 + 0.012), (dx0 + 0.004, door_y + 0.007, dz1 - 0.012)),
+         ("right", (dx1 - 0.004, door_y - 0.007, dz0 + 0.012), (dx1 + 0.012, door_y + 0.007, dz1 - 0.012)),
+     ):
+-        g.append(rbox(book, f"door_frame_{name}", lo, hi, "shell_white", 0.003, 2))
++        g.append(rbox(book, f"door_frame_{name}", lo, hi, "frame_dark" if name in ("left", "right") else "shell_white", 0.003, 2))
++    # Lower-door hinge barrels are visible on the two front corners; they are
++    # fixed visual parts and do not introduce a door joint into the simulator.
++    for side, x in (("l", dx0 + 0.020), ("r", dx1 - 0.020)):
++        g.append(cyl(f"door_hinge_{side}", (x, Y0 - 0.006, dz0 + 0.018), (x, Y0 - 0.006, dz0 + 0.050), 0.006, "aluminum_dark", 2))
++    g.append(rbox(book, "front_header_seam", (X0 + 0.050, Y0 - 0.002, DOOR_Z1 - 0.004), (X1 - 0.050, Y0 + 0.003, DOOR_Z1 + 0.001), "panel_edge", 0.001, 2))
+     # Lift-off handle across the door top (public appearance), then logo and
+     # the blue front status light on the header.
+     g.append(rbox(book, "door_handle", (cx - 0.11, Y0 - 0.006, dz1 - 0.028), (cx + 0.11, Y0 + 0.005, dz1 - 0.016), "shell_white", 0.004, 2))
+     g.append(rbox(book, "door_handle_grip", (cx - 0.10, Y0 - 0.009, dz1 - 0.026), (cx + 0.10, Y0 - 0.002, dz1 - 0.018), "band_gray", 0.003, 2))
+     header_mid = (DOOR_Z1 + Z1) / 2
+-    g.append(label(book, "logo", (cx - 0.13, Y0 + 0.0002, header_mid), (0.26, 0.023), "ot2_logo", 2))
+-    g.append(rbox(book, "status_led", (cx + 0.13, Y0 - 0.0005, header_mid - 0.002), (cx + 0.185, Y0 + 0.0025, header_mid + 0.002), "led_blue", 0.002, 2))
++    # Put the decal ahead of the rounded header face, not within the mesh;
++    # the previous 0.2 mm inset caused perspective-dependent clipped lettering.
++    g.append(label(book, "logo", (cx - 0.105, Y0 - 0.002, header_mid), (0.26, 0.023), "ot2_logo", 2))
++    # The product has a round status lamp on the upper-left pillar.
++    lamp_x, lamp_z = X0 + WALL / 2, Z1 - 0.075
++    g.append(cyl("status_led_bezel", (lamp_x, Y0 - 0.004, lamp_z), (lamp_x, Y0 + 0.003, lamp_z), 0.009, "steel", 2))
++    g.append(cyl("status_led", (lamp_x, Y0 - 0.005, lamp_z), (lamp_x, Y0 - 0.004, lamp_z), 0.0065, "led_blue", 2))
+ 
+     return "\n      ".join(g)
+ 
+@@ -276,6 +368,12 @@
+     for name, x in (("left", RAIL_X[0]), ("right", RAIL_X[1])):
+         g.append(rbox(book, f"rail_{name}", (x - 0.027, y0, RAIL_Z[0] + 0.006), (x + 0.027, y1, RAIL_Z[1] - 0.004), "steel", 0.005, 2))
+         g.append(rbox(book, f"rail_{name}_mount", (x - 0.023, y0 + 0.01, RAIL_Z[0] - 0.020), (x + 0.023, y1 - 0.01, RAIL_Z[0] + 0.008), "graphite", 0.004, 2))
++        # Two nested guide surfaces and end bearing blocks make the long rail
++        # legible as a moving axis.  They stay inside the existing rail AABB.
++        g.append(rbox(book, f"rail_{name}_guide", (x - 0.012, y0 + 0.020, RAIL_Z[0] + 0.019), (x + 0.012, y1 - 0.020, RAIL_Z[0] + 0.026), "aluminum_dark", 0.002, 2))
++        g.append(rbox(book, f"rail_{name}_belt", (x - 0.019, y0 + 0.024, RAIL_Z[0] + 0.012), (x + 0.019, y1 - 0.024, RAIL_Z[0] + 0.016), "drive_belt", 0.001, 2))
++        for end, yy in (("front", y0 + 0.006), ("back", y1 - 0.018)):
++            g.append(rbox(book, f"rail_{name}_end_{end}", (x - 0.030, yy, RAIL_Z[0] - 0.004), (x + 0.030, yy + 0.012, RAIL_Z[0] + 0.036), "rail_black", 0.003, 2))
+     return "\n      ".join(g)
+ 
+ 
+@@ -292,9 +390,14 @@
+     """
+ 
+     g = [
+-        rbox(book, "beam", (BEAM_X0, BEAM_Y_REL - BEAM_HALF_Y, BEAM_Z0), (BEAM_X1, BEAM_Y_REL + BEAM_HALF_Y, BEAM_Z1), "anodized", 0.007, 2),
++        # The production gantry is a light anodized extrusion with dark guide
++        # surfaces set into its front face.  Keep the measured envelope and
++        # joint frame; only the visible finish is changed here.
++        rbox(book, "beam", (BEAM_X0, BEAM_Y_REL - BEAM_HALF_Y, BEAM_Z0), (BEAM_X1, BEAM_Y_REL + BEAM_HALF_Y, BEAM_Z1), "gantry_aluminum", 0.007, 2),
+         rbox(book, "beam_groove", (BEAM_X0 + 0.030, BEAM_Y_REL - BEAM_HALF_Y - 0.001, BEAM_Z0 + 0.052), (BEAM_X1 - 0.030, BEAM_Y_REL - BEAM_HALF_Y + 0.004, BEAM_Z0 + 0.062), "satin_black", 0.001, 2),
+         rbox(book, "beam_seam", (BEAM_X0 + 0.030, BEAM_Y_REL + BEAM_HALF_Y - 0.004, BEAM_Z1 - 0.020), (BEAM_X1 - 0.030, BEAM_Y_REL + BEAM_HALF_Y + 0.001, BEAM_Z1 - 0.014), "graphite", 0.0008, 2),
++        rbox(book, "beam_front_rail", (BEAM_X0 + 0.022, BEAM_Y_REL - BEAM_HALF_Y - 0.002, BEAM_Z0 + 0.018), (BEAM_X1 - 0.022, BEAM_Y_REL - BEAM_HALF_Y + 0.003, BEAM_Z0 + 0.028), "rail_black", 0.0015, 2),
++        rbox(book, "beam_top_cap", (BEAM_X0 + 0.018, BEAM_Y_REL - 0.028, BEAM_Z1 - 0.003), (BEAM_X1 - 0.018, BEAM_Y_REL + 0.028, BEAM_Z1 + 0.003), "shell_gray", 0.002, 2),
+     ]
+     for name, xa, xb in (
+         ("left", max(RAIL_X[0] - 0.048, X0 + 0.008), RAIL_X[0] + 0.052),
+@@ -303,6 +406,9 @@
+         g.append(rbox(book, f"gantry_plate_{name}", (xa, BEAM_Y_REL - BEAM_HALF_Y + 0.006, BEAM_Z1 - 0.004), (xb, BEAM_Y_REL + BEAM_HALF_Y - 0.006, PLATE_Z1), "gantry_white", 0.005, 2))
+         g.append(rbox(book, f"gantry_truck_{name}", (xa + 0.008, BEAM_Y_REL - 0.044, PLATE_Z1 - 0.004), (xb - 0.008, BEAM_Y_REL + 0.044, PLATE_Z1 + 0.026), "matte_black", 0.005, 2))
+         g.append(rbox(book, f"gantry_plate_{name}_trim", (xa + 0.004, BEAM_Y_REL - BEAM_HALF_Y + 0.006, BEAM_Z1 - 0.004), (xa + 0.008, BEAM_Y_REL + BEAM_HALF_Y - 0.006, PLATE_Z1 - 0.010), "graphite", 0.001, 2))
++        for side, yy in (("front", BEAM_Y_REL - 0.047), ("back", BEAM_Y_REL + 0.033)):
++            g.append(cyl(f"gantry_truck_{name}_roller_{side}", ((xa + xb) / 2, yy, PLATE_Z1 + 0.008), ((xa + xb) / 2, yy + 0.010, PLATE_Z1 + 0.008), 0.006, "chrome", 2))
++        g.append(rbox(book, f"gantry_plate_{name}_drive", (xa + 0.016, BEAM_Y_REL - 0.020, PLATE_Z1 + 0.010), (xb - 0.016, BEAM_Y_REL - 0.014, PLATE_Z1 + 0.018), "drive_belt", 0.001, 2))
+     return "\n        ".join(g)
+ 
+ 
+@@ -312,16 +418,43 @@
+     Carriage frame: origin at the right nozzle (x = y = 0), z absolute.
+     """
+ 
++    cover_top = RAIL_Z[0] - 0.018
+     g = [
+         rbox(book, "carriage_plate", (-CARR_HALF_X, CARR_Y[0], CARR_Z[0]), (CARR_HALF_X, CARR_Y[1], CARR_Z[1]), "graphite", 0.005, 2),
+         rbox(book, "carriage_cap", (-CARR_HALF_X + 0.006, CARR_Y[0] + 0.006, CARR_Z[1] - 0.010), (CARR_HALF_X - 0.006, CARR_Y[1] - 0.006, CARR_Z[1]), "satin_black", 0.003, 2),
+         rbox(book, "carriage_clamp", (-CARR_HALF_X + 0.004, -0.044, CLAMP_Z[0]), (CARR_HALF_X - 0.004, 0.044, CLAMP_Z[1]), "matte_black", 0.005, 2),
+         rbox(book, "carriage_face", (-CARR_HALF_X + 0.004, CARR_Y[0] - 0.004, CARR_Z[0] + 0.008), (CARR_HALF_X - 0.004, CARR_Y[0] + 0.004, CARR_Z[1] - 0.012), "graphite", 0.0015, 2),
+         rbox(book, "carriage_face_seam", (-CARR_HALF_X + 0.010, CARR_Y[0] - 0.005, CARR_Z[0] + 0.026), (CARR_HALF_X - 0.010, CARR_Y[0] - 0.002, CARR_Z[0] + 0.028), "matte_black", 0.0006, 2),
++        # Official OT-2 photos show a tall pale carriage cover ahead of the
++        # black mount plate, reaching toward the upper rail assembly.  It is a
++        # moving visual part of the existing carriage body, with a dark lower
++        # recess and a small drop mark.  The pipette bay remains in
++        # front-to-back space y=-26..8 mm, so the cover ends at y=-50 mm and
++        # cannot occlude the nozzle or alter the anchors.
++        rbox(book, "carriage_cover", (-0.046, -0.070, CLAMP_Z[0] + 0.006), (0.046, -0.050, cover_top), "gantry_white", 0.004, 2),
++        rbox(book, "carriage_cover_face", (-0.036, -0.073, CLAMP_Z[0] + 0.018), (0.036, -0.069, cover_top - 0.018), "gantry_white", 0.002, 2),
++        rbox(book, "carriage_cover_lower", (-0.036, -0.071, CLAMP_Z[0] + 0.006), (0.036, -0.065, CLAMP_Z[0] + 0.018), "aluminum_dark", 0.002, 2),
++        rbox(book, "carriage_cover_recess", (-0.020, -0.075, CLAMP_Z[0] + 0.024), (0.020, -0.071, CLAMP_Z[0] + 0.034), "panel_edge", 0.001, 2),
++        rbox(book, "carriage_cover_side_l", (-0.050, -0.067, CLAMP_Z[0] + 0.008), (-0.045, -0.048, cover_top - 0.010), "aluminum_dark", 0.0015, 2),
++        rbox(book, "carriage_cover_side_r", (0.045, -0.067, CLAMP_Z[0] + 0.008), (0.050, -0.048, cover_top - 0.010), "aluminum_dark", 0.0015, 2),
++        label(book, "carriage_cover_logo", (0.0, -0.0755, (CLAMP_Z[0] + cover_top) / 2 + 0.008), (0.030, 0.032), "drop_mark", 2),
+     ]
      for name, x in (("right", 0.0), ("left", LEFT_DX)):
          g.append(cyl(f"mount_{name}", (x, MOUNT_Y, CARR_Z[0] + 0.006), (x, MOUNT_Y, CARR_Z[1]), 0.0125, "steel", 2))
          g.append(cyl(f"mount_{name}_collar", (x, MOUNT_Y, CARR_Z[0] + 0.006), (x, MOUNT_Y, CARR_Z[0] + 0.020), 0.016, "graphite", 2))
@@ -32,14 +283,36 @@
 +        # touches at the exact home Z pose (the joint and its range stay put).
 +        g.append(rbox(book, f"mount_{name}_slide", (x - 0.010, MOUNT_Y - 0.020, CLAMP_Z[0] - 0.040), (x + 0.010, MOUNT_Y - 0.004, CARR_Z[0] + 0.0115), "steel", 0.0025, 2))
 +        g.append(rbox(book, f"mount_{name}_backplate", (x - 0.020, MOUNT_Y + 0.008, CLAMP_Z[0] - 0.005), (x + 0.020, MOUNT_Y + 0.016, CARR_Z[0] + 0.012), "graphite", 0.002, 2))
++        g.append(rbox(book, f"mount_{name}_ribbon", (x - 0.008, MOUNT_Y + 0.014, CLAMP_Z[0] + 0.009), (x + 0.008, MOUNT_Y + 0.022, CARR_Z[0] + 0.009), "drive_belt", 0.001, 2))
 +        for side in (-1, 1):
 +            g.append(cyl(f"mount_{name}_screw_{'l' if side < 0 else 'r'}", (x + side * 0.016, MOUNT_Y - 0.026, CLAMP_Z[0] + 0.002), (x + side * 0.016, MOUNT_Y - 0.021, CLAMP_Z[0] + 0.002), 0.0032, "chrome", 2))
      for name, x in (("l", ZRAIL_X[0]), ("r", ZRAIL_X[1])):
          g.append(rbox(book, f"z_rail_{name}", (x - 0.003, CARR_Y[0] - 0.002, BEAM_Z0 + 0.004), (x + 0.003, CARR_Y[0] + 0.003, CARR_Z[1] - 0.012), "chrome", 0.0012, 2))
      return "\n          ".join(g)
-@@ -373,6 +394,11 @@
+@@ -358,8 +491,8 @@
+ def pipette_single_body(book: AssetBook, tool: str, prefix: str | None = None) -> list[str]:
+     """Single-channel pipette in the head frame: nozzle end z 0, body above.
+ 
+-    Gen 2 keeps the smooth white housing with a display strip; gen 1 adds the
+-    gray service band and the side ejector shaft. ``prefix`` names the geoms
++    GEN2 uses a black face, silver side shells and a compact lower marking;
++    GEN1 retains the legacy service band and side ejector shaft. ``prefix`` names the geoms
+     (the scene passes ``pipette_<mount>`` so both mounts can share a model).
+     """
+ 
+@@ -367,18 +500,45 @@
+     volume = _volume_label(tool)
+     face = f"ot2_face_{volume}{'_g2' if _is_gen2(tool) else ''}"
+     z0, z1 = PIPETTE_Z
++    gen2 = _is_gen2(tool)
++    housing = "pipette_black" if gen2 else "pipette_white"
+     g = [
+         cyl(f"{name}_collar", (0.0, 0.0, 0.022), (0.0, 0.0, z0 + 0.006), 0.0075, "graphite", 0),
+-        rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, PIPETTE_Y[0], z0), (PIPETTE_HALF_X, PIPETTE_Y[1], z1), "pipette_white", 0.004, 0),
++        rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, PIPETTE_Y[0], z0), (PIPETTE_HALF_X, PIPETTE_Y[1], z1), housing, 0.005, 0),
          label(book, f"{name}_face", (0.0, PIPETTE_Y[0] - 0.0003, (z0 + z1) / 2), (PIPETTE_HALF_X * 2 - 0.004, z1 - z0 - 0.006), face, 0),
-         rbox(book, f"{name}_spine", (-0.011, PIPETTE_Y[0] + 0.004, z1), (0.011, PIPETTE_Y[1] - 0.004, PIPETTE_TOP), "pipette_gray", 0.003, 0),
+-        rbox(book, f"{name}_spine", (-0.011, PIPETTE_Y[0] + 0.004, z1), (0.011, PIPETTE_Y[1] - 0.004, PIPETTE_TOP), "pipette_gray", 0.003, 0),
++        rbox(book, f"{name}_spine", (-0.011, PIPETTE_Y[0] + 0.004, z1), (0.011, PIPETTE_Y[1] - 0.004, PIPETTE_TOP), "pipette_black" if gen2 else "pipette_gray", 0.003, 0),
          rbox(book, f"{name}_cap", (-PIPETTE_HALF_X + 0.004, PIPETTE_Y[0] + 0.003, PIPETTE_TOP - 0.010), (PIPETTE_HALF_X - 0.004, PIPETTE_Y[1] - 0.003, PIPETTE_TOP), "graphite", 0.002, 0),
 +        # Moving flange and short connector overlap the fixed mount slide at
 +        # the working end of Z travel.  The overlap is intentional for a
@@ -47,18 +320,57 @@
 +        rbox(book, f"{name}_mount_flange", (-0.021, PIPETTE_Y[0] + 0.002, PIPETTE_TOP - 0.006), (0.021, PIPETTE_Y[1] - 0.002, PIPETTE_TOP + 0.012), "gantry_white", 0.003, 0),
 +        cyl(f"{name}_mount_pin", (0.0, MOUNT_Y, PIPETTE_TOP + 0.006), (0.0, MOUNT_Y, PIPETTE_TOP + 0.034), 0.0055, "chrome", 0),
      ] + _nozzles(name, 1)
-     if _is_gen2(tool):
-         g.append(rbox(book, f"{name}_display", (-0.010, PIPETTE_Y[0] - 0.0006, z1 - 0.052), (0.010, PIPETTE_Y[0] + 0.003, z1 - 0.012), "display_dark", 0.0015, 0))
-@@ -395,6 +421,8 @@
+-    if _is_gen2(tool):
+-        g.append(rbox(book, f"{name}_display", (-0.010, PIPETTE_Y[0] - 0.0006, z1 - 0.052), (0.010, PIPETTE_Y[0] + 0.003, z1 - 0.012), "display_dark", 0.0015, 0))
++    if gen2:
++        # The documented GEN2 silhouette is black on the face with silver
++        # side shells, a stepped nose and a separate ejector sleeve.  These
++        # are visual pieces in the existing moving pipette body; the tip site
++        # and every kinematic anchor remain untouched.
++        g.extend(
++            (
++                rbox(book, f"{name}_silver_side_l", (-PIPETTE_HALF_X - 0.0005, PIPETTE_Y[0] + 0.003, z0 + 0.006), (-PIPETTE_HALF_X + 0.006, PIPETTE_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
++                rbox(book, f"{name}_silver_side_r", (PIPETTE_HALF_X - 0.006, PIPETTE_Y[0] + 0.003, z0 + 0.006), (PIPETTE_HALF_X + 0.0005, PIPETTE_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
++                rbox(book, f"{name}_nose", (-0.012, PIPETTE_Y[0] + 0.005, z0 + 0.002), (0.012, PIPETTE_Y[1] - 0.002, z0 + 0.032), "pipette_recess", 0.003, 0),
++                rbox(book, f"{name}_ejector_bridge", (-0.010, PIPETTE_Y[0] + 0.001, z0 + 0.029), (0.010, PIPETTE_Y[1] - 0.001, z0 + 0.038), "pipette_silver", 0.002, 0),
++                rbox(book, f"{name}_ejector_rail_l", (-0.012, PIPETTE_Y[1] - 0.006, z0 + 0.022), (-0.008, PIPETTE_Y[1] - 0.001, z0 + 0.052), "pipette_metal", 0.001, 0),
++                rbox(book, f"{name}_ejector_rail_r", (0.008, PIPETTE_Y[1] - 0.006, z0 + 0.022), (0.012, PIPETTE_Y[1] - 0.001, z0 + 0.052), "pipette_metal", 0.001, 0),
++                cyl(f"{name}_ejector_sleeve", (0.0, 0.0, z0 + 0.003), (0.0, 0.0, z0 + 0.018), 0.009, "pipette_silver", 0),
++                cyl(f"{name}_nozzle_seat", (0.0, 0.0, z0 + 0.018), (0.0, 0.0, z0 + 0.030), 0.0042, "pipette_metal", 0),
++            )
++        )
+     else:
+         g.append(rbox(book, f"{name}_band", (-PIPETTE_HALF_X, PIPETTE_Y[0] - 0.0008, z0 + 0.048), (PIPETTE_HALF_X, PIPETTE_Y[1] + 0.0008, z0 + 0.056), "pipette_gray", 0.002, 0))
+         g.append(cyl(f"{name}_ejector", (PIPETTE_HALF_X - 0.004, PIPETTE_Y[1] - 0.006, z0 + 0.012), (PIPETTE_HALF_X - 0.004, PIPETTE_Y[1] - 0.006, z1 - 0.020), 0.003, "satin_black", 0))
++    # One metal collar per channel gives the disposable tip a visible seat.
++    # This collar is part of the nozzle/tip assembly.  Keeping ``needle`` in
++    # its name makes the existing aimed-well exemption treat it like the
++    # adjacent needle capsule during clearance sweeps.
++    g.append(cyl(f"{name}_needle_collar", (0.0, 0.0, 0.004), (0.0, 0.0, 0.014), 0.0034, "nozzle_steel", 0))
+     return g
+ 
+ 
+@@ -395,7 +555,19 @@
          label(book, f"{name}_face", (0.0, MULTI_Y[0] - 0.0003, z0 + 0.058), (PIPETTE_HALF_X * 2 - 0.004, 0.096), face, 0),
          rbox(book, f"{name}_spine", (-0.011, MULTI_Y[0] + 0.006, z1), (0.011, MULTI_Y[1] - 0.004, PIPETTE_TOP), "satin_black", 0.003, 0),
          rbox(book, f"{name}_cap", (-PIPETTE_HALF_X + 0.004, MULTI_Y[0] + 0.003, PIPETTE_TOP - 0.010), (PIPETTE_HALF_X - 0.004, MULTI_Y[1] - 0.003, PIPETTE_TOP), "graphite", 0.002, 0),
 +        rbox(book, f"{name}_mount_flange", (-0.021, MULTI_Y[0] + 0.002, PIPETTE_TOP - 0.006), (0.021, MULTI_Y[1] - 0.002, PIPETTE_TOP + 0.012), "gantry_white", 0.003, 0),
 +        cyl(f"{name}_mount_pin", (0.0, MOUNT_Y, PIPETTE_TOP + 0.006), (0.0, MOUNT_Y, PIPETTE_TOP + 0.034), 0.0055, "chrome", 0),
      ] + _nozzles(name, 8)
++    if _is_gen2(tool):
++        g.extend(
++            (
++                rbox(book, f"{name}_silver_side_l", (-PIPETTE_HALF_X - 0.0005, MULTI_Y[0] + 0.004, z0 + 0.006), (-PIPETTE_HALF_X + 0.006, MULTI_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
++                rbox(book, f"{name}_silver_side_r", (PIPETTE_HALF_X - 0.006, MULTI_Y[0] + 0.004, z0 + 0.006), (PIPETTE_HALF_X + 0.0005, MULTI_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
++                rbox(book, f"{name}_ejector_bridge", (-0.012, MULTI_Y[0] + 0.006, z0 + 0.026), (0.012, MULTI_Y[1] - 0.004, z0 + 0.039), "pipette_silver", 0.002, 0),
++            )
++        )
++    for k, row in enumerate(NOZZLE_ROWS):
++        g.append(cyl(f"{name}_needle_{row}_seat", (0.0, -PITCH * k, 0.004), (0.0, -PITCH * k, 0.014), 0.0034, "nozzle_steel", 0))
      return g
  
-@@ -473,7 +501,7 @@
+ 
+@@ -473,7 +645,7 @@
        <global azimuth="128" elevation="-22" offwidth="{offwidth}" offheight="{offheight}"/>
        <quality shadowsize="8192" offsamples="8"/>
        <headlight ambient="0.34 0.34 0.36" diffuse="0.22 0.22 0.22" specular="0.06 0.06 0.06"/>
@@ -67,18 +379,20 @@
        <rgba haze="0.96 0.965 0.975 1"/>
      </visual>"""
  
-@@ -493,8 +521,8 @@
+@@ -493,8 +665,10 @@
          rbox(book, "trash_wall_back", (x0, y0 + sy - t, z0), (x0 + sx, y0 + sy, z0 + sz), "bin_dark", 0.002, 2),
          rbox(book, "trash_wall_left", (x0, y0 + t, z0), (x0 + t, y0 + sy - t, z0 + sz), "bin_dark", 0.002, 2),
          rbox(book, "trash_wall_right", (x0 + sx - t, y0 + t, z0), (x0 + sx, y0 + sy - t, z0 + sz), "bin_dark", 0.002, 2),
 -        rbox(book, "trash_inner", (x0 + t + 0.002, y0 + t + 0.002, z0 + 0.010), (x0 + sx - t - 0.002, y0 + sy - t - 0.002, z0 + sz + 0.002), "matte_black", 0.001, 2),
 -        rbox(book, "trash_rim", (x0 - 0.004, y0 - 0.004, z0 + sz - 0.006), (x0 + sx + 0.004, y0 + sy + 0.004, z0 + sz + 0.004), "graphite", 0.003, 2),
 +        rbox(book, "trash_inner", (x0 + t + 0.002, y0 + t + 0.002, z0 + 0.010), (x0 + sx - t - 0.002, y0 + sy - t - 0.002, z0 + sz + 0.002), "bin_inner", 0.001, 2),
++        rbox(book, "trash_liner_front", (x0 + t + 0.006, y0 + t + 0.006, z0 + 0.012), (x0 + sx - t - 0.006, y0 + t + 0.008, z0 + sz - 0.010), "bin_liner", 0.001, 2),
++        rbox(book, "trash_liner_back", (x0 + t + 0.006, y0 + sy - t - 0.008, z0 + 0.012), (x0 + sx - t - 0.006, y0 + sy - t - 0.006, z0 + sz - 0.010), "bin_liner", 0.001, 2),
 +        rbox(book, "trash_rim", (x0 - 0.004, y0 - 0.004, z0 + sz - 0.006), (x0 + sx + 0.004, y0 + sy + 0.004, z0 + sz + 0.004), "bin_rim", 0.003, 2),
      ]
      return "\n      ".join(g)
  
-@@ -510,6 +538,7 @@
+@@ -510,6 +684,7 @@
      steep direction keeps the deck brightly lit through the door opening.
      """
      cx, cy = (X0 + X1) / 2, (Y0 + Y1) / 2
@@ -123,7 +437,7 @@
  
      lw = item.labware
      mid = (lw.x / 2, lw.y / 2)
-@@ -661,16 +682,37 @@
+@@ -661,16 +682,55 @@
              RACK_RGBA,
          ),
      ]
@@ -135,6 +449,24 @@
 +        ("right", (lw.x - edge, edge, top - 1.8), (lw.x, lw.y - edge, top + 0.2)),
 +    ):
 +        geoms.append(shell.rbox(book, f"viz_{item.key}_top_edge_{side}", tuple(v * MM for v in lo), tuple(v * MM for v in hi), "rack_edge", 0.0012, 0))
++    # The molded rack has a stepped lower skirt and four feet.  These shallow
++    # parts sit outside the well field, so they give the consumable a grounded
++    # frame without changing a tip origin or its insertion depth.
++    base_h = 5.5
++    for side, lo, hi in (
++        ("front", (1.5, 0.8, 3.0), (lw.x - 1.5, 3.0, base_h)),
++        ("back", (1.5, lw.y - 3.0, 3.0), (lw.x - 1.5, lw.y - 0.8, base_h)),
++        ("left", (0.8, 3.0, 3.0), (3.0, lw.y - 3.0, base_h)),
++        ("right", (lw.x - 3.0, 3.0, 3.0), (lw.x - 0.8, lw.y - 3.0, base_h)),
++    ):
++        geoms.append(shell.rbox(book, f"viz_{item.key}_base_{side}", tuple(v * MM for v in lo), tuple(v * MM for v in hi), "rack_edge", 0.0015, 0))
++    for corner, cx, cy in (
++        ("fl", 4.5, 4.5),
++        ("fr", lw.x - 4.5, 4.5),
++        ("bl", 4.5, lw.y - 4.5),
++        ("br", lw.x - 4.5, lw.y - 4.5),
++    ):
++        geoms.append(shell.rbox(book, f"viz_{item.key}_foot_{corner}", ((cx - 3.2) * MM, (cy - 3.2) * MM, 1.8 * MM), ((cx + 3.2) * MM, (cy + 3.2) * MM, 4.6 * MM), "rack_edge", 0.0013, 0))
      for name, well in lw.wells.items():
          end = well.z + well.depth - lw.tip_length
          geoms.append(
@@ -162,8 +494,28 @@
      """Plate or reservoir, local frame: pad, side walls, clear wells, liquid columns."""
  
      lw = item.labware
-@@ -689,16 +731,108 @@
+@@ -687,18 +747,128 @@
+     )
+     for name, center, size in rails:
          geoms.append(_box(f"{item.key}_side_{name}", tuple(v * MM for v in center), tuple(v * MM for v in size), PLATE_RGBA))
++    # A thin molded base step and corner pads make the plate read as a
++    # supported consumable rather than four white rails floating above the
++    # deck.  The well definitions and all named proxy geoms remain untouched.
++    step_h = 3.2
++    for side, lo, hi in (
++        ("front", (margin - 1.0, 1.0, 0.8), (x - margin + 1.0, margin + 0.8, step_h)),
++        ("back", (margin - 1.0, y - margin - 0.8, 0.8), (x - margin + 1.0, y - 1.0, step_h)),
++        ("left", (1.0, margin + 0.8, 0.8), (margin + 0.8, y - margin - 0.8, step_h)),
++        ("right", (x - margin - 0.8, margin + 0.8, 0.8), (x - 1.0, y - margin - 0.8, step_h)),
++    ):
++        geoms.append(shell.rbox(book, f"viz_{item.key}_base_{side}", tuple(v * MM for v in lo), tuple(v * MM for v in hi), "rack_edge", 0.0012, 0))
++    for corner, cx, cy in (
++        ("fl", 4.0, 4.0),
++        ("fr", x - 4.0, 4.0),
++        ("bl", 4.0, y - 4.0),
++        ("br", x - 4.0, y - 4.0),
++    ):
++        geoms.append(shell.rbox(book, f"viz_{item.key}_foot_{corner}", ((cx - 2.8) * MM, (cy - 2.8) * MM, 0.7 * MM), ((cx + 2.8) * MM, (cy + 2.8) * MM, 3.0 * MM), "rack_edge", 0.001, 0))
      for name, well in lw.wells.items():
          geoms.append(_well_spec_geom(item.key, name, well))
 +        geoms.extend(_well_visual_geoms(item.key, name, well, book))
@@ -273,7 +625,7 @@
  
  
  def _liquid_spec_geom(key: str, name: str, well) -> str:
-@@ -915,11 +1049,84 @@
+@@ -915,20 +1085,115 @@
  
  
  def deck_camera_pose(deck: Deck) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
@@ -288,8 +640,10 @@
 +    enclosure and working surface enough breathing room to be read together.
 +    """
 +
-+    look = robot_m(deck, (deck.size[0] / 2, deck.size[1] / 2, 110.0))
-+    pos = (look[0] - 0.06, look[1] - 1.22, look[2] + 0.53)
++    # The JSON's full deck dimensions do not have the shell's centre. Frame
++    # the actual enclosure so its header and raised home carriage stay visible.
++    look = ((shell.X0 + shell.X1) / 2, (shell.Y0 + shell.Y1) / 2, 0.255)
++    pos = (look[0] + 0.18, shell.Y0 - 1.22, 0.82)
      return pos, look
 +
 +
@@ -329,12 +683,24 @@
 +            geoms.append(shell.cyl(f"deck_slot_{slot}_locator_{corner}", (cx, cy, 0.0015), (cx, cy, 0.0043), 0.0017, "deck_locator", 0))
 +
 +    # The deck is removable and has a visible front lip and rear datum edge.
-+    x0, y0, _ = robot_m(deck, (0.0, 0.0, 0.0))
-+    x1, y1, _ = robot_m(deck, (deck.size[0], deck.size[1], 0.0))
++    # The vendored deck JSON is slightly larger than the measured OT-2 shell
++    # in this visual axis order.  Clamp only these beauty surfaces to the
++    # inner frame; slot origins, slot dimensions, trash coordinates, and all
++    # target/proxy geometry still use the official deck JSON unchanged.
++    raw_x0, raw_y0, _ = robot_m(deck, (0.0, 0.0, 0.0))
++    raw_x1, raw_y1, _ = robot_m(deck, (deck.size[0], deck.size[1], 0.0))
++    x0 = max(raw_x0, shell.X0 + shell.WALL)
++    x1 = min(raw_x1, shell.X1 - shell.WALL)
++    y0 = max(raw_y0, shell.Y0 + shell.WALL)
++    y1 = min(raw_y1, shell.Y1 - shell.WALL)
 +    geoms.extend(
 +        (
 +            shell.rbox(book, "deck_front_lip", (x0, y0 - 0.004, 0.0004), (x1, y0 + 0.004, 0.009), "deck_rim", 0.002, 0),
 +            shell.rbox(book, "deck_back_lip", (x0, y1 - 0.004, 0.0004), (x1, y1 + 0.004, 0.009), "deck_rim", 0.002, 0),
++            shell.rbox(book, "deck_side_lip_left", (x0 - 0.004, y0, 0.0004), (x0 + 0.004, y1, 0.009), "deck_rim", 0.002, 0),
++            shell.rbox(book, "deck_side_lip_right", (x1 - 0.004, y0, 0.0004), (x1 + 0.004, y1, 0.009), "deck_rim", 0.002, 0),
++            shell.rbox(book, "deck_support_front", (x0 + 0.018, y0 + 0.006, -0.006), (x1 - 0.018, y0 + 0.014, -0.001), "deck_locator", 0.0015, 0),
++            shell.rbox(book, "deck_support_back", (x0 + 0.018, y1 - 0.014, -0.006), (x1 - 0.018, y1 - 0.006, -0.001), "deck_locator", 0.0015, 0),
 +        )
 +    )
 +    return geoms
@@ -353,6 +719,10 @@
 +        shell.rbox(book, f"trash_{name}_wall_left", (x0, y0 + t, z0), (x0 + t, y0 + sy - t, z0 + sz), "bin_dark", 0.0025, 0),
 +        shell.rbox(book, f"trash_{name}_wall_right", (x0 + sx - t, y0 + t, z0), (x0 + sx, y0 + sy - t, z0 + sz), "bin_dark", 0.0025, 0),
 +        shell.rbox(book, f"trash_{name}_inner_floor", (x0 + t + 0.002, y0 + t + 0.002, z0 + 0.008), (x0 + sx - t - 0.002, y0 + sy - t - 0.002, z0 + 0.012), "bin_inner", 0.001, 0),
++        shell.rbox(book, f"trash_{name}_liner_front", (x0 + t + 0.006, y0 + t + 0.006, z0 + 0.012), (x0 + sx - t - 0.006, y0 + t + 0.008, z0 + sz - 0.012), "bin_liner", 0.001, 0),
++        shell.rbox(book, f"trash_{name}_liner_back", (x0 + t + 0.006, y0 + sy - t - 0.008, z0 + 0.012), (x0 + sx - t - 0.006, y0 + sy - t - 0.006, z0 + sz - 0.012), "bin_liner", 0.001, 0),
++        shell.rbox(book, f"trash_{name}_liner_left", (x0 + t + 0.006, y0 + t + 0.008, z0 + 0.012), (x0 + t + 0.008, y0 + sy - t - 0.008, z0 + sz - 0.012), "bin_liner", 0.001, 0),
++        shell.rbox(book, f"trash_{name}_liner_right", (x0 + sx - t - 0.008, y0 + t + 0.008, z0 + 0.012), (x0 + sx - t - 0.006, y0 + sy - t - 0.008, z0 + sz - 0.012), "bin_liner", 0.001, 0),
 +        shell.rbox(book, f"trash_{name}_rim_front", (x0 - 0.003, y0 - 0.003, z0 + sz - 0.006), (x0 + sx + 0.003, y0 + t + 0.003, z0 + sz + 0.004), "bin_rim", 0.002, 0),
 +        shell.rbox(book, f"trash_{name}_rim_back", (x0 - 0.003, y0 + sy - t - 0.003, z0 + sz - 0.006), (x0 + sx + 0.003, y0 + sy + 0.003, z0 + sz + 0.004), "bin_rim", 0.002, 0),
 +        shell.rbox(book, f"trash_{name}_rim_left", (x0 - 0.003, y0 + t, z0 + sz - 0.006), (x0 + t + 0.003, y0 + sy - t, z0 + sz + 0.004), "bin_rim", 0.002, 0),
@@ -362,19 +732,25 @@
  
  
  def build_spec_xml(deck: Deck, spec, book, rack_meshes: dict[str, str], head_meshes: dict[str, str]) -> str:
-@@ -927,8 +1134,9 @@
-     deck_center = robot_m(deck, (deck.size[0] / 2, deck.size[1] / 2, -4.0))
-     geoms.append(
-         f'<geom name="deck_plate" type="box" pos="{" ".join(_f(v) for v in deck_center)}" '
+     geoms: list[str] = []
+-    deck_center = robot_m(deck, (deck.size[0] / 2, deck.size[1] / 2, -4.0))
+-    geoms.append(
+-        f'<geom name="deck_plate" type="box" pos="{" ".join(_f(v) for v in deck_center)}" '
 -        f'size="{" ".join(_f(v * MM / 2) for v in (deck.size[0], deck.size[1], 8.0))}" material="shell_gray"/>'
 -    )
-+        f'size="{" ".join(_f(v * MM / 2) for v in (deck.size[0], deck.size[1], 8.0))}" material="deck_surface"/>'
-+    )
++    raw_x0, raw_y0, _ = robot_m(deck, (0.0, 0.0, 0.0))
++    raw_x1, raw_y1, _ = robot_m(deck, (deck.size[0], deck.size[1], 0.0))
++    visual_x0 = max(raw_x0, shell.X0 + shell.WALL)
++    visual_x1 = min(raw_x1, shell.X1 - shell.WALL)
++    visual_y0 = max(raw_y0, shell.Y0 + shell.WALL)
++    visual_y1 = min(raw_y1, shell.Y1 - shell.WALL)
++    deck_center = ((visual_x0 + visual_x1) / 2, (visual_y0 + visual_y1) / 2, -0.004)
++    geoms.append(_box("deck_plate", deck_center, (visual_x1 - visual_x0, visual_y1 - visual_y0, 0.008), "0.80 0.82 0.84 1"))
 +    geoms.extend(_deck_visual_geoms(deck, book))
      # Procedural enclosure: the look plus the invisible "shell" box whose AABB
      # is the clearance envelope (same bounds the STL shell mesh used to give).
      enclosure = shell.enclosure_xml(book)
-@@ -941,9 +1149,9 @@
+@@ -941,9 +1206,9 @@
          liquid_by_key.setdefault(key, set()).add(well)
      for item in spec.placed:
          local = (
@@ -386,7 +762,7 @@
          )
          origin = robot_m(deck, item.origin)
          bodies.append(
-@@ -961,20 +1169,11 @@
+@@ -961,20 +1226,11 @@
          )
  
      for bin_ in spec.trash:
@@ -412,3 +788,49 @@
  
      left = robot_m(deck, (0.0, 0.0, 0.0))[0]
      # Furthest gantry x a command can ask for: the grid's right edge, reached
+@@ -1007,8 +1263,8 @@
+     """
+ 
+     deck_pos, deck_look = deck_camera_pose(deck)
+-    look = robot_m(deck, (deck.size[0] / 2, deck.size[1] / 2, 80.0))
+-    overview = _camera("overview", (look[0] + 0.85, look[1] - 0.95, 0.72), look, 42)
++    look = ((shell.X0 + shell.X1) / 2, (shell.Y0 + shell.Y1) / 2, 0.26)
++    overview = _camera("overview", (look[0] + 0.97, shell.Y0 - 0.94, 0.87), look, 42)
+     deck_cam = _camera("deck", deck_pos, deck_look, 33)
+     # The builders above register meshes and textures lazily, so the asset
+     # block has to be rendered after they have all run.
+--- a/sim/play_ot2_protocol.py
++++ b/sim/play_ot2_protocol.py
+@@ -521,7 +521,14 @@
+         self.fonts = Fonts.load()
+         self.main = mujoco.Renderer(scene.model, height=9 * 90, width=MAIN_W)
+         self.close = mujoco.Renderer(scene.model, height=270, width=PANEL_W)
++        # Sites are analytical anchors for target checks.  MuJoCo's default
++        # renderer draws them as debug spheres, which makes a nozzle look as
++        # if it ends in a floating bead.  Keep every site and coordinate in
++        # the model; hide only this debug display group in beauty views.
++        self.normal = mujoco.MjvOption()
++        self.normal.sitegroup[:] = 0
+         self.xray = mujoco.MjvOption()
++        self.xray.sitegroup[:] = 0
+         # Groups 2 (shell, beam, carriage) and 3 (collision boxes) go away so
+         # the close camera sees the head and the deck; the pipette itself is
+         # group 0 and stays.
+@@ -582,7 +589,7 @@
+     def frame(self, t: float, smooth_focus: bool = True) -> Image.Image:
+         self._set_main_pose(None)
+         state, step = self._advance(t, smooth_focus)
+-        self.main.update_scene(self.scene.data, camera="deck")
++        self.main.update_scene(self.scene.data, camera="deck", scene_option=self.normal)
+         return self._compose(t, state, step, Image.fromarray(self.main.render()))
+ 
+     def build_track(self, fps: int = 30) -> None:
+@@ -598,7 +605,7 @@
+     def web_main(self, t: float, orbit: tuple | None = None) -> Image.Image:
+         self._set_main_pose(orbit)
+         self.scene.at(t)
+-        self.main.update_scene(self.scene.data, camera="deck")
++        self.main.update_scene(self.scene.data, camera="deck", scene_option=self.normal)
+         return Image.fromarray(self.main.render())
+ 
+     def web_close(self, t: float, orbit: tuple = CLOSE_DEFAULT_ORBIT) -> Image.Image:

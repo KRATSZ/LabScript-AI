@@ -1,0 +1,49 @@
+{
+  "passed": true,
+  "scope": "Final existing 80 uL renderer; no new generation, starting-volume, human or real-robot acceptance.",
+  "named_motion_frame_max_delta_m": 0.0,
+  "joints": 3,
+  "sites": 3,
+  "bodies": 7,
+  "geoms": 990,
+  "unchanged_named_well_records": 204,
+  "positioning_commands": 4,
+  "json_vs_definition_mm": 0.0,
+  "mujoco_vs_json_mm": 5.329070518200751e-15,
+  "discrete_clearance_samples": 165,
+  "tightest_enclosure_gap_mm": 4.499999999999997,
+  "tightest_geom": "pipette_left_tip",
+  "xml_sha256": "715ef27956022c7691f85dd539b9f5ea873d1650c8ede2490e1706a3f2574b2a",
+  "source_sha256": {
+    "ot2_shell.py": "bd67b4f8bf4fb6eb68daa728960c1c3c20d76a1a927bffad5772ca453f6fcc74",
+    "ot2_scene.py": "28bb89056edd2a193a887035285a11b04d2dc7395ab58e39f31f58efc1e68856",
+    "play_ot2_protocol.py": "7d47c9c36b8767ae75fc5344c8b9ffd6a0749c7e40ac1c6ab545c8b72799892d"
+  },
+  "assets_missing": [],
+  "errors": [],
+  "warnings": [
+    "command 7: NEST 96 Well Plate 200 μL Flat A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+  ],
+  "browser_model_matches_candidate": true,
+  "browser_model_sha256": "715ef27956022c7691f85dd539b9f5ea873d1650c8ede2490e1706a3f2574b2a",
+  "two_patch_reproduction": "PASS: ordered dry-run/application reproduces frozen source; syntax valid.",
+  "patch_sha256": "d6dc95d9f837189919803835aa8d3c3bfaf76ce6c32cfde1dfcbbb6a3f13443b",
+  "two_mount_probe": {
+    "clearance_passed": false,
+    "current_error": "pipette_right_housing runs into lw1_A12 at t=3.20 s (1.2 mm)",
+    "baseline_error": "pipette_right_housing runs into lw1_A12 at t=3.20 s (1.8 mm)",
+    "classification": "Existing two-mount-probe clearance failure also occurs with accepted pre-refinement geometry; not accepted as a passing motion case.",
+    "positioning_commands": 11,
+    "json_vs_definition_mm": 8.881784197001252e-16,
+    "mujoco_vs_json_mm": 5.329070518200751e-15,
+    "scope": "Static GEN2 multi-channel appearance and target positions checked; two-mount full motion clearance remains open."
+  },
+  "asset_geometry": {
+    "referenced_files": 397,
+    "missing": [],
+    "negative_box_dimensions": [],
+    "unused_meshes_removed": 0
+  },
+  "visual_scope": "Implementer reviewed nine final views and actual Chrome component: existing 80 uL replay, seeking, pause stability, camera rotation/reset, low aspiration and trash close-up. Final reload after removing invalid static vent surfaces. No new generation or dedicated usability-test run.",
+  "comparison_scope": "At t=6.0 s with identical camera, lighting, neutral sky and hidden debug sites; original baseline geometry/materials preserved."
+}
