@@ -91,7 +91,8 @@ export function applyDeckSvgFit(
   svg.style.minHeight = `${fit.height}px`;
   svg.style.flex = "none";
   svg.style.transformOrigin = "0 0";
-  svg.style.transform = `scale(${fit.scale})`;
+  // Inline fitting must preserve the official Y-up robot coordinate transform.
+  svg.style.transform = `translateY(${fit.height * fit.scale}px) scale(${fit.scale}, ${-fit.scale})`;
   svg.style.overflow = "visible";
   svg.dataset.deckFit = String(fit.scale);
   return fit;

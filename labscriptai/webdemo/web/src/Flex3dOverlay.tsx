@@ -130,15 +130,14 @@ function blobOf(res: Response): Promise<Blob> {
   return res.blob();
 }
 
-/** The 3D view for this session, or the example when there is no session. Retries while the servers start. */
+/** Load only this session. Never substitute a bundled protocol. */
 async function loadView(sessionId: string | null, signal: AbortSignal): Promise<View> {
   for (let attempt = 0; ; attempt++) {
     try {
-      if (sessionId) {
-        return await getJson<View>(`/api/session/${encodeURIComponent(sessionId)}/flex3d`, signal);
-      }
-      const info = await getJson<Info>("/flex3d/example/info", signal);
-      return { source: "example", key: "example", note: "没有会话，显示串行稀释示例。", info };
+      if (!sessionId) throw new RequestError(422, "请先生成并检查当前协议。");
+      const view = await getJson<View>(`/api/session/${encodeURIComponent(sessionId)}/flex3d`, signal);
+      if (view.source !== "session") throw new RequestError(422, "无法确认当前协议的三维场景，请重新生成后重试。");
+      return view;
     } catch (err) {
       if (signal.aborted || isAbort(err)) throw err;
       const starting = err instanceof TypeError || (err instanceof RequestError && err.status === 503);
@@ -161,9 +160,13 @@ export function Flex3dOverlay({
   onClose,
   sessionId = null,
   resetKey = "",
+  embedded = false,
+  robot = "Flex",
 }: {
-  onClose: () => void;
-  /** The chat session whose script the 3D view shows. Null shows the serial dilution example. */
+  onClose?: () => void;
+  embedded?: boolean;
+  robot?: "OT-2" | "Flex";
+  /** The chat session whose current script the 3D view shows. */
   sessionId?: string | null;
   /** Changes when the session's analysis changes, so the view reloads. */
   resetKey?: string;
@@ -306,13 +309,19 @@ export function Flex3dOverlay({
     return () => window.cancelAnimationFrame(raf);
   }, [playing]);
 
-  // Load the view for this session (or the example), and the analysis the animator plays.
+  // Load this revision and clear images immediately so stale frames cannot survive a change.
   useEffect(() => {
     const controller = new AbortController();
     frames.current.gen += 1;
     clock.current = { t: 0, playing: false, speed: clock.current.speed, duration: 0 };
     meta.current = null;
     key.current = "";
+    mainImg.current?.removeAttribute("src");
+    closeImg.current?.removeAttribute("src");
+    for (const which of ["main", "close"] as const) {
+      if (frames.current.urls[which]) URL.revokeObjectURL(frames.current.urls[which]);
+      frames.current.urls[which] = "";
+    }
     setPlaying(false);
     setView(null);
     setAnalyze(null);
@@ -327,6 +336,8 @@ export function Flex3dOverlay({
           controller.signal
         );
         if (controller.signal.aborted) return;
+        const expectedType = robot === "OT-2" ? "OT-2 Standard" : "OT-3 Standard";
+        if (script.robotType !== expectedType) throw new RequestError(422, "三维场景与当前机器人不一致，请重新生成后重试。");
         meta.current = next.info;
         key.current = next.key;
         cams.current = defaultCams(next.info);
@@ -340,14 +351,14 @@ export function Flex3dOverlay({
       }
     })();
     return () => controller.abort();
-  }, [sessionId, resetKey]);
+  }, [sessionId, resetKey, robot]);
 
   // Mount: take focus off the 三维 button, keep Space for play/pause, and take wheel zoom on the views.
   useEffect(() => {
     const f = frames.current;
     f.alive = true;
     f.controller = new AbortController();
-    (document.activeElement as HTMLElement | null)?.blur?.();
+    if (!embedded) (document.activeElement as HTMLElement | null)?.blur?.();
 
     const onKey = (event: KeyboardEvent): void => {
       if (event.code !== "Space") return;
@@ -423,10 +434,10 @@ export function Flex3dOverlay({
         ? safeNormalizeAnalysis(
             analyze,
             (input) => normalizeAnalysisOutput(input),
-            "Flex"
+            robot
           )
         : null,
-    [analyze]
+    [analyze, robot]
   );
   const position = useMemo<AnimatorPosition | undefined>(() => {
     if (!view) return undefined;
@@ -445,20 +456,20 @@ export function Flex3dOverlay({
 
   useEffect(() => {
     if (!playing || currentStep < 0) return;
-    stepList.current
-      ?.querySelector<HTMLElement>(`[data-index="${currentStep}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    const list = stepList.current;
+    const item = list?.querySelector<HTMLElement>(`[data-index="${currentStep}"]`);
+    const pane = list?.parentElement;
+    if (!item || !pane) return;
+    const itemBox = item.getBoundingClientRect();
+    const paneBox = pane.getBoundingClientRect();
+    if (itemBox.top < paneBox.top) pane.scrollTop -= paneBox.top - itemBox.top;
+    else if (itemBox.bottom > paneBox.bottom) pane.scrollTop += itemBox.bottom - paneBox.bottom;
   }, [currentStep, playing]);
 
-  const label = view
-    ? view.source === "session"
-      ? `会话脚本：${view.info.title}`
-      : view.note || `示例：${view.info.title}`
-    : "";
+  const label = view ? `${robot} · 当前协议：${view.info.title}` : "";
 
-  return (
-    <OverlayChrome onClose={onClose}>
-      <div className="flex3d">
+  const content = (
+      <div className={embedded ? "flex3d is-embedded" : "flex3d"} data-robot={robot} data-scene-key={view?.key}>
         <div className="flex3d-top">
           <div className="flex3d-bar">
             <button type="button" className="ghost" disabled={!ready} onClick={() => setPlay(!playing)}>
@@ -536,7 +547,7 @@ export function Flex3dOverlay({
           </div>
           {!ready ? <p className="flex3d-msg">{error || "正在准备三维…"}</p> : null}
         </div>
-        <div className="flex3d-bottom">
+        {!embedded ? <div className="flex3d-bottom">
           {analyze && analysisOutput && view ? (
             <ThemeProvider theme={animatorTheme}>
               <AnimatorGuard resetKey={view.key}>
@@ -552,11 +563,11 @@ export function Flex3dOverlay({
           ) : error ? null : (
             <p className="file">正在准备动画…</p>
           )}
-        </div>
-        <p className="flex3d-note">{hint || label}</p>
+        </div> : null}
+        <p className="flex3d-note" role="status">{hint || label}</p>
       </div>
-    </OverlayChrome>
   );
+  return embedded ? content : <OverlayChrome onClose={onClose ?? (() => {})}>{content}</OverlayChrome>;
 }
 
 export default Flex3dOverlay;

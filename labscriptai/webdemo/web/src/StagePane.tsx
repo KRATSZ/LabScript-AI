@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { watchUnavailableCopy } from "./analysis";
 import { planSteps } from "./artifacts";
 import { labwareLabel, planStepDisplay } from "./display";
@@ -11,6 +11,8 @@ import { PlrDeckReplay } from "./PlrDeckReplay";
 import { ProtocolSummaryCard } from "./SummaryCard";
 import { useLang } from "./LangContext";
 import type { SessionSnapshot } from "./types";
+
+const Protocol3dPreview = lazy(() => import("./Flex3dOverlay"));
 
 const OtDeckReplay = lazy(() => import("./OtDeckReplay").then((module) => ({ default: module.OtDeckReplay })));
 
@@ -127,6 +129,7 @@ function DeckSketch({ session }: { session: SessionSnapshot }) {
 
 export function StagePane({ session, runningTool, busy, canWatch }: Props) {
   const { t } = useLang();
+  const [ot2View, setOt2View] = useState<"3d" | "2d">("3d");
   const steps = isPlanCodegen(session.robot) || !session.code?.trim() ? planSteps(session.plan) : [];
   const watchReady = canWatch && robotSupportsWatch(session.robot);
   const watchGap = watchUnavailableCopy(
@@ -148,7 +151,25 @@ export function StagePane({ session, runningTool, busy, canWatch }: Props) {
   const waitHint = waitGapCopy(watchGap, previewDown);
   return (
     <div className={hasDeck ? "stage-pane has-deck" : "stage-pane"} data-testid="stage-pane">
-      {watchReady ? (
+      {watchReady && session.robot === "OT-2" ? (
+        <div className="ot2-preview">
+          <div className="preview-views" role="group" aria-label="OT-2 预演视图">
+            <button type="button" className="ghost" aria-pressed={ot2View === "3d"} onClick={() => setOt2View("3d")}>三维预演</button>
+            <button type="button" className="ghost" aria-pressed={ot2View === "2d"} onClick={() => setOt2View("2d")}>二维台面</button>
+          </div>
+          {ot2View === "3d" ? (
+            <Suspense fallback={<p className="file" role="status">正在准备 OT-2 三维预演…</p>}>
+              <Protocol3dPreview embedded robot="OT-2" sessionId={session.id} resetKey={JSON.stringify(session.analyze)} />
+            </Suspense>
+          ) : (
+            <DemoReplay session={session}>
+              <Suspense fallback={<p className="file" role="status">{t("Opening the bench preview…")}</p>}>
+                <OtDeckReplay analyze={session.analyze} robot={session.robot} protocolName={session.goal} appType="desktop" />
+              </Suspense>
+            </DemoReplay>
+          )}
+        </div>
+      ) : watchReady ? (
         <DemoReplay session={session}>
           <Suspense fallback={<p className="file" role="status">{t("Opening the bench preview…")}</p>}>
             <OtDeckReplay

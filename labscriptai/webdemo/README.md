@@ -10,7 +10,7 @@ Pick a **device card** on the start form (required, with a goal). Five cards:
 
 | Card | Deliverable | Animation |
 | --- | --- | --- |
-| **OT-2** | Python + simulation | Official Opentrons deck replay (8010 queued analyze) |
+| **OT-2** | Python + simulation | Current-protocol OT-2 3D by default; official 2D deck toggle |
 | **Flex** | Python + simulation | Official Opentrons deck replay (8010 queued analyze) |
 | **Hamilton STAR** | Step JSON + PyLabRobot script | PyLabRobot STARLet visualizer |
 | **Hamilton Vantage** | Step JSON + PyLabRobot script | PyLabRobot Vantage visualizer |
@@ -20,7 +20,7 @@ One shell: left chat, right Stage / Artifacts / Trajectory. Trajectory is an app
 
 If 8010 is down, OT-2/Flex fall back to the same step table as Hamilton. SOP and step JSON remain available for inspection. Executable Python, PyLabRobot scripts and worklists are withheld until the current checks pass. One automatic patch, then the agent stops and talks.
 
-No live robot, no `bash`. A standard deck is assumed (tip rack, 96-well plate, reservoir). OT-2/Flex replay is the official Opentrons visualizer embedded in Stage. Other robots use the PyLabRobot scientific visualizer — not a homemade slot sketch.
+No live robot, no `bash`. A standard deck is assumed (tip rack, 96-well plate, reservoir). OT-2 defaults to its current-protocol 3D scene, with the official Opentrons 2D visualizer available in Stage; Flex keeps the official 2D visualizer plus a 3D entry. Other robots use the PyLabRobot scientific visualizer — not a homemade slot sketch.
 
 ## Checks
 
@@ -61,3 +61,11 @@ cd labscriptai/webdemo && npm test
 ```
 
 No `0.0.0.0`. Frontend-only: `npm run build`. Server-only: `npm run dev:server`.
+
+## Current-protocol 3D service (maintainers)
+
+The web server forwards accepted OT-2/Flex analyses to `FLEX3D_URL` (default `http://127.0.0.1:8791`). The renderer is the separate `virtual-lab` workspace's `sim.web_player`; it is **not bundled in this repository**. OT-2 requires that service's OT-2-capable version (`robotType: "OT-2 Standard"`); Flex uses `"OT-3 Standard"`. Unsupported, mismatched or unfinished sessions return a clear error instead of loading an example. The 2D toggle remains available if 3D is unavailable.
+
+`npm run dev` can find a sibling `virtual-lab` checkout; maintainers may override its path with `LABSCRIPTAI_PLAYER_ROOT`. It uses the same `LABSCRIPTAI_PYTHON` interpreter as the code service, which must also contain the renderer dependencies. No browser-side setup is required.
+
+The accompanying [OT-2 renderer patch](renderer-patches/ot2-base-clearance.patch) belongs to that separate workspace: its old solid base band covered low plates in the main view. From the renderer root, first run `patch --dry-run -p1 < /absolute/path/to/ot2-base-clearance.patch`, then apply with `patch -p1 < /absolute/path/to/ot2-base-clearance.patch` and restart the service. Substitute the actual absolute patch path; no Git checkout is needed. The patch replaces the slab with a surrounding ring without moving the deck, wells or pipette targets. This PR's 3D evidence uses that patch; merging only the web code does not update the renderer or deploy the website.

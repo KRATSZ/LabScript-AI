@@ -1,0 +1,22 @@
+--- a/sim/ot2_shell.py
++++ b/sim/ot2_shell.py
+@@ -197,8 +197,17 @@
+         [(X0 + 0.025, Y0 + 0.033), (X1 - 0.025, Y0 + 0.033), (X0 + 0.025, Y1 - 0.033), (X1 - 0.025, Y1 - 0.033)]
+     ):
+         g.append(cyl(f"foot_{i}", (fx, fy, 0.0), (fx, fy, 0.024), 0.024, "rubber", 2))
+-    g.append(rbox(book, "base_band", (X0, Y0, 0.018), (X1, Y1, SILL_Z), "shell_wall", 0.006, 2))
+-    g.append(rbox(book, "base_trim", (X0, Y0, SILL_Z - 0.012), (X1, Y1, SILL_Z), "band_gray", 0.004, 2))
++    # The band surrounds the deck; a solid slab here hides every short plate
++    # below SILL_Z (the deck's working plane is z=0). Keep the open centre.
++    band_sides = (
++        ("front", (X0, Y0), (X1, Y0 + WALL)),
++        ("back", (X0, Y1 - WALL), (X1, Y1)),
++        ("left", (X0, Y0 + WALL), (X0 + WALL, Y1 - WALL)),
++        ("right", (X1 - WALL, Y0 + WALL), (X1, Y1 - WALL)),
++    )
++    for name, lo, hi in band_sides:
++        g.append(rbox(book, f"base_band_{name}", (*lo, 0.018), (*hi, SILL_Z), "shell_wall", 0.006, 2))
++        g.append(rbox(book, f"base_trim_{name}", (*lo, SILL_Z - 0.012), (*hi, SILL_Z), "band_gray", 0.004, 2))
+     # Corner posts up to the door head height, framing the front.
+     for name, lo, hi in (("l", X0, X0 + WALL), ("r", X1 - WALL, X1)):
+         g.append(rbox(book, f"post_f_{name}", (lo, Y0, 0.018), (hi, Y0 + WALL, DOOR_Z1), "shell_wall", 0.006, 2))

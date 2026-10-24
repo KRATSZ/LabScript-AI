@@ -460,12 +460,11 @@ body {
 .ot-deck-embed.is-flex [class*="deck_labels_row"] {
   display: none !important;
 }
-/*
-  Deck SVG is scale(1,-1). HTML in RobotCoordsForeignObject (Trash bin, Waste chute)
-  needs the official scaleY(-1) compensation from @opentrons/components/lib/style.css,
-  which this embed does not load. OT-2 FixedTrashText is SVG paths with its own
-  scale(1,-1) — leave it. Do not import the full components stylesheet (inspector).
-*/
+/* Scoped official robot-coordinate transforms. SVG uses Y-up; HTML labels
+   compensate within it. Keep both rules without the global inspector styles. */
+.ot-deck-embed [class*="deck_svg_wrapper"] > svg {
+  transform: scaleY(-1);
+}
 .ot-deck-embed [class*="robot_coords_foreign_object_container"] {
   transform: scaleY(-1);
 }
@@ -2020,4 +2019,20 @@ body {
   margin: 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+.ot2-preview { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.preview-views { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); }
+.preview-views [aria-pressed="true"] { background: #dbeafe; color: #1d4ed8; }
+.flex3d.is-embedded { padding: 8px; }
+.flex3d.is-embedded .flex3d-top { flex: 1 0 420px; min-height: 420px; }
+.flex3d.is-embedded .flex3d-grid { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.flex3d-bar { flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .ot2-preview { min-height: 520px; }
+  .flex3d.is-embedded { overflow: visible; }
+  .flex3d.is-embedded .flex3d-grid { grid-template-columns: 1fr; grid-template-rows: 260px 190px minmax(140px, 220px); grid-template-areas: "main" "close" "steps"; flex: none; }
+  .flex3d.is-embedded .flex3d-top { flex: none; }
+  .flex3d-bar input[type="range"] { min-width: 90px; }
+  .flex3d-time { min-width: auto; }
 }
