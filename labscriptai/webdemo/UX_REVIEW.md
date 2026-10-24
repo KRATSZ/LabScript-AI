@@ -190,6 +190,25 @@ IAB首轮无法验收下载，后续IAB一度不可用，改用独立Chrome标�
 
 证据：[当前OT-2的80 µL三维](ux-review/ot2-current-80-3d-20261024.jpg)、[同版正向二维](ux-review/ot2-upright-80-2d-20261024.jpg)。本机原始报告与临时产物集中在`.local/ot2-preview-fix-20261024/usability/report-a.md`；下载工具阻塞后，原测试者停止浏览器控制，第二个独立上下文只接续手机/Flex/恢复与暂停，不重试下载；接续原始报告在同目录`usability-adjacent/report.md`。配套证据：[手机暂停](ux-review/ot2-phone-paused-20261024.jpg)、[Flex特写噪声待核实](ux-review/flex-close-noise-20261024.jpg)。
 
+## OT-2 模型精修（2026-10-25）
+
+按用户要求交给建模子 Agent 精修，主控复看实际导出和网页。沿用现有 `sim/ot2_shell.py`、`sim/ot2_scene.py` 及运动链，参考已有 OT-2 资产与[官方结构说明](https://docs.opentrons.com/ot-2/system-description/robot/)，没有重新注册同款模型。新增 [ot2-model-polish.patch](renderer-patches/ot2-model-polish.patch)，按 README 在底座补丁之后应用于外部 renderer；本仓库不包含整套 renderer，也未合并或部署。
+
+本轮补上台面槽位边框、枪头架孔沿、移液器安装座/连接件、垃圾槽内腔和边沿，调整材质、照明与默认工作视角。孔板和储液槽现在用可见空心壁与底面表现；原有命名孔几何保留原位置、尺寸和颜色参数，置于不默认显示的 group 3，供原目标/间隙逻辑使用，避免透明实心圆柱继续封住孔口。最后修复回原点位置的 1 mm 视觉连接断口。
+
+| 核对项 | 最终结果与范围 |
+| --- | --- |
+| 源码、导出与补丁 | 冻结源码与候选快照逐字节一致；完整 XML 可重开，资源引用无缺失。两份补丁按顺序 dry-run/应用后得到相同源码，Python 语法通过 |
+| 坐标与目标 | 219 个原有台面/耗材几何的类型、位置、尺寸、姿态、网格和颜色字段不变；3 关节、3 site、7 body 的命名局部坐标变化为 0。4 个定位命令的目标误差低于 1e-9 mm |
+| 动作与连接 | 既有间隙检查覆盖 165 个离散状态；另 1160 个示意连接采样的 pin/slide 最低重叠 0.5 mm。主控逐图复看取枪头、吸液/分液、高/中/低 Z、弃枪头和孔口近景；这些检查不证明连续碰撞自由或实物装配精度 |
+| 网页集成 | Chrome 实际操作当前 `Flex3dOverlay`：主视角/跟随特写加载，时间轴和步骤定位、播放、暂停按钮、相机拖动/重置有可见反馈；最终版复核吸液、旋转和弃枪头画面 |
+
+本轮使用已有的固定 80 µL 分析回放，仅核验建模与消费端集成，没有新模型调用或重新生成实验协议，也没有启动新一轮专职用户测试。分析本身没有 `loadLiquid` 初始量，因此 renderer 的来源液量仍按未知处理，不能用这次外观回放证明 100/0 初始量或实验正确性。此前正常下载 BLOCKED、其他机型空白及 Flex 特写条纹等记录仍保留各自范围。
+
+仍有取景边界：默认工作视角在 exact home 会裁掉部分抬高的移液器，可拖动或缩放查看。安装件厚度、细节和材质含示意估计，本轮未重定尺寸或标定实机，不能称厂家精确 CAD。
+
+证据：[修改前](ux-review/ot2-model-before-20261025.png)、[修改后](ux-review/ot2-model-after-20261025.png)为同一协议同一吸液阶段，分别采用修改前后的默认相机；[空心孔口近景](ux-review/ot2-model-open-wells-20261025.png)、[最终网页工作视角](ux-review/ot2-model-web-20261025.png)、[网页旋转视角](ux-review/ot2-model-web-orbit-20261025.png)。数值、源码哈希和范围见 [checks JSON](ux-review/ot2-model-polish-checks-20261025.json)；可复现的固定输入见 [80 µL analysis](renderer-patches/ot2-80ul-visual-fixture.analysis.json)。本机完整源/模型与前后图保留在 `virtual-lab/exports/mujoco/ot2-polish-20261024`。
+
 ## 下一轮真人任务测试
 
 先招募约 5 名相同目标人群的研究者或学生：懂移液实验，未用过这个网站，不要求会机器人编程。每人单独测试，以发现问题为目的；有经验的自动化工程师另作为不同人群观察。

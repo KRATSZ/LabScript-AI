@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "scope": "Existing fixed 80 uL analysis; final renderer integration, no new generation or real robot test.",
+  "source_sha256": {
+    "ot2_shell.py": "c7d9be0addf426c9c610b574e03f9d14e895a9efb5b5b6c53ed431428b0edfbc",
+    "ot2_scene.py": "bb6f6f675a41b2333e43069454b126ace384a036b0d9cb8f92a8e58cf028d3b3",
+    "play_ot2_protocol.py": "6f39905053e8f79124bdc705909847f61e02795cad38291d72760d2bef8d8aa7"
+  },
+  "xml_sha256": "03bf8500425e23a49c3b92a1ce9f87dcd2c07ce558196867e9b03c59be16cf3d",
+  "asset_missing": [],
+  "unchanged_named_deck_labware_geoms": 219,
+  "deck_labware_geometry_differences": [],
+  "positional_commands": 4,
+  "json_vs_definition_mm": 0.0,
+  "mujoco_vs_json_mm": 5.329070518200751e-15,
+  "clearance_samples": 165,
+  "tightest_enclosure_gap_mm": 4.499999999999997,
+  "tightest_geom": "pipette_left_tip",
+  "liquid_check": "no negative volume under existing planner assumptions",
+  "warnings": [
+    "command 7: NEST 96 Well Plate 200 μL Flat A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+  ],
+  "motion_frames": {
+    "passed": true,
+    "scope": "Named local motion frames/anchors only; not a collision or physical-fit proof.",
+    "joint_count": 3,
+    "site_count": 3,
+    "old_body_count": 7,
+    "new_body_count": 7,
+    "max_frame_delta": 0.0,
+    "errors": []
+  },
+  "connection_samples": 1160,
+  "minimum_sampled_pin_slide_overlap_mm": 0.5000056204542691,
+  "minimum_sampled_pin_flange_overlap_mm": 18.000082101217007,
+  "candidate_model": {
+    "nbody": 7,
+    "njnt": 3,
+    "nsite": 3,
+    "ngeom": 910,
+    "mesh_files_checked": 349,
+    "texture_files_checked": 13
+  },
+  "patch_sha256": "2072d76d432a355d5beab030a56c7f48ec891b77adf6cce76e3e25465ca5fab4",
+  "patch_validation": "Both patches dry-run and apply in order to pre-base-clearance source; resulting files byte-equal frozen renderer source; Python syntax valid.",
+  "browser_scope": "Chrome, current Flex3dOverlay component with a seeded existing 80 uL session; main/close images, step and time seeking, playback, camera orbit/reset. No new model generation, paid API call, downloads, phone retest or independent user-test run.",
+  "limits": [
+    "Illustrative visual hardware, not manufacturer CAD or physical calibration.",
+    "Sparse clearance samples and visual attachment overlap do not certify continuous collision freedom.",
+    "Default exact-home main view can crop the raised pipette; orbit/zoom available.",
+    "Analysis has no loadLiquid inventory: source amount is unknown to this renderer; liquid check only covers existing planner assumptions."
+  ],
+  "browser_model_sha256": "03bf8500425e23a49c3b92a1ce9f87dcd2c07ce558196867e9b03c59be16cf3d",
+  "browser_model_equals_candidate": true
+}

@@ -68,4 +68,13 @@ The web server forwards accepted OT-2/Flex analyses to `FLEX3D_URL` (default `ht
 
 `npm run dev` can find a sibling `virtual-lab` checkout; maintainers may override its path with `LABSCRIPTAI_PLAYER_ROOT`. It uses the same `LABSCRIPTAI_PYTHON` interpreter as the code service, which must also contain the renderer dependencies. No browser-side setup is required.
 
-The accompanying [OT-2 renderer patch](renderer-patches/ot2-base-clearance.patch) belongs to that separate workspace: its old solid base band covered low plates in the main view. From the renderer root, first run `patch --dry-run -p1 < /absolute/path/to/ot2-base-clearance.patch`, then apply with `patch -p1 < /absolute/path/to/ot2-base-clearance.patch` and restart the service. Substitute the actual absolute patch path; no Git checkout is needed. The patch replaces the slab with a surrounding ring without moving the deck, wells or pipette targets. This PR's 3D evidence uses that patch; merging only the web code does not update the renderer or deploy the website.
+The accompanying patches belong to that separate renderer workspace. Apply them in this order:
+
+1. [ot2-base-clearance.patch](renderer-patches/ot2-base-clearance.patch) replaces the old solid base band with a surrounding ring so low plates remain visible.
+2. [ot2-model-polish.patch](renderer-patches/ot2-model-polish.patch) adds deck slot details, pipette mounting hardware, open well walls/rims and a more readable trash insert, lighting and working view. It is based on the renderer after the first patch.
+
+From the renderer root, check each patch with `patch --dry-run -p1 < /absolute/path/to/PATCH`, then apply it with `patch -p1 < /absolute/path/to/PATCH`. Substitute the actual absolute patch path and restart the service after both patches. Skip a patch already present; do not apply it twice. No Git checkout is needed. The patches preserve the deck frame, named well targets and motion chain. This is an illustrative procedural model, not manufacturer CAD or a hardware clearance certificate. The fixed working view can crop the raised pipette at exact home; orbit/zoom remain available.
+
+This PR's latest model evidence uses both external patches. Merging only the web code does not update the renderer or deploy the website. Model scope, checks and screenshots are recorded in [UX_REVIEW.md](UX_REVIEW.md).
+
+For a keyless visual regression, the [fixed 80 µL analysis](renderer-patches/ot2-80ul-visual-fixture.analysis.json) can be passed to the renderer's existing CLI: from its root, run `PYTHONPATH=. python -m sim.play_ot2_protocol /absolute/path/to/ot2-80ul-visual-fixture.analysis.json --no-video` with its MuJoCo environment. This replays an existing analysis; it does not exercise new generation, downloads or starting-volume validation.
