@@ -11,6 +11,26 @@ from typing import Any
 SKIP_DECK_REASONS = frozenset({"invalid_plan", "invalid_plan_json", "planir_package_missing"})
 
 
+def attach_pipette_range_gate(result: dict[str, Any], plan: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    """Opentrons' Plan fallback must not bypass the Python working-range gate."""
+    if str(payload.get("robot") or "").lower() not in {"ot-2", "ot2", "flex"}:
+        return result
+    from eval_logicpass import apply_pipette_range_gate
+    hardware = payload.get("hardware") or {}
+    pipettes = [hardware.get(key) for key in ("leftPipette", "rightPipette")
+                if hardware.get(key) and hardware.get(key) != "None"]
+    # Plan IR does not identify the instrument per step. Multiple configured
+    # pipettes are ambiguous; never pick a favorable working range.
+    name = pipettes[0] if len(pipettes) == 1 else "unknown_plan_pipette"
+    commands = [{"commandType": str(s.get("primitive_type", "")).lower(),
+                 "params": {"pipetteId": "plan-pipette", "volume": s.get("volume_ul")}}
+                for s in plan.get("steps", [])
+                if s.get("primitive_type") in {"ASPIRATE", "DISPENSE", "MIX"}]
+    logic = apply_pipette_range_gate(dict(result.get("logicpass") or {}), {
+        "pipettes": [{"id": "plan-pipette", "pipetteName": name}], "commands": commands})
+    return {**result, "logicpass": logic, "fab": {"lit": bool(result.get("fab", {}).get("lit")) and logic.get("final_pass_v2") is True}}
+
+
 def fail(reason: str, errors: list[str] | None = None) -> dict[str, Any]:
     return {
         "sim": {"ok": False, "reason": reason, "errors": errors or [reason]},
@@ -28,14 +48,21 @@ def fail(reason: str, errors: list[str] | None = None) -> dict[str, Any]:
 def attach_volume_gate(result: dict[str, Any], plan: Any, robot: str) -> dict[str, Any]:
     """PR #4 backend: Chatterbox does not model over-volume; fail those plans here."""
     try:
-        from pylabrobot_backend import plan_volume_error
+        from pylabrobot_backend import plan_volume_error, plan_low_volume_reason
     except ImportError:
         return result
     if not isinstance(plan, dict):
         return result
     error = plan_volume_error(plan, robot)
     if not error:
-        return result
+        low_volume = plan_low_volume_reason(plan, robot)
+        if not low_volume:
+            return result
+        old = result.get("logicpass") or {}
+        return {**result, "logicpass": {**old, "outcome": "fail" if old.get("outcome") == "fail" else "unevaluable",
+                "logic_pass": False, "final_pass_v2": False,
+                "issues": [*(old.get("issues") or []), {"code": "LP-VOLUME-UNVERIFIED", "detail_text": low_volume}],
+                "reason": "low_volume_profile_unverified"}, "fab": {"lit": False}}
     logic = result.get("logicpass") if isinstance(result.get("logicpass"), dict) else {}
     if logic.get("outcome") == "fail":
         return result
@@ -123,6 +150,7 @@ def main() -> int:
     )
     result = attach_virtual_deck_if_sim_failed(result, plan)
     result = attach_volume_gate(result, plan, str(payload.get("robot") or ""))
+    result = attach_pipette_range_gate(result, plan, payload)
     print(json.dumps(result, ensure_ascii=False, default=str))
     return 0
 

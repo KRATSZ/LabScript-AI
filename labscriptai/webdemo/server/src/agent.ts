@@ -13,7 +13,9 @@ import {
   REVIEWER_UNAVAILABLE_DISCLOSURE,
 } from "./gate.ts";
 import { emitAgentEvent, TOOL_STEP } from "./events.ts";
-import { markConflictUserReply, markIntakeReply, snapshot, type SessionState } from "./session.ts";
+import { beginAuthoringTurn, markConflictUserReply, markIntakeReply, snapshot, type SessionState } from "./session.ts";
+import { capacityBlocker } from "./requirements.ts";
+import { wrapChecks } from "./gate.ts";
 import { trackUserText, type SseWriter } from "./sse.ts";
 import { buildTools } from "./tools.ts";
 import { composeSystemPrompt, nextUserMessage } from "./turn.ts";
@@ -97,6 +99,9 @@ export function afterWebdemoToolCall(
 ): AfterToolCallResult | undefined {
   if (isPatchBudgetRefusal(context.result.details)) {
     return { isError: true, terminate: true };
+  }
+  if ((context.result.details as { payload?: { completed?: boolean } } | undefined)?.payload?.completed) {
+    return { terminate: true };
   }
   const details = context.result.details as {
     payload?: {
@@ -308,8 +313,27 @@ export async function runChatTurn(
   }
 
   session.patchesUsed = 0;
+  beginAuthoringTurn(session, userText);
   markConflictUserReply(session, userText);
   markIntakeReply(session, userText);
+  const blocker = capacityBlocker(session.requirements, session.language === "zh");
+  if (blocker) {
+    // Human constraints win before any model can rewrite them to obtain a pass.
+    session.sop = undefined;
+    session.code = undefined;
+    session.plan = undefined;
+    session.analyze = undefined;
+    session.artifacts = undefined;
+    session.hasPassedChecks = undefined;
+    session.lastChecks = wrapChecks({ ok: false, reason: "user_capacity_conflict" }, {
+      outcome: "fail", logic_pass: false, final_pass_v2: false,
+      issues: [{ code: "LP-USER-REQUIREMENT", detail_text: blocker }],
+    }, { issues: [] });
+    sse.write("checks", session.lastChecks);
+    sse.write("snapshot", snapshot(session));
+    sse.write("text", { token: blocker });
+    return true;
+  }
   const tracked = trackUserText(sse);
   emitAgentEvent(session, tracked, { kind: "turn/start" });
   const tools = withToolEvents(buildTools(session, tracked), tracked, Date.now, session);
@@ -331,7 +355,8 @@ export async function runChatTurn(
     shouldStopAfterTurn: ({ toolResults }) =>
       Boolean(autoContinue.error) ||
       toolResults.some(
-        (r) => isPatchBudgetRefusal(r.details) || isNotesConflictWait(r.details)
+        (r) => isPatchBudgetRefusal(r.details) || isNotesConflictWait(r.details) ||
+          (r.details as { payload?: { completed?: boolean } } | undefined)?.payload?.completed === true
       ),
   });
 

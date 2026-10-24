@@ -48,19 +48,26 @@ describe("planStepLine", () => {
 });
 
 describe("downloadable", () => {
+  it("withholds executable files until checks pass, including absent or expired checks", () => {
+    const input = { sop: "# SOP", code: "protocol", plan: { steps: [] }, artifacts: { worklistGwl: "worklist", hamiltonScript: "script" } };
+    for (const status of [undefined, "fail", "unevaluable"]) {
+      assert.deepEqual(downloadable({ ...input, checks: status ? { status } : null }), ["sop", "plan"]);
+    }
+    assert.deepEqual(downloadable({ ...input, checks: { status: "pass" } }), ["sop", "python", "plan", "gwl", "plr"]);
+  });
   it("returns only kinds with content", () => {
-    assert.deepEqual(downloadable({ sop: "", code: "", plan: null }), []);
-    assert.deepEqual(downloadable({ sop: "# SOP", code: "", plan: null }), ["sop"]);
+    assert.deepEqual(downloadable({ checks: { status: "pass" }, sop: "", code: "", plan: null }), []);
+    assert.deepEqual(downloadable({ checks: { status: "pass" }, sop: "# SOP", code: "", plan: null }), ["sop"]);
     assert.deepEqual(
-      downloadable({ sop: "", code: "def run(): pass", plan: { steps: [] } }),
+      downloadable({ checks: { status: "pass" }, sop: "", code: "def run(): pass", plan: { steps: [] } }),
       ["python", "plan"]
     );
     assert.deepEqual(
-      downloadable({ sop: "x", code: "y", plan: { steps: [{ step_id: "1" }] } }),
+      downloadable({ checks: { status: "pass" }, sop: "x", code: "y", plan: { steps: [{ step_id: "1" }] } }),
       ["sop", "python", "plan"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         sop: "# Tecan SOP",
         code: "",
         plan: { steps: [{ step_id: "1" }] },
@@ -69,22 +76,22 @@ describe("downloadable", () => {
       ["sop", "plan", "gwl"]
     );
     assert.deepEqual(
-      downloadable({ sop: "", code: "", plan: null, artifacts: { worklistGwl: "  " } }),
+      downloadable({ checks: { status: "pass" }, sop: "", code: "", plan: null, artifacts: { worklistGwl: "  " } }),
       []
     );
   });
 
   it("lists OT-2 / Flex / Hamilton / Tecan deliverables by device", () => {
     assert.deepEqual(
-      downloadable({ robot: "OT-2", sop: "# SOP", code: "def run(): pass", plan: null }),
+      downloadable({ checks: { status: "pass" }, robot: "OT-2", sop: "# SOP", code: "def run(): pass", plan: null }),
       ["sop", "python"]
     );
     assert.deepEqual(
-      downloadable({ robot: "Flex", sop: "# SOP", code: "def run(): pass", plan: null }),
+      downloadable({ checks: { status: "pass" }, robot: "Flex", sop: "# SOP", code: "def run(): pass", plan: null }),
       ["sop", "python"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         robot: "OT-2",
         sop: "# SOP",
         code: "def run(): pass",
@@ -93,7 +100,7 @@ describe("downloadable", () => {
       ["sop", "python"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         robot: "Hamilton",
         sop: "# HAM SOP",
         code: "def leftover(): pass",
@@ -103,7 +110,7 @@ describe("downloadable", () => {
       ["sop", "plan", "plr"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         robot: "Vantage",
         sop: "# VAN SOP",
         code: "def leftover(): pass",
@@ -113,7 +120,7 @@ describe("downloadable", () => {
       ["sop", "plan", "plr"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         robot: "Tecan",
         sop: "# SOP",
         code: "",
@@ -123,7 +130,7 @@ describe("downloadable", () => {
       ["sop", "plan", "gwl"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         robot: "Tecan",
         sop: "# SOP",
         code: "",
@@ -133,7 +140,7 @@ describe("downloadable", () => {
       ["sop", "plan"]
     );
     assert.deepEqual(
-      downloadable({
+      downloadable({ checks: { status: "pass" },
         robot: "OT-2",
         sop: "# SOP",
         code: "",
@@ -177,11 +184,11 @@ describe("planSteps", () => {
 describe("robot switch downloads", () => {
   it("lists only the new snapshot files", () => {
     assert.deepEqual(
-      downloadable({ robot: "OT-2", sop: "# OT SOP", code: "def run(): pass", plan: null }),
+      downloadable({ checks: { status: "pass" }, robot: "OT-2", sop: "# OT SOP", code: "def run(): pass", plan: null }),
       ["sop", "python"]
     );
     assert.deepEqual(
-      downloadable({ robot: "Hamilton", sop: "# HAM SOP", code: "", plan: { steps: [{ step_id: "1" }] } }),
+      downloadable({ checks: { status: "pass" }, robot: "Hamilton", sop: "# HAM SOP", code: "", plan: { steps: [{ step_id: "1" }] } }),
       ["sop", "plan"]
     );
   });

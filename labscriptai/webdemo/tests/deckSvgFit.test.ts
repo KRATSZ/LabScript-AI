@@ -42,8 +42,12 @@ describe("deckSvgFit", () => {
     assert.equal(style.maxWidth, "none");
     assert.equal(style.flex, "none");
     assert.equal(style.transformOrigin, "0 0");
-    assert.match(style.transform, /^scale\(0\.4/);
-    assert.doesNotMatch(style.transform, /scaleY/);
+    assert.equal(style.transform, `translateY(${fit.height * fit.scale}px) scale(${fit.scale}, ${-fit.scale})`);
+    // Robot y=0 belongs at the bottom; the far edge remains inside the cell.
+    const screenY = (robotY: number) => fit.top + fit.height * fit.scale - robotY * fit.scale;
+    assert.ok(screenY(0) > screenY(fit.height));
+    assert.ok(screenY(fit.height) >= DECK_SVG_FIT_PAD - 0.01);
+    assert.ok(screenY(0) <= 265 - DECK_SVG_FIT_PAD + 0.01);
     assert.equal(style.overflow, "visible");
     assert.equal(svg.dataset.deckFit, String(fit.scale));
     clearDeckSvgFit(svg);

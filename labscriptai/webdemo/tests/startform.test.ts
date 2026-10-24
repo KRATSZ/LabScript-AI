@@ -19,12 +19,13 @@ describe("StartForm examples", () => {
     assert.equal(EXAMPLES[1].label, "Prepare a PCR mix");
     assert.match(EXAMPLES[1].goal, /PCR mix/);
     assert.match(EXAMPLES[1].doc, /master mix/);
-    assert.equal(EXAMPLES[2].label, "Typical deck");
-    assert.match(EXAMPLES[2].goal, /common deck/);
+    assert.equal(EXAMPLES[2].label, "Serial dilution");
+    assert.match(EXAMPLES[2].goal, /1:2 serial dilution/);
     const blob = EXAMPLES.map((item) => `${item.label}\n${item.goal}\n${item.doc}`).join("\n");
     assert.doesNotMatch(blob, /standard3|standard 3-slot/i);
-    assert.match(EXAMPLES[2].goal, /Hamilton/);
-    assert.match(EXAMPLES[2].goal, /Tecan/);
+    for (const example of EXAMPLES) {
+      assert.ok(canStart(example.goal, example.deviceId), `${example.label} must be usable without another setup step`);
+    }
   });
 });
 
@@ -81,8 +82,8 @@ describe("StartForm device cards", () => {
     assert.match(src, /DEVICE_CARDS\.map/);
     assert.match(src, /canStart\(goal, deviceId\)/);
     assert.match(src, /matchDeviceFromText/);
-    assert.match(src, /Pick a robot/);
-    assert.match(src, /Paste a draft, or leave blank/);
+    assert.match(src, /Choose your instrument/);
+    assert.match(src, /SOP or existing code/);
     assert.match(src, /device-emoji/);
     assert.match(src, /device-blurb/);
     assert.match(src, /TILE_MARK/);

@@ -42,13 +42,15 @@ const children = [
 ];
 
 const flex3dPort = 8791;
-const virtualLab = path.resolve(repoRoot, "../../virtual-lab");
+const playerRoots = process.env.LABSCRIPTAI_PLAYER_ROOT
+  ? [path.resolve(process.env.LABSCRIPTAI_PLAYER_ROOT)]
+  : [path.resolve(repoRoot, "../virtual-lab"), path.resolve(repoRoot, "../../virtual-lab")];
+const virtualLab = playerRoots.find((candidate) => existsSync(path.join(candidate, "sim", "web_player.py"))) ?? playerRoots[0];
 const playerReady =
-  existsSync("/usr/bin/python3") &&
   existsSync(path.join(virtualLab, "sim", "web_player.py")) &&
   (await canBind(host, flex3dPort));
 const player = playerReady
-  ? spawn("/usr/bin/python3", ["-m", "sim.web_player"], {
+  ? spawn(python, ["-m", "sim.web_player"], {
       cwd: virtualLab,
       stdio: "inherit",
       env: { ...process.env, PYTHONPATH: virtualLab, PYTHONUNBUFFERED: "1" },

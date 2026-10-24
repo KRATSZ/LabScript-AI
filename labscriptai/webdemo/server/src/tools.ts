@@ -51,7 +51,9 @@ import {
   type AskUserInput,
   type SessionState,
 } from "./session.ts";
+import type { ChecksResult } from "./gate.ts";
 import { sseHasUserText, type SseWriter } from "./sse.ts";
+import { retainInitialConditions, planRequirementIssues, groundPlanCapacities } from "./requirements.ts";
 
 type ToolResult = AgentToolResult<Record<string, unknown>>;
 
@@ -68,6 +70,32 @@ function refusePatchBudget(): ToolResult {
     details: { refused: true, next: "done" },
     terminate: true,
   };
+}
+
+/** End with the actual check/artifact state rather than a model-invented recap. */
+export function checkedReply(session: SessionState, checks: ChecksResult, sse: SseWriter): ToolResult {
+  const payload = compactChecks(checks, session.patchesUsed ?? 0);
+  if (payload.next === "patch") return ok(payload);
+  const zh = session.language === "zh";
+  let text: string;
+  if (checks.status === "pass") {
+    const files = ["SOP", ...(session.code ? ["Python"] : session.plan ? [zh ? "步骤 JSON" : "step JSON"] : []),
+      ...(session.artifacts?.hamiltonScript ? ["PyLabRobot Python"] : []),
+      ...(session.artifacts?.worklistGwl ? ["FluentControl .gwl"] : [])];
+    text = zh ? `软件检查通过，可下载 ${files.join("、")}。` : `Software checks passed. Downloads: ${files.join(", ")}.`;
+    if (payload.review.status === "unavailable") text += zh ? " 语义审查未完成，仍需核对实验条件。" : " Semantic review did not finish; experimental conditions still need review.";
+    const commands = Array.isArray(session.analyze?.commands) ? session.analyze.commands.length : 0;
+    if (animationAllowed(checks, commands)) {
+      sse.write("animation", { allowed: true });
+      text += zh ? " 台面预演已显示。" : " The deck preview is displayed.";
+    }
+  } else {
+    text = (zh ? "检查未通过，当前方案不能作为可执行协议。\n" : "Checks did not pass; this protocol is not ready to execute.\n")
+      + payload.consequences.join("\n")
+      + (zh ? "\n请先确认要调整的实验条件或硬件，再重新生成。" : "\nConfirm the experimental or hardware changes before regenerating.");
+  }
+  sse.write("text", { token: `\n\n${text}\n` });
+  return { ...ok({ ...payload, completed: true }), terminate: true };
 }
 
 function toolGoal(session: SessionState): string {
@@ -95,7 +123,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
       "Persist session fields. First turn: call this after 1–2 lab questions and stop so a full protocol is not dumped. Do not ask which robot — the user already picked one at start. robot is only for a mid-chat switch the user requested (state-setting, not a question). Passing robot with no custom deck assumes that family's standard layout (assumed_deck=true). Pass deck only when the protocol names labware the assumed deck lacks. PCR plate is a standard-deck variant for PCR mix — do not treat PCR as missing hardware and do not demand a thermocycler for mix prep. If notes_conflict, call this, tell the user both volumes, and stop; after they answer, call again with goal set to the chosen volume. Does not generate code. No deck UI.",
     parameters: Type.Object({
       goal: Type.Optional(Type.String()),
-      doc: Type.Optional(Type.String({ description: "SOP draft text, or 'none'" })),
+      doc: Type.Optional(Type.String({ description: "Collect an initial draft only before a start form exists. The user's form document is immutable; never copy the goal or generated SOP into doc." })),
       robot: Type.Optional(unionLiterals(robotArgValues())),
       preset: Type.Optional(unionLiterals(DEVICE_REGISTRY.map((d) => d.hardwarePreset.id))),
       left_pipette: Type.Optional(Type.String()),
@@ -164,6 +192,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         };
       }
       applyAskUser(session, input);
+      sse.write("snapshot", snapshot(session));
       if (conflictBefore) {
         resolveGoalNotesConflict(session);
       }
@@ -265,7 +294,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         session.language === "zh" ? "zh" : "en"
       );
       if (!sop) throw new Error("generate_sop returned empty SOP");
-      session.sop = capSop(sop);
+      session.sop = retainInitialConditions(capSop(sop), session.requirements, session.language === "zh");
       sse.write("snapshot", snapshot(session));
       return ok({ chars: session.sop.length, sop_markdown: session.sop });
     },
@@ -435,7 +464,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         }
       }
       const { plan: normalized, notes } = normalizePlanInput(candidate);
-      const checked = await validatePlan(normalized);
+      const checked = await validatePlan(groundPlanCapacities(normalized, session.requirements));
       if (!checked.ok || !checked.plan) {
         return ok({ ok: false, errors: explainPlanErrors(checked.errors ?? ["invalid_plan"]) });
       }
@@ -486,7 +515,7 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         const { checks, plan, artifacts } = await runPlanChecks(
           session.plan as Record<string, unknown>,
           reviewIntent(session),
-          { robot: session.robot }
+          { robot: session.robot, hardware: session.hardware, requirementIssues: planRequirementIssues(session.plan as Record<string, unknown>, session.requirements) }
         );
         session.lastChecks = checks;
         if (checks.status === "pass") session.hasPassedChecks = true;
@@ -494,15 +523,15 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
         session.artifacts = checks.status === "pass" ? artifacts : undefined;
         sse.write("checks", checks);
         sse.write("snapshot", snapshot(session));
-        return ok(compactChecks(checks, session.patchesUsed ?? 0));
+        return checkedReply(session, checks, sse);
       }
-      const { checks, analyze } = await runChecks(session.code as string, session.goal ?? "");
+      const { checks, analyze } = await runChecks(session.code as string, reviewIntent(session), session.hardware, session.requirements);
       session.lastChecks = checks;
       if (checks.status === "pass") session.hasPassedChecks = true;
       session.analyze = analyze ?? undefined;
       sse.write("checks", checks);
       sse.write("snapshot", snapshot(session));
-      return ok(compactChecks(checks, session.patchesUsed ?? 0));
+      return checkedReply(session, checks, sse);
     },
   };
 
@@ -568,5 +597,18 @@ export function buildTools(session: SessionState, sse: SseWriter): AgentTool[] {
     },
   };
 
-  return [askUser, generateSop, generateCode, emitPlan, runChecksTool, skillTool, openAnimation];
+  const guarded = [generateSop, generateCode, emitPlan, runChecksTool, openAnimation].map((tool) => ({
+    ...tool,
+    execute: (...args: Parameters<typeof tool.execute>) => {
+      if (session.authoringSyncPending) {
+        return Promise.resolve(ok({
+          blocked: true,
+          next_tool: "ask_user",
+          hint: "First persist the complete current goal with ask_user, incorporating this user message and retaining all unchanged conditions from the goal/SOP draft. A clear amendment is already authorized; do not ask the human to confirm it again. Then regenerate SOP and downstream artifacts if the goal changed.",
+        }));
+      }
+      return tool.execute(...args);
+    },
+  }));
+  return [askUser, ...guarded.slice(0, 4), skillTool, guarded[4]];
 }

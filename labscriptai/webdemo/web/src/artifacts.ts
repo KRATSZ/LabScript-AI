@@ -80,6 +80,7 @@ export function downloadHint(kind: DownloadKind, robot?: RobotModel | null): str
 
 type DownloadSource = Pick<SessionSnapshot, "sop" | "code" | "plan" | "artifacts"> & {
   robot?: SessionSnapshot["robot"];
+  checks?: { status?: string } | null;
 };
 
 export function downloadable(session: DownloadSource): DownloadKind[] {
@@ -92,11 +93,12 @@ export function downloadable(session: DownloadSource): DownloadKind[] {
   const allowPlr = !robot || robot === "Hamilton" || robot === "Vantage";
 
   const out: DownloadKind[] = [];
+  const passed = session.checks?.status === "pass";
   if (session.sop?.trim()) out.push("sop");
-  if (allowPython && session.code?.trim()) out.push("python");
+  if (passed && allowPython && session.code?.trim()) out.push("python");
   if (allowPlan && session.plan && typeof session.plan === "object") out.push("plan");
-  if (allowGwl && session.artifacts?.worklistGwl?.trim()) out.push("gwl");
-  if (allowPlr && session.artifacts?.hamiltonScript?.trim()) out.push("plr");
+  if (passed && allowGwl && session.artifacts?.worklistGwl?.trim()) out.push("gwl");
+  if (passed && allowPlr && session.artifacts?.hamiltonScript?.trim()) out.push("plr");
   return out;
 }
 

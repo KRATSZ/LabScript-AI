@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
-import { analysisResetKey, sessionCanWatch } from "./analysis";
+import { sessionCanWatch } from "./analysis";
 import { createSession, fetchHealth, streamChat, type DemoHealth } from "./api";
 import { ChatPane } from "./ChatPane";
 import { isPlanCodegen, robotSupportsWatch } from "./devices";
@@ -26,10 +26,11 @@ function patchLastAssistant(prev: ChatMessage[], field: "text" | "thinking", tok
 }
 
 function ErrorNote({ error }: { error: string }) {
+  const { t } = useLang();
   if (!error) return null;
   return (
     <p className="file error-note" role="alert">
-      {error}
+      {t(error)}
     </p>
   );
 }
@@ -89,17 +90,16 @@ export function App() {
   }, [lang, session?.id]);
 
   const applySnapshot = useCallback((snap: SessionSnapshot) => {
+    if (robotRef.current !== snap.robot) {
+      setOverlay(false);
+      setFlex3d(false);
+    }
     robotRef.current = snap.robot;
     setSession(snap);
     if (Array.isArray(snap.events)) setEvents(snap.events);
   }, []);
 
-  useEffect(() => {
-    const prev = robotRef.current;
-    const next = session?.robot ?? null;
-    if (prev && next && prev !== next) setOverlay(false);
-    robotRef.current = next;
-  }, [session?.robot]);
+
 
   const runTurn = useCallback(
     async (sessionId: string, text: string, alreadyAddedUser: boolean) => {
@@ -222,6 +222,7 @@ export function App() {
     setEvents(thread.events);
     setError("");
     setOverlay(false);
+    setFlex3d(false);
     setNotesAttached(hasAttachedNotes(thread.session.doc));
   };
 
@@ -232,7 +233,7 @@ export function App() {
           <div className="brand-mark" />
           <div>
             <h1>LabscriptAI</h1>
-            {!session ? <p>{t("On-screen preview only")}</p> : null}
+            {!session ? <p>{t("From experiment to robot protocol")}</p> : null}
           </div>
         </div>
         {session ? (
@@ -260,20 +261,22 @@ export function App() {
             {session.code_service === "down" && !planBackend ? (
               <span className="code-offline">{t("Preview service down — OT-2 and Flex scripts stay off")}</span>
             ) : null}
-            <button type="button" className="ghost" onClick={() => { setOverlay(false); setFlex3d(true); }}>
-              {t("3D")}
-            </button>
+            {session.robot === "Flex" ? (
+              <button type="button" className="ghost" disabled={!canWatch} onClick={() => { setOverlay(false); setFlex3d(true); }}>
+                {t("3D")}
+              </button>
+            ) : null}
             <button type="button" className="ghost" disabled={busy} onClick={changeDevice}>
               {t("Change robot")}
             </button>
           </div>
         ) : health && (!health.hasKey || health.code_service !== "up") ? (
           <p className="demo-health" data-testid="demo-health">
-            {health.hasKey ? t("preview down") : t("No DeepSeek key")}
+            {health.hasKey ? t("Preview temporarily unavailable") : t("Service temporarily unavailable")}
           </p>
         ) : health ? (
           <p className="demo-health" data-testid="demo-health">
-            {t("preview ready")}
+            {t("Ready to create")}
           </p>
         ) : null}
         <LanguageSwitch />
@@ -346,7 +349,7 @@ export function App() {
         />
       </div>
 
-      {flex3d ? (
+      {flex3d && session?.robot === "Flex" && canWatch ? (
         <Suspense
           fallback={
             <OverlayChrome onClose={() => setFlex3d(false)}>
@@ -355,9 +358,10 @@ export function App() {
           }
         >
           <Flex3dOverlay
+            robot="Flex"
             onClose={() => setFlex3d(false)}
             sessionId={session?.id ?? null}
-            resetKey={analysisResetKey(session?.analyze ?? null)}
+            resetKey={JSON.stringify(session?.analyze ?? null)}
           />
         </Suspense>
       ) : null}

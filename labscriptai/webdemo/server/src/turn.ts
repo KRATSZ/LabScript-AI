@@ -7,6 +7,9 @@ export const CONTINUE_STEER =
   "Continue from LIVE SESSION. If next_tool is ask_user, one short confirm naming the deck (Hamilton: tip carrier / plate carrier / trough, never slots 1/2/3) — never “nothing is written yet.” Then stop. Otherwise run next_tool. User-facing chat: volumes, wells, sample counts — never which robot, never tool names.";
 
 export function continueSteer(session: SessionState): string {
+  if (session.authoringSyncPending) {
+    return `${userFacingLangLine(session)} Continue by calling ask_user to persist the complete current goal from the latest user request. This is internal synchronization; do not ask the human to repeat a clear amendment. Then follow the updated session pipeline.`;
+  }
   if (session.language === "zh") {
     return `用户可见回复必须用简体中文。${CONTINUE_STEER}`;
   }
@@ -21,6 +24,7 @@ export function userFacingLangLine(session: SessionState): string {
 
 export function nextToolHint(session: SessionState): string {
   const snap = snapshot(session);
+  if (session.authoringSyncPending) return "ask_user";
   if (snap.phase !== "ready") return "ask_user";
   if (unresolvedGoalNotesConflict(session)) return "ask_user";
   if (intakeOpen(session)) return "ask_user";
@@ -72,6 +76,8 @@ export function liveSessionBlock(session: SessionState): string {
     `doc: ${doc}`,
     ...(conflict ? [`notes_conflict: ${conflict}`] : []),
     `intake: ${session.intakeDone ? "done" : "pending"}`,
+    `authoring_sync: ${session.authoringSyncPending ? "required — call ask_user with the complete current goal before generation or checks; do not ask the human to repeat a clear amendment" : "done"}`,
+    `current_goal: ${snap.goal}`,
     `sop_chars: ${snap.sop.length}`,
     `plan_steps: ${Array.isArray(snap.plan?.steps) ? snap.plan.steps.length : 0}`,
     `deck_assumed: ${Boolean(snap.deck_assumed)}`,

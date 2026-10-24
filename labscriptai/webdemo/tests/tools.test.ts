@@ -1,7 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
-import { applyAskUser, applyForm, createSession, intakeOpen, markConflictUserReply, markIntakeReply, shouldCallCompactSop } from "../server/src/session.ts";
+import { applyAskUser, applyForm, authoringGoal, beginAuthoringTurn, createSession, intakeOpen, markConflictUserReply, markIntakeReply, reviewIntent, shouldCallCompactSop, unresolvedGoalNotesConflict } from "../server/src/session.ts";
+import { continueSteer, nextToolHint } from "../server/src/turn.ts";
 import { buildTools } from "../server/src/tools.ts";
 import { compactChecks, PATCH_BUDGET_REFUSAL, wrapChecks } from "../server/src/gate.ts";
 
@@ -14,6 +15,69 @@ function toolText(result: AgentToolResult<unknown>): string {
 }
 
 describe("tools harness", () => {
+  it("blocks stale artifact reuse until a follow-up is synchronized, then invalidates the whole old result", async () => {
+    const session = createSession();
+    applyForm(session, { robot: "Flex", goal: "Transfer 50 µL A1 to B1, no mixing", doc: "Transfer 50 µL A1 to B1. Use a fresh tip and wait 10 seconds." });
+    markIntakeReply(session, "confirmed");
+    session.sop = "old SOP: 50 µL";
+    session.code = "old Python: 50 µL";
+    session.plan = { steps: [] };
+    session.analyze = { commands: [{ commandType: "aspirate" }] };
+    session.artifacts = { worklistGwl: "old worklist" };
+    session.lastChecks = wrapChecks({ ok: true }, { outcome: "pass", logic_pass: true, final_pass_v2: true }, { issues: [] });
+    session.hasPassedChecks = true;
+    session.patchesUsed = 1;
+    beginAuthoringTurn(session, "Change the transfer to 80 µL, keep the other conditions");
+    beginAuthoringTurn(session, ""); // empty continuation cannot bypass synchronization
+    assert.equal(nextToolHint(session), "ask_user");
+    assert.match(continueSteer(session), /internal synchronization/);
+    const tools = buildTools(session, { write() {}, close() {} });
+    for (const name of ["generate_sop", "generate_code", "emit_plan", "run_checks", "open_animation"]) {
+      const result = await tools.find(t => t.name === name)!.execute("blocked", {});
+      assert.equal(JSON.parse(toolText(result)).blocked, true, name);
+      assert.match(toolText(result), /persist the complete current goal/);
+    }
+    await tools.find(t => t.name === "ask_user")!.execute("sync", { goal: "Transfer 80 µL A1 to B1, no mixing; use a fresh tip and wait 10 seconds" });
+    assert.equal(session.authoringSyncPending, false);
+    for (const key of ["sop", "code", "plan", "analyze", "artifacts", "lastChecks", "hasPassedChecks"] as const) assert.equal(session[key], undefined, key);
+    assert.equal(session.patchesUsed, 1, "goal sync cannot reset the per-turn patch limit");
+    assert.equal(unresolvedGoalNotesConflict(session), null, "old draft must not reopen an explicitly amended volume");
+    assert.match(authoringGoal(session), /80 µL/);
+    assert.match(authoringGoal(session), /wait 10 seconds/);
+    assert.match(authoringGoal(session), /takes precedence/);
+    session.draftConflictResolved = true;
+    assert.match(authoringGoal(session), /Earlier SOP draft/, "a later revision still retains unchanged conditions after an earlier volume conflict was resolved");
+    assert.match(session.doc!, /50 µL/, "original draft remains available for reference");
+    session.sop = "Transfer 80 µL with a fresh tip and wait 10 seconds";
+    assert.doesNotMatch(reviewIntent(session), /50 µL/, "reviewer must not use an old draft as the current intent");
+  });
+
+  it("accepts an explicit amendment before generation, including a simultaneous robot switch", () => {
+    for (const switchRobot of [false, true]) {
+      const session = createSession();
+      applyForm(session, { robot: "OT-2", goal: "Transfer 50 µL A1 to B1", doc: "Transfer 50 µL, use a fresh tip and wait 10 seconds" });
+      markIntakeReply(session, "confirmed");
+      beginAuthoringTurn(session, "Change to 80 µL" + (switchRobot ? " and switch to Flex" : ""));
+      applyAskUser(session, { goal: "Transfer 80 µL A1 to B1, fresh tip, wait 10 seconds", ...(switchRobot ? { robot: "Flex" } : {}) });
+      assert.equal(unresolvedGoalNotesConflict(session), null);
+      assert.match(authoringGoal(session), /wait 10 seconds/);
+      assert.doesNotMatch(reviewIntent(session), /50 µL/);
+      assert.equal(session.authoringSyncPending, false);
+    }
+  });
+
+  it("retains passing artifacts for a question about an unchanged goal", async () => {
+    const session = createSession();
+    applyForm(session, { robot: "OT-2", goal: "Transfer 50 µL A1 to B1", doc: "none" });
+    markIntakeReply(session, "confirmed");
+    session.sop = "existing SOP";
+    session.code = "existing code";
+    beginAuthoringTurn(session, "What volume does this transfer?");
+    applyAskUser(session, { goal: session.goal });
+    assert.equal(session.sop, "existing SOP");
+    assert.equal(session.code, "existing code");
+    assert.equal(session.authoringSyncPending, false);
+  });
   it("exposes the seven demo tools", () => {
     const session = createSession();
     const tools = buildTools(session, { write() {}, close() {} });
@@ -195,13 +259,15 @@ describe("tools harness", () => {
     assert.match(schema, /"Hamilton"/);
 
     const fluent = JSON.parse(toolText(await ask.execute("1", { robot: "Tecan Fluent" })));
-    assert.equal(fluent.ready, true);
+    assert.equal(fluent.ready, false);
+    assert.equal(fluent.wait, true, "a different hardware family must be confirmed");
     assert.equal(session.robot, "Tecan");
     assert.equal(session.hardware.leftPipette, "fca_1000");
-    assert.match(fluent.hardware_config || "", /Tecan Fluent/);
+    assert.match(fluent.ask || "", /Tecan Fluent/);
 
     const star = JSON.parse(toolText(await ask.execute("2", { robot: "Hamilton STAR" })));
-    assert.equal(star.ready, true);
+    assert.equal(star.ready, false);
+    assert.equal(star.wait, true);
     assert.equal(session.robot, "Hamilton");
     assert.equal(session.hardware.deck["1"], "hamilton_96_tiprack_300ul");
   });
