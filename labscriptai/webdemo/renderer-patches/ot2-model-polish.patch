@@ -1,6 +1,19 @@
 --- a/sim/ot2_shell.py
 +++ b/sim/ot2_shell.py
-@@ -94,11 +94,19 @@
+@@ -23,8 +23,10 @@
+ Public product appearance, not measurable in the STL (flat sheets): clear
+ acrylic side/top windows and front door, white frame, blue front status
+ light, interior LED strips (docs.opentrons.com OT-2 system description).
+-Pipette styling (white single, black 8-channel manifold, labels) follows
+-the public OT-2 pipette photos; exact moldings are not measured.
++GEN1 styling follows the legacy white/black photos. GEN2 has a continuous
++black/silver single-channel shell and a narrow upper tower over a wide
++8-channel lower manifold. Current official pipette photos and original lab
++installation photos establish those features; small moldings are estimated.
+ 
+ Geom groups: 0 pipettes and small deck-visible details, 2 shell, gantry
+ framing and glass (hidden by the follow close-up so the deck reads).
+@@ -94,11 +96,19 @@
  
  def materials_xml() -> str:
      return """
@@ -20,7 +33,7 @@
      <material name="anodized" rgba="0.16 0.17 0.185 1" specular="0.5" shininess="0.6"/>
      <material name="graphite" rgba="0.17 0.18 0.195 1" specular="0.3" shininess="0.35"/>
      <material name="satin_black" rgba="0.078 0.082 0.09 1" specular="0.25" shininess="0.3"/>
-@@ -110,11 +118,25 @@
+@@ -110,11 +120,25 @@
      <material name="gantry_white" rgba="0.87 0.88 0.90 1" specular="0.35" shininess="0.35"/>
      <material name="pipette_white" rgba="0.94 0.945 0.95 1" specular="0.4" shininess="0.4"/>
      <material name="pipette_gray" rgba="0.70 0.72 0.75 1" specular="0.25" shininess="0.25"/>
@@ -47,7 +60,12 @@
      """
  
  
-@@ -148,15 +170,39 @@
+@@ -144,19 +168,51 @@
+     dim = (150, 156, 164) if dark else (110, 116, 124)
+     img = Image.new("RGB", (w, h), bg)
+     draw = ImageDraw.Draw(img)
+-    cx, cy, r = w / 2, 130, 42
++    cx, cy, r = w / 2, ((470 if channels == "8" else 265) if gen2 else 130), 42
      draw.ellipse((cx - r, cy - r, cx + r, cy + r), outline=dim, width=6)
      draw.ellipse((cx - 13, cy - 2, cx + 13, cy + 24), fill=dim)
      draw.polygon([(cx, cy - 24), (cx - 12, cy + 6), (cx + 12, cy + 6)], fill=dim)
@@ -55,32 +73,40 @@
 -    _text_center(draw, (cx, h * 0.57), f"{channels}-Channel", _font(44), dim)
      if gen2:
 -        _text_center(draw, (cx, h * 0.64), "GEN2", _font(40), dim)
-+        # GEN2 carries a compact lower capacity/channel marking on the
-+        # black front.  Keep the drop mark dominant and avoid the oversized
-+        # white legacy label used by the GEN1 face.
-+        _text_center(draw, (cx, h * 0.73), volume, _font(48, bold=True), fg)
-+        _text_center(draw, (cx, h * 0.81), f"{channels}-Channel", _font(25), dim)
-+        _text_center(draw, (cx, h * 0.87), "GEN2", _font(24), dim)
++        # Manufacturer photos put the compact capacity badge near the foot
++        # of the single's long face. The multi has its badge on the wide
++        # lower housing, separately from the drop on the narrow upper tower.
++        if channels == "1":
++            draw.rectangle((12, 752, w - 12, 860), outline=(55, 58, 62), width=3)
++            _text_center(draw, (cx, 805), f"{volume} GEN2", _font(25, bold=True), fg)
 +    else:
 +        _text_center(draw, (cx, h * 0.46), volume, _font(88, bold=True), fg)
 +        _text_center(draw, (cx, h * 0.57), f"{channels}-Channel", _font(44), dim)
 +    return img
 +
 +
++def _gen2_badge(volume: str) -> Image.Image:
++    img = Image.new("RGB", (300, 140), (30, 32, 35))
++    draw = ImageDraw.Draw(img)
++    draw.rectangle((2, 2, 297, 137), outline=(62, 65, 69), width=4)
++    _text_center(draw, (150, 70), f"{volume} GEN2", _font(34, bold=True), (218, 220, 222))
++    return img
++
++
 +def _drop_mark() -> Image.Image:
-+    """Small light drop mark for the moving carriage cover.
++    """Drop/ring mark printed on the lower carriage cover.
 +
 +    The mark is deliberately a separate texture from the OT-2 wordmark.  The
 +    official gantry photos show a simple drop on the tall light carriage
 +    cover, while the front header carries the full ``opentrons OT-2`` label.
 +    """
 +
-+    img = Image.new("RGB", (240, 360), (218, 222, 226))
++    img = Image.new("RGB", (240, 240), (222, 224, 230))
 +    draw = ImageDraw.Draw(img)
 +    cx = 120
-+    draw.arc((60, 112, 180, 232), 290, 250, fill=(62, 69, 77), width=12)
-+    draw.polygon([(cx, 135), (96, 178), (96, 194), (cx, 210), (144, 194), (144, 178)], fill=(40, 134, 175))
-+    draw.ellipse((96, 171, 144, 211), fill=(40, 134, 175))
++    draw.arc((34, 34, 206, 206), 285, 255, fill=(74, 78, 84), width=20)
++    draw.polygon([(cx, 64), (82, 126), (82, 150), (cx, 179), (158, 150), (158, 126)], fill=(40, 134, 175))
++    draw.ellipse((82, 113, 158, 182), fill=(40, 134, 175))
      return img
  
  
@@ -90,8 +116,12 @@
      # (volume, gen1 single, gen2 single, gen1 multi, gen2 multi)
      catalog = (
          ("P10", True, False, True, False),
-@@ -168,7 +214,9 @@
+@@ -166,9 +222,13 @@
+         ("P1000", True, True, False, False),
+     )
      for volume, s1, s2, m1, m2 in catalog:
++        if m2:
++            book.texture(f"ot2_badge_{volume}_g2", _gen2_badge(volume), specular=0.20)
          for want, channels, dark, gen2, suffix in (
              (s1, "1", False, False, ""),
 -            (s2, "1", False, True, "_g2"),
@@ -101,7 +131,7 @@
              (m1, "8", True, False, "_8"),
              (m2, "8", True, True, "_8g2"),
          ):
-@@ -197,6 +245,9 @@
+@@ -197,6 +257,9 @@
          [(X0 + 0.025, Y0 + 0.033), (X1 - 0.025, Y0 + 0.033), (X0 + 0.025, Y1 - 0.033), (X1 - 0.025, Y1 - 0.033)]
      ):
          g.append(cyl(f"foot_{i}", (fx, fy, 0.0), (fx, fy, 0.024), 0.024, "rubber", 2))
@@ -111,7 +141,7 @@
      # The band surrounds the deck; a solid slab here hides every short plate
      # below SILL_Z (the deck's working plane is z=0). Keep the open centre.
      band_sides = (
-@@ -208,9 +259,18 @@
+@@ -208,9 +271,18 @@
      for name, lo, hi in band_sides:
          g.append(rbox(book, f"base_band_{name}", (*lo, 0.018), (*hi, SILL_Z), "shell_wall", 0.006, 2))
          g.append(rbox(book, f"base_trim_{name}", (*lo, SILL_Z - 0.012), (*hi, SILL_Z), "band_gray", 0.004, 2))
@@ -131,7 +161,7 @@
  
      # Side walls: white frame with a tall window hole, then the glass.
      win_y = (Y0 + 0.052, Y1 - 0.052)
-@@ -218,17 +278,39 @@
+@@ -218,17 +290,39 @@
      side = rrect(Y0, Y1, 0.0, Z1, 0.008, 0.020)
      hole = rrect(win_y[0], win_y[1], win_z[0], win_z[1], 0.016, 0.016)
      for name, lo, hi in (("left", X0, X0 + WALL), ("right", X1 - WALL, X1)):
@@ -178,24 +208,57 @@
      # No interior LED strip geoms: emissive bars above the side walls mirror
      # off the window panes at grazing angles and wash out the deck view.
  
-@@ -256,14 +338,24 @@
-         ("left", (dx0 - 0.012, door_y - 0.007, dz0 + 0.012), (dx0 + 0.004, door_y + 0.007, dz1 - 0.012)),
-         ("right", (dx1 - 0.004, door_y - 0.007, dz0 + 0.012), (dx1 + 0.012, door_y + 0.007, dz1 - 0.012)),
-     ):
+@@ -246,24 +340,45 @@
+     dz0, dz1 = DOOR_Z0 + 0.008, DOOR_Z1 - 0.008
+     dx0, dx1 = DOOR_X0 + 0.008, DOOR_X1 - 0.008
+     door_y = Y0 + WALL / 2
++    hinge_z = (dz0 + dz1) / 2
+     g.append(
+-        f'<geom name="door_glass" type="box" pos="{_v((dx0 + dx1) / 2, door_y, (dz0 + dz1) / 2)}" '
+-        f'size="{_v((dx1 - dx0) / 2, 0.004, (dz1 - dz0) / 2)}" material="glass" group="2"/>'
++        f'<geom name="door_glass" type="box" pos="{_v((dx0 + dx1) / 2, door_y, (hinge_z + dz1) / 2)}" '
++        f'size="{_v((dx1 - dx0) / 2, 0.003, (dz1 - hinge_z) / 2)}" material="glass" group="2"/>'
+     )
+-    for name, lo, hi in (
+-        ("top", (dx0 - 0.008, door_y - 0.007, dz1 - 0.012), (dx1 + 0.008, door_y + 0.007, dz1 + 0.004)),
+-        ("bottom", (dx0 - 0.008, door_y - 0.007, dz0 - 0.004), (dx1 + 0.008, door_y + 0.007, dz0 + 0.012)),
+-        ("left", (dx0 - 0.012, door_y - 0.007, dz0 + 0.012), (dx0 + 0.004, door_y + 0.007, dz1 - 0.012)),
+-        ("right", (dx1 - 0.004, door_y - 0.007, dz0 + 0.012), (dx1 + 0.012, door_y + 0.007, dz1 - 0.012)),
+-    ):
 -        g.append(rbox(book, f"door_frame_{name}", lo, hi, "shell_white", 0.003, 2))
-+        g.append(rbox(book, f"door_frame_{name}", lo, hi, "frame_dark" if name in ("left", "right") else "shell_white", 0.003, 2))
-+    # Lower-door hinge barrels are visible on the two front corners; they are
-+    # fixed visual parts and do not introduce a door joint into the simulator.
-+    for side, x in (("l", dx0 + 0.020), ("r", dx1 - 0.020)):
-+        g.append(cyl(f"door_hinge_{side}", (x, Y0 - 0.006, dz0 + 0.018), (x, Y0 - 0.006, dz0 + 0.050), 0.006, "aluminum_dark", 2))
+-    # Lift-off handle across the door top (public appearance), then logo and
+-    # the blue front status light on the header.
+-    g.append(rbox(book, "door_handle", (cx - 0.11, Y0 - 0.006, dz1 - 0.028), (cx + 0.11, Y0 + 0.005, dz1 - 0.016), "shell_white", 0.004, 2))
+-    g.append(rbox(book, "door_handle_grip", (cx - 0.10, Y0 - 0.009, dz1 - 0.026), (cx + 0.10, Y0 - 0.002, dz1 - 0.018), "band_gray", 0.003, 2))
++    g.append(
++        f'<geom name="door_lower_glass" type="box" pos="{_v((dx0 + dx1) / 2, door_y, (dz0 + hinge_z) / 2)}" '
++        f'size="{_v((dx1 - dx0) / 2, 0.003, (hinge_z - dz0) / 2 - 0.0007)}" material="glass" group="2"/>'
++    )
++    # Both manufacturer imagery and the HKUST/installation photographs show
++    # a fixed upper window and a lower flap hinged at the middle seam. The
++    # old bottom-mounted vertical barrels and full-height door frame were
++    # incorrect. These leaves and horizontal axles show the closed pose;
++    # this visual repair deliberately adds no unvalidated door articulation.
++    g.append(rbox(book, "door_middle_join", (dx0, Y0 - 0.001, hinge_z - 0.0005), (dx1, Y0 + 0.001, hinge_z + 0.0005), "aluminum_dark", 0.0002, 2))
++    for side, x in (("l", dx0 + 0.007), ("r", dx1 - 0.007)):
++        for leaf, za, zb in (("upper", hinge_z + 0.003, hinge_z + 0.021), ("lower", hinge_z - 0.021, hinge_z - 0.003)):
++            g.append(rbox(book, f"door_hinge_{side}_{leaf}", (x - 0.016, Y0 - 0.009, za), (x + 0.016, Y0 - 0.003, zb), "rail_black", 0.002, 2))
++        g.append(cyl(f"door_hinge_{side}", (x - 0.017, Y0 - 0.010, hinge_z), (x + 0.017, Y0 - 0.010, hinge_z), 0.0045, "aluminum_dark", 2))
++        for col in (-1, 1):
++            for row in (-1, 1):
++                sx, sz = x + col * 0.010, hinge_z + row * 0.013
++                g.append(cyl(f"door_hinge_{side}_screw_{col}_{row}", (sx, Y0 - 0.010, sz), (sx, Y0 - 0.008, sz), 0.0021, "graphite", 2))
++        g.append(rbox(book, f"door_catch_{side}", (x - 0.015, Y0 - 0.009, dz0 + 0.005), (x + 0.015, Y0 - 0.003, dz0 + 0.024), "rail_black", 0.002, 2))
 +    g.append(rbox(book, "front_header_seam", (X0 + 0.050, Y0 - 0.002, DOOR_Z1 - 0.004), (X1 - 0.050, Y0 + 0.003, DOOR_Z1 + 0.001), "panel_edge", 0.001, 2))
-     # Lift-off handle across the door top (public appearance), then logo and
-     # the blue front status light on the header.
-     g.append(rbox(book, "door_handle", (cx - 0.11, Y0 - 0.006, dz1 - 0.028), (cx + 0.11, Y0 + 0.005, dz1 - 0.016), "shell_white", 0.004, 2))
-     g.append(rbox(book, "door_handle_grip", (cx - 0.10, Y0 - 0.009, dz1 - 0.026), (cx + 0.10, Y0 - 0.002, dz1 - 0.018), "band_gray", 0.003, 2))
++    # Small pull at the lower edge of the flap, as in the real closed door.
++    g.append(rbox(book, "door_handle", (cx - 0.044, Y0 - 0.008, dz0 + 0.005), (cx + 0.044, Y0 + 0.002, dz0 + 0.014), "shell_white", 0.003, 2))
++    g.append(rbox(book, "door_handle_grip", (cx - 0.037, Y0 - 0.009, dz0 + 0.006), (cx + 0.037, Y0 - 0.006, dz0 + 0.010), "band_gray", 0.001, 2))
      header_mid = (DOOR_Z1 + Z1) / 2
 -    g.append(label(book, "logo", (cx - 0.13, Y0 + 0.0002, header_mid), (0.26, 0.023), "ot2_logo", 2))
 -    g.append(rbox(book, "status_led", (cx + 0.13, Y0 - 0.0005, header_mid - 0.002), (cx + 0.185, Y0 + 0.0025, header_mid + 0.002), "led_blue", 0.002, 2))
++    for side, xx in (("l", X0 + 0.041), ("r", X1 - 0.041)):
++        g.append(cyl(f"header_screw_{side}", (xx, Y0 - 0.002, header_mid), (xx, Y0 + 0.001, header_mid), 0.0035, "steel", 2))
++        g.append(cyl(f"header_screw_{side}_socket", (xx, Y0 - 0.0025, header_mid), (xx, Y0 - 0.002, header_mid), 0.0015, "graphite", 2))
 +    # Put the decal ahead of the rounded header face, not within the mesh;
 +    # the previous 0.2 mm inset caused perspective-dependent clipped lettering.
 +    g.append(label(book, "logo", (cx - 0.105, Y0 - 0.002, header_mid), (0.26, 0.023), "ot2_logo", 2))
@@ -206,7 +269,7 @@
  
      return "\n      ".join(g)
  
-@@ -276,6 +368,12 @@
+@@ -276,6 +391,12 @@
      for name, x in (("left", RAIL_X[0]), ("right", RAIL_X[1])):
          g.append(rbox(book, f"rail_{name}", (x - 0.027, y0, RAIL_Z[0] + 0.006), (x + 0.027, y1, RAIL_Z[1] - 0.004), "steel", 0.005, 2))
          g.append(rbox(book, f"rail_{name}_mount", (x - 0.023, y0 + 0.01, RAIL_Z[0] - 0.020), (x + 0.023, y1 - 0.01, RAIL_Z[0] + 0.008), "graphite", 0.004, 2))
@@ -219,7 +282,7 @@
      return "\n      ".join(g)
  
  
-@@ -292,9 +390,14 @@
+@@ -292,9 +413,14 @@
      """
  
      g = [
@@ -235,7 +298,7 @@
      ]
      for name, xa, xb in (
          ("left", max(RAIL_X[0] - 0.048, X0 + 0.008), RAIL_X[0] + 0.052),
-@@ -303,6 +406,9 @@
+@@ -303,6 +429,9 @@
          g.append(rbox(book, f"gantry_plate_{name}", (xa, BEAM_Y_REL - BEAM_HALF_Y + 0.006, BEAM_Z1 - 0.004), (xb, BEAM_Y_REL + BEAM_HALF_Y - 0.006, PLATE_Z1), "gantry_white", 0.005, 2))
          g.append(rbox(book, f"gantry_truck_{name}", (xa + 0.008, BEAM_Y_REL - 0.044, PLATE_Z1 - 0.004), (xb - 0.008, BEAM_Y_REL + 0.044, PLATE_Z1 + 0.026), "matte_black", 0.005, 2))
          g.append(rbox(book, f"gantry_plate_{name}_trim", (xa + 0.004, BEAM_Y_REL - BEAM_HALF_Y + 0.006, BEAM_Z1 - 0.004), (xa + 0.008, BEAM_Y_REL + BEAM_HALF_Y - 0.006, PLATE_Z1 - 0.010), "graphite", 0.001, 2))
@@ -245,7 +308,7 @@
      return "\n        ".join(g)
  
  
-@@ -312,16 +418,43 @@
+@@ -312,16 +441,43 @@
      Carriage frame: origin at the right nozzle (x = y = 0), z absolute.
      """
  
@@ -268,7 +331,7 @@
 +        rbox(book, "carriage_cover_recess", (-0.020, -0.075, CLAMP_Z[0] + 0.024), (0.020, -0.071, CLAMP_Z[0] + 0.034), "panel_edge", 0.001, 2),
 +        rbox(book, "carriage_cover_side_l", (-0.050, -0.067, CLAMP_Z[0] + 0.008), (-0.045, -0.048, cover_top - 0.010), "aluminum_dark", 0.0015, 2),
 +        rbox(book, "carriage_cover_side_r", (0.045, -0.067, CLAMP_Z[0] + 0.008), (0.050, -0.048, cover_top - 0.010), "aluminum_dark", 0.0015, 2),
-+        label(book, "carriage_cover_logo", (0.0, -0.0755, (CLAMP_Z[0] + cover_top) / 2 + 0.008), (0.030, 0.032), "drop_mark", 2),
++        label(book, "carriage_cover_logo", (0.0, -0.0755, CLAMP_Z[0] + 0.067), (0.058, 0.064), "drop_mark", 2),
      ]
      for name, x in (("right", 0.0), ("left", LEFT_DX)):
          g.append(cyl(f"mount_{name}", (x, MOUNT_Y, CARR_Z[0] + 0.006), (x, MOUNT_Y, CARR_Z[1]), 0.0125, "steel", 2))
@@ -289,54 +352,53 @@
      for name, x in (("l", ZRAIL_X[0]), ("r", ZRAIL_X[1])):
          g.append(rbox(book, f"z_rail_{name}", (x - 0.003, CARR_Y[0] - 0.002, BEAM_Z0 + 0.004), (x + 0.003, CARR_Y[0] + 0.003, CARR_Z[1] - 0.012), "chrome", 0.0012, 2))
      return "\n          ".join(g)
-@@ -358,8 +491,8 @@
+@@ -358,8 +514,8 @@
  def pipette_single_body(book: AssetBook, tool: str, prefix: str | None = None) -> list[str]:
      """Single-channel pipette in the head frame: nozzle end z 0, body above.
  
 -    Gen 2 keeps the smooth white housing with a display strip; gen 1 adds the
 -    gray service band and the side ejector shaft. ``prefix`` names the geoms
-+    GEN2 uses a black face, silver side shells and a compact lower marking;
++    GEN2 uses a continuous black face, silver side shells and a lower badge;
 +    GEN1 retains the legacy service band and side ejector shaft. ``prefix`` names the geoms
      (the scene passes ``pipette_<mount>`` so both mounts can share a model).
      """
  
-@@ -367,18 +500,45 @@
+@@ -367,18 +523,42 @@
      volume = _volume_label(tool)
      face = f"ot2_face_{volume}{'_g2' if _is_gen2(tool) else ''}"
      z0, z1 = PIPETTE_Z
 +    gen2 = _is_gen2(tool)
 +    housing = "pipette_black" if gen2 else "pipette_white"
++    housing_top = PIPETTE_TOP if gen2 else z1
      g = [
-         cyl(f"{name}_collar", (0.0, 0.0, 0.022), (0.0, 0.0, z0 + 0.006), 0.0075, "graphite", 0),
+-        cyl(f"{name}_collar", (0.0, 0.0, 0.022), (0.0, 0.0, z0 + 0.006), 0.0075, "graphite", 0),
 -        rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, PIPETTE_Y[0], z0), (PIPETTE_HALF_X, PIPETTE_Y[1], z1), "pipette_white", 0.004, 0),
-+        rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, PIPETTE_Y[0], z0), (PIPETTE_HALF_X, PIPETTE_Y[1], z1), housing, 0.005, 0),
-         label(book, f"{name}_face", (0.0, PIPETTE_Y[0] - 0.0003, (z0 + z1) / 2), (PIPETTE_HALF_X * 2 - 0.004, z1 - z0 - 0.006), face, 0),
+-        label(book, f"{name}_face", (0.0, PIPETTE_Y[0] - 0.0003, (z0 + z1) / 2), (PIPETTE_HALF_X * 2 - 0.004, z1 - z0 - 0.006), face, 0),
 -        rbox(book, f"{name}_spine", (-0.011, PIPETTE_Y[0] + 0.004, z1), (0.011, PIPETTE_Y[1] - 0.004, PIPETTE_TOP), "pipette_gray", 0.003, 0),
++        cyl(f"{name}_collar", (0.0, 0.0, 0.012 if gen2 else 0.022), (0.0, 0.0, z0 + 0.006), 0.0047 if gen2 else 0.0075, "pipette_black" if gen2 else "graphite", 0),
++        rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, PIPETTE_Y[0], z0), (PIPETTE_HALF_X, PIPETTE_Y[1], housing_top), housing, 0.005, 0),
++        label(book, f"{name}_face", (0.0, PIPETTE_Y[0] - 0.0003, (z0 + housing_top) / 2), (PIPETTE_HALF_X * 2 - 0.004, housing_top - z0 - 0.006), face, 0),
 +        rbox(book, f"{name}_spine", (-0.011, PIPETTE_Y[0] + 0.004, z1), (0.011, PIPETTE_Y[1] - 0.004, PIPETTE_TOP), "pipette_black" if gen2 else "pipette_gray", 0.003, 0),
          rbox(book, f"{name}_cap", (-PIPETTE_HALF_X + 0.004, PIPETTE_Y[0] + 0.003, PIPETTE_TOP - 0.010), (PIPETTE_HALF_X - 0.004, PIPETTE_Y[1] - 0.003, PIPETTE_TOP), "graphite", 0.002, 0),
 +        # Moving flange and short connector overlap the fixed mount slide at
 +        # the working end of Z travel.  The overlap is intentional for a
 +        # readable mechanical joint; it does not participate in collision.
-+        rbox(book, f"{name}_mount_flange", (-0.021, PIPETTE_Y[0] + 0.002, PIPETTE_TOP - 0.006), (0.021, PIPETTE_Y[1] - 0.002, PIPETTE_TOP + 0.012), "gantry_white", 0.003, 0),
++        rbox(book, f"{name}_mount_flange", (-0.021, PIPETTE_Y[0] + 0.002, PIPETTE_TOP - 0.006), (0.021, PIPETTE_Y[1] - 0.002, PIPETTE_TOP + 0.012), "pipette_silver" if gen2 else "gantry_white", 0.003, 0),
 +        cyl(f"{name}_mount_pin", (0.0, MOUNT_Y, PIPETTE_TOP + 0.006), (0.0, MOUNT_Y, PIPETTE_TOP + 0.034), 0.0055, "chrome", 0),
      ] + _nozzles(name, 1)
 -    if _is_gen2(tool):
 -        g.append(rbox(book, f"{name}_display", (-0.010, PIPETTE_Y[0] - 0.0006, z1 - 0.052), (0.010, PIPETTE_Y[0] + 0.003, z1 - 0.012), "display_dark", 0.0015, 0))
 +    if gen2:
-+        # The documented GEN2 silhouette is black on the face with silver
-+        # side shells, a stepped nose and a separate ejector sleeve.  These
-+        # are visual pieces in the existing moving pipette body; the tip site
-+        # and every kinematic anchor remain untouched.
++        # Current GEN2 photos show an uninterrupted long face, thin silver
++        # side panels and a black lower nozzle. There is no large exposed
++        # silver ejector cage on this configuration. Preserve the head/site
++        # frame; the small lower skin covers the unchanged analytical needle.
 +        g.extend(
 +            (
-+                rbox(book, f"{name}_silver_side_l", (-PIPETTE_HALF_X - 0.0005, PIPETTE_Y[0] + 0.003, z0 + 0.006), (-PIPETTE_HALF_X + 0.006, PIPETTE_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
-+                rbox(book, f"{name}_silver_side_r", (PIPETTE_HALF_X - 0.006, PIPETTE_Y[0] + 0.003, z0 + 0.006), (PIPETTE_HALF_X + 0.0005, PIPETTE_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
-+                rbox(book, f"{name}_nose", (-0.012, PIPETTE_Y[0] + 0.005, z0 + 0.002), (0.012, PIPETTE_Y[1] - 0.002, z0 + 0.032), "pipette_recess", 0.003, 0),
-+                rbox(book, f"{name}_ejector_bridge", (-0.010, PIPETTE_Y[0] + 0.001, z0 + 0.029), (0.010, PIPETTE_Y[1] - 0.001, z0 + 0.038), "pipette_silver", 0.002, 0),
-+                rbox(book, f"{name}_ejector_rail_l", (-0.012, PIPETTE_Y[1] - 0.006, z0 + 0.022), (-0.008, PIPETTE_Y[1] - 0.001, z0 + 0.052), "pipette_metal", 0.001, 0),
-+                rbox(book, f"{name}_ejector_rail_r", (0.008, PIPETTE_Y[1] - 0.006, z0 + 0.022), (0.012, PIPETTE_Y[1] - 0.001, z0 + 0.052), "pipette_metal", 0.001, 0),
-+                cyl(f"{name}_ejector_sleeve", (0.0, 0.0, z0 + 0.003), (0.0, 0.0, z0 + 0.018), 0.009, "pipette_silver", 0),
-+                cyl(f"{name}_nozzle_seat", (0.0, 0.0, z0 + 0.018), (0.0, 0.0, z0 + 0.030), 0.0042, "pipette_metal", 0),
++                rbox(book, f"{name}_silver_side_l", (-PIPETTE_HALF_X - 0.0005, PIPETTE_Y[0] + 0.003, z0 + 0.009), (-PIPETTE_HALF_X + 0.003, PIPETTE_Y[1] - 0.003, housing_top - 0.005), "pipette_silver", 0.0015, 0),
++                rbox(book, f"{name}_silver_side_r", (PIPETTE_HALF_X - 0.003, PIPETTE_Y[0] + 0.003, z0 + 0.009), (PIPETTE_HALF_X + 0.0005, PIPETTE_Y[1] - 0.003, housing_top - 0.005), "pipette_silver", 0.0015, 0),
++                rbox(book, f"{name}_heel_seam", (-PIPETTE_HALF_X + 0.002, PIPETTE_Y[0] - 0.0005, z0 + 0.008), (PIPETTE_HALF_X - 0.002, PIPETTE_Y[0] + 0.001, z0 + 0.009), "pipette_recess", 0.0003, 0),
++                cyl(f"{name}_needle_skin", (0.0, 0.0, 0.002), (0.0, 0.0, 0.016), 0.0023, "pipette_black", 0),
 +            )
 +        )
      else:
@@ -346,31 +408,51 @@
 +    # This collar is part of the nozzle/tip assembly.  Keeping ``needle`` in
 +    # its name makes the existing aimed-well exemption treat it like the
 +    # adjacent needle capsule during clearance sweeps.
-+    g.append(cyl(f"{name}_needle_collar", (0.0, 0.0, 0.004), (0.0, 0.0, 0.014), 0.0034, "nozzle_steel", 0))
++    g.append(cyl(f"{name}_needle_collar", (0.0, 0.0, 0.007 if gen2 else 0.004), (0.0, 0.0, 0.016 if gen2 else 0.014), 0.0034, "pipette_black" if gen2 else "nozzle_steel", 0))
      return g
  
  
-@@ -395,7 +555,19 @@
+@@ -389,13 +569,39 @@
+     volume = _volume_label(tool)
+     face = f"ot2_face_{volume}_8{'g2' if _is_gen2(tool) else ''}"
+     z0, z1 = PIPETTE_Z
++    if _is_gen2(tool):
++        # Official GEN2 front/side photos: narrow upper instrument tower,
++        # broad lower manifold and short individual nozzle ends. Do not
++        # stretch the 8-channel width through the entire upper housing.
++        split, bottom = 0.108, 0.010
++        g = [
++            rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, MULTI_Y[0], bottom), (PIPETTE_HALF_X, MULTI_Y[1], split), "pipette_black", 0.004, 0),
++            rbox(book, f"{name}_tower", (-PIPETTE_HALF_X + 0.002, PIPETTE_Y[0], split - 0.003), (PIPETTE_HALF_X - 0.002, PIPETTE_Y[1], PIPETTE_TOP), "pipette_black", 0.002, 0),
++            label(book, f"{name}_face", (0.0, PIPETTE_Y[0] - 0.0004, (split + PIPETTE_TOP) / 2), (0.027, PIPETTE_TOP - split - 0.004), face, 0),
++            label(book, f"{name}_badge", (0.0, MULTI_Y[0] - 0.0005, 0.070), (0.024, 0.014), f"ot2_badge_{volume}_g2", 0),
++            rbox(book, f"{name}_cap", (-PIPETTE_HALF_X + 0.003, PIPETTE_Y[0] + 0.002, PIPETTE_TOP - 0.004), (PIPETTE_HALF_X - 0.003, PIPETTE_Y[1] + 0.002, PIPETTE_TOP), "graphite", 0.001, 0),
++            rbox(book, f"{name}_mount_flange", (-0.021, PIPETTE_Y[0] + 0.002, PIPETTE_TOP - 0.006), (0.021, PIPETTE_Y[1] - 0.002, PIPETTE_TOP + 0.012), "pipette_silver", 0.003, 0),
++            cyl(f"{name}_mount_pin", (0.0, MOUNT_Y, PIPETTE_TOP + 0.006), (0.0, MOUNT_Y, PIPETTE_TOP + 0.034), 0.0055, "chrome", 0),
++            rbox(book, f"{name}_heel_seam", (-PIPETTE_HALF_X + 0.001, MULTI_Y[0] - 0.0005, bottom + 0.012), (PIPETTE_HALF_X - 0.001, MULTI_Y[0] + 0.001, bottom + 0.013), "pipette_recess", 0.0003, 0),
++        ] + _nozzles(name, 8)
++        for side, xa, xb in (("l", -PIPETTE_HALF_X - 0.0003, -PIPETTE_HALF_X + 0.003), ("r", PIPETTE_HALF_X - 0.003, PIPETTE_HALF_X + 0.0003)):
++            g.append(rbox(book, f"{name}_silver_side_{side}", (xa, PIPETTE_Y[0] + 0.003, split + 0.003), (xb, PIPETTE_Y[1] - 0.002, PIPETTE_TOP - 0.003), "pipette_silver", 0.001, 0))
++        for k, row in enumerate(NOZZLE_ROWS):
++            yy = -PITCH * k
++            g.append(cyl(f"{name}_needle_{row}_skin", (0.0, yy, 0.002), (0.0, yy, bottom + 0.004), 0.0023, "pipette_black", 0))
++            g.append(cyl(f"{name}_needle_{row}_seat", (0.0, yy, 0.006), (0.0, yy, bottom + 0.004), 0.0034, "pipette_black", 0))
++        return g
+     g = [
+         rbox(book, f"{name}_nose", (-PIPETTE_HALF_X, MULTI_Y[0] + 0.010, 0.034), (PIPETTE_HALF_X, 0.004, z0 + 0.010), "matte_black", 0.003, 0),
+         rbox(book, f"{name}_housing", (-PIPETTE_HALF_X, MULTI_Y[0], z0), (PIPETTE_HALF_X, MULTI_Y[1], z1), "satin_black", 0.004, 0),
          label(book, f"{name}_face", (0.0, MULTI_Y[0] - 0.0003, z0 + 0.058), (PIPETTE_HALF_X * 2 - 0.004, 0.096), face, 0),
          rbox(book, f"{name}_spine", (-0.011, MULTI_Y[0] + 0.006, z1), (0.011, MULTI_Y[1] - 0.004, PIPETTE_TOP), "satin_black", 0.003, 0),
          rbox(book, f"{name}_cap", (-PIPETTE_HALF_X + 0.004, MULTI_Y[0] + 0.003, PIPETTE_TOP - 0.010), (PIPETTE_HALF_X - 0.004, MULTI_Y[1] - 0.003, PIPETTE_TOP), "graphite", 0.002, 0),
 +        rbox(book, f"{name}_mount_flange", (-0.021, MULTI_Y[0] + 0.002, PIPETTE_TOP - 0.006), (0.021, MULTI_Y[1] - 0.002, PIPETTE_TOP + 0.012), "gantry_white", 0.003, 0),
 +        cyl(f"{name}_mount_pin", (0.0, MOUNT_Y, PIPETTE_TOP + 0.006), (0.0, MOUNT_Y, PIPETTE_TOP + 0.034), 0.0055, "chrome", 0),
      ] + _nozzles(name, 8)
-+    if _is_gen2(tool):
-+        g.extend(
-+            (
-+                rbox(book, f"{name}_silver_side_l", (-PIPETTE_HALF_X - 0.0005, MULTI_Y[0] + 0.004, z0 + 0.006), (-PIPETTE_HALF_X + 0.006, MULTI_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
-+                rbox(book, f"{name}_silver_side_r", (PIPETTE_HALF_X - 0.006, MULTI_Y[0] + 0.004, z0 + 0.006), (PIPETTE_HALF_X + 0.0005, MULTI_Y[1] - 0.003, z1 - 0.006), "pipette_silver", 0.0015, 0),
-+                rbox(book, f"{name}_ejector_bridge", (-0.012, MULTI_Y[0] + 0.006, z0 + 0.026), (0.012, MULTI_Y[1] - 0.004, z0 + 0.039), "pipette_silver", 0.002, 0),
-+            )
-+        )
 +    for k, row in enumerate(NOZZLE_ROWS):
 +        g.append(cyl(f"{name}_needle_{row}_seat", (0.0, -PITCH * k, 0.004), (0.0, -PITCH * k, 0.014), 0.0034, "nozzle_steel", 0))
      return g
  
  
-@@ -473,7 +645,7 @@
+@@ -473,7 +679,7 @@
        <global azimuth="128" elevation="-22" offwidth="{offwidth}" offheight="{offheight}"/>
        <quality shadowsize="8192" offsamples="8"/>
        <headlight ambient="0.34 0.34 0.36" diffuse="0.22 0.22 0.22" specular="0.06 0.06 0.06"/>
@@ -379,7 +461,7 @@
        <rgba haze="0.96 0.965 0.975 1"/>
      </visual>"""
  
-@@ -493,8 +665,10 @@
+@@ -493,8 +699,10 @@
          rbox(book, "trash_wall_back", (x0, y0 + sy - t, z0), (x0 + sx, y0 + sy, z0 + sz), "bin_dark", 0.002, 2),
          rbox(book, "trash_wall_left", (x0, y0 + t, z0), (x0 + t, y0 + sy - t, z0 + sz), "bin_dark", 0.002, 2),
          rbox(book, "trash_wall_right", (x0 + sx - t, y0 + t, z0), (x0 + sx, y0 + sy - t, z0 + sz), "bin_dark", 0.002, 2),
@@ -392,7 +474,7 @@
      ]
      return "\n      ".join(g)
  
-@@ -510,6 +684,7 @@
+@@ -510,6 +718,7 @@
      steep direction keeps the deck brightly lit through the door opening.
      """
      cx, cy = (X0 + X1) / 2, (Y0 + Y1) / 2
@@ -625,7 +707,283 @@
  
  
  def _liquid_spec_geom(key: str, name: str, well) -> str:
-@@ -915,20 +1085,115 @@
+@@ -720,8 +890,9 @@
+     """Tallest point of a module above its slot, for crossing clearance.
+ 
+     ``dimensions.bareOverallHeight`` covers the bare module, but engaged
+-    magnets reach ``labwareOffset.z + config.maxEngageHeight`` and an open
+-    thermocycler lid stands ``lidHeight`` over the chassis plus its panel.
++    magnets reach ``labwareOffset.z + config.maxEngageHeight``. For the
++    simplified thermocycler panel use its upright Y length plus a small
++    plate/seal margin; lidHeight describes closed hardware, not open travel.
+     """
+ 
+     dims = definition["dimensions"]
+@@ -731,20 +902,18 @@
+             definition["labwareOffset"]["z"] + definition["config"]["maxEngageHeight"],
+         )
+     if "lidHeight" in dims:
+-        return dims["bareOverallHeight"] + dims["lidHeight"] + 5.0
++        return definition["labwareOffset"]["z"] + dims["labwareInterfaceYDimension"] + 15.0
+     return dims["bareOverallHeight"]
+ 
+ 
+ def thermocycler_lid_poses(definition: dict, child) -> tuple[tuple, tuple]:
+     """Closed and open ``(pos, quat)`` of the lid panel, module-local mm.
+ 
+-    The definition gives no open pose, only ``dimensions.lidHeight``, which
+-    fixes the tilt: a panel of ``labwareInterfaceYDimension`` leaning so its
+-    full length rises ``lidHeight`` is asin(lidHeight / length) ≈ 26° from
+-    horizontal. Closed it lies flat on the plate rim (``child`` z1, or the
+-    bare chassis top with no plate); open it stands over the back of the
+-    chassis, clear of row-A/H pipetting. The real slide-and-tilt motion is
+-    approximated by interpolating the two poses; panel thickness 5 mm.
++    The 2019 manufacturer white paper shows the GEN1 lid upright when open;
++    the old inference asin(lidHeight / interface length) was not an open-angle
++    specification. This remains a simplified 5 mm heating-panel illustration:
++    closed on the plate rim, rotating upward about a rear hinge. The 6 mm
++    hinge setback and hidden construction are estimates, not measured CAD.
+     """
+ 
+     dims = definition["dimensions"]
+@@ -758,31 +927,60 @@
+     t = 5.0
+     cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+     closed = ((cx, cy, z1 + t / 2), (1.0, 0.0, 0.0, 0.0))
+-    length = dims["labwareInterfaceYDimension"]
+-    a = math.asin(dims["lidHeight"] / length)
++    hinge_y = y1 + 6.0
++    a = -math.pi / 2
+     open_ = (
+-        (cx, dims["yDimension"] - length * math.cos(a) / 2, z1 + length * math.sin(a) / 2 + t / 2 * math.cos(a)),
++        (cx, hinge_y, z1 + t / 2 + hinge_y - cy),
+         (math.cos(a / 2), math.sin(a / 2), 0.0, 0.0),
+     )
+     return closed, open_
+ 
+ 
+-def _module_spec_geoms(mod) -> list[str]:
+-    """Stylized module body, module-local mm. Fields cited per geom come from
+-    the vendored schema-3 definition. All parts are solid: the clearance
+-    sweep treats any ``mod_`` geom as an obstacle."""
++def _module_rbox(book, prefix: str, name: str, lo_mm, hi_mm, material: str, radius_mm: float = 1.5) -> str:
++    """Rounded visual-only module detail in a module-local mm frame.
++
++    These parts start with ``viz_mod_``. OT-2's clearance sweep includes them
++    alongside the original module proxies, preserving the labware interface
++    while checking the extra visible supports and moving lid skins.
++    """
++
++    lo = tuple(float(v) * MM for v in lo_mm)
++    hi = tuple(float(v) * MM for v in hi_mm)
++    return shell.rbox(book, f"viz_{prefix}_{name}", lo, hi, material, radius_mm * MM, 0)
++
++
++def _module_spec_geoms(mod, book) -> list[str]:
++    """Module body plus evidence-based OT-2 visual layers, module-local mm.
++
++    The vendored schema-3 dimensions and authoritative labware origins remain
++    the interface. Slot-relative child/pin positions are converted into the
++    module body's local frame; the lid is a simplified reference-based panel.
++    Original proxies and extra visible layers both participate in clearance.
++    """
+ 
+     d = mod.definition
+     dims = d["dimensions"]
+     platform = d["labwareOffset"]["z"]
+     x, y = dims["xDimension"], dims["yDimension"]
+     geoms: list[str] = []
++    prefix = mod.prefix
++
++    def child_bounds() -> tuple[float, float, float, float]:
++        if mod.child is not None:
++            return tuple(float(v) for v in mod.child[:4])
++        off = d["labwareOffset"]
++        return (
++            float(off["x"]),
++            float(off["y"]),
++            float(off["x"] + dims["labwareInterfaceXDimension"]),
++            float(off["y"] + dims["labwareInterfaceYDimension"]),
++        )
+ 
+     if "lidHeight" in dims:
+-        # Thermocycler: open-topped chassis (floor + four walls, thickness
+-        # approximated at 8 mm) of xDimension x yDimension up to
+-        # bareOverallHeight, the block under the plate, and the lid panel
+-        # (labwareInterface dims) starting closed.
++        # Thermocycler: retain the original named open chassis/body/block
++        # geometry for checks.  The real V1 silhouette has a black front fascia,
++        # side skins, a recessed plate deck and a rounded dark lid; the small
++        # layers below make those features readable without claiming TC2.
+         h = dims["bareOverallHeight"]
+         t = 8.0
+         walls = (
+@@ -793,42 +991,140 @@
+             ("wall_right", (x - t / 2, y / 2, h / 2), (t, y - 2 * t, h)),
+         )
+         for part, c, size in walls:
+-            geoms.append(_box(f"{mod.prefix}_{part}", tuple(v * MM for v in c), tuple(v * MM for v in size), MOD_RGBA))
++            geoms.append(_box(f"{prefix}_{part}", tuple(v * MM for v in c), tuple(v * MM for v in size), MOD_RGBA))
+         off = d["labwareOffset"]
+-        bx, by = off["x"], off["y"]
++        cx0, cy0, cx1, cy1 = child_bounds()
++        bx, by = cx0, cy0
+         bwd, blen = dims["labwareInterfaceXDimension"], dims["labwareInterfaceYDimension"]
+         # Plate base on the OT-2 sits the legacy 10.7 mm below labwareOffset.z
+         # (engine ``_OFFSET_ON_TC_OT2``); the block fills up to it.
+         top = off["z"] - 10.7
+         geoms.append(
+             _box(
+-                f"{mod.prefix}_block",
+-                ((bx + bwd / 2) * MM, (by + blen / 2) * MM, (top - 10) / 2 * MM),
++                f"{prefix}_block",
++                ((bx + bwd / 2) * MM, (by + blen / 2) * MM, (top - 5.0) * MM),
+                 (bwd * MM, blen * MM, 10 * MM),
+                 MOD_HOT_RGBA,
+             )
+         )
++        # A closed top deck surrounds the plate opening. The old open box
++        # exposed a floating block far below its plate; the plate datum itself
++        # is retained and the 10 mm hot block now supports that exact base.
++        for name, lo, hi in (
++            ("front", (0, 0, h - 1.7), (x, cy0 - 1, h + .3)),
++            ("back", (0, cy1 + 1, h - 1.7), (x, y, h + .3)),
++            ("left", (0, cy0 - 1, h - 1.7), (cx0 - 1, cy1 + 1, h + .3)),
++            ("right", (cx1 + 1, cy0 - 1, h - 1.7), (x, cy1 + 1, h + .3)),
++        ):
++            if all(b > a for a, b in zip(lo, hi)):
++                geoms.append(_module_rbox(book, prefix, f"chassis_top_{name}", lo, hi, "matte_black", 1.2))
++        # Black inset around the plate interface.  It remains outside the
++        # plate's well field and reads as the removable block surround.
++        geoms.extend(
++            (
++                _module_rbox(book, prefix, "deck_front", (cx0 - 3.0, cy0 - 4.5, platform - 1.0), (cx1 + 3.0, cy0 + 1.5, platform + 1.7), "matte_black", 2.0),
++                _module_rbox(book, prefix, "deck_back", (cx0 - 3.0, cy1 - 1.5, platform - 1.0), (cx1 + 3.0, cy1 + 4.5, platform + 1.7), "matte_black", 2.0),
++                _module_rbox(book, prefix, "deck_left", (cx0 - 4.5, cy0 + 1.0, platform - 1.0), (cx0 + 1.5, cy1 - 1.0, platform + 1.7), "matte_black", 2.0),
++                _module_rbox(book, prefix, "deck_right", (cx1 - 1.5, cy0 + 1.0, platform - 1.0), (cx1 + 4.5, cy1 - 1.0, platform + 1.7), "matte_black", 2.0),
++            )
++        )
++        # Front status/control fascia and two rows of shallow ventilation
++        # slots.  They are on the fixed front wall, so they remain valid while
++        # the lid geom follows Scene's existing dynamic pose.
++        geoms.append(_module_rbox(book, prefix, "front_fascia", (10.0, -0.5, 13.0), (x - 10.0, 0.8, h - 12.0), "graphite", 2.0))
++        for row, z in enumerate((24.0, 32.0, 40.0, 48.0, 56.0)):
++            for col, xx in enumerate((18.0, 29.0, x - 29.0, x - 18.0)):
++                geoms.append(_module_rbox(book, prefix, f"front_vent_{row}_{col}", (xx - 2.6, -0.9, z - 1.1), (xx + 2.6, -0.5, z + 1.1), "aluminum_dark", 0.7))
++        # Small fixed hinge blocks at the rear of the chassis; no lid proxy is
++        # duplicated, so the animated ``mod_*_lid`` remains the sole moving lid.
++        hinge_y = cy1 + 6.0
++        for side, xx in (("l", cx0 + 8.0), ("r", cx1 - 8.0)):
++            geoms.append(_module_rbox(book, prefix, f"hinge_{side}", (xx - 5.0, hinge_y - 3.5, h - 5.0), (xx + 5.0, hinge_y + 3.5, mod.child[4] + 3.5 if mod.child else h + 7.0), "graphite", 1.6))
++
+         closed, _ = thermocycler_lid_poses(d, mod.child)
+         pos, quat = closed
++        # Keep this exact geom name and its Scene-controlled pose.  A rounded
++        # mesh gives the cover a manufactured edge while its origin remains
++        # centered at the same ``closed`` position as the old box.
++        lid_mesh = book.rbox_mesh((bwd * MM, blen * MM, 5.0 * MM), 2.2 * MM)
+         geoms.append(
+-            f'<geom name="{mod.prefix}_lid" type="box" pos="{" ".join(_f(v * MM) for v in pos)}" '
+-            f'size="{_f(bwd / 2 * MM)} {_f(blen / 2 * MM)} {_f(2.5 * MM)}" quat="1 0 0 0" rgba="{MOD_LID_RGBA}"/>'
+-        )
++            f'<geom name="{prefix}_lid" type="mesh" mesh="{lid_mesh}" pos="{" ".join(_f(v * MM) for v in pos)}" '
++            f'quat="1 0 0 0" material="matte_black" group="0"/>'
++        )
++        # A pale heating face inside the dark gasket, visible when upright.
++        # Scene binds this skin to the same lid source frame during playback.
++        heater_mesh = book.rbox_mesh((bwd * 0.82 * MM, blen * 0.78 * MM, 0.6 * MM), 1.4 * MM)
++        heater_pos = (pos[0], pos[1], pos[2] - 3.0)
++        geoms.append(f'<geom name="viz_{prefix}_lid_heater" type="mesh" mesh="{heater_mesh}" pos="{" ".join(_f(v * MM) for v in heater_pos)}" material="gantry_white" group="0"/>')
++        for side, xx in (("l", cx0 + 8.0), ("r", cx1 - 8.0)):
++            geoms.append(_module_rbox(book, prefix, f"lid_arm_{side}", (xx - 3.0, cy1 - 1.0, pos[2] - 1.5), (xx + 3.0, hinge_y + 1.0, pos[2] + 1.5), "graphite", 1.0))
+         return geoms
+ 
+-    # Magnetic / temperature: one base box of xDimension x yDimension up to
+-    # labwareOffset.z, the plane the labware sits on. bareOverallHeight is
+-    # taller (110.2 / 84) but marks parts that do not sit over the labware,
+-    # so it is only used for crossing clearance, not drawn.
+-    geoms.append(_box(f"{mod.prefix}_body", (x / 2 * MM, y / 2 * MM, platform / 2 * MM), (x * MM, y * MM, platform * MM), MOD_RGBA))
++    # Magnetic / temperature: retain the full named body as the dimensional
++    # proxy.  Only add shallow top/side layers around the child interface.
++    geoms.append(_box(f"{prefix}_body", (x / 2 * MM, y / 2 * MM, platform / 2 * MM), (x * MM, y * MM, platform * MM), MOD_RGBA))
++
++    if mod.model.startswith("magnetic"):
++        cx0, cy0, cx1, cy1 = child_bounds()
++        # OT-2 magnetic photos show a dark raised plate tray with adjustable
++        # brackets on the long edges.  The open center leaves every labware
++        # well and the animated magnetic pins visible.
++        geoms.extend(
++            (
++                _module_rbox(book, prefix, "top_inset", (4.0, 3.0, platform - 0.6), (x - 4.0, y - 3.0, platform + 0.15), "graphite", 2.0),
++                _module_rbox(book, prefix, "tray_front", (0.0, cy0 - 1.0, platform + 0.8), (x, cy0 + 3.6, platform + 5.0), "matte_black", 1.6),
++                _module_rbox(book, prefix, "tray_back", (0.0, cy1 - 2.6, platform + 0.8), (x, min(y, cy1 + 3.6), platform + 5.0), "matte_black", 1.6),
++                _module_rbox(book, prefix, "tray_left", (0.0, cy0 + 1.0, platform + 0.8), (cx0 + 3.6, cy1 - 1.0, platform + 4.0), "matte_black", 1.4),
++                _module_rbox(book, prefix, "tray_right", (cx1 - 2.6, cy0 + 1.0, platform + 0.8), (x, cy1 - 1.0, platform + 4.0), "matte_black", 1.4),
++            )
++        )
++        # Two shallow bracket pads at each end are visible in the product
++        # silhouette, but stay outside the plate's interior footprint.
++        for side, xx in (("l", 3.0), ("r", x - 3.0)):
++            geoms.append(_module_rbox(book, prefix, f"bracket_{side}", (xx - 3.2, cy0 + 1.0, platform + 3.4), (xx + 3.2, cy1 - 1.0, platform + 8.0), "frame_dark", 1.8))
++        # The original rim is retained below for the clearance proxy.
++    elif mod.model.startswith("temperature"):
++        cx0, cy0, cx1, cy1 = child_bounds()
++        # The temperature module has a wide side/control wing beside the
++        # 128 mm labware interface.  This layered top cap and front fascia
++        # match the black top/vented control side seen in official photos
++        # without covering the loaded plate or changing its offset.
++        # The module's long body corner lies beyond its slot. Once the slot
++        # offset is converted correctly, the control wing can be to the left
++        # of the plate, rather than an invented extension over its right edge.
++        if cx0 > x - cx1:
++            wing_x0, wing_x1 = 3.5, cx0 - 2.0
++        else:
++            wing_x0, wing_x1 = cx1 + 2.0, x - 3.5
++        geoms.extend(
++            (
++                _module_rbox(book, prefix, "top_cap", (wing_x0, 5.0, platform - 0.5), (wing_x1, y - 5.0, platform + 2.0), "matte_black", 2.0),
++                _module_rbox(book, prefix, "top_cap_edge", (wing_x0 - 1.0, 3.0, platform + 1.2), (wing_x1 + 1.0, y - 3.0, platform + 3.6), "graphite", 1.4),
++                _module_rbox(book, prefix, "control_fascia", (wing_x0 + 1.0, -0.6, 12.0), (wing_x1 - 1.0, 0.6, platform - 6.0), "graphite", 1.6),
++            )
++        )
++        # A small blue status lamp and horizontal grille slots give V1/V2 the
++        # same product-level side separation while retaining the generation's
++        # existing definition and origin.
++        geoms.append(shell.cyl(f"viz_{prefix}_status_led", ((wing_x0 + 12.0) * MM, -1.1 * MM, (platform - 14.0) * MM), ((wing_x0 + 12.0) * MM, -0.6 * MM, (platform - 14.0) * MM), 2.4 * MM, "led_blue", 0))
++        for k, z in enumerate((24.0, 32.0, 40.0, 48.0, 56.0, 64.0)):
++            geoms.append(_module_rbox(book, prefix, f"vent_{k}", (wing_x0 + 23.0, -1.0, z - 1.0), (wing_x1 - 5.0, -0.6, z + 1.0), "aluminum_dark", 0.6))
++        # Narrow datum shoulders around the interface make the supported plate
++        # contact readable from above but leave the child footprint unchanged.
++        geoms.extend(
++            (
++                _module_rbox(book, prefix, "interface_front", (cx0 - 1.8, cy0 - 2.5, platform + 0.8), (cx1 + 1.8, cy0 + 1.0, platform + 2.6), "graphite", 1.0),
++                _module_rbox(book, prefix, "interface_back", (cx0 - 1.8, cy1 - 1.0, platform + 0.8), (cx1 + 1.8, cy1 + 2.5, platform + 2.6), "graphite", 1.0),
++            )
++        )
++
+     if dims.get("overLabwareHeight", 0) > 0 and mod.child is not None:
+         # The magnetic module rises overLabwareHeight above its platform;
+-        # where is not in the definition, so it becomes a strip along the
+-        # back edge, behind the loaded plate.
++        # retain the named strip along the back edge for the original proxy.
+         y0 = min(mod.child[3], y)
+         geoms.append(
+             _box(
+-                f"{mod.prefix}_rim",
++                f"{prefix}_rim",
+                 (x / 2 * MM, (y0 + y / 2) / 2 * MM, (platform + dims["overLabwareHeight"] / 2) * MM),
+                 (x * MM, max(y - y0, 0.5) * MM, dims["overLabwareHeight"] * MM),
+                 MOD_RGBA,
+@@ -843,7 +1139,7 @@
+         for k, (px, py) in enumerate(mod.pins):
+             geoms.append(
+                 _cylinder(
+-                    f"{mod.prefix}_pin{k}",
++                    f"{prefix}_pin{k}",
+                     (px * MM, py * MM, (platform - 0.6 - length / 2) * MM),
+                     1.2 * MM,
+                     length * MM,
+@@ -915,20 +1211,115 @@
  
  
  def deck_camera_pose(deck: Deck) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
@@ -750,7 +1108,7 @@
      # Procedural enclosure: the look plus the invisible "shell" box whose AABB
      # is the clearance envelope (same bounds the STL shell mesh used to give).
      enclosure = shell.enclosure_xml(book)
-@@ -941,9 +1206,9 @@
+@@ -941,9 +1332,9 @@
          liquid_by_key.setdefault(key, set()).add(well)
      for item in spec.placed:
          local = (
@@ -762,7 +1120,13 @@
          )
          origin = robot_m(deck, item.origin)
          bodies.append(
-@@ -961,20 +1226,11 @@
+@@ -956,25 +1347,16 @@
+         origin = robot_m(deck, mod.origin)
+         bodies.append(
+             f'<body name="{mod.prefix}" pos="{" ".join(_f(v) for v in origin)}">\n'
+-            + "\n".join(f"  {g}" for g in _module_spec_geoms(mod))
++            + "\n".join(f"  {g}" for g in _module_spec_geoms(mod, book))
+             + "\n</body>"
          )
  
      for bin_ in spec.trash:
@@ -788,7 +1152,7 @@
  
      left = robot_m(deck, (0.0, 0.0, 0.0))[0]
      # Furthest gantry x a command can ask for: the grid's right edge, reached
-@@ -1007,8 +1263,8 @@
+@@ -1007,8 +1389,8 @@
      """
  
      deck_pos, deck_look = deck_camera_pose(deck)
@@ -799,9 +1163,202 @@
      deck_cam = _camera("deck", deck_pos, deck_look, 33)
      # The builders above register meshes and textures lazily, so the asset
      # block has to be rendered after they have all run.
+@@ -1038,6 +1420,44 @@
+ """
+ 
+ 
++def _ot2_tip_mesh(book, length_mm: float, top_diameter_mm: float) -> str:
++    """An open OT-2 disposable tip, with its outlet at the original origin.
++
++    Length and mouth bore come from the loaded labware definition. The
++    thin-wall/taper/shoulder are appearance estimates from OT-2 tip/rack
++    photographs, not a measured internal-volume model. Do not reuse Flex's
++    closed generic profile or alter the shared Flex asset generator.
++    """
++    from sim.flex_shell import write_lathe
++
++    length = float(length_mm)
++    bore = float(top_diameter_mm) / 2
++    wall = min(0.35, bore * 0.13)
++    top = bore + wall
++    outlet = min(0.42, top * 0.14)
++    outer = [
++        (outlet, 0.0), (top * 0.20, length * 0.05),
++        (top * 0.45, length * 0.30), (top * 0.72, length * 0.62),
++        (top * 0.90, length * 0.80), (top, length * 0.88),
++        (top, length * 0.97), (top + 0.18, length * 0.975),
++        (top + 0.18, length),
++    ]
++    # Walk back down the inner wall and close through an annular outlet.
++    # No face crosses either mouth: a nozzle can visibly enter the socket.
++    inner = [
++        (bore, length), (bore, length * 0.88),
++        (top * 0.90 - wall, length * 0.80),
++        (top * 0.72 - wall, length * 0.62),
++        (top * 0.45 - min(wall, 0.22), length * 0.30),
++        (top * 0.20 - min(wall, 0.14), length * 0.05),
++        (outlet - min(0.14, outlet * 0.4), 0.0),
++        outer[0],
++    ]
++    profile = [(r * MM, z * MM) for r, z in outer + inner]
++    key = f"ot2_open_tip_{round(length * 100)}_{round(top_diameter_mm * 100)}"
++    return book._mesh(key, lambda path: write_lathe(path, profile, seg=32))
++
++
+ def write_spec_model(deck: Deck, spec, folder: Path) -> Path:
+     """Lathed tips, procedural shell geoms and ``ot2.xml`` for one analysis."""
+ 
+@@ -1045,12 +1465,12 @@
+ 
+     book = AssetBook(folder)
+     rack_meshes = {
+-        item.key: book.tip_mesh(item.labware.tip_length, 2 * item.labware.wells["A1"].radius)
++        item.key: _ot2_tip_mesh(book, item.labware.tip_length, 2 * item.labware.wells["A1"].radius)
+         for item in spec.placed
+         if item.labware.is_tiprack
+     }
+     head_meshes = {
+-        tool: book.tip_mesh(tip.length_mm, tip.top_diameter_mm)
++        tool: _ot2_tip_mesh(book, tip.length_mm, tip.top_diameter_mm)
+         for tool, tip in spec.tips.items()
+     }
+     shell.make_textures(book)
 --- a/sim/play_ot2_protocol.py
 +++ b/sim/play_ot2_protocol.py
-@@ -521,7 +521,14 @@
+@@ -57,7 +57,7 @@
+     MAIN_W,
+     PANEL_W,
+     Scene as FlexScene,
+-    _bounds,
++    _bounds as _coarse_bounds,
+     _id,
+     _subtree,
+     caption,
+@@ -88,6 +88,32 @@
+         return out / np.linalg.norm(out)
+     angle = math.acos(dot)
+     return (math.sin((1 - f) * angle) * a + math.sin(f * angle) * b) / math.sin(angle)
++
++
++def _bounds(model, data, ids: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
++    """World AABBs, projecting actual mesh vertices for OT-2 mesh geoms.
++
++    MuJoCo may choose a rotated principal frame for a square rounded housing.
++    Rotating that frame's box again inflates a 34 mm housing to about 62 mm,
++    producing false overlaps beside plates or an upright lid. The vertex
++    projection still encloses every mesh surface; it is not a mesh-intersection
++    test or a claim of physical/continuous clearance. Primitive bounds retain
++    the existing conservative implementation. Flex's checker is untouched.
++    """
++    lo, hi = _coarse_bounds(model, data, ids)
++    mask = model.geom_type[ids] == mujoco.mjtGeom.mjGEOM_MESH
++    for mesh in np.unique(model.geom_dataid[ids[mask]]):
++        rows = np.flatnonzero(mask & (model.geom_dataid[ids] == mesh))
++        geoms = ids[rows]
++        rotations, groups = np.unique(data.geom_xmat[geoms], axis=0, return_inverse=True)
++        start, count = int(model.mesh_vertadr[mesh]), int(model.mesh_vertnum[mesh])
++        vertices = model.mesh_vert[start:start + count]
++        for group, rot in enumerate(rotations):
++            selected = rows[groups == group]
++            projected = vertices @ rot.reshape(3, 3).T
++            lo[selected] = data.geom_xpos[ids[selected]] + projected.min(axis=0)
++            hi[selected] = data.geom_xpos[ids[selected]] + projected.max(axis=0)
++    return lo, hi
+ 
+ 
+ # ---------------------------------------------------------------- analyze
+@@ -175,8 +201,28 @@
+             if mod.model.startswith("thermocycler"):
+                 gid = mujoco.mj_name2id(model, G, f"{prefix}_lid")
+                 if gid >= 0:
++                    # The compiler may fold an initially identity rotation
++                    # into the body frame. Runtime lid quaternions must not
++                    # keep using that static same-frame shortcut.
++                    model.geom_sameframe[gid] = 0
+                     closed, open_ = thermocycler_lid_poses(mod.definition, mod.child)
+-                    entry["lid"] = (gid, np.array(closed[0]), np.array(open_[0]), closed[1], open_[1])
++                    # Definitions/pose helpers use mm; MuJoCo geom positions
++                    # use metres. Mesh compilation also recentres/rotates its
++                    # vertices: retain that reference transform when animating
++                    # the source lid frame, just as for the initial XML pose.
++                    mesh = int(model.geom_dataid[gid]) if model.geom_type[gid] == mujoco.mjtGeom.mjGEOM_MESH else -1
++                    ref_p = model.mesh_pos[mesh].copy() if mesh >= 0 else np.zeros(3)
++                    ref_q = model.mesh_quat[mesh].copy() if mesh >= 0 else np.array([1.0, 0.0, 0.0, 0.0])
++                    closed_m = np.array(closed[0]) * MM
++                    skins = [(gid, np.zeros(3), ref_p, ref_q)]
++                    for part in ("heater", "arm_l", "arm_r"):
++                        skin = mujoco.mj_name2id(model, G, f"viz_{prefix}_lid_{part}")
++                        if skin >= 0:
++                            model.geom_sameframe[skin] = 0
++                            mesh = int(model.geom_dataid[skin])
++                            hp, hq = model.mesh_pos[mesh].copy(), model.mesh_quat[mesh].copy()
++                            skins.append((skin, model.geom_pos[skin].copy() - hp - closed_m, hp, hq))
++                    entry["lid"] = (skins, closed_m, np.array(open_[0]) * MM, closed[1], open_[1])
+             self.module_anim[mod.id] = entry
+         for step in plan.steps:
+             if step.kind not in ("magneticModule/engage", "magneticModule/disengage", "thermocycler/openLid", "thermocycler/closeLid"):
+@@ -188,7 +234,16 @@
+                 value = float(p.get("height") or 0.0)
+             else:
+                 value = 1.0 if step.kind == "thermocycler/openLid" else 0.0
+-            self.module_anim[p["moduleId"]]["events"].append((step.t0, step.t1, value))
++            # A command's displayed step can include the preceding tool
++            # retraction. Animate only its module-action key interval, so the
++            # lid does not start closing while the pipette is still rising.
++            action_window = next(
++                ((a.t, b.t) for a, b in zip(plan.keys, plan.keys[1:]) if b.cmd == step.cmd and b.phase == step.kind),
++                None,
++            )
++            if action_window is None:
++                raise RuntimeError(f"missing module action phase {step.kind} for command {step.cmd + 1}")
++            self.module_anim[p["moduleId"]]["events"].append((*action_window, value))
+ 
+     @staticmethod
+     def _event_value(events: list, t: float) -> float:
+@@ -256,7 +311,7 @@
+     def _apply_modules(self, t: float) -> None:
+         """Pin tops at platform + height (retracted tops hide in the body) and
+         the lid lerped/slerped between its closed and open poses. Module-local
+-        mm, which is the body frame of the module geoms."""
++        poses are converted from module-local mm into MuJoCo metres."""
+ 
+         m = self.model
+         for entry in self.module_anim.values():
+@@ -269,9 +324,18 @@
+                 for gid in pins:
+                     m.geom_pos[gid, 2] = (top - length / 2) * MM
+             if entry["lid"] is not None:
+-                gid, closed_p, open_p, closed_q, open_q = entry["lid"]
+-                m.geom_pos[gid, :3] = closed_p + value * (open_p - closed_p)
+-                m.geom_quat[gid] = _slerp(closed_q, open_q, value)
++                skins, closed_p, open_p, closed_q, open_q = entry["lid"]
++                q = np.asarray(_slerp(closed_q, open_q, value))
++                rot = np.empty(9)
++                mujoco.mju_quat2Mat(rot, q)
++                # A rear hinge follows a circular arc. Linear translation of
++                # the centroid would detach it from that hinge mid-motion.
++                radius = open_p[1] - closed_p[1]
++                angle = value * math.pi / 2
++                center = closed_p + np.array([0.0, radius * (1 - math.cos(angle)), radius * math.sin(angle)])
++                for gid, offset, ref_p, ref_q in skins:
++                    m.geom_pos[gid, :3] = center + rot.reshape(3, 3) @ (offset + ref_p)
++                    mujoco.mju_mulQuat(m.geom_quat[gid], q, ref_q)
+ 
+     def at(self, t: float) -> tuple[dict, State]:
+         q, state, _ = sample_plan(self.plan, t)
+@@ -429,8 +493,9 @@
+         elif n.startswith("trash_"):
+             obstacle.append(g)
+             obstacle_key.append("trash")
+-        elif n.startswith("mod_"):
+-            # Every module part is solid: body, rim, pins, lid, chassis walls.
++        elif n.startswith(("mod_", "viz_mod_")):
++            # Include both original module proxies and added visible skins:
++            # body, rim, pins, lid/heater, supports and chassis walls.
+             # The pins ride between well rows, so a tip aimed at a well never
+             # shares their footprint and no aimed-well exemption is needed.
+             obstacle.append(g)
+@@ -521,7 +586,14 @@
          self.fonts = Fonts.load()
          self.main = mujoco.Renderer(scene.model, height=9 * 90, width=MAIN_W)
          self.close = mujoco.Renderer(scene.model, height=270, width=PANEL_W)
@@ -816,7 +1373,7 @@
          # Groups 2 (shell, beam, carriage) and 3 (collision boxes) go away so
          # the close camera sees the head and the deck; the pipette itself is
          # group 0 and stays.
-@@ -582,7 +589,7 @@
+@@ -582,7 +654,7 @@
      def frame(self, t: float, smooth_focus: bool = True) -> Image.Image:
          self._set_main_pose(None)
          state, step = self._advance(t, smooth_focus)
@@ -825,7 +1382,7 @@
          return self._compose(t, state, step, Image.fromarray(self.main.render()))
  
      def build_track(self, fps: int = 30) -> None:
-@@ -598,7 +605,7 @@
+@@ -598,7 +670,7 @@
      def web_main(self, t: float, orbit: tuple | None = None) -> Image.Image:
          self._set_main_pose(orbit)
          self.scene.at(t)
@@ -834,3 +1391,56 @@
          return Image.fromarray(self.main.render())
  
      def web_close(self, t: float, orbit: tuple = CLOSE_DEFAULT_ORBIT) -> Image.Image:
+--- a/sim/ot2_protocol.py
++++ b/sim/ot2_protocol.py
+@@ -224,7 +224,7 @@
+ 
+ 
+ def module_body_origin(deck: Deck, mod: ModuleRun) -> tuple[float, float, float]:
+-    """The module-local (0, 0, 0) point in deck millimetres."""
++    """Deck-mm coordinates of the module body's local (0, 0, 0) origin."""
+ 
+     corner = mod.definition["cornerOffsetFromSlot"]
+     slot = deck.slots[mod.slot]
+@@ -290,12 +290,16 @@
+             if module_id is not None:
+                 mod = modules[module_id]
+                 area = _area_offset(mod)
++                # labwareOffset is relative to the deck slot, whereas the
++                # visible module body starts at cornerOffsetFromSlot. Store
++                # drawing/pin coordinates in that body's local frame. The
++                # authoritative labware origin/command targets stay unchanged.
++                corner = mod.definition["cornerOffsetFromSlot"]
++                child_origin = tuple(area[i] + lw.offset[i] - float(corner[axis]) for i, axis in enumerate(("x", "y", "z")))
+                 mod.child = (
+-                    area[0] + lw.offset[0],
+-                    area[1] + lw.offset[1],
+-                    area[0] + lw.offset[0] + lw.x,
+-                    area[1] + lw.offset[1] + lw.y,
+-                    area[2] - (10.7 if mod.model.startswith("thermocycler") else 0.0) + lw.z,
++                    child_origin[0], child_origin[1],
++                    child_origin[0] + lw.x, child_origin[1] + lw.y,
++                    child_origin[2] - (10.7 if mod.model.startswith("thermocycler") else 0.0) + lw.z,
+                 )
+                 if mod.model.startswith("magnetic") and lw.wells:
+                     # One pin per plate column, centred between the outer rows;
+@@ -303,7 +307,7 @@
+                     xs = sorted({round(w.x, 3) for w in lw.wells.values()})
+                     ys = [w.y for w in lw.wells.values()]
+                     ymid = (min(ys) + max(ys)) / 2
+-                    mod.pins = tuple((area[0] + x, area[1] + ymid) for x in xs)
++                    mod.pins = tuple((child_origin[0] + x, child_origin[1] + ymid) for x in xs)
+         elif kind == "loadPipette":
+             name, mount = params["pipetteName"], params["mount"]
+             if name not in OT2_PIPETTES:
+@@ -395,8 +399,8 @@
+         self.assumed: set[tuple[str, str]] = set()
+         self.context: dict[str, str | None] = {tool: None for tool in self.tools}
+         self.cmd = -1
+-        # Modules stand taller than labware (an open thermocycler lid reaches
+-        # ~145 mm), so the park height lifts above them; without modules this
++        # Modules stand taller than labware (the simplified upright heating
++        # panel reaches about 200 mm), so park height lifts above them; without modules this
+         # stays Z_PARK_MM and existing protocols keep their paths.
+         self.z_park = max(
+             Z_PARK_MM,

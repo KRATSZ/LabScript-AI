@@ -230,6 +230,41 @@ IAB首轮无法验收下载，后续IAB一度不可用，改用独立Chrome标�
 
 同一 6.0 s、同相机/照明/背景/调试显示设置的[修改前](ux-review/ot2-flex-detail-before-20261025.png)与[修改后](ux-review/ot2-flex-detail-after-20261025.png)，保留基线自身几何及材质以区分形体提升和取景变化。另见[整机](ux-review/ot2-flex-detail-overview-20261025.png)、[移液器近景](ux-review/ot2-flex-detail-pipette-20261025.png)、[耗材近景](ux-review/ot2-flex-detail-labware-20261025.png)、[最终网页](ux-review/ot2-flex-detail-web-20261025.png)和[本轮 checks](ux-review/ot2-flex-detail-checks-20261025.json)。完整接受源、模型、官方参考与受限双枪记录在本机 `virtual-lab/exports/mujoco/ot2-flex-parity-20261025/work-note.json`。
 
+## 真机照片驱动的 OT-2 细节调整（2026-10-25）
+
+本轮继续在 `3469db5` 上精修，检索并实际查看厂家图片、官方旧款白皮书及 HKUST 实验室真机照片。复用原 OT-2/耗材和模块定义；没有新建同款库资产，没有改 FLEX 或旧项目。建模子 Agent 提供模块外观初稿，主控随后修正遮挡、坐标和运动问题；以下为最终主控核验结果，替代其早期未收拢候选结果。
+
+| 参考证据 | 实际调整 |
+| --- | --- |
+| [厂家 GEN2 单枪/8 道照片](https://docs.opentrons.com/ot-2/pipettes/) | 单枪连续长黑壳、薄银侧板、下端小铭牌和黑色喷嘴；去除无图像依据的外露粗银色退枪套。8 道改成窄上塔/宽下壳、短独立喷嘴。 |
+| [HKUST 真机照片](https://www.biocrf.ust.hk/opentronsot-2)、[厂家机架/甲板说明](https://docs.opentrons.com/ot-2/system-description/robot/) | 前门中部接缝、水平铰链及叶片、底部拉手/闭锁、顶梁紧固件；护罩标识放大并移至下部。照片中的 HEPA/管架属于不同配置，没有塞入当前协议。 |
+| [OT-2 300 µL 枪头/架官方图](https://opentrons.com/products/opentrons-300ul-tips-1000-refills) | 改用 OT-2 局部专用薄壁、中空、两端开放网格，保留定义长度/口径、插深、尖端位置及原分析针；不修改 FLEX 共用资产。 |
+| [模块说明](https://docs.opentrons.com/ot-2/modules/)、[2019 年热循环仪白皮书 p5](https://insights.opentrons.com/hubfs/Products/Modules/Thermocycler%20Module%20White%20Paper.pdf) | 磁力/温控模块托盘与控制翼、外壳层次；TC 顶面、承托热块、后铰链及浅色热面。区分旧款 GEN1 与当前官网 GEN2；只覆盖既有 magnetic V1/V2、temperature V1/V2、thermocycler V1，未新增其他模块适配。 |
+
+照片复看暴露了几个实际问题，已在外部 renderer 的四份累计源码中修正：`ot2_protocol.py` 的模块绘图 child/pin 数据此前把 slot 原点当作 body 原点，导致盖子/托板错位（TC X 差 22.125 mm）；现在减去 `cornerOffsetFromSlot`，实际 labware origin 和命令目标不变。热块也承托到既有板底高度，温控翼按实际空余侧放置，面板移到可见壳面。
+
+`play_ot2_protocol.py` 此前把 lid 的毫米位置直接写入米制模型，使盖体离场；还会覆盖编译网格的参考旋转，并受静态 `geom_sameframe` 优化影响。现已修正单位及参考变换。旧的约 26° 开盖推断无官方依据，改成可见的 90° 简化热板盖和刚性后铰链弧线，热面/连接臂随动；数字停靠包络随之提高。模块动作只在实际 key phase 内执行，等待移液器 retract 完成再合盖，避免显示 step 包含 retract 时提前关闭；找不到相应动作 phase 时明确报错。
+
+此前双枪粗包围告警也保留了原因证据：MuJoCo 对方形壳体选了旋转主轴框，再旋转这个框会把真实 34 mm 宽壳体扩成约 62.14 mm。OT-2 检查现按实际网格顶点投影成世界 AABB；原始针/孔位、0.5 mm 判定阈值不变，并增加全部 `viz_mod_*` 模块表面。未修改 FLEX 的检查器。原历史报告不抹去；本轮三套固定输入的旧/新几何在当前数字运动与顶点边界下均通过，只表示有限采样下这些模型的包围关系，不是连续三角网格碰撞或实机认证。
+
+最终使用 MuJoCo 3.17.0：
+
+| 既有固定分析 | 定位命令 / 原目标记录 | 移动工具离散间隙状态 | 资源引用 |
+| --- | --- | --- | --- |
+| 单枪 80 µL | 4 / 204 | 165 PASS | 398，无缺失 |
+| 双枪（含 8 道） | 11 / 204 | 378 PASS | 405，无缺失 |
+| 5 种模块外观目录（静态布置失败） | 12 / 588 | 807 PASS，包含新增模块表面 | 1194，无缺失 |
+
+**静态模块布置未通过：** 旧的五模块示例中，slot 5 的 temperature V1 与 slot 6 的 V2 壳体定义包络重叠约 63.5×91×84 mm；按渲染壳体 AABB 则约为 63.5×91×80.1 mm，新增视觉层还存在约 2.4 mm 的相邻静态 AABB 重叠。它只用于型号外观/动作覆盖，不能当作可执行布局。807 PASS 检查移动工具对障碍，不包含静态障碍两两检查。这些数字是数字模型包络，不是实机表面测量。当前 TC 停靠值 0.2788 m 距右 Z 关节上限 0.2800 m 仅 1.2 mm；不能外推至更高模块。
+
+三套的原关节/body/site 局部帧及原目标位置/姿态字段不变，最大定位误差小于 1e-9 mm；枪头网格形状及模块绘图坐标明确属于本轮修正。磁芯与实际板孔网格最大误差 0.01 mm，在现有 XML 五位小数位置写出带来的 0.02 mm 预算内。额外回归核对包括：枪体边界对应 34×34×144 mm 作者几何、中心射线穿过枪头时无封顶面而管壁射线有交点、25 个开盖姿态的固定铰点/热面随动及 retract 后才合盖。两份补丁顺序 dry-run/应用可逐字节重现四份接受源，语法通过。
+
+主控通过 Chrome 的实际预览组件复看单枪播放/暂停、定位与相机，以及模块开/闭盖和 8 道形体；使用明确标注的既有分析临时页，无新的协议生成、实验检查、专职用户测试、下载或手机复测。最终网页加载模型与冻结接受模型哈希一致。原建模子 Agent 另做同上下文只读增量复核，确认坐标/网格变换，并指出上述静态布局及停靠余量限制；这不计作独立新上下文用户测试。全产品 320 Node/54 Python 为此前结果，本轮没有重新运行。线上未更新，PR 仍为草稿。
+
+尺寸和隐蔽连接仍有估计；TC 是既有坐标系下的加热板/盖体示意，**未复现厂家整套外盖、内部机构、排风结构与实物开盖包络**。枪头薄壁不作为真实容积计量模型。数字时序、目标与有限间隙通过不能证明温控/磁力物理过程、初始液量、实机装配或任意 SOP 正确性。既有其他设备空白、FLEX 特写及普通下载问题保持原验收边界。
+
+证据：[同视角修改前](ux-review/ot2-photo-before-20261025.png)、[修改后](ux-review/ot2-photo-after-20261025.png)、[单枪](ux-review/ot2-photo-single-20261025.png)、[8 道](ux-review/ot2-photo-multi-20261025.png)、[开放枪头](ux-review/ot2-photo-tips-20261025.png)、[TC 开盖](ux-review/ot2-photo-module-open-20261025.png)、[闭盖](ux-review/ot2-photo-module-closed-20261025.png)、[温控模块](ux-review/ot2-photo-temperature-20261025.png)、[网页单枪](ux-review/ot2-photo-web-single-20261025.png)、[网页模块](ux-review/ot2-photo-web-modules-20261025.png)及[本轮 checks](ux-review/ot2-photo-checks-20261025.json)。固定输入均在 `renderer-patches/`；完整源、官方/真机参考、可重开模型和几何回归脚本在本机 `virtual-lab/exports/mujoco/ot2-photo-refine-20261025`。
+
 ## 下一轮真人任务测试
 
 先招募约 5 名相同目标人群的研究者或学生：懂移液实验，未用过这个网站，不要求会机器人编程。每人单独测试，以发现问题为目的；有经验的自动化工程师另作为不同人群观察。

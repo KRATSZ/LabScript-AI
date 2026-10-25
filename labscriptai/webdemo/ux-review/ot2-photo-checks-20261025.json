@@ -1,0 +1,249 @@
+{
+  "scope": "Photo-based OT-2 refinement using existing fixed analyses. Implementer numerical/browser QA and same-agent read-only code review; no fresh protocol generation, independent user test, hardware or initial-volume acceptance.",
+  "baseline_commit": "3469db5126064986a6796c576ce76a5c461a3e69",
+  "target_motion_regressions_passed": true,
+  "static_module_layout_accepted": false,
+  "verification": {
+    "scope": "Existing analyses; no fresh generation, experiment, initial inventory, physical fit or continuous-collision acceptance.",
+    "runtime": {
+      "python": "local qa-venv/bin/python",
+      "mujoco": "3.17.0"
+    },
+    "fixtures": {
+      "single": {
+        "analysis_sha256": "c5f3f4f35fe5d7a1ae53b3ab416f7ddb0dfd1a208617f5b3aed8b2b45a6d3349",
+        "xml_sha256": "b898d4019c8ef38eeadc68046efeffa93ca445bef98ecdc93b3bbcf9b8b1092a",
+        "original_frames_equal": true,
+        "joints": 3,
+        "sites": 3,
+        "bodies": 7,
+        "geoms": 1002,
+        "target_records": 204,
+        "changed_target_fields": [],
+        "positioning_commands": 4,
+        "json_vs_definition_mm": 0.0,
+        "mujoco_vs_json_mm": 5.329070518200751e-15,
+        "module_pose_samples": 0,
+        "module_core_pose_max_delta": 0.0,
+        "pin_to_plate_grid_max_error_mm": 0.0,
+        "clearance": {
+          "passed": true,
+          "discrete_samples": 165,
+          "minimum_enclosure_gap_mm": 4.499999051502092,
+          "tightest": "pipette_left_tip"
+        },
+        "baseline_clearance": {
+          "passed": true,
+          "discrete_samples": 165,
+          "minimum_enclosure_gap_mm": 4.4999991471269745,
+          "tightest": "pipette_left_tip"
+        },
+        "resource_references": 398,
+        "missing_resources": [],
+        "warnings": [
+          "command 7: NEST 96 Well Plate 200 μL Flat A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+        ]
+      },
+      "multi": {
+        "analysis_sha256": "48723c1d104314efc01ef0603b093648dcba028a29a67fa8859ebf1d96d0adf8",
+        "xml_sha256": "c28b7daf258d36dea9fdb5a6e07cb791cab9cf19253bd940d6f2279535b46f41",
+        "original_frames_equal": true,
+        "joints": 4,
+        "sites": 13,
+        "bodies": 8,
+        "geoms": 1061,
+        "target_records": 204,
+        "changed_target_fields": [],
+        "positioning_commands": 11,
+        "json_vs_definition_mm": 8.881784197001252e-16,
+        "mujoco_vs_json_mm": 5.329070518200751e-15,
+        "module_pose_samples": 0,
+        "module_core_pose_max_delta": 0.0,
+        "pin_to_plate_grid_max_error_mm": 0.0,
+        "clearance": {
+          "passed": true,
+          "discrete_samples": 378,
+          "minimum_enclosure_gap_mm": 4.499999051502092,
+          "tightest": "pipette_right_tip"
+        },
+        "baseline_clearance": {
+          "passed": true,
+          "discrete_samples": 378,
+          "minimum_enclosure_gap_mm": 4.4999991471269745,
+          "tightest": "pipette_right_tip"
+        },
+        "resource_references": 405,
+        "missing_resources": [],
+        "warnings": [
+          "command 11: NEST 12 Well Reservoir 15 mL A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 15: NEST 12 Well Reservoir 15 mL A2 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+        ]
+      },
+      "modules": {
+        "analysis_sha256": "7a0433988bb6b06e00eddbfa2a11e95d83c092875ca32e6e5293e8e87e7708c1",
+        "xml_sha256": "4e55f2d99a4f1101d4c15e0d82f252432d244b0337536df87d400dfb443d2a21",
+        "original_frames_equal": true,
+        "joints": 3,
+        "sites": 3,
+        "bodies": 16,
+        "geoms": 2707,
+        "target_records": 588,
+        "changed_target_fields": [],
+        "positioning_commands": 12,
+        "json_vs_definition_mm": 8.881784197001252e-16,
+        "mujoco_vs_json_mm": 5.709267256288867e-14,
+        "module_pose_samples": 74,
+        "module_core_pose_max_delta": 8.881784197001252e-15,
+        "pin_to_plate_grid_max_error_mm": 0.010000000000037756,
+        "clearance": {
+          "passed": true,
+          "discrete_samples": 807,
+          "minimum_enclosure_gap_mm": 5.549999051502088,
+          "tightest": "pipette_right_tip"
+        },
+        "baseline_clearance": {
+          "passed": true,
+          "discrete_samples": 807,
+          "minimum_enclosure_gap_mm": 5.54999914712697,
+          "tightest": "pipette_right_tip"
+        },
+        "resource_references": 1194,
+        "missing_resources": [],
+        "warnings": [
+          "command 25: NEST 12 Well Reservoir 15 mL A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 27: NEST 12 Well Reservoir 15 mL A2 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 29: NEST 12 Well Reservoir 15 mL A3 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 31: NEST 12 Well Reservoir 15 mL A4 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 34: NEST 12 Well Reservoir 15 mL A5 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+        ]
+      }
+    },
+    "errors": [],
+    "source_sha256": {
+      "ot2_shell.py": "f00edbd5433f100559c45d5cb5745aa32f53645d03fdae2aa88fb4ceec81209e",
+      "ot2_scene.py": "860c22790b71e206306ef2db8a3fc60e9c80671f63f3a73e6e52971c70462edb",
+      "play_ot2_protocol.py": "a6ae65ce427351bd04d56e65923c2d23c954f8d770332f142f47df5cc8873493",
+      "ot2_protocol.py": "03b4de37e0ff97ad81cdd3618d4a74f3cc8e9286f3226e252b5ac384a9098654"
+    },
+    "target_and_frame_checks_passed": true,
+    "module_comparison_scope": "Source lid poses remove MuJoCo mesh reference transforms. Both geometry versions use corrected upright hinge motion, timing and park height, not previous-release playback. All added viz_mod_* skins are checked. Slot-to-body pin/support alignment is intentionally corrected; authoritative labware origins/targets and joint/body/site frames stay unchanged."
+  },
+  "geometry_regression": {
+    "housing_bounds": {
+      "authored_dimensions_mm": [
+        34,
+        34,
+        144
+      ],
+      "vertex_bounds_mm": [
+        34.0000016854371,
+        34.00000168545626,
+        143.99999422047281
+      ],
+      "old_principal_box_mm": [
+        62.144170259861475,
+        62.144170259872396,
+        144.00006122534998
+      ],
+      "max_expected_bound_error_mm": 2.8897635950819733e-06
+    },
+    "open_tip": {
+      "centerline_cap_intersections": 0,
+      "collar_wall_ray_intersections": 4,
+      "length_mm": 59.3,
+      "definition_length_mm": 59.3
+    },
+    "hinge_and_skins": {
+      "samples": 25,
+      "max_pivot_drift_mm": 4.440892098500626e-13,
+      "max_heater_rigid_drift_mm": 6.511673101211945e-14,
+      "max_heater_relative_offset_error_mm": 0.0050000000000053405,
+      "position_serialization_tolerance_mm": 0.02,
+      "open_degrees": 89.99999999999974,
+      "still_open_before_close_action_degrees": 89.99999999999974,
+      "lid_world_position_m": [
+        -0.051775000000000015,
+        0.28701000000000004,
+        0.15404
+      ],
+      "retraction_precedes_close": true
+    },
+    "static_module_layout": {
+      "accepted": false,
+      "classification": "Known pre-existing coverage-fixture layout conflict; moving-tool sweeps do not check static pairs. Envelope overlap is a warning, not an as-built surface measurement.",
+      "overlaps_over_1mm": [
+        {
+          "a": "temperatureModuleV1 slot 5",
+          "b": "temperatureModuleV2 slot 6",
+          "body_envelope_overlap_mm": [
+            63.5,
+            91.0,
+            84.0
+          ]
+        }
+      ]
+    },
+    "regression_properties_passed": true
+  },
+  "resources_and_browser_xml": {
+    "single": {
+      "referenced_resources": 398,
+      "negative_box_dimensions": [],
+      "missing_resources": [],
+      "unused_candidate_files_removed": 0,
+      "browser_xml_matches_candidate": true
+    },
+    "multi": {
+      "referenced_resources": 405,
+      "negative_box_dimensions": [],
+      "missing_resources": [],
+      "unused_candidate_files_removed": 0,
+      "browser_xml_matches_candidate": true
+    },
+    "modules": {
+      "referenced_resources": 1194,
+      "negative_box_dimensions": [],
+      "missing_resources": [],
+      "unused_candidate_files_removed": 0,
+      "browser_xml_matches_candidate": true
+    }
+  },
+  "ordered_patch": {
+    "passed": true,
+    "ordered_patch_reproduction": "Both patches dry-run/apply and reproduce all four final sources byte for byte; syntax valid.",
+    "cumulative_patch_sha256": "5e01c433e00261d34122373dad94b1bb4a16b4b9fa4a32dfc5903410b144ff0c",
+    "files": [
+      "ot2_shell.py",
+      "ot2_scene.py",
+      "play_ot2_protocol.py",
+      "ot2_protocol.py"
+    ]
+  },
+  "read_only_review": {
+    "reviewer": "Same existing modeling sub-agent, read-only incremental review; not fresh-context usability testing.",
+    "source_snapshots_equal": true,
+    "issues_resolved": [
+      "Missing module phase now raises an explicit error instead of silently timing the whole step.",
+      "module_body_origin comment now specifies deck coordinates.",
+      "Superseded module draft notes and intermediate renders removed."
+    ],
+    "remaining": [
+      "Five-module catalogue is a known negative static layout; body-definition envelopes overlap 63.5 x 91 x 84 mm for temperature V1/V2 in slots 5/6. Rendered-shell AABB overlap measured separately was 63.5 x 91 x 80.1 mm; these are model bounds, not hardware measurements.",
+      "Added module-skin AABBs can overlap neighboring static geometry by about 2.4 mm; no static physical fit acceptance.",
+      "Current right Z park is 0.2788 m against 0.2800 m joint maximum (1.2 mm spare); future taller modules need a new check."
+    ]
+  },
+  "browser_observations": {
+    "single": "Current 80 uL analysis at 6.0 s, play/pause, seek and camera orbit observed.",
+    "multi": "Existing two-mount analysis at 18.5 s; eight-channel geometry observed.",
+    "modules": "Open at 46.3 s and closed at 59.0 s, actual preview component.",
+    "scope": "Explicit existing-analysis temporary page, no model API credential. No new phone/download test or full product suite rerun."
+  },
+  "limits": [
+    "Illustrative geometry and estimated small dimensions; original asset IDs, local joint/body/site frames and authoritative targets retained.",
+    "Thermocycler is a simplified heating panel and hinge, not full factory cover, internals, exhaust or measured physical open envelope.",
+    "Finite world-AABB moving-tool sweeps do not prove continuous triangle collision freedom or static layout compatibility.",
+    "Fixed analyses have no loadLiquid inventory; do not infer starting 100/0 volumes.",
+    "Earlier normal-download, STAR/Vantage/Fluent blank previews and Flex close-view issues remain outside this change."
+  ]
+}
