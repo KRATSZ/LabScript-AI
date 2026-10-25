@@ -1,0 +1,67 @@
+{
+  "$otSharedSchema": "module/schemas/3",
+  "moduleType": "magneticModuleType",
+  "model": "magneticModuleV1",
+  "labwareOffset": {
+    "x": 0.125,
+    "y": -0.125,
+    "z": 82.25
+  },
+  "features": {},
+  "dimensions": {
+    "bareOverallHeight": 110.152,
+    "overLabwareHeight": 4.052,
+    "xDimension": 137,
+    "yDimension": 91,
+    "footprintXDimension": 128,
+    "footprintYDimension": 86,
+    "labwareInterfaceXDimension": 128,
+    "labwareInterfaceYDimension": 86
+  },
+  "extents": {
+    "total": {
+      "backLeftBottom": {
+        "x": -7,
+        "y": 1.8,
+        "z": 0
+      },
+      "frontRightTop": {
+        "x": 130,
+        "y": -89.2,
+        "z": 110.152
+      }
+    }
+  },
+  "cornerOffsetFromSlot": {
+    "x": -7,
+    "y": -1.8,
+    "z": 0
+  },
+  "calibrationPoint": {
+    "x": 124.875,
+    "y": 2.75,
+    "z": 82.25
+  },
+  "config": {
+    "maxEngageHeight": 45
+  },
+  "displayName": "Magnetic Module GEN1",
+  "quirks": [],
+  "slotTransforms": {},
+  "orientation": {
+    "1": "left",
+    "2": "center",
+    "3": "right",
+    "4": "left",
+    "5": "center",
+    "6": "right",
+    "7": "left",
+    "8": "center",
+    "9": "right",
+    "10": "left",
+    "11": "center"
+  },
+  "compatibleWith": [],
+  "incompatibleWithDecks": ["ot3_standard"],
+  "uniqueModuleData": {}
+}

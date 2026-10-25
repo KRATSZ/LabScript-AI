@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-26",
+  "scope": "Bundled OT-2 and Flex digital replay; no website deployment or new protocol generation",
+  "environment": {
+    "python": "3.11.15",
+    "opentrons": "8.8.2",
+    "mujoco": "3.17.0",
+    "platform": "macOS arm64"
+  },
+  "model_review": {
+    "reviewer": "independent GPT-6.1",
+    "result": "accept_with_limitations",
+    "focus": "single/eight-channel pipette, hollow nozzle and tip skins, dynamic Z-mount connections",
+    "limits": "Engineering estimates, not OEM CAD or measured hardware fit"
+  },
+  "validation": {
+    "product_suite": {
+      "node_tests": 320,
+      "python_tests": 54,
+      "result": "passed",
+      "production_build": "passed; large lazy visualizer chunk remains"
+    },
+    "ot2_regression": {
+      "test_functions": 19,
+      "fresh_official_cli_inputs": 29,
+      "positive_replays": 27,
+      "expected_negatives": [
+        "unsupported manual moveLabware",
+        "short-tip deep-tube model clearance"
+      ],
+      "result": "passed including native geometry checks"
+    },
+    "flex_regression": {
+      "test_functions": 8,
+      "result": "passed after final partial-nozzle guard",
+      "coverage": [
+        "air/liquid order",
+        "absolute coordinates",
+        "capacity and source errors",
+        "home axes",
+        "waits/manual pause",
+        "waste chute",
+        "modules",
+        "gripper",
+        "partial-nozzle rejection"
+      ]
+    },
+    "flex_reference_port": {
+      "reference_commit": "a3182eb5befc8ce535c33a225ae80b287e87c211",
+      "test_functions": 11,
+      "fresh_cli_analyses": 27,
+      "result": "passed; later coordinate/pause/nozzle changes covered separately"
+    },
+    "http_negative_cases": {
+      "expected_400_or_422": 8,
+      "result": "passed"
+    },
+    "gl_lifecycle": {
+      "tests": 4,
+      "models": 9,
+      "cache_limit": 4,
+      "evictions": 5,
+      "result": "passed; overview and close-up RGB match clean baseline within mean absolute difference <2"
+    },
+    "independent_code_review": "No remaining P1/P2 in reviewed protocol repairs, GL lifecycle and request timeout/interruption repairs",
+    "dedicated_ui_retest": {
+      "status": "passed_with_scope_limits_for_recorded_fifth_sequence",
+      "method": "independent usability_tester using isolated headless Chromium; native CUA blocked by locked desktop",
+      "scope": "real product preview component via fixed QA navigation; not production chat or physical phone",
+      "supported_loads_in_order": [
+        "P20",
+        "eight P300",
+        "P1000",
+        "thermocycler",
+        "air gap",
+        "absolute coordinates",
+        "Flex",
+        "legacy OT2 dilution",
+        "P20 again"
+      ],
+      "result": "All nine returned frames and steps; fifth-round ninth P20 load completed in5.24s. Play/pause, reverse seek/reset, unsupported manual-move error and recovery recorded.",
+      "history": "Third-round GL noise and fourth-round ninth-load stall retained as prior failures; GL noise not reproduced in fourth round and ninth-load stall not reproduced in fifth. One sequence does not establish a universal success rate.",
+      "domain_result": "NOT_VERIFIABLE in UI: independent liquid ledger absent; separate numeric oracles apply.",
+      "native_mobile": "NOT_RUN;390CSS headless responsive check only",
+      "images": [
+        "ot2-return-after-switch-20261026.png",
+        "flex-clear-frame-20261026.png"
+      ],
+      "network_interruption": "Single isolated net abort automatically retried and recovered after about0.5s",
+      "explicit_error_and_product_retry": "NOT_VERIFIABLE independently; implementer controlled502 smoke is separate",
+      "simulated16s_delay": "NOT_RUN"
+    },
+    "request_regression": {
+      "targeted_node_tests": 29,
+      "new_interruption_tests": 5,
+      "typescript_checks": "server and web passed",
+      "scope": "live transport/body interruption, explicit revision cancellation, readable server errors; preparation uses a shared45s deadline and direct retry"
+    },
+    "retry_ui_smoke": {
+      "owner": "implementer; separate from independent user test",
+      "method": "isolated browser route returned controlled502 with readable Chinese error, then route removed and product retry button clicked",
+      "result": "same P20 scene key, frames/steps/play recovered",
+      "not_claimed": "real network outage or independent user acceptance"
+    }
+  },
+  "remaining_limits": [
+    "UI has no independent liquid ledger; numeric intent-oracle evidence is separate from UI acceptance.",
+    "Missing inventories and coarse static module-envelope overlaps produce partial warnings, not a physical clearance certificate.",
+    "Flex touchTip is explicitly text-only; partial nozzle layouts and unsupported actions are rejected.",
+    "Motion and thermal ramps are illustrative; explicit waits and holds are preserved.",
+    "No human study, hardware calibration, continuous collision proof, vendor GUI acceptance or new STAR/Vantage/Fluent acceptance."
+  ]
+}

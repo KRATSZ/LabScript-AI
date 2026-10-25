@@ -69,6 +69,15 @@ def run_cli(payload: dict, extra_env: dict[str, str] | None = None) -> dict:
 
 
 class EvalPlanTests(unittest.TestCase):
+    def test_vendor_standard_low_volume_is_unverified_instead_of_false_green(self) -> None:
+        from eval_plan import attach_volume_gate
+        green = {"sim": {"ok": True}, "logicpass": {"outcome": "pass", "logic_pass": True, "final_pass_v2": True}, "fab": {"lit": True}}
+        plan = {"steps": [{"primitive_type": "ASPIRATE", "volume_ul": 0.5}, {"primitive_type": "DISPENSE", "volume_ul": 0.5}]}
+        for robot in ["Hamilton", "Vantage", "Tecan"]:
+            out = attach_volume_gate(green, plan, robot)
+            self.assertEqual(out["logicpass"]["outcome"], "unevaluable")
+            self.assertFalse(out["fab"]["lit"])
+            self.assertIn("not declared impossible", out["logicpass"]["issues"][-1]["detail_text"])
     def test_validate_only_ok(self) -> None:
         out = run_cli({"plan": DEMO, "validate_only": True})
         self.assertTrue(out["ok"])

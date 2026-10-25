@@ -53,7 +53,7 @@ describe("AnimationOverlay code-split", () => {
   });
 
   it("scientist-facing copy names five robots and prompt supports emit_plan", () => {
-    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "startExamples.ts", "pipelineLogic.ts", "RightStage.tsx"];
+    const files = ["App.tsx", "StartForm.tsx", "ChatPane.tsx", "devices.ts", "startExamples.ts", "pipelineLogic.ts", "RightStage.tsx"];
     const blob = files.map((name) => readFileSync(path.join(webSrc, name), "utf8")).join("\n");
     assert.match(blob, /OT-2/);
     assert.match(blob, /Flex/);
@@ -164,7 +164,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(phone, /\.stage-pane\.has-deck \.ot-deck-embed[\s\S]*min-height:\s*0/);
     assert.match(phone, /\.overlay-card \{[\s\S]*min-height:\s*0/);
     assert.match(phone, /\.lang-switch \{ grid-area:\s*lang/);
-    const phoneFit = css.slice(css.lastIndexOf("@media (max-width: 860px)"));
+    const phoneFit = css.slice(css.indexOf("@media (max-width: 860px)", css.indexOf("@media (max-width: 860px)") + 1));
     assert.match(phoneFit, /aspect-ratio:\s*855\s*\/\s*582/);
     assert.match(phoneFit, /deckview-module__body_container[\s\S]*min-width:\s*0/);
     assert.match(phoneFit, /deckview-module__deck_svg_wrapper[\s\S]*min-width:\s*0/);
@@ -269,7 +269,7 @@ describe("AnimationOverlay code-split", () => {
     assert.match(css, /\.flex-deck-ticks/);
     assert.match(css, /robot_coords_foreign_object_container/);
     assert.match(css, /transform:\s*scaleY\(-1\)/);
-    assert.doesNotMatch(css, /robotcoordinatespace-module__svg/);
+    assert.match(css, /\.ot-deck-embed \[class\*="deck_svg_wrapper"\] > svg/);
     const app = readFileSync(path.join(webSrc, "App.tsx"), "utf8");
     assert.match(app, /split-seam/);
     assert.match(app, /HistoryRail/);

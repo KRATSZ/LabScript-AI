@@ -42,7 +42,7 @@ export const CONSEQUENCE_BY_CODE: Record<string, string> = {
   HasTipError:
     "The channel already has a tip, so it cannot pick another — crash or a stuck tip. Drop the current tip before the next PICK_TIPS.",
   TooLittleVolumeError:
-    "That volume does not fit in the tip or well: liquid will spill or the robot will refuse. Lower the volume, split the transfer, or stay within 300 µL tips / 360 µL Corning wells on the STAR standard deck.",
+    "The requested volume exceeds a tip or well capacity: liquid can spill. Check both capacities. Lower the volume only with user approval, or use suitable larger labware and tips. Splitting into the same destination cannot fix well overflow.",
   TooLittleLiquidError:
     "There is not enough liquid in that well or tip: air gets aspirated, the transfer is short. Lower the volume or put more reagent in that well.",
   ResourceNotFoundError:

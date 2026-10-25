@@ -99,3 +99,24 @@ def plan_volume_error(plan: dict[str, Any], robot: str | None = None) -> Optiona
     if tip_max is not None and max_vol > tip_max:
         return f"Volume {max_vol:g} µL exceeds tip capacity {tip_max:g} µL"
     return None
+
+
+def plan_low_volume_reason(plan: dict[str, Any], robot: str | None = None) -> Optional[str]:
+    """Conservative verification boundary for the compiled standard tip profiles.
+
+    Hamilton's 300 µL tip performance table and Tecan's DiTi 200 table start
+    at 10 µL. This is NOT a claim that smaller volumes are impossible or a
+    manufacturer-stated universal minimum. The demo has no calibrated liquid
+    class/profile to substantiate performance below those published points.
+    Sources: Hamilton TN-1405-10; Fluent Reference Manual 399937 v1.6 §2.4.3.3.
+    """
+    model = normalize_robot_model(robot)
+    if model not in {"hamilton_star", "hamilton_vantage", "tecan_fluent"}:
+        return None
+    volumes = [v for v in _step_volumes(plan) if 0 < v < 10]
+    if not volumes:
+        return None
+    return (f"Cannot verify {min(volumes):g} µL with the compiled standard tip profile: "
+            "the vendor's published performance points for these tips start at 10 µL, "
+            "and no validated lower-volume liquid class is provided. Confirm a compatible "
+            "tip and calibrated method; smaller volumes are not declared impossible.")

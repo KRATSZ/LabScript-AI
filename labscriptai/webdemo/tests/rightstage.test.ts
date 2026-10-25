@@ -34,6 +34,8 @@ describe("right stage tabs", () => {
       event({ seq: 2, kind: "turn/end", detail: { ok: true } }),
     ];
     assert.equal(tabCount("stage", session, events), null);
+    assert.equal(tabCount("artifacts", session, events), 2, "unchecked worklists are withheld");
+    session.checks = { status: "pass" } as SessionSnapshot["checks"];
     assert.equal(tabCount("artifacts", session, events), 3);
     assert.equal(tabCount("trajectory", session, events), 0);
     assert.equal(tabCount("artifacts", null, []), 0);

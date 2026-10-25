@@ -460,12 +460,11 @@ body {
 .ot-deck-embed.is-flex [class*="deck_labels_row"] {
   display: none !important;
 }
-/*
-  Deck SVG is scale(1,-1). HTML in RobotCoordsForeignObject (Trash bin, Waste chute)
-  needs the official scaleY(-1) compensation from @opentrons/components/lib/style.css,
-  which this embed does not load. OT-2 FixedTrashText is SVG paths with its own
-  scale(1,-1) — leave it. Do not import the full components stylesheet (inspector).
-*/
+/* Scoped official robot-coordinate transforms. SVG uses Y-up; HTML labels
+   compensate within it. Keep both rules without the global inspector styles. */
+.ot-deck-embed [class*="deck_svg_wrapper"] > svg {
+  transform: scaleY(-1);
+}
 .ot-deck-embed [class*="robot_coords_foreign_object_container"] {
   transform: scaleY(-1);
 }
@@ -1205,12 +1204,36 @@ body {
 }
 
 .form { display: flex; flex-direction: column; gap: 8px; }
+.start-scroll:has(.start-fields) { overflow: hidden; }
+.form:has(.start-fields) { flex: 1; min-height: 0; }
+.start-fields { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 4px 12px; margin: -2px -4px 0; }
+.start-fields > * { flex-shrink: 0; }
+.start-actions { flex: 0 0 auto; display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.start-intro { margin-bottom: 8px; }
+.start-intro h2 { font-size: 22px; line-height: 28px; margin: 0 0 8px; letter-spacing: -0.025em; }
+.start-intro p { margin: 0; color: var(--muted); font-size: 14px; line-height: 21px; }
+.start-examples { display: grid; gap: 8px; margin-bottom: 10px; }
+.field-title, .device-fieldset legend { font-size: 13px; line-height: 18px; font-weight: 600; }
+.device-fieldset { min-width: 0; padding: 0; border: 0; margin: 0 0 12px; }
+.device-fieldset legend { padding: 0; margin-bottom: 8px; }
+.start-requirements { margin-top: 6px; }
+.start-steps { text-align: left; padding: 0; margin: 28px 0; list-style: none; counter-reset: start-step; display: grid; gap: 20px; }
+.start-steps li { position: relative; padding-left: 42px; counter-increment: start-step; }
+.start-steps li::before { content: counter(start-step); position: absolute; left: 0; top: 0; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: var(--paper); border: 1px solid var(--line); font-size: 12px; color: var(--primary-dark); font-weight: 600; }
+.start-steps li::marker { content: ""; }
+.start-steps strong, .start-steps span { display: block; }
+.start-steps strong { font-size: 15px; line-height: 22px; }
+.start-steps span { color: var(--muted); font-size: 13px; line-height: 19px; margin-top: 3px; }
+.stage-empty .start-web-note { font-size: 12px; line-height: 18px; }
+.file-label:focus-within { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 3px; }
+.device-card:focus-visible, .chip:focus-visible, .primary:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .form label { font-size: 13px; line-height: 18px; font-weight: 600; }
 .notes-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .notes-head .file-label { font-weight: 500; }
 .form textarea, .form input[type="text"] {
@@ -1987,9 +2010,29 @@ body {
   border-top: 1px solid var(--line);
   padding-top: 6px;
 }
+.flex3d-bottom:has(.animator-unavailable) {
+  flex: 0 0 auto;
+  min-height: 0;
+}
 .flex3d-note {
   flex: 0 0 auto;
   margin: 0;
   font-size: 12px;
   color: var(--muted);
+}
+
+.ot2-preview { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.preview-views { display: flex; gap: 6px; padding: 8px; border-bottom: 1px solid var(--line); }
+.preview-views [aria-pressed="true"] { background: #dbeafe; color: #1d4ed8; }
+.flex3d.is-embedded { padding: 8px; }
+.flex3d.is-embedded .flex3d-top { flex: 1 0 420px; min-height: 420px; }
+.flex3d.is-embedded .flex3d-grid { grid-template-columns: minmax(0, 1fr) minmax(210px, 32%); }
+.flex3d-bar { flex-wrap: wrap; }
+@media (max-width: 860px) {
+  .ot2-preview { min-height: 520px; }
+  .flex3d.is-embedded { overflow: visible; }
+  .flex3d.is-embedded .flex3d-grid { grid-template-columns: 1fr; grid-template-rows: 260px 190px minmax(140px, 220px); grid-template-areas: "main" "close" "steps"; flex: none; }
+  .flex3d.is-embedded .flex3d-top { flex: none; }
+  .flex3d-bar input[type="range"] { min-width: 90px; }
+  .flex3d-time { min-width: auto; }
 }

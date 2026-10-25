@@ -1,0 +1,21 @@
+{
+  "oracle_author": "independently authored OT-2 return-tip intent; not generated from renderer code",
+  "runtime": "Opentrons 8.8.2",
+  "cases": {
+    "single_p20.py": {
+      "pipette": "p20_single_gen2",
+      "scale": 0.5,
+      "rack": "lw1"
+    },
+    "eight_p300.py": {
+      "pipette": "p300_multi_gen2",
+      "scale": 0.4,
+      "rack": "lw1"
+    },
+    "p1000_single_gen2_return.py": {
+      "pipette": "p1000_single_gen2",
+      "scale": 0.83,
+      "rack": "lw1"
+    }
+  }
+}

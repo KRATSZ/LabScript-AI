@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readUserRequirements, requirementsText, type UserRequirements } from "./requirements.ts";
 import type { ChecksResult, LogicPassResult } from "./gate.ts";
 import {
   DEVICE_REGISTRY,
@@ -74,8 +75,12 @@ export interface SessionState {
   id: string;
   phase: Phase;
   goal?: string;
+  /** Extracted only from human input, never from model-authored session fields. */
+  requirements?: UserRequirements;
   /** `"none"` or pasted/uploaded SOP draft. Undefined = not collected yet. */
   doc?: string;
+  /** The start form is the human source; models cannot invent/replace this draft. */
+  sourceDocLocked?: boolean;
   robot?: RobotModel;
   hardware: HardwareState;
   sop?: string;
@@ -106,6 +111,10 @@ export interface SessionState {
   intakeDone?: boolean;
   /** Chat + SOP language. Default English. */
   language?: UiLang;
+  /** Reconcile a follow-up's conditions before authoring/checking artifacts. */
+  authoringSyncPending?: boolean;
+  /** A later explicit amendment supersedes matching fields of the original draft. */
+  draftSuperseded?: boolean;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -295,6 +304,13 @@ function competingNoteVolumes(goal = "", notes = ""): { goalVols: number[]; extr
   }
   for (const { ul, index } of volumeMentions(notes)) {
     if (goalVols.includes(ul)) continue;
+    const rowStart = notes.lastIndexOf("\n", index) + 1;
+    const rowEnd = notes.indexOf("\n", index);
+    const row = notes.slice(rowStart, rowEnd < 0 ? undefined : rowEnd);
+    if (/^\s*[-*]?\s*(?:reagents?|试剂|初始量)\s*[:：]/i.test(row)) continue;
+    // An exported SOP records an empty destination as “0 µL（空）”.
+    // This is an initial state, not a second requested transfer volume.
+    if (ul === 0 && /^0(?:\.0+)?\s*(?:µl|μl|ul|微升)\s*[（(]\s*(?:空(?:孔)?|empty)\s*[）)]/i.test(notes.slice(index))) continue;
     const ctx = contextAt(notes, index);
     if (CAPACITY_CTX.test(ctx)) continue;
     if (/\b(?:do not|don't|not)\s+clamp\b/.test(ctx)) continue;
@@ -330,7 +346,7 @@ export function conflictChoiceVolumes(goal = "", doc = ""): number[] {
 }
 
 const REJECTED_VOLUME =
-  /(?:(?:do\s+)?not|don't|dont|no|ignore|except|instead\s+of|rather\s+than|skip)\s+(?:use\s+|the\s+)?(\d+(?:\.\d+)?)/gi;
+  /(?:(?:do\s+)?not|don't|dont|no|ignore|except|instead\s+of|rather\s+than|skip|不要|不用|不选|弃用)\s+(?:(?:use|choose|select|the)\s+)?(\d+(?:\.\d+)?)/gi;
 
 function allowedNumbersInText(text: string, allowed: number[]): number[] {
   const fromUl = ulAmounts(text).filter((vol) => allowed.includes(vol));
@@ -359,6 +375,11 @@ export function chosenVolumeInText(
   if (!text.trim() || !allowed.length) return undefined;
   const mentioned = allowedNumbersInText(text, allowed);
   const rejected = rejectedVolumesInText(text, allowed);
+  const preferred = [...text.matchAll(/(?:\b(?:use|choose|select|transfer)\s+|(?:最终)?(?:选用|采用|选择|使用|用|转移量?|转移)\s*)(?:每孔\s*)?(\d+(?:\.\d+)?)/gi)]
+    .filter(m => !/^\s*(?:µl|ul|μl|ml|微升|毫升)?\s*(?:的\s*)?(?:tips?|tiprack|pipette|plate|枪头|移液器|孔板|容量|初始)/i.test(text.slice((m.index ?? 0) + m[0].length)))
+    .map(m => Number(m[1])).filter(v => allowed.includes(v) && !rejected.includes(v));
+  const uniquePreferred = [...new Set(preferred)];
+  if (uniquePreferred.length === 1) return uniquePreferred[0];
   const positive = mentioned.filter((vol) => !rejected.includes(vol));
   if (positive.length === 1) return positive[0];
   if (opts?.leftover !== false && rejected.length && positive.length === 0) {
@@ -369,7 +390,7 @@ export function chosenVolumeInText(
 }
 
 export function unresolvedGoalNotesConflict(session: SessionState): string | null {
-  if (session.draftConflictResolved) return null;
+  if (session.draftConflictResolved || session.draftSuperseded) return null;
   return goalNotesVolumeConflict(session.goal ?? "", session.doc ?? "", session.language ?? "en");
 }
 
@@ -417,11 +438,19 @@ export function markIntakeReply(session: SessionState, userText: string): void {
   session.intakeDone = true;
 }
 
+export function beginAuthoringTurn(session: SessionState, userText: string): void {
+  if (!userText.trim()) return;
+  session.requirements = readUserRequirements(userText, session.requirements);
+  session.authoringSyncPending = true;
+}
+
 export function intakeOpen(session: SessionState): boolean {
   return !session.intakeDone && !session.sop?.trim();
 }
 
 export function resolveGoalNotesConflict(session: SessionState): void {
+  const picked = chosenVolumeInText(session.conflictReplyText ?? "", ulAmounts(session.goal ?? ""));
+  if (picked != null) session.requirements = { ...(session.requirements ?? { initial: [] }), transferUl: picked };
   session.draftConflictResolved = true;
   session.conflictUserReplied = true;
   session.conflictReplyText = undefined;
@@ -437,7 +466,10 @@ export function resolveGoalNotesConflict(session: SessionState): void {
 
 /** Goal (+ intern notes) for SOP authoring. After a volume pick, notes are dropped. */
 export function authoringGoal(session: SessionState): string {
-  const goal = session.goal ?? "";
+  const goal = [session.goal ?? "", requirementsText(session.requirements)].filter(Boolean).join("\n\n");
+  if (session.doc && session.doc !== "none" && session.draftSuperseded) {
+    return `${goal}\n\nEarlier SOP draft (reference):\n${session.doc}\n\nThe current goal includes the user's later amendments and takes precedence for changed values. Retain all unchanged draft conditions. Do not restore superseded values from the draft.`;
+  }
   if (session.draftConflictResolved) return goal;
   if (session.doc && session.doc !== "none") {
     return `${goal}\n\nExisting SOP draft:\n${session.doc}`;
@@ -447,16 +479,17 @@ export function authoringGoal(session: SessionState): string {
 
 /** llmreview intent: chosen volume + generated SOP, never stale conflicting notes. */
 export function reviewIntent(session: SessionState): string {
-  if (!session.draftConflictResolved) return authoringGoal(session);
+  if (!session.draftConflictResolved && !session.draftSuperseded) return authoringGoal(session);
   const goal = (session.goal ?? "").trim();
   const sop = session.sop?.trim();
   const parts = [
-    "User confirmed this volume. Intern notes were a conflicting draft — review against the chosen goal and generated SOP only.",
+    "The user confirmed or amended the current goal. Review against this current goal and generated SOP only; earlier draft values have been superseded.",
   ];
   if (session.robot === "Tecan") {
     parts.push("fca_1000 is the FCA pipette (Fluent Channel Arm). Assumed Fluent tips are 200 µL DiTi.");
   }
   parts.push(goal);
+  parts.push(requirementsText(session.requirements));
   if (sop) parts.push(`Generated SOP:\n${sop}`);
   return parts.filter(Boolean).join("\n\n");
 }
@@ -576,11 +609,12 @@ function namedDeckPhraseZh(robot: RobotModel | undefined, deck: Record<string, s
 /** One-line first-turn confirm. Never “nothing is written yet.” */
 export function intakeConfirmLine(session: SessionState): string {
   const label = deviceFor(session.robot)?.label ?? "this robot";
+  const pipettes = [session.hardware.leftPipette, session.hardware.rightPipette].filter(p => p && p !== "None").join(", ");
   if (session.language === "zh") {
-    return `${label}，标准台面：${namedDeckPhraseZh(session.robot, session.hardware.deck)}。若相符请回复。`;
+    return `${label}，标准台面：${namedDeckPhraseZh(session.robot, session.hardware.deck)}；移液器 ${pipettes}。若相符请回复（需与实际硬件一致）。`;
   }
   const deck = namedDeckPhrase(session.robot, session.hardware.deck);
-  return `${label}, standard deck: ${deck}. Reply if that matches.`;
+  return `${label}, standard deck: ${deck}; pipettes ${pipettes}. Reply if that matches your actual hardware.`;
 }
 
 export function assumeStandardDeck(session: SessionState): void {
@@ -609,7 +643,9 @@ export function applyForm(
   if (explicit && !selectedRobot) throw new Error("invalid robot");
   session.goal = input.goal.trim();
   const doc = (input.doc ?? "").trim();
+  session.requirements = readUserRequirements(input.goal, readUserRequirements(doc));
   session.doc = doc ? doc : "none";
+  session.sourceDocLocked = true;
   session.sop = undefined;
   session.conflictAskedAt = undefined;
   session.conflictUserReplied = undefined;
@@ -682,6 +718,7 @@ export function applyPreset(session: SessionState, id: HardwarePresetId): Sessio
     session.conflictUserReplied = undefined;
     session.conflictReplyText = undefined;
     session.draftConflictResolved = undefined;
+    session.draftSuperseded = undefined;
   }
   refreshPhase(session);
   return session;
@@ -731,9 +768,14 @@ function resetForRobotSwitch(session: SessionState, robot: RobotModel): void {
   session.conflictUserReplied = undefined;
   session.conflictReplyText = undefined;
   session.draftConflictResolved = undefined;
+  session.draftSuperseded = undefined;
 }
 
 export function applyAskUser(session: SessionState, input: AskUserInput): SessionState {
+  const previousPipettes = [session.hardware.leftPipette, session.hardware.rightPipette].join("|");
+  const previousGoal = session.goal;
+  const previousDoc = session.doc;
+  const amendingGoal = session.authoringSyncPending === true && !unresolvedGoalNotesConflict(session);
   const previousRobot = session.robot;
   const explicitDeck = hasExplicitDeck(input);
   if (input.preset && input.preset in HARDWARE_PRESETS) {
@@ -741,10 +783,23 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   }
   if (typeof input.goal === "string" && input.goal.trim()) {
     session.goal = input.goal.trim();
+    session.authoringSyncPending = false;
+    if (previousGoal && session.goal !== previousGoal) {
+      // An explicit revision starts a new artifact set; never patch an old SOP/code
+      // against the new goal or leave an old passing preview downloadable.
+      session.sop = undefined;
+      session.code = undefined;
+      session.plan = undefined;
+      session.analyze = undefined;
+      session.artifacts = undefined;
+      session.lastChecks = undefined;
+      session.hasPassedChecks = undefined;
+    }
   }
   const named = parseRobot(input.robot) ?? (!session.robot ? inferRobotFromText(session.goal ?? "") : undefined);
-  if (typeof input.doc === "string") {
+  if (typeof input.doc === "string" && !session.sourceDocLocked) {
     const doc = input.doc.trim();
+    if (session.doc !== (doc || "none")) session.draftSuperseded = false;
     session.doc = doc ? doc : "none";
   } else if ((hardwareTouched(input) || Boolean(named)) && session.doc === undefined) {
     session.doc = "none";
@@ -783,6 +838,22 @@ export function applyAskUser(session: SessionState, input: AskUserInput): Sessio
   } else {
     assumeStandardDeck(session);
     applyPcrFriendlyDeck(session);
+  }
+  if (amendingGoal && previousGoal && session.goal !== previousGoal && session.doc === previousDoc) {
+    // Apply after robot/preset resets so a simultaneous device change preserves
+    // the user's amendment. Keep the original draft as reference for authoring.
+    session.draftSuperseded = true;
+  }
+  if (previousPipettes.replace(/[|]/g, "") && previousPipettes !== [session.hardware.leftPipette, session.hardware.rightPipette].join("|")) {
+    // A model's hardware substitution is a proposal until a later human reply.
+    session.intakeDone = false;
+    session.sop = undefined;
+    session.code = undefined;
+    session.plan = undefined;
+    session.analyze = undefined;
+    session.artifacts = undefined;
+    session.lastChecks = undefined;
+    session.hasPassedChecks = undefined;
   }
   refreshPhase(session);
   return session;

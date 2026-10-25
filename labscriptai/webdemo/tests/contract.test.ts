@@ -132,7 +132,7 @@ describe("demo contract lock", () => {
   });
 
   it("scientist-facing copy names OT-2, Flex, STAR, Vantage, and Fluent", () => {
-    const blob = ["web/src/App.tsx", "web/src/StartForm.tsx", "web/src/ChatPane.tsx", "web/src/startExamples.ts"]
+    const blob = ["web/src/App.tsx", "web/src/StartForm.tsx", "web/src/ChatPane.tsx", "web/src/startExamples.ts", "web/src/devices.ts"]
       .map(read)
       .join("\n");
     assert.match(blob, /OT-2/);
@@ -148,7 +148,7 @@ describe("demo contract lock", () => {
     assert.match(read("web/src/pipelineLogic.ts"), /Cannot verify/);
     assert.doesNotMatch(read("web/src/ExportsPanel.tsx"), /Watch is Opentrons-only/);
     assert.match(read("web/src/StartForm.tsx"), /DEVICE_CARDS/);
-    assert.match(read("web/src/StartForm.tsx"), /Pick a robot/);
+    assert.match(read("web/src/StartForm.tsx"), /Choose your instrument/);
     assert.doesNotMatch(read("web/src/StartForm.tsx"), /Robot is asked in chat/);
     assert.match(read("web/src/App.tsx"), /Change robot/);
     assert.match(read("web/src/types.ts"), /export interface StartInput/);

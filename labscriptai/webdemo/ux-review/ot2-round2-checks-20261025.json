@@ -1,0 +1,261 @@
+{
+  "baseline_commit": "f6960d4b3599fa9b930b4ebd361001ba33186ec6",
+  "scope": "Two local OT-2 model refinement cycles, fresh-context GPT-6.1 read-only review, implementer existing-analysis browser QA. No push/PR edit/deployment, new generation, full product suite or hardware acceptance.",
+  "rounds_completed": 2,
+  "source_sha256": {
+    "ot2_shell.py": "dee9d012d7e6bef1bb5fd453fef8b22965b49be3eb402078c334fd3d43f941db",
+    "ot2_scene.py": "ba151f679a166aedf48e675cde284629a49df08344fc171f955aaec7da2cbaab",
+    "play_ot2_protocol.py": "a6ae65ce427351bd04d56e65923c2d23c954f8d770332f142f47df5cc8873493",
+    "ot2_protocol.py": "8d8ef2f85f1ef90080fc854f2493c07ec06f92279492a544e30c58f2246b25af"
+  },
+  "independent_review": {
+    "model": "gpt-6.1-sol",
+    "fresh_context": true,
+    "verdict": "accept_with_limitations",
+    "findings": [],
+    "position_commands": 27,
+    "discrete_moving_tool_samples": 1350,
+    "lid_motion_samples": 102,
+    "full_report_local": "virtual-lab/exports/mujoco/ot2-two-rounds-20261025/independent-gpt61.json"
+  },
+  "target_and_frame_checks_passed": true,
+  "fixtures": {
+    "single": {
+      "analysis_sha256": "c5f3f4f35fe5d7a1ae53b3ab416f7ddb0dfd1a208617f5b3aed8b2b45a6d3349",
+      "xml_sha256": "ee0acfcad7418382c1fade48a458240586300b1cd666bb00f47a992542f29a24",
+      "original_frames_equal": true,
+      "joints": 3,
+      "sites": 3,
+      "bodies": 7,
+      "geoms": 1002,
+      "target_records": 204,
+      "changed_target_fields": [],
+      "positioning_commands": 4,
+      "json_vs_definition_mm": 0.0,
+      "mujoco_vs_json_mm": 5.329070518200751e-15,
+      "module_pose_samples": 0,
+      "module_core_pose_max_delta": 0.0,
+      "pin_to_plate_grid_max_error_mm": 0.0,
+      "clearance": {
+        "passed": true,
+        "discrete_samples": 165,
+        "minimum_enclosure_gap_mm": 4.499999051502092,
+        "tightest": "pipette_left_tip"
+      },
+      "baseline_clearance": {
+        "passed": true,
+        "discrete_samples": 165,
+        "minimum_enclosure_gap_mm": 4.499999051502092,
+        "tightest": "pipette_left_tip"
+      },
+      "resource_references": 398,
+      "missing_resources": [],
+      "warnings": [
+        "command 7: NEST 96 Well Plate 200 μL Flat A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+      ]
+    },
+    "multi": {
+      "analysis_sha256": "48723c1d104314efc01ef0603b093648dcba028a29a67fa8859ebf1d96d0adf8",
+      "xml_sha256": "289995c5c273e12a5b904aedde658d9f10af3891cf6aac4dea212de6eff201f5",
+      "original_frames_equal": true,
+      "joints": 4,
+      "sites": 13,
+      "bodies": 8,
+      "geoms": 1061,
+      "target_records": 204,
+      "changed_target_fields": [],
+      "positioning_commands": 11,
+      "json_vs_definition_mm": 8.881784197001252e-16,
+      "mujoco_vs_json_mm": 5.329070518200751e-15,
+      "module_pose_samples": 0,
+      "module_core_pose_max_delta": 0.0,
+      "pin_to_plate_grid_max_error_mm": 0.0,
+      "clearance": {
+        "passed": true,
+        "discrete_samples": 378,
+        "minimum_enclosure_gap_mm": 4.499999051502092,
+        "tightest": "pipette_right_tip"
+      },
+      "baseline_clearance": {
+        "passed": true,
+        "discrete_samples": 378,
+        "minimum_enclosure_gap_mm": 4.499999051502092,
+        "tightest": "pipette_right_tip"
+      },
+      "resource_references": 405,
+      "missing_resources": [],
+      "warnings": [
+        "command 11: NEST 12 Well Reservoir 15 mL A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+        "command 15: NEST 12 Well Reservoir 15 mL A2 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+      ]
+    },
+    "modules": {
+      "analysis_sha256": "7a0433988bb6b06e00eddbfa2a11e95d83c092875ca32e6e5293e8e87e7708c1",
+      "xml_sha256": "7b485ea127a60e6740147a132626e8d749d8d41affd9a384fdec4ef37207ee83",
+      "original_frames_equal": true,
+      "joints": 3,
+      "sites": 3,
+      "bodies": 16,
+      "geoms": 2775,
+      "target_records": 588,
+      "changed_target_fields": [],
+      "positioning_commands": 12,
+      "json_vs_definition_mm": 8.881784197001252e-16,
+      "mujoco_vs_json_mm": 5.709267256288867e-14,
+      "module_pose_samples": 74,
+      "module_core_pose_max_delta": 0.0,
+      "pin_to_plate_grid_max_error_mm": 0.010000000000037756,
+      "clearance": {
+        "passed": true,
+        "discrete_samples": 807,
+        "minimum_enclosure_gap_mm": 5.549999051502088,
+        "tightest": "pipette_right_tip"
+      },
+      "baseline_clearance": {
+        "passed": true,
+        "discrete_samples": 807,
+        "minimum_enclosure_gap_mm": 5.549999051502088,
+        "tightest": "pipette_right_tip"
+      },
+      "resource_references": 1207,
+      "missing_resources": [],
+      "warnings": [
+        "command 25: NEST 12 Well Reservoir 15 mL A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+        "command 27: NEST 12 Well Reservoir 15 mL A2 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+        "command 29: NEST 12 Well Reservoir 15 mL A3 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+        "command 31: NEST 12 Well Reservoir 15 mL A4 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+        "command 34: NEST 12 Well Reservoir 15 mL A5 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+      ]
+    }
+  },
+  "static_module_layout_accepted": false,
+  "round2_geometry": {
+    "temperature_grille": {
+      "gap_ray": {
+        "hit": "viz_mod_6_temperatureModuleV2_vent_backing",
+        "surface_x_local_mm": 4.99999997625128
+      },
+      "bar_ray": {
+        "hit": "viz_mod_6_temperatureModuleV2_grille_row_0",
+        "surface_x_local_mm": -0.5999999625608265
+      },
+      "scope": "Actual open front grille, dark recessed backing. Proxy excluded only from this visual-ray check, retained in movement sweeps."
+    },
+    "magnetic_rear_rims": {
+      "magneticModuleV1": {
+        "local_lo_mm": [
+          0.0,
+          87.43999999999998,
+          106.1
+        ],
+        "local_hi_mm": [
+          136.99999999999997,
+          91.0,
+          110.16000000000001
+        ],
+        "behind_child_footprint": true
+      },
+      "magneticModuleV2": {
+        "local_lo_mm": [
+          0.0,
+          87.44,
+          106.1
+        ],
+        "local_hi_mm": [
+          136.99999999999997,
+          91.00000000000001,
+          110.16000000000001
+        ],
+        "behind_child_footprint": true
+      }
+    },
+    "park": {
+      "current_m": 0.2788,
+      "range_m": [
+        -0.02,
+        0.28
+      ],
+      "remaining_mm": 1.2000000000000344
+    },
+    "out_of_range_park": {
+      "blocked": true,
+      "message": "module clearance requires nozzle park Z 412.2 mm; OT-2 model Z range is -20.0..280.0 mm"
+    },
+    "scope": "Digital/illustrative regression checks, not physical airflow, mechanical fit or hardware acceptance."
+  },
+  "resources": {
+    "single": {
+      "resource_references": 398,
+      "missing_resources": [],
+      "source_xml_sha256": "ee0acfcad7418382c1fade48a458240586300b1cd666bb00f47a992542f29a24",
+      "browser_xml_matches_candidate": true
+    },
+    "multi": {
+      "resource_references": 405,
+      "missing_resources": [],
+      "source_xml_sha256": "289995c5c273e12a5b904aedde658d9f10af3891cf6aac4dea212de6eff201f5",
+      "browser_xml_matches_candidate": true
+    },
+    "modules": {
+      "resource_references": 1207,
+      "missing_resources": [],
+      "source_xml_sha256": "7b485ea127a60e6740147a132626e8d749d8d41affd9a384fdec4ef37207ee83",
+      "browser_xml_matches_candidate": true
+    }
+  },
+  "browser": {
+    "scope": "Implementer actual production preview component, transparent fixed-analysis fixture page. No new generation or independent user test.",
+    "single": {
+      "time_s": 6.0,
+      "current_title": "Single 80 uL Transfer A1 to B1",
+      "screenshot": "web-single.png"
+    },
+    "modules": {
+      "open_time_s": 46.3,
+      "closed_time_s": 58.9,
+      "static_layout_accepted": false,
+      "screenshots": [
+        "web-modules-open.png",
+        "web-modules-closed.png"
+      ]
+    },
+    "multi": {
+      "time_s": 18.5,
+      "current_title": "ot2-probe",
+      "screenshot": "web-multi.png"
+    },
+    "not_run": [
+      "new dedicated user test",
+      "new phone/download test",
+      "full product suites",
+      "hardware execution"
+    ],
+    "all_browser_xml_match_candidate": true
+  },
+  "ordered_patch": {
+    "passed": true,
+    "ordered_patch_reproduction": "Both patches dry-run/apply and reproduce all four final sources byte for byte; syntax valid.",
+    "cumulative_patch_sha256": "e75861c859d9799070d8c744e8f1f1a4517ff472535eb07645982eb5a3808df9",
+    "files": [
+      "ot2_shell.py",
+      "ot2_scene.py",
+      "play_ot2_protocol.py",
+      "ot2_protocol.py"
+    ]
+  },
+  "remaining_limits": [
+    "Acceptance is limited to the two-round frozen changes, local cumulative patch reproducibility, three existing analysis inputs and finite digital geometry/replay checks. No browser end-to-end, fresh protocol generation, complete product acceptance or dedicated user test was performed by this reviewer.",
+    "The five-module catalogue remains a known negative static-layout fixture: Temperature V1 slot 5 and V2 slot 6 have 63.5 x 91 x 84 mm overlapping definition envelopes. This was independently recalculated; moving-tool sweeps do not test static pairs. Isolated module renders are diagnostic visibility changes only.",
+    "Discrete clearance uses actual-mesh AABBs plus existing primitive/exemption rules at 165/378/807 times; it does not prove surface separation, continuous collision freedom, physical fit or real hardware travel. Current TC park retains only approximately 1.2 mm to the Z upper limit.",
+    "Thermocycler travel was checked at 102 finite samples with exact reverse seek and a stable simplified hinge, but the full factory outer cover and physical opening envelope are not modeled or accepted.",
+    "Connection strap, knob, module casing/vent details, grill count, hidden construction and minor support dimensions are illustrative estimates from supplied references, not vendor CAD or measurements. No real temperature, magnetic effectiveness, airflow or biological outcome was validated.",
+    "A MuJoCo shadow artifact remains visible on some far-panel render angles. Disabling shadows removes it; sampled static grille views do not demonstrate flicker, but every possible camera/light configuration was not examined.",
+    "Sources and XMLs were read/loaded without regenerating frozen models; author reports were not used as substitutes for the independent calculations and image inspection described above."
+  ],
+  "delivery": {
+    "local_uncommitted_changes": true,
+    "remote_head_unchanged": "f6960d4b3599fa9b930b4ebd361001ba33186ec6",
+    "pr_updated": false,
+    "deployed": false
+  }
+}

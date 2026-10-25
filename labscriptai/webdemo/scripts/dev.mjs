@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { resolveRendererRoot } from "./renderer-root.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(root, "../..");
@@ -42,20 +43,32 @@ const children = [
 ];
 
 const flex3dPort = 8791;
-const virtualLab = path.resolve(repoRoot, "../../virtual-lab");
+const rendererRoot = resolveRendererRoot({ root, repoRoot });
+const rendererExport = path.resolve(
+  process.env.LABSCRIPTAI_RENDERER_EXPORT || path.join(root, ".local", "renderer"),
+);
 const playerReady =
-  existsSync("/usr/bin/python3") &&
-  existsSync(path.join(virtualLab, "sim", "web_player.py")) &&
+  existsSync(path.join(rendererRoot, "sim", "web_player.py")) &&
   (await canBind(host, flex3dPort));
 const player = playerReady
-  ? spawn("/usr/bin/python3", ["-m", "sim.web_player"], {
-      cwd: virtualLab,
+  ? spawn(python, ["-m", "sim.web_player"], {
+      cwd: rendererRoot,
       stdio: "inherit",
-      env: { ...process.env, PYTHONPATH: virtualLab, PYTHONUNBUFFERED: "1" },
+      env: {
+        ...process.env,
+        PYTHONPATH: rendererRoot,
+        PYTHONUNBUFFERED: "1",
+        FLEX3D_ROOT: process.env.FLEX3D_ROOT || rendererRoot,
+        FLEX3D_MODULE_ASSETS:
+          process.env.FLEX3D_MODULE_ASSETS || path.join(rendererRoot, "cad", "flex", "modules", "manifest.json"),
+        FLEX3D_EXPORT: process.env.FLEX3D_EXPORT || path.join(rendererExport, "flex3d"),
+        LABSCRIPTAI_RENDERER_EXPORT: process.env.LABSCRIPTAI_RENDERER_EXPORT || path.join(rendererExport, "mujoco"),
+        PLUGIN_DATA: process.env.PLUGIN_DATA || rendererExport,
+      },
     })
   : null;
 if (!playerReady) {
-  console.error(`3D player not started (${host}:${flex3dPort}, ${virtualLab}). The chat site will still start.`);
+  console.error(`3D player not started (${host}:${flex3dPort}, ${rendererRoot}). The chat site will still start.`);
 }
 
 if (await canBind(host, 8010)) {

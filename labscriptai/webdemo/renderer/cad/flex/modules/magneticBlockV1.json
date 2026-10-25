@@ -1,0 +1,84 @@
+{
+  "$otSharedSchema": "module/schemas/3",
+  "moduleType": "magneticBlockType",
+  "model": "magneticBlockV1",
+  "labwareOffset": {
+    "x": 0,
+    "y": 0,
+    "z": 38
+  },
+  "features": {},
+  "dimensions": {
+    "bareOverallHeight": 45,
+    "overLabwareHeight": 0,
+    "xDimension": 136,
+    "yDimension": 94,
+    "footprintXDimension": 127.75,
+    "footprintYDimension": 85.75,
+    "labwareInterfaceXDimension": 127.75,
+    "labwareInterfaceYDimension": 85.75
+  },
+  "extents": {
+    "total": {
+      "backLeftBottom": {
+        "x": -4.125,
+        "y": 4.125,
+        "z": 0
+      },
+      "frontRightTop": {
+        "x": 131.875,
+        "y": -89.875,
+        "z": 45
+      }
+    }
+  },
+  "cornerOffsetFromSlot": {
+    "x": -4.125,
+    "y": -4.125,
+    "z": 0
+  },
+  "calibrationPoint": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "config": {},
+  "gripperOffsets": {
+    "default": {
+      "pickUpOffset": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "dropOffset": {
+        "x": 0,
+        "y": 0,
+        "z": 1.0
+      }
+    }
+  },
+  "displayName": "Magnetic Block GEN1",
+  "quirks": [],
+  "slotTransforms": {
+    "ot2_standard": {},
+    "ot2_short_trash": {},
+    "ot3_standard": {}
+  },
+  "orientation": {
+    "A1": "center",
+    "A2": "center",
+    "A3": "center",
+    "B1": "center",
+    "B2": "center",
+    "B3": "center",
+    "C1": "center",
+    "C2": "center",
+    "C3": "center",
+    "D1": "center",
+    "D2": "center",
+    "D3": "center"
+  },
+  "compatibleWith": [],
+  "incompatibleWithDecks": [],
+  "uniqueModuleData": {}
+}
