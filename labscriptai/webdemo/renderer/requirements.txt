@@ -1,0 +1,4 @@
+opentrons>=7,<9
+mujoco>=3.3,<4
+numpy>=1.26
+Pillow>=10

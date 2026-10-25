@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "oracle_author": "independently authored protocol intent; not generated from the animation implementation",
+  "runtime": {
+    "robot_type": "OT-2",
+    "opentrons_software": "8.8.2",
+    "api_level": "2.20",
+    "analysis_command": "python -m opentrons.cli analyze --check --json-output <analysis.json> <protocol.py>"
+  },
+  "protocols": {
+    "single_p20.py": {
+      "analysis_file": "single_p20.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_20ul", "module": null},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "module": null},
+        {"slot": "3", "load_name": "nest_12_reservoir_15ml", "module": null}
+      ],
+      "pipettes": [{"name": "p20_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "3", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 90},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 10}
+      ],
+      "air_liquid": {"liquid_ul": 10, "air_gap_ul": 2, "dispense_command_ul": 12},
+      "explicit_waits": [{"seconds": 2, "after": "blow_out"}],
+      "analysis_trace": {
+        "result": "ok",
+        "errors": [],
+        "air_gap_api_call": "p20.air_gap(2)",
+        "air_gap_emitted_command": "aspirate",
+        "air_gap_emitted_params": {"volume": 2},
+        "air_gap_emitted_result": {"volume": 2},
+        "air_gap_not_emitted_as": ["airGap", "aspirateInPlace"],
+        "return_tip_api_call": "p20.return_tip()",
+        "return_tip_emitted_command": "dropTip",
+        "return_tip_target": {"slot": "1", "well": "A1", "alternateDropLocation": false}
+      },
+      "notes": "Touch-tip and blow-out are destination cleanup; the 2 uL air gap is not liquid inventory."
+    },
+    "single_p1000.py": {
+      "analysis_file": "single_p1000.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_1000ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "corning_96_wellplate_360ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p1000_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 690, "accounting": "1000 - 300 delivered - 10 disposal reserve"},
+        {"slot": "3", "load_name": "corning_96_wellplate_360ul_flat", "well": "A1", "liquid": "Water", "volume": 100},
+        {"slot": "3", "load_name": "corning_96_wellplate_360ul_flat", "well": "A2", "liquid": "Water", "volume": 100},
+        {"slot": "3", "load_name": "corning_96_wellplate_360ul_flat", "well": "A3", "liquid": "Water", "volume": 100}
+      ],
+      "distribute": {"delivered_ul": 300, "per_destination_ul": 100, "destination_wells": ["A1", "A2", "A3"], "disposal_reserve_ul": 10},
+      "explicit_waits": [],
+      "notes": "The disposal reserve is tracked separately from the 300 uL delivered total; final source accounting assumes the requested 10 uL reserve is aspirated."
+    },
+    "eight_p20.py": {
+      "analysis_file": "eight_p20.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_20ul", "module": null},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "module": null},
+        {"slot": "3", "load_name": "nest_12_reservoir_15ml", "module": null}
+      ],
+      "pipettes": [{"name": "p20_multi_gen2", "mount": "right", "nozzles": 8}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 8, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "3", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 920, "accounting": "1000 - 8 x 10"},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "wells": ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"], "liquid": "Water", "volume_each": 10}
+      ],
+      "air_liquid": {"liquid_ul_per_nozzle": 10, "air_gap_ul_per_nozzle": 0},
+      "explicit_waits": [],
+      "notes": "The 2 x 5 uL mix is net-zero volume in each destination column well."
+    },
+    "eight_p300.py": {
+      "analysis_file": "eight_p300.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p300_multi_gen2", "mount": "right", "nozzles": 8}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 8, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "wells": ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"], "liquid": "Sample", "volume_each": 80},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "wells": ["A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2"], "liquid": "Sample", "volume_each": 20}
+      ],
+      "explicit_waits": [],
+      "notes": "A single 8-nozzle pickup/return applies the same 20 uL transfer to every well in columns 1 and 2."
+    },
+    "dilution_mix.py": {
+      "analysis_file": "dilution_mix.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "module": null},
+        {"slot": "3", "load_name": "nest_12_reservoir_15ml", "module": null}
+      ],
+      "pipettes": [{"name": "p300_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 2, "nozzles_picked": 2, "returns": 0, "drops": 2, "tip_change_between_links": true},
+      "final_volumes_ul": [
+        {"slot": "3", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Diluent", "volume": 450},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Sample", "volume": 50},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "well": "A2", "liquid": "Sample + Diluent", "volume": 50},
+        {"slot": "2", "load_name": "nest_96_wellplate_200ul_flat", "well": "A3", "liquid": "Sample + Diluent", "volume": 100}
+      ],
+      "mixes": [{"well": "A2", "repetitions": 3, "volume_ul": 30}, {"well": "A3", "repetitions": 3, "volume_ul": 30}],
+      "explicit_waits": [],
+      "notes": "A2 starts at 50, receives 50, then donates 50 to A3; each mix is net-zero volume."
+    },
+    "temperature.py": {
+      "analysis_file": "temperature.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "6", "load_name": "nest_96_wellplate_100ul_pcr_full_skirt", "module": "temperatureModuleV2"}
+      ],
+      "pipettes": [{"name": "p300_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 470},
+        {"slot": "6", "module": "temperatureModuleV2", "load_name": "nest_96_wellplate_100ul_pcr_full_skirt", "well": "A1", "liquid": "Water", "volume": 30}
+      ],
+      "module_state": {"set_temperature_c": 55, "deactivated": true},
+      "explicit_waits": [{"seconds": 2, "after": "set_temperature"}],
+      "notes": "Module slot 6 contains the PCR plate; no other deck slot overlaps the module."
+    },
+    "magnetic.py": {
+      "analysis_file": "magnetic.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "6", "load_name": "nest_96_wellplate_200ul_flat", "module": "magneticModuleV2"}
+      ],
+      "pipettes": [{"name": "p300_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 460},
+        {"slot": "6", "module": "magneticModuleV2", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 40}
+      ],
+      "module_state": {"engage_height_from_base_mm": 10, "disengaged": true},
+      "explicit_waits": [{"seconds": 1, "after": "engage"}],
+      "notes": "The magnetic plate is loaded directly on module slot 6."
+    },
+    "thermocycler.py": {
+      "analysis_file": "thermocycler.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "7", "load_name": "nest_96_wellplate_100ul_pcr_full_skirt", "module": "thermocyclerModuleV1", "footprint": ["7", "8", "10", "11"]}
+      ],
+      "pipettes": [{"name": "p300_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 475},
+        {"slot": "7", "module": "thermocyclerModuleV1", "load_name": "nest_96_wellplate_100ul_pcr_full_skirt", "well": "A1", "liquid": "Water", "volume": 25}
+      ],
+      "module_state": {"lid_open_before_transfer": true, "lid_closed_for_hold": true, "block_temperature_c": 37, "hold_seconds": 1, "lid_open_after_hold": true},
+      "explicit_waits": [{"seconds": 1, "after": "set_block_temperature"}],
+      "notes": "The thermocycler footprint occupies 7/8/10/11; the tip rack and reservoir are in non-overlapping slots 1 and 2."
+    },
+    "p10_single.py": {
+      "analysis_file": "p10_single.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_10ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p10_single", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 95},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 5}
+      ],
+      "transfer": {"volume_ul": 5, "source_delta_ul": 5, "destination_delta_ul": 5},
+      "explicit_waits": [],
+      "notes": "Legacy P10 single-channel return-tip path."
+    },
+    "p50_single.py": {
+      "analysis_file": "p50_single.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p50_single", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 190},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 10}
+      ],
+      "transfer": {"volume_ul": 10, "source_delta_ul": 10, "destination_delta_ul": 10},
+      "explicit_waits": [],
+      "notes": "QA 8.8.2 has no official 200 uL tiprack definition; the official 300 uL tiprack is used for P50 compatibility."
+    },
+    "p300_single.py": {
+      "analysis_file": "p300_single.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p300_single", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 200},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 100}
+      ],
+      "transfer": {"volume_ul": 100, "source_delta_ul": 100, "destination_delta_ul": 100},
+      "explicit_waits": [],
+      "notes": "Legacy P300 single-channel return-tip path."
+    },
+    "p1000_single.py": {
+      "analysis_file": "p1000_single.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_1000ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p1000_single", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 900},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 100}
+      ],
+      "transfer": {"volume_ul": 100, "source_delta_ul": 100, "destination_delta_ul": 100},
+      "explicit_waits": [],
+      "notes": "Legacy P1000 single-channel return-tip path."
+    },
+    "p10_multi.py": {
+      "analysis_file": "p10_multi.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_10ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p10_multi", "mount": "right", "nozzles": 8}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 8, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 960, "source_delta_ul_total": 40},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "wells": ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"], "liquid": "Water", "volume_each": 5}
+      ],
+      "transfer": {"volume_ul_per_nozzle": 5, "source_delta_ul_total": 40, "destination_delta_ul_each": 5},
+      "explicit_waits": [],
+      "notes": "One 8-nozzle column operation; reservoir A1 loses 8 x 5 uL."
+    },
+    "p50_multi.py": {
+      "analysis_file": "p50_multi.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p50_multi", "mount": "right", "nozzles": 8}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 8, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 920, "source_delta_ul_total": 80},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "wells": ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"], "liquid": "Water", "volume_each": 10}
+      ],
+      "transfer": {"volume_ul_per_nozzle": 10, "source_delta_ul_total": 80, "destination_delta_ul_each": 10},
+      "explicit_waits": [],
+      "notes": "QA 8.8.2 uses the official 300 uL tiprack for this legacy P50 multi-channel fixture."
+    },
+    "p300_multi.py": {
+      "analysis_file": "p300_multi.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p300_multi", "mount": "right", "nozzles": 8}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 8, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 200, "source_delta_ul_total": 800},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "wells": ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1"], "liquid": "Water", "volume_each": 100}
+      ],
+      "transfer": {"volume_ul_per_nozzle": 100, "source_delta_ul_total": 800, "destination_delta_ul_each": 100},
+      "explicit_waits": [],
+      "notes": "One 8-nozzle P300 legacy column transfer."
+    },
+    "p1000_single_gen2_return.py": {
+      "analysis_file": "p1000_single_gen2_return.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_1000ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "module": null}
+      ],
+      "pipettes": [{"name": "p1000_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 1, "drops": 0},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 900},
+        {"slot": "3", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 100}
+      ],
+      "transfer": {"volume_ul": 100, "source_delta_ul": 100, "destination_delta_ul": 100},
+      "explicit_waits": [],
+      "notes": "Complementary P1000 GEN2 return-tip input; the original single_p1000.py intentionally covers distribute plus drop-tip."
+    },
+    "temperature_v1.py": {
+      "analysis_file": "temperature_v1.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "6", "load_name": "nest_96_wellplate_100ul_pcr_full_skirt", "module": "temperatureModuleV1"}
+      ],
+      "pipettes": [{"name": "p300_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 470},
+        {"slot": "6", "module": "temperatureModuleV1", "load_name": "nest_96_wellplate_100ul_pcr_full_skirt", "well": "A1", "liquid": "Water", "volume": 30}
+      ],
+      "module_state": {"version": "V1", "set_temperature_c": 55, "deactivated": true},
+      "explicit_waits": [{"seconds": 2, "after": "set_temperature"}],
+      "notes": "Temperature V1 uses the same valid slot 6, PCR labware, 30 uL transfer, and wait as the V2 fixture."
+    },
+    "magnetic_v1.py": {
+      "analysis_file": "magnetic_v1.json",
+      "deck": [
+        {"slot": "1", "load_name": "opentrons_96_tiprack_300ul", "module": null},
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "module": null},
+        {"slot": "6", "load_name": "nest_96_wellplate_200ul_flat", "module": "magneticModuleV1"}
+      ],
+      "pipettes": [{"name": "p300_single_gen2", "mount": "right", "nozzles": 1}],
+      "tip_actions": {"pickups": 1, "nozzles_picked": 1, "returns": 0, "drops": 1},
+      "final_volumes_ul": [
+        {"slot": "2", "load_name": "nest_12_reservoir_15ml", "well": "A1", "liquid": "Water", "volume": 460},
+        {"slot": "6", "module": "magneticModuleV1", "load_name": "nest_96_wellplate_200ul_flat", "well": "A1", "liquid": "Water", "volume": 40}
+      ],
+      "module_state": {"version": "V1", "engage_height_from_base_mm": 10, "disengaged": true},
+      "explicit_waits": [{"seconds": 1, "after": "engage"}],
+      "notes": "Magnetic V1 uses the same valid slot 6, flat plate, 40 uL transfer, and wait as the V2 fixture."
+    }
+  }
+}

@@ -1,0 +1,1222 @@
+{
+  "schema": "virtual-lab.flex-modules/1",
+  "units": "mm",
+  "up": "Z",
+  "axes": "X right, Y back, Z up",
+  "asset_root": ".",
+  "modules": {
+    "thermocyclerModuleV2": {
+      "dimensions_mm": [
+        172,
+        245.2,
+        170.66
+      ],
+      "interface_origin_mm": [
+        22.125,
+        68.8,
+        108.96
+      ],
+      "label": "Thermocycler GEN2",
+      "joints": [
+        {
+          "name": "lid",
+          "type": "hinge",
+          "axis": [
+            1,
+            0,
+            0
+          ],
+          "closed": 0,
+          "open": -105,
+          "unit": "degree",
+          "pivot_mm": [
+            86,
+            208,
+            117
+          ]
+        }
+      ],
+      "groups": {
+        "base": {
+          "parent": "root",
+          "origin_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "optional": false
+        },
+        "lid": {
+          "parent": "root",
+          "origin_mm": [
+            86.0,
+            208.0,
+            117.0
+          ],
+          "optional": false
+        }
+      },
+      "parts": [
+        {
+          "name": "base_rubber",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_rubber.obj",
+          "stl": "thermocyclerModuleV2/parts/base_rubber.stl",
+          "rgba": [
+            0.012,
+            0.016,
+            0.019,
+            1
+          ],
+          "vertices": 192,
+          "triangles": 376
+        },
+        {
+          "name": "base_white",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_white.obj",
+          "stl": "thermocyclerModuleV2/parts/base_white.stl",
+          "rgba": [
+            0.83,
+            0.87,
+            0.89,
+            1
+          ],
+          "vertices": 5180,
+          "triangles": 5200
+        },
+        {
+          "name": "base_edge",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_edge.obj",
+          "stl": "thermocyclerModuleV2/parts/base_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 6140,
+          "triangles": 6652
+        },
+        {
+          "name": "base_steel",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_steel.obj",
+          "stl": "thermocyclerModuleV2/parts/base_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 768,
+          "triangles": 1520
+        },
+        {
+          "name": "base_black",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_black.obj",
+          "stl": "thermocyclerModuleV2/parts/base_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 6144,
+          "triangles": 12036
+        },
+        {
+          "name": "base_aluminium",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_aluminium.obj",
+          "stl": "thermocyclerModuleV2/parts/base_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 7680,
+          "triangles": 10720
+        },
+        {
+          "name": "base_well",
+          "group": "base",
+          "file": "thermocyclerModuleV2/parts/base_well.obj",
+          "stl": "thermocyclerModuleV2/parts/base_well.stl",
+          "rgba": [
+            0.105,
+            0.13,
+            0.15,
+            1
+          ],
+          "vertices": 12288,
+          "triangles": 24192
+        },
+        {
+          "name": "lid_heated_pad",
+          "group": "lid",
+          "file": "thermocyclerModuleV2/parts/lid_heated_pad.obj",
+          "stl": "thermocyclerModuleV2/parts/lid_heated_pad.stl",
+          "rgba": [
+            0.36,
+            0.12,
+            0.065,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "lid_white",
+          "group": "lid",
+          "file": "thermocyclerModuleV2/parts/lid_white.obj",
+          "stl": "thermocyclerModuleV2/parts/lid_white.stl",
+          "rgba": [
+            0.83,
+            0.87,
+            0.89,
+            1
+          ],
+          "vertices": 5084,
+          "triangles": 5036
+        },
+        {
+          "name": "lid_steel",
+          "group": "lid",
+          "file": "thermocyclerModuleV2/parts/lid_steel.obj",
+          "stl": "thermocyclerModuleV2/parts/lid_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 192,
+          "triangles": 376
+        },
+        {
+          "name": "lid_rubber",
+          "group": "lid",
+          "file": "thermocyclerModuleV2/parts/lid_rubber.obj",
+          "stl": "thermocyclerModuleV2/parts/lid_rubber.stl",
+          "rgba": [
+            0.012,
+            0.016,
+            0.019,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "lid_black",
+          "group": "lid",
+          "file": "thermocyclerModuleV2/parts/lid_black.obj",
+          "stl": "thermocyclerModuleV2/parts/lid_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 288,
+          "triangles": 564
+        },
+        {
+          "name": "lid_aluminium",
+          "group": "lid",
+          "file": "thermocyclerModuleV2/parts/lid_aluminium.obj",
+          "stl": "thermocyclerModuleV2/parts/lid_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        }
+      ],
+      "closed_bounds_mm": {
+        "min": [
+          -0.1599999964237213,
+          -1.9500001668930054,
+          0.0
+        ],
+        "max": [
+          172.16000366210938,
+          245.1999969482422,
+          170.22500610351562
+        ]
+      },
+      "nominal_envelope_note": "Nominal body envelope excludes small connectors/labels; see measured closed_bounds_mm.",
+      "format_units": {
+        "blend": "mm (scene scale_length .001)",
+        "obj": "mm, part-local",
+        "stl": "mm, part-local",
+        "glb": "m, standard glTF"
+      },
+      "provenance": {
+        "geometry": "project authored; official photographs and module definitions",
+        "license": "Project-authored geometry; reference images retain original rights",
+        "dimensions": "Official module definition envelopes and labware offsets",
+        "detail": "Photo reconstruction, not metrology or manufacturer CAD",
+        "motion": "Hinge and latch pivots/travel are illustrative, not calibrated",
+        "docs": "https://docs.opentrons.com/flex/modules/",
+        "reference_images": "../reference/modules/sources.json",
+        "module_definition": "thermocyclerModuleV2.json",
+        "source_definition": "https://github.com/Opentrons/opentrons/tree/edge/shared-data/module/definitions/3",
+        "reader_height_basis": null,
+        "nominal_size_discrepancies": "Software envelopes used for interface compatibility. Brochure L/W may differ by a few mm."
+      }
+    },
+    "heaterShakerModuleV1": {
+      "dimensions_mm": [
+        156.25,
+        91.75,
+        82
+      ],
+      "interface_origin_mm": [
+        17.875,
+        2.925,
+        68.275
+      ],
+      "label": "Heater-Shaker GEN1",
+      "joints": [
+        {
+          "name": "latch_front",
+          "type": "slide",
+          "axis": [
+            0,
+            -1,
+            0
+          ],
+          "closed": 0,
+          "open": 7,
+          "unit": "mm",
+          "pivot_mm": [
+            81.875,
+            6.924999999999997,
+            69
+          ]
+        },
+        {
+          "name": "latch_back",
+          "type": "slide",
+          "axis": [
+            0,
+            1,
+            0
+          ],
+          "closed": 0,
+          "open": 7,
+          "unit": "mm",
+          "pivot_mm": [
+            81.875,
+            84.925,
+            69
+          ]
+        }
+      ],
+      "groups": {
+        "base": {
+          "parent": "root",
+          "origin_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "optional": false
+        },
+        "platform": {
+          "parent": "root",
+          "origin_mm": [
+            81.875,
+            45.92499923706055,
+            62.0
+          ],
+          "optional": false
+        },
+        "latch_front": {
+          "parent": "root",
+          "origin_mm": [
+            81.875,
+            6.925000190734863,
+            69.0
+          ],
+          "optional": false
+        },
+        "latch_back": {
+          "parent": "root",
+          "origin_mm": [
+            81.875,
+            84.92500305175781,
+            69.0
+          ],
+          "optional": false
+        },
+        "base_detail": {
+          "parent": "root",
+          "origin_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "optional": false
+        }
+      },
+      "parts": [
+        {
+          "name": "base_black",
+          "group": "base",
+          "file": "heaterShakerModuleV1/parts/base_black.obj",
+          "stl": "heaterShakerModuleV1/parts/base_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 1824,
+          "triangles": 3580
+        },
+        {
+          "name": "base_aluminium",
+          "group": "base",
+          "file": "heaterShakerModuleV1/parts/base_aluminium.obj",
+          "stl": "heaterShakerModuleV1/parts/base_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "base_steel",
+          "group": "base",
+          "file": "heaterShakerModuleV1/parts/base_steel.obj",
+          "stl": "heaterShakerModuleV1/parts/base_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 576,
+          "triangles": 1136
+        },
+        {
+          "name": "base_rubber",
+          "group": "base",
+          "file": "heaterShakerModuleV1/parts/base_rubber.obj",
+          "stl": "heaterShakerModuleV1/parts/base_rubber.stl",
+          "rgba": [
+            0.012,
+            0.016,
+            0.019,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "base_white",
+          "group": "base",
+          "file": "heaterShakerModuleV1/parts/base_white.obj",
+          "stl": "heaterShakerModuleV1/parts/base_white.stl",
+          "rgba": [
+            0.83,
+            0.87,
+            0.89,
+            1
+          ],
+          "vertices": 1772,
+          "triangles": 1824
+        },
+        {
+          "name": "platform_steel",
+          "group": "platform",
+          "file": "heaterShakerModuleV1/parts/platform_steel.obj",
+          "stl": "heaterShakerModuleV1/parts/platform_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 768,
+          "triangles": 1520
+        },
+        {
+          "name": "platform_black",
+          "group": "platform",
+          "file": "heaterShakerModuleV1/parts/platform_black.obj",
+          "stl": "heaterShakerModuleV1/parts/platform_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 480,
+          "triangles": 940
+        },
+        {
+          "name": "platform_aluminium",
+          "group": "platform",
+          "file": "heaterShakerModuleV1/parts/platform_aluminium.obj",
+          "stl": "heaterShakerModuleV1/parts/platform_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "latch_front_rubber",
+          "group": "latch_front",
+          "file": "heaterShakerModuleV1/parts/latch_front_rubber.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_front_rubber.stl",
+          "rgba": [
+            0.012,
+            0.016,
+            0.019,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "latch_front_black",
+          "group": "latch_front",
+          "file": "heaterShakerModuleV1/parts/latch_front_black.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_front_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "latch_front_steel",
+          "group": "latch_front",
+          "file": "heaterShakerModuleV1/parts/latch_front_steel.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_front_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 192,
+          "triangles": 376
+        },
+        {
+          "name": "latch_front_edge",
+          "group": "latch_front",
+          "file": "heaterShakerModuleV1/parts/latch_front_edge.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_front_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 384,
+          "triangles": 760
+        },
+        {
+          "name": "latch_back_rubber",
+          "group": "latch_back",
+          "file": "heaterShakerModuleV1/parts/latch_back_rubber.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_back_rubber.stl",
+          "rgba": [
+            0.012,
+            0.016,
+            0.019,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "latch_back_black",
+          "group": "latch_back",
+          "file": "heaterShakerModuleV1/parts/latch_back_black.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_back_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "latch_back_steel",
+          "group": "latch_back",
+          "file": "heaterShakerModuleV1/parts/latch_back_steel.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_back_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 192,
+          "triangles": 376
+        },
+        {
+          "name": "latch_back_edge",
+          "group": "latch_back",
+          "file": "heaterShakerModuleV1/parts/latch_back_edge.obj",
+          "stl": "heaterShakerModuleV1/parts/latch_back_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 384,
+          "triangles": 760
+        },
+        {
+          "name": "base_detail_steel",
+          "group": "base_detail",
+          "file": "heaterShakerModuleV1/parts/base_detail_steel.obj",
+          "stl": "heaterShakerModuleV1/parts/base_detail_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 768,
+          "triangles": 1520
+        },
+        {
+          "name": "base_detail_black",
+          "group": "base_detail",
+          "file": "heaterShakerModuleV1/parts/base_detail_black.obj",
+          "stl": "heaterShakerModuleV1/parts/base_detail_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 384,
+          "triangles": 752
+        }
+      ],
+      "closed_bounds_mm": {
+        "min": [
+          0.0,
+          -1.6350001096725464,
+          0.0
+        ],
+        "max": [
+          156.25,
+          91.75,
+          81.0
+        ]
+      },
+      "nominal_envelope_note": "Nominal body envelope excludes small connectors/labels; see measured closed_bounds_mm.",
+      "format_units": {
+        "blend": "mm (scene scale_length .001)",
+        "obj": "mm, part-local",
+        "stl": "mm, part-local",
+        "glb": "m, standard glTF"
+      },
+      "provenance": {
+        "geometry": "project authored; official photographs and module definitions",
+        "license": "Project-authored geometry; reference images retain original rights",
+        "dimensions": "Official module definition envelopes and labware offsets",
+        "detail": "Photo reconstruction, not metrology or manufacturer CAD",
+        "motion": "Hinge and latch pivots/travel are illustrative, not calibrated",
+        "docs": "https://docs.opentrons.com/flex/modules/",
+        "reference_images": "../reference/modules/sources.json",
+        "module_definition": "heaterShakerModuleV1.json",
+        "source_definition": "https://github.com/Opentrons/opentrons/tree/edge/shared-data/module/definitions/3",
+        "reader_height_basis": null,
+        "nominal_size_discrepancies": "Software envelopes used for interface compatibility. Brochure L/W may differ by a few mm."
+      }
+    },
+    "temperatureModuleV2": {
+      "dimensions_mm": [
+        196,
+        91,
+        84
+      ],
+      "interface_origin_mm": [
+        67.05,
+        1.65,
+        80.09
+      ],
+      "label": "Temperature GEN2",
+      "joints": [],
+      "groups": {
+        "base": {
+          "parent": "root",
+          "origin_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "optional": false
+        },
+        "block_96_optional": {
+          "parent": "root",
+          "origin_mm": [
+            67.05000305175781,
+            1.649999976158142,
+            80.08999633789062
+          ],
+          "optional": true
+        }
+      },
+      "parts": [
+        {
+          "name": "base_black",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_black.obj",
+          "stl": "temperatureModuleV2/parts/base_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 4032,
+          "triangles": 7904
+        },
+        {
+          "name": "base_aluminium",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_aluminium.obj",
+          "stl": "temperatureModuleV2/parts/base_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 192,
+          "triangles": 376
+        },
+        {
+          "name": "base_steel",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_steel.obj",
+          "stl": "temperatureModuleV2/parts/base_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 1344,
+          "triangles": 2656
+        },
+        {
+          "name": "base_cyan",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_cyan.obj",
+          "stl": "temperatureModuleV2/parts/base_cyan.stl",
+          "rgba": [
+            0.16,
+            0.69,
+            0.84,
+            1
+          ],
+          "vertices": 960,
+          "triangles": 1880
+        },
+        {
+          "name": "base_edge",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_edge.obj",
+          "stl": "temperatureModuleV2/parts/base_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 384,
+          "triangles": 752
+        },
+        {
+          "name": "base_blue",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_blue.obj",
+          "stl": "temperatureModuleV2/parts/base_blue.stl",
+          "rgba": [
+            0.06,
+            0.38,
+            0.72,
+            1
+          ],
+          "vertices": 192,
+          "triangles": 380
+        },
+        {
+          "name": "base_white",
+          "group": "base",
+          "file": "temperatureModuleV2/parts/base_white.obj",
+          "stl": "temperatureModuleV2/parts/base_white.stl",
+          "rgba": [
+            0.83,
+            0.87,
+            0.89,
+            1
+          ],
+          "vertices": 2564,
+          "triangles": 2608
+        },
+        {
+          "name": "block_96_optional_aluminium",
+          "group": "block_96_optional",
+          "file": "temperatureModuleV2/parts/block_96_optional_aluminium.obj",
+          "stl": "temperatureModuleV2/parts/block_96_optional_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 7488,
+          "triangles": 10344
+        },
+        {
+          "name": "block_96_optional_edge",
+          "group": "block_96_optional",
+          "file": "temperatureModuleV2/parts/block_96_optional_edge.obj",
+          "stl": "temperatureModuleV2/parts/block_96_optional_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 5564,
+          "triangles": 5512
+        },
+        {
+          "name": "block_96_optional_well",
+          "group": "block_96_optional",
+          "file": "temperatureModuleV2/parts/block_96_optional_well.obj",
+          "stl": "temperatureModuleV2/parts/block_96_optional_well.stl",
+          "rgba": [
+            0.105,
+            0.13,
+            0.15,
+            1
+          ],
+          "vertices": 12288,
+          "triangles": 24192
+        }
+      ],
+      "closed_bounds_mm": {
+        "min": [
+          0.0,
+          -1.6350001096725464,
+          0.0
+        ],
+        "max": [
+          196.0,
+          91.0,
+          84.0
+        ]
+      },
+      "nominal_envelope_note": "Nominal body envelope excludes small connectors/labels; see measured closed_bounds_mm.",
+      "format_units": {
+        "blend": "mm (scene scale_length .001)",
+        "obj": "mm, part-local",
+        "stl": "mm, part-local",
+        "glb": "m, standard glTF"
+      },
+      "provenance": {
+        "geometry": "project authored; official photographs and module definitions",
+        "license": "Project-authored geometry; reference images retain original rights",
+        "dimensions": "Official module definition envelopes and labware offsets",
+        "detail": "Photo reconstruction, not metrology or manufacturer CAD",
+        "motion": "Hinge and latch pivots/travel are illustrative, not calibrated",
+        "docs": "https://docs.opentrons.com/flex/modules/",
+        "reference_images": "../reference/modules/sources.json",
+        "module_definition": "temperatureModuleV2.json",
+        "source_definition": "https://github.com/Opentrons/opentrons/tree/edge/shared-data/module/definitions/3",
+        "reader_height_basis": null,
+        "nominal_size_discrepancies": "Software envelopes used for interface compatibility. Brochure L/W may differ by a few mm."
+      }
+    },
+    "magneticBlockV1": {
+      "dimensions_mm": [
+        136,
+        94,
+        45
+      ],
+      "interface_origin_mm": [
+        4.125,
+        4.125,
+        38
+      ],
+      "label": "Magnetic Block GEN1",
+      "joints": [],
+      "groups": {
+        "base": {
+          "parent": "root",
+          "origin_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "optional": false
+        }
+      },
+      "parts": [
+        {
+          "name": "base_black",
+          "group": "base",
+          "file": "magneticBlockV1/parts/base_black.obj",
+          "stl": "magneticBlockV1/parts/base_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 7872,
+          "triangles": 11096
+        },
+        {
+          "name": "base_aluminium",
+          "group": "base",
+          "file": "magneticBlockV1/parts/base_aluminium.obj",
+          "stl": "magneticBlockV1/parts/base_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 576,
+          "triangles": 1128
+        },
+        {
+          "name": "base_edge",
+          "group": "base",
+          "file": "magneticBlockV1/parts/base_edge.obj",
+          "stl": "magneticBlockV1/parts/base_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 5228,
+          "triangles": 5172
+        },
+        {
+          "name": "base_white",
+          "group": "base",
+          "file": "magneticBlockV1/parts/base_white.obj",
+          "stl": "magneticBlockV1/parts/base_white.stl",
+          "rgba": [
+            0.83,
+            0.87,
+            0.89,
+            1
+          ],
+          "vertices": 5564,
+          "triangles": 5512
+        },
+        {
+          "name": "base_steel",
+          "group": "base",
+          "file": "magneticBlockV1/parts/base_steel.obj",
+          "stl": "magneticBlockV1/parts/base_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 13056,
+          "triangles": 25712
+        },
+        {
+          "name": "base_well",
+          "group": "base",
+          "file": "magneticBlockV1/parts/base_well.obj",
+          "stl": "magneticBlockV1/parts/base_well.stl",
+          "rgba": [
+            0.105,
+            0.13,
+            0.15,
+            1
+          ],
+          "vertices": 12288,
+          "triangles": 24192
+        }
+      ],
+      "closed_bounds_mm": {
+        "min": [
+          0.0,
+          -0.23500002920627594,
+          0.0
+        ],
+        "max": [
+          136.0,
+          94.0,
+          45.0
+        ]
+      },
+      "nominal_envelope_note": "Nominal body envelope excludes small connectors/labels; see measured closed_bounds_mm.",
+      "format_units": {
+        "blend": "mm (scene scale_length .001)",
+        "obj": "mm, part-local",
+        "stl": "mm, part-local",
+        "glb": "m, standard glTF"
+      },
+      "provenance": {
+        "geometry": "project authored; official photographs and module definitions",
+        "license": "Project-authored geometry; reference images retain original rights",
+        "dimensions": "Official module definition envelopes and labware offsets",
+        "detail": "Photo reconstruction, not metrology or manufacturer CAD",
+        "motion": "Hinge and latch pivots/travel are illustrative, not calibrated",
+        "docs": "https://docs.opentrons.com/flex/modules/",
+        "reference_images": "../reference/modules/sources.json",
+        "module_definition": "magneticBlockV1.json",
+        "source_definition": "https://github.com/Opentrons/opentrons/tree/edge/shared-data/module/definitions/3",
+        "reader_height_basis": null,
+        "nominal_size_discrepancies": "Software envelopes used for interface compatibility. Brochure L/W may differ by a few mm."
+      }
+    },
+    "absorbanceReaderV1": {
+      "dimensions_mm": [
+        155.3,
+        95.5,
+        57
+      ],
+      "interface_origin_mm": [
+        6.875,
+        4.875,
+        0.65
+      ],
+      "label": "Absorbance Plate Reader",
+      "joints": [
+        {
+          "name": "lid",
+          "type": "removable",
+          "axis": [
+            0,
+            0,
+            1
+          ],
+          "closed": 0,
+          "open": 110,
+          "unit": "mm",
+          "pivot_mm": [
+            77.65,
+            47.75,
+            18.5
+          ]
+        }
+      ],
+      "groups": {
+        "base": {
+          "parent": "root",
+          "origin_mm": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "optional": false
+        },
+        "lid": {
+          "parent": "root",
+          "origin_mm": [
+            77.6500015258789,
+            47.75,
+            18.5
+          ],
+          "optional": false
+        }
+      },
+      "parts": [
+        {
+          "name": "base_aluminium",
+          "group": "base",
+          "file": "absorbanceReaderV1/parts/base_aluminium.obj",
+          "stl": "absorbanceReaderV1/parts/base_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 480,
+          "triangles": 940
+        },
+        {
+          "name": "base_steel",
+          "group": "base",
+          "file": "absorbanceReaderV1/parts/base_steel.obj",
+          "stl": "absorbanceReaderV1/parts/base_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 768,
+          "triangles": 1520
+        },
+        {
+          "name": "base_black",
+          "group": "base",
+          "file": "absorbanceReaderV1/parts/base_black.obj",
+          "stl": "absorbanceReaderV1/parts/base_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 12768,
+          "triangles": 25132
+        },
+        {
+          "name": "base_edge",
+          "group": "base",
+          "file": "absorbanceReaderV1/parts/base_edge.obj",
+          "stl": "absorbanceReaderV1/parts/base_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 3772,
+          "triangles": 3756
+        },
+        {
+          "name": "lid_edge",
+          "group": "lid",
+          "file": "absorbanceReaderV1/parts/lid_edge.obj",
+          "stl": "absorbanceReaderV1/parts/lid_edge.stl",
+          "rgba": [
+            0.3,
+            0.34,
+            0.38,
+            1
+          ],
+          "vertices": 4560,
+          "triangles": 4504
+        },
+        {
+          "name": "lid_steel",
+          "group": "lid",
+          "file": "absorbanceReaderV1/parts/lid_steel.obj",
+          "stl": "absorbanceReaderV1/parts/lid_steel.stl",
+          "rgba": [
+            0.67,
+            0.7,
+            0.73,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "lid_rubber",
+          "group": "lid",
+          "file": "absorbanceReaderV1/parts/lid_rubber.obj",
+          "stl": "absorbanceReaderV1/parts/lid_rubber.stl",
+          "rgba": [
+            0.012,
+            0.016,
+            0.019,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "lid_black",
+          "group": "lid",
+          "file": "absorbanceReaderV1/parts/lid_black.obj",
+          "stl": "absorbanceReaderV1/parts/lid_black.stl",
+          "rgba": [
+            0.025,
+            0.031,
+            0.037,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        },
+        {
+          "name": "lid_aluminium",
+          "group": "lid",
+          "file": "absorbanceReaderV1/parts/lid_aluminium.obj",
+          "stl": "absorbanceReaderV1/parts/lid_aluminium.stl",
+          "rgba": [
+            0.56,
+            0.6,
+            0.64,
+            1
+          ],
+          "vertices": 96,
+          "triangles": 188
+        }
+      ],
+      "closed_bounds_mm": {
+        "min": [
+          0.0,
+          -3.5,
+          0.0
+        ],
+        "max": [
+          155.45001220703125,
+          95.5,
+          57.0
+        ]
+      },
+      "nominal_envelope_note": "Nominal body envelope excludes small connectors/labels; see measured closed_bounds_mm.",
+      "format_units": {
+        "blend": "mm (scene scale_length .001)",
+        "obj": "mm, part-local",
+        "stl": "mm, part-local",
+        "glb": "m, standard glTF"
+      },
+      "provenance": {
+        "geometry": "project authored; official photographs and module definitions",
+        "license": "Project-authored geometry; reference images retain original rights",
+        "dimensions": "Official module definition envelopes and labware offsets",
+        "detail": "Photo reconstruction, not metrology or manufacturer CAD",
+        "motion": "Hinge and latch pivots/travel are illustrative, not calibrated",
+        "docs": "https://docs.opentrons.com/flex/modules/",
+        "reference_images": "../reference/modules/sources.json",
+        "module_definition": "absorbanceReaderV1.json",
+        "source_definition": "https://github.com/Opentrons/opentrons/tree/edge/shared-data/module/definitions/3",
+        "reader_height_basis": "Official product specification 57 mm; not bareOverallHeight + lidHeight",
+        "nominal_size_discrepancies": "Software envelopes used for interface compatibility. Brochure L/W may differ by a few mm."
+      }
+    }
+  }
+}

@@ -1,0 +1,750 @@
+{
+  "scope": "Local pipette/tip-focused shape correction; finite digital regression and author browser checks; independent source/model/visual review. Not hardware acceptance.",
+  "verification": {
+    "scope": "Existing analyses; no fresh generation, experiment, initial inventory, physical fit or continuous-collision acceptance.",
+    "runtime": {
+      "python": "/Users/gaoyuan/Documents/test/LabScript-AI/.local/qa-venv/bin/python",
+      "mujoco": "3.17.0"
+    },
+    "fixtures": {
+      "single": {
+        "analysis_sha256": "c5f3f4f35fe5d7a1ae53b3ab416f7ddb0dfd1a208617f5b3aed8b2b45a6d3349",
+        "xml_sha256": "eddb5508295f4c218b3c256be6fdc5e21fa890d501592d88b895111887477d02",
+        "original_frames_equal": true,
+        "joints": 3,
+        "sites": 3,
+        "bodies": 7,
+        "geoms": 1005,
+        "target_records": 204,
+        "changed_target_fields": [],
+        "positioning_commands": 4,
+        "json_vs_definition_mm": 0.0,
+        "mujoco_vs_json_mm": 5.329070518200751e-15,
+        "module_pose_samples": 0,
+        "module_core_pose_max_delta": 0.0,
+        "pin_to_plate_grid_max_error_mm": 0.0,
+        "clearance": {
+          "passed": true,
+          "discrete_samples": 165,
+          "minimum_enclosure_gap_mm": 4.499999051502092,
+          "tightest": "pipette_left_tip"
+        },
+        "baseline_clearance": {
+          "passed": true,
+          "discrete_samples": 165,
+          "minimum_enclosure_gap_mm": 4.499999051502092,
+          "tightest": "pipette_left_tip"
+        },
+        "resource_references": 404,
+        "missing_resources": [],
+        "warnings": [
+          "command 7: NEST 96 Well Plate 200 μL Flat A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+        ]
+      },
+      "multi": {
+        "analysis_sha256": "48723c1d104314efc01ef0603b093648dcba028a29a67fa8859ebf1d96d0adf8",
+        "xml_sha256": "f67f875987914f1c621c78f9c927162f4486dce2d77a703350465ef1912d80aa",
+        "original_frames_equal": true,
+        "joints": 4,
+        "sites": 13,
+        "bodies": 8,
+        "geoms": 1066,
+        "target_records": 204,
+        "changed_target_fields": [],
+        "positioning_commands": 11,
+        "json_vs_definition_mm": 8.881784197001252e-16,
+        "mujoco_vs_json_mm": 5.329070518200751e-15,
+        "module_pose_samples": 0,
+        "module_core_pose_max_delta": 0.0,
+        "pin_to_plate_grid_max_error_mm": 0.0,
+        "clearance": {
+          "passed": true,
+          "discrete_samples": 378,
+          "minimum_enclosure_gap_mm": 4.499999051502092,
+          "tightest": "pipette_right_tip"
+        },
+        "baseline_clearance": {
+          "passed": true,
+          "discrete_samples": 378,
+          "minimum_enclosure_gap_mm": 4.499999051502092,
+          "tightest": "pipette_right_tip"
+        },
+        "resource_references": 413,
+        "missing_resources": [],
+        "warnings": [
+          "command 11: NEST 12 Well Reservoir 15 mL A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 15: NEST 12 Well Reservoir 15 mL A2 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+        ]
+      },
+      "modules": {
+        "analysis_sha256": "7a0433988bb6b06e00eddbfa2a11e95d83c092875ca32e6e5293e8e87e7708c1",
+        "xml_sha256": "bb487910e916d0095dcba5cadd1b91af5867f117e56ec6dbda94b8de5ebaf21e",
+        "original_frames_equal": true,
+        "joints": 3,
+        "sites": 3,
+        "bodies": 16,
+        "geoms": 2790,
+        "target_records": 588,
+        "changed_target_fields": [],
+        "positioning_commands": 12,
+        "json_vs_definition_mm": 8.881784197001252e-16,
+        "mujoco_vs_json_mm": 5.709267256288867e-14,
+        "module_pose_samples": 74,
+        "module_core_pose_max_delta": 0.0,
+        "pin_to_plate_grid_max_error_mm": 0.010000000000037756,
+        "clearance": {
+          "passed": true,
+          "discrete_samples": 807,
+          "minimum_enclosure_gap_mm": 5.549999051502088,
+          "tightest": "pipette_right_tip"
+        },
+        "baseline_clearance": {
+          "passed": true,
+          "discrete_samples": 807,
+          "minimum_enclosure_gap_mm": 5.549999051502088,
+          "tightest": "pipette_right_tip"
+        },
+        "resource_references": 931,
+        "missing_resources": [],
+        "warnings": [
+          "command 25: NEST 12 Well Reservoir 15 mL A1 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 27: NEST 12 Well Reservoir 15 mL A2 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 29: NEST 12 Well Reservoir 15 mL A3 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 31: NEST 12 Well Reservoir 15 mL A4 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source",
+          "command 34: NEST 12 Well Reservoir 15 mL A5 content unknown (OT-2 analysis carries no loadLiquid); treating it as a source"
+        ]
+      }
+    },
+    "errors": [],
+    "source_sha256": {
+      "ot2_shell.py": "96ce56ea9bb76126a7a067ab9e31e7fc7a4795f8c40635f069ffe4731f871949",
+      "ot2_scene.py": "42e86989f761b2065ddcba263ecdd66b8f4219ac4edc67e90092c14f48274b95",
+      "play_ot2_protocol.py": "0b754f0310401bf031f9a6fc87d26ed905938c920453d3b62ef0664f2ca21e68",
+      "ot2_protocol.py": "8d8ef2f85f1ef90080fc854f2493c07ec06f92279492a544e30c58f2246b25af"
+    },
+    "target_and_frame_checks_passed": true,
+    "module_comparison_scope": "Source lid poses remove MuJoCo mesh reference transforms. Both geometry versions use corrected upright hinge motion, timing and park height, not previous-release playback. All added viz_mod_* skins are checked. Slot-to-body pin/support alignment is intentionally corrected; authoritative labware origins/targets and joint/body/site frames stay unchanged."
+  },
+  "shape_checks": {
+    "scope": "P300 GEN2 / 300 uL tip display geometry; known definitions and estimated cross-sections. Finite rays and poses, not hardware fit/continuous collision/fluid calibration.",
+    "fixtures": {
+      "single": {
+        "unchanged_analytical_needles": 1,
+        "hidden_only_for_render": true,
+        "nozzle_mesh_closed_wall_open_bore": true,
+        "nozzle_center_ray_hits": 0,
+        "nozzle_inner_wall_ray_hits": 4,
+        "rack_guide_local_z_mm": [
+          53.390000015497236,
+          61.19000166654591
+        ],
+        "rack_deck_mm": 53.69,
+        "tip_mouth_mm": 64.69,
+        "8_channel_rows": [],
+        "plate_decks": [
+          {
+            "key": "lw2",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true
+          }
+        ]
+      },
+      "multi": {
+        "unchanged_analytical_needles": 9,
+        "hidden_only_for_render": true,
+        "nozzle_mesh_closed_wall_open_bore": true,
+        "nozzle_center_ray_hits": 0,
+        "nozzle_inner_wall_ray_hits": 4,
+        "rack_guide_local_z_mm": [
+          53.390000015497236,
+          61.19000166654591
+        ],
+        "rack_deck_mm": 53.69,
+        "tip_mouth_mm": 64.69,
+        "8_channel_rows": [
+          {
+            "mount": "left",
+            "nozzles": 8,
+            "pitch_mm": 9
+          }
+        ],
+        "plate_decks": [
+          {
+            "key": "lw2",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true
+          }
+        ]
+      },
+      "modules": {
+        "unchanged_analytical_needles": 1,
+        "hidden_only_for_render": true,
+        "nozzle_mesh_closed_wall_open_bore": true,
+        "nozzle_center_ray_hits": 0,
+        "nozzle_inner_wall_ray_hits": 4,
+        "rack_guide_local_z_mm": [
+          53.390000015497236,
+          61.19000166654591
+        ],
+        "rack_deck_mm": 53.69,
+        "tip_mouth_mm": 64.69,
+        "8_channel_rows": [],
+        "plate_decks": [
+          {
+            "key": "lw3",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true
+          },
+          {
+            "key": "lw4",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true,
+            "pcr_liquid_disks_bounded_monotonic_samples": 101
+          },
+          {
+            "key": "lw5",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true,
+            "pcr_liquid_disks_bounded_monotonic_samples": 101
+          },
+          {
+            "key": "lw6",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true,
+            "pcr_liquid_disks_bounded_monotonic_samples": 101
+          },
+          {
+            "key": "lw7",
+            "open_well_rays": 96,
+            "between_wells_sheet_hit": true
+          }
+        ]
+      }
+    },
+    "protocol_planner_ledger_source_unchanged": true,
+    "passed": true
+  },
+  "geometry_regression": {
+    "housing_bounds": {
+      "authored_dimensions_mm": [
+        34,
+        34,
+        144
+      ],
+      "vertex_bounds_mm": [
+        34.0000016854371,
+        34.00000168545626,
+        143.99999422047281
+      ],
+      "old_principal_box_mm": [
+        62.144170259861475,
+        62.144170259872396,
+        144.00006122534998
+      ],
+      "max_expected_bound_error_mm": 2.8897635950819733e-06
+    },
+    "open_tip": {
+      "centerline_cap_intersections": 0,
+      "collar_wall_ray_intersections": 4,
+      "length_mm": 59.3,
+      "definition_length_mm": 59.3
+    },
+    "hinge_and_skins": {
+      "samples": 25,
+      "max_pivot_drift_mm": 4.440892098500626e-13,
+      "max_heater_rigid_drift_mm": 6.511673101211945e-14,
+      "max_heater_relative_offset_error_mm": 0.0050000000000053405,
+      "position_serialization_tolerance_mm": 0.02,
+      "open_degrees": 89.99999999999974,
+      "still_open_before_close_action_degrees": 89.99999999999974,
+      "lid_world_position_m": [
+        -0.051775000000000015,
+        0.28701000000000004,
+        0.15404
+      ],
+      "retraction_precedes_close": true
+    },
+    "static_module_layout": {
+      "accepted": false,
+      "classification": "Known pre-existing coverage-fixture layout conflict; moving-tool sweeps do not check static pairs. Envelope overlap is a warning, not an as-built surface measurement.",
+      "overlaps_over_1mm": [
+        {
+          "a": "temperatureModuleV1 slot 5",
+          "b": "temperatureModuleV2 slot 6",
+          "body_envelope_overlap_mm": [
+            63.5,
+            91.0,
+            84.0
+          ]
+        }
+      ]
+    },
+    "regression_properties_passed": true
+  },
+  "module_regression": {
+    "temperature_grille": {
+      "gap_ray": {
+        "hit": "viz_mod_6_temperatureModuleV2_vent_backing",
+        "surface_x_local_mm": 4.99999997625128
+      },
+      "bar_ray": {
+        "hit": "viz_mod_6_temperatureModuleV2_grille_row_0",
+        "surface_x_local_mm": -0.5999999625608265
+      },
+      "scope": "Actual open front grille, dark recessed backing. Proxy excluded only from this visual-ray check, retained in movement sweeps."
+    },
+    "magnetic_rear_rims": {
+      "magneticModuleV1": {
+        "local_lo_mm": [
+          0.0,
+          87.43999999999998,
+          106.1
+        ],
+        "local_hi_mm": [
+          136.99999999999997,
+          91.0,
+          110.16000000000001
+        ],
+        "behind_child_footprint": true
+      },
+      "magneticModuleV2": {
+        "local_lo_mm": [
+          0.0,
+          87.44,
+          106.1
+        ],
+        "local_hi_mm": [
+          136.99999999999997,
+          91.00000000000001,
+          110.16000000000001
+        ],
+        "behind_child_footprint": true
+      }
+    },
+    "park": {
+      "current_m": 0.2788,
+      "range_m": [
+        -0.02,
+        0.28
+      ],
+      "remaining_mm": 1.2000000000000344
+    },
+    "out_of_range_park": {
+      "blocked": true,
+      "message": "module clearance requires nozzle park Z 412.2 mm; OT-2 model Z range is -20.0..280.0 mm"
+    },
+    "scope": "Digital/illustrative regression checks, not physical airflow, mechanical fit or hardware acceptance."
+  },
+  "patch_reproduction": {
+    "passed": true,
+    "ordered_patch_reproduction": "Both patches dry-run/apply and reproduce all four final sources byte for byte; syntax valid.",
+    "cumulative_patch_sha256": "bfc5a0820bc75cddcd0ee8495546fa55a95754d59f94cc5f26573a0c2d48fcdb",
+    "files": [
+      "ot2_shell.py",
+      "ot2_scene.py",
+      "play_ot2_protocol.py",
+      "ot2_protocol.py"
+    ]
+  },
+  "independent_review": {
+    "verdict": "accept_with_limitations",
+    "summary_zh": "重新从本批8对枪体/枪头近景和原始官方图片评估，未沿用上一批通过结论。窄黑顶、P300 GEN2开口喷嘴、连接处与最终加高枪架支撑套均比本批基线更接近参考；新孔板顶面及PCR锥底/液面未发现可复现的新增阻断缺陷。接受范围是本次有限数字示意模型外观修订，不是厂家CAD、精密装配或实机验证。",
+    "reviewer": {
+      "role": "independent GPT-6.1 reviewer",
+      "recorded_at": "2026-10-25T07:53:47.017712+00:00",
+      "implementation_edited": false,
+      "models_regenerated": false,
+      "patch_regenerated": false,
+      "browser_or_shared_service_operated": false,
+      "commit_push_pr_update_deploy": false,
+      "basis": "Fresh examination of this batch source changes, actual final XMLs and images, not prior-batch acceptance."
+    },
+    "sources_reviewed": [
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/sim/ot2_shell.py",
+        "baseline": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/baseline-source/ot2_shell.py",
+        "frozen_candidate": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-source/ot2_shell.py",
+        "scope": "baseline-to-current diff, affected geometry/visual-state calls and source freeze equality"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/sim/ot2_scene.py",
+        "baseline": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/baseline-source/ot2_scene.py",
+        "frozen_candidate": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-source/ot2_scene.py",
+        "scope": "baseline-to-current diff, affected geometry/visual-state calls and source freeze equality"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/sim/ot2_protocol.py",
+        "baseline": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/baseline-source/ot2_protocol.py",
+        "frozen_candidate": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-source/ot2_protocol.py",
+        "scope": "baseline-to-current diff, affected geometry/visual-state calls and source freeze equality"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/sim/play_ot2_protocol.py",
+        "baseline": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/baseline-source/play_ot2_protocol.py",
+        "frozen_candidate": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-source/play_ot2_protocol.py",
+        "scope": "baseline-to-current diff, affected geometry/visual-state calls and source freeze equality"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-model/single/ot2.xml",
+        "scope": "loaded actual final model; frame/target/hidden-proxy checks"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-model/multi/ot2.xml",
+        "scope": "loaded actual final model; frame/target/hidden-proxy checks"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/candidate-model/modules/ot2.xml",
+        "scope": "loaded actual final model; frame/target/hidden-proxy checks"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/tip-views.json",
+        "scope": "paired timing, camera, visibility and mounted-count manifest"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/qa/render_tips.py",
+        "scope": "visibility isolation and before/after camera matching"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/qa/shape_checks.py",
+        "scope": "read-only inspection after own core checks; author outputs not substituted for image review"
+      },
+      {
+        "path": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/qa/verify.py",
+        "scope": "read-only inspection; not run because it rebuilds exports/overwrites author evidence"
+      }
+    ],
+    "own_checks": {
+      "source_freeze": {
+        "ot2_shell.py": {
+          "current_equals_candidate": true,
+          "sha256": "96ce56ea9bb76126a7a067ab9e31e7fc7a4795f8c40635f069ffe4731f871949"
+        },
+        "ot2_scene.py": {
+          "current_equals_candidate": true,
+          "sha256": "42e86989f761b2065ddcba263ecdd66b8f4219ac4edc67e90092c14f48274b95"
+        },
+        "ot2_protocol.py": {
+          "current_equals_candidate": true,
+          "sha256": "8d8ef2f85f1ef90080fc854f2493c07ec06f92279492a544e30c58f2246b25af"
+        },
+        "play_ot2_protocol.py": {
+          "current_equals_candidate": true,
+          "sha256": "0b754f0310401bf031f9a6fc87d26ed905938c920453d3b62ef0664f2ca21e68"
+        }
+      },
+      "recalculated": {
+        "mujoco": "3.17.0",
+        "fixtures": {
+          "single": {
+            "plan_and_ledger_equal_baseline": true,
+            "target_commands": 4,
+            "max_json_definition_mm": 0.0,
+            "max_mujoco_json_mm": 5.329070518200751e-15,
+            "hidden_needle_proxies_in_moving_check": [
+              "pipette_left_needle_0"
+            ],
+            "proxy_alpha": [
+              1.0
+            ]
+          },
+          "multi": {
+            "plan_and_ledger_equal_baseline": true,
+            "target_commands": 11,
+            "max_json_definition_mm": 8.881784197001252e-16,
+            "max_mujoco_json_mm": 5.329070518200751e-15,
+            "hidden_needle_proxies_in_moving_check": [
+              "pipette_left_needle_0",
+              "pipette_left_needle_1",
+              "pipette_left_needle_2",
+              "pipette_left_needle_3",
+              "pipette_left_needle_4",
+              "pipette_left_needle_5",
+              "pipette_left_needle_6",
+              "pipette_left_needle_7",
+              "pipette_right_needle_0"
+            ],
+            "proxy_alpha": [
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0,
+              1.0
+            ]
+          },
+          "modules": {
+            "plan_and_ledger_equal_baseline": true,
+            "target_commands": 12,
+            "max_json_definition_mm": 8.881784197001252e-16,
+            "max_mujoco_json_mm": 5.709267256288867e-14,
+            "hidden_needle_proxies_in_moving_check": [
+              "pipette_right_needle_0"
+            ],
+            "proxy_alpha": [
+              1.0
+            ]
+          }
+        },
+        "bare_nozzle_lower_axis_ray": {
+          "hit": "pipette_left_collar",
+          "first_visible_surface_above_mouth_mm": 11.999999999999996
+        },
+        "pcr_liquid_disk_containment": {
+          "samples": 301,
+          "volume_range_ul": [
+            0.050001,
+            100
+          ],
+          "max_radial_overflow_mm": 0,
+          "finite": true
+        },
+        "final_plate_and_rack": {
+          "lw2": {
+            "open_well_rays": 96,
+            "blocked_openings": [],
+            "between_well_probes": [
+              [
+                0,
+                0,
+                -1.0,
+                -1
+              ],
+              [
+                0.1,
+                0,
+                -1.0,
+                -1
+              ],
+              [
+                0.1,
+                0.1,
+                0.002599999989569621,
+                419
+              ],
+              [
+                0,
+                0.1,
+                0.0025999999895696207,
+                419
+              ]
+            ]
+          },
+          "final_rack": {
+            "support_ring_top_local_mm": 61.19000166654591,
+            "tip_mouth_local_mm": 64.69,
+            "exposed_clear_collar_mm": 3.499998333454087
+          }
+        },
+        "final_frame_checks": {
+          "single": {
+            "joint_body_site_frames_equal_baseline": true,
+            "joint_key_count": 22,
+            "joint_limit_violations": []
+          },
+          "multi": {
+            "joint_body_site_frames_equal_baseline": true,
+            "joint_key_count": 50,
+            "joint_limit_violations": []
+          },
+          "modules": {
+            "joint_body_site_frames_equal_baseline": true,
+            "joint_key_count": 77,
+            "joint_limit_violations": []
+          }
+        }
+      },
+      "visual_assessment": [
+        {
+          "area": "single GEN2 body",
+          "result": "Compared actual bare/tipped/closeup views against official single-channel image. The previous broad silver top is replaced by a narrower dark cap; black front with silver side and long shaft are retained. It remains a simplified procedural housing with approximate top/backplate shape."
+        },
+        {
+          "area": "8-channel GEN2 body",
+          "result": "Compared actual bare/tipped/closeup views against official multi-channel image. Narrow upper tower, silver side and broad lower manifold remain coherent; dark top and short black lower ends remove the earlier bright rounded plugs. Lower-body seams still read as raised strips rather than a full molded assembly."
+        },
+        {
+          "area": "bare P300 GEN2 nozzles",
+          "result": "Independently rendered the actual single bare nozzle from underneath. Lower mouth is visibly hollow; a lower axial ray first meets the upper collar at 12 mm above the nozzle datum, not at the mouth. This is a lower visual bore, not an accepted full internal pneumatic model."
+        },
+        {
+          "area": "mounted tips and join",
+          "result": "Actual single/8-channel joins show transparent tip wall entering around the dark nozzle with no floating air gap or visible metal bead. The actual P300 tip mouth is 8.2 mm above the nozzle datum (59.3 mm total length, 51.1 mm exposed reach), leaving the nozzle shoulder above the mouth. Seating and friction fit are estimates."
+        },
+        {
+          "area": "rack correction during review",
+          "result": "Initial current-batch rack still exposed a tall bright cuff. Reported to author; author extended black support sleeves. Reopened both final rack views and loaded the rebuilt XML: clear mouth exposure is 3.499998 mm. The earlier tall-cup concern is closed in the final reviewed revision."
+        },
+        {
+          "area": "tip material",
+          "result": "Mounted tips read as hollow and mildly translucent with a smooth taper. Rack cuffs still appear brighter and more opaque/frosted than the supplied small official photographs; this is a rendering/material fidelity limit, not a measured polymer match."
+        },
+        {
+          "area": "plates/PCR",
+          "result": "Joined perforated top now reads as a single plate, replacing the prior free-standing tube appearance. Independently tested all 96 source well centers against the actual sheet: no blocked openings. Offset inter-well rays hit the new solid sheet. Estimated conical PCR walls and the revised thin liquid disk retain the original target/volume bookkeeping."
+        }
+      ],
+      "checking_scope": {
+        "new_nozzle_family": "Hollow lathed nozzle and hidden analytical needle conditional is restricted to P300 GEN2 single/multi. GEN2 top-cap styling is broader; other nozzle capacities were source-inspected but not separately generated or visually accepted in this review.",
+        "hidden_analytical_proxies": "Independently enumerated the actual Scene moving-check set: P300 analytical capsules remain alpha 1 and included despite render group 3. This is visibility-only hiding, not removal from original checks.",
+        "pcr_liquid": "301 independent samples from 0.050001 to 100 uL are finite and radially inside the tapered inner wall; volumes at/below 0.05 uL remain hidden by Scene. This verifies disk containment, not full liquid volume geometry/meniscus or fluid mechanics.",
+        "plan_ledger": "Loaded the baseline protocol implementation separately and compared complete dataclass Plan/ledger structures against current on all three existing analyses; equal. Protocol source is byte-identical. 27 command targets, all current keyframe joint ranges and joint/body/site frames were separately checked.",
+        "ray_edge_note": "A vertical MuJoCo ray exactly on coincident fan/shared triangle boundaries can miss the inter-well sheet; 0.1 mm offset rays hit it. All well-center holes remain open. This edge-case ray result was not inflated into a physical gap claim.",
+        "browser": "Not independently tested. Parent browser progress is not part of this reviewer's pass conclusion."
+      },
+      "evidence": [
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/qa/independent-core-checks.json",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/qa/independent-nozzle-underside.png"
+      ]
+    },
+    "images_viewed": {
+      "original_official_references": [
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-flex-parity-20261025/references/gen2-single-channel.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-flex-parity-20261025/references/gen2-multi-channel.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-photo-refine-20261025/references/ot2-300ul-tips.jpg",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-photo-refine-20261025/references/ot2-300ul-rack.jpg"
+      ],
+      "before_pipette_tip_pairs": [
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/single-bare.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/single-tipped.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/single-join.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/single-rack.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/multi-bare.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/multi-tipped.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/multi-join.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/before-renders/multi-rack.png"
+      ],
+      "final_pipette_tip_pairs": [
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/single-bare.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/single-tipped.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/single-join.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/single-rack.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/multi-bare.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/multi-tipped.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/multi-join.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/multi-rack.png"
+      ],
+      "scene_and_module_views": [
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/home.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/overview.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/single.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/multi.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/mount-single.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/trash.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/thermocyclerModuleV1-open.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/thermocyclerModuleV1-closed.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/magneticModuleV1-closed.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/magneticModuleV1-control.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/magneticModuleV2-closed.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/magneticModuleV2-control.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/temperatureModuleV1-closed.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/temperatureModuleV1-control.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/temperatureModuleV2-closed.png",
+        "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/final-renders/temperatureModuleV2-control.png"
+      ],
+      "own_underside": "/Users/gaoyuan/Documents/test/virtual-lab/exports/mujoco/ot2-shape-correction-20261025/qa/independent-nozzle-underside.png",
+      "revision_note": "Rack views reopened after final sleeve-height repair; single/multi/mount/overview full views reopened after final rebuild. Isolated module geometry was unchanged by that sleeve-only repair."
+    },
+    "findings": [],
+    "closed_during_review": [
+      {
+        "priority": "P3",
+        "area": "rack clear-cuff exposure",
+        "reason": "Initial revised rack still resembled tall cups relative to supplied reference, with short black base sleeves.",
+        "author_fix": "Support sleeve raised from deck+3 to deck+7.5 mm; exposed cuff reduced to 3.5 mm without moving tip mouths or targets.",
+        "independent_recheck": "Both final rack images viewed and actual exported ring top remeasured; closed."
+      }
+    ],
+    "remaining_appearance_differences": [
+      "Nozzle taper, small bore, tip-seating overlap and upper shoulder are estimated; official images do not establish exact internal gas path, dimensions, ejector mechanics or tolerances.",
+      "Rack upper cuffs and tips remain somewhat frosted/bright under current MuJoCo lighting; no physical material/transmission or wall-thickness calibration has been performed.",
+      "Single/8-channel housings remain rounded boxes with simplified back/cap/seams; lower multi seams are represented by strips. Fine molded joints, full ejector mechanisms and manufacturer surface finish are not reproduced.",
+      "PCR bottom profile is an estimated cone and liquid is a thin display disk. It should not be presented as a faithful 3D fluid volume, CFD, meniscus or calibrated capacity visualization."
+    ],
+    "limitations": [
+      "This is a bounded local source/model/visual review. It does not certify all capacities, all labware, fresh protocol analysis, complete application workflows, continuous collision freedom, mechanical precision or hardware functionality.",
+      "Original static five-module fixture overlap and narrow TC park margin remain outside the acceptance scope. Isolated module images do not establish a valid combined layout.",
+      "No independent browser/product user test was performed. Parent-owned verification/browser results must be reported separately with their own scope.",
+      "Some full-scene module panels retain MuJoCo shadow artifacts. No perfect appearance or manufacturer-CAD equivalence is claimed.",
+      "Final files were read/loaded without rewriting implementation, patch or model artifacts. Only this report and named minimal independent evidence were written."
+    ]
+  },
+  "browser": {
+    "scope": "Author-operated Chrome actual Flex3dOverlay with existing fixed analyses, locally restarted final-source renderer. No fresh protocol generation/full product or dedicated user testing.",
+    "states": {
+      "single": [
+        {
+          "t": 6.0,
+          "mounted": 1,
+          "screenshot": "web-single.png"
+        },
+        {
+          "t": 11.5,
+          "mounted": 0,
+          "screenshot": "web-single-detached.png"
+        }
+      ],
+      "multi": [
+        {
+          "t": 18.5,
+          "mounted": 8,
+          "screenshot": "web-multi.png"
+        },
+        {
+          "t": 26.3,
+          "mounted": 0,
+          "screenshot": "web-multi-detached.png"
+        }
+      ],
+      "modules": [
+        {
+          "t": 46.3,
+          "lid": "open",
+          "screenshot": "web-modules-open.png"
+        },
+        {
+          "t": 58.9,
+          "lid": "closed",
+          "screenshot": "web-modules-closed.png"
+        },
+        {
+          "t": 0,
+          "reset": true,
+          "screenshot": "web-reset.png"
+        }
+      ]
+    },
+    "models": {
+      "single": {
+        "key": "c5f3f4f35fe5d7a1",
+        "xml_matches_frozen_candidate": true,
+        "xml_sha256": "eddb5508295f4c218b3c256be6fdc5e21fa890d501592d88b895111887477d02"
+      },
+      "multi": {
+        "key": "48723c1d104314ef",
+        "xml_matches_frozen_candidate": true,
+        "xml_sha256": "f67f875987914f1c621c78f9c927162f4486dce2d77a703350465ef1912d80aa"
+      },
+      "modules": {
+        "key": "7a0433988bb6b06e",
+        "xml_matches_frozen_candidate": true,
+        "xml_sha256": "bb487910e916d0095dcba5cadd1b91af5867f117e56ec6dbda94b8de5ebaf21e"
+      }
+    },
+    "own_tab_closed": true,
+    "temporary_entry_removed": true,
+    "own_ports_closed": {
+      "5191": true,
+      "8787": true,
+      "8791": true
+    }
+  },
+  "delivery": {
+    "commit_created": false,
+    "pushed": false,
+    "pr_edited": false,
+    "deployed": false
+  }
+}

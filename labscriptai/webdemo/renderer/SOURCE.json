@@ -1,0 +1,134 @@
+{
+  "schema": "labscriptai.webdemo.renderer-bundle/1",
+  "snapshot_note": "Reviewed local runtime snapshot for current-protocol OT-2 and Flex previews; refresh with scripts/sync-renderer.mjs after source changes.",
+  "runtime": {
+    "legacy_ot2_and_helpers": [
+      "sim/__init__.py",
+      "sim/web_player.py",
+      "sim/ot2_protocol.py",
+      "sim/ot2_scene.py",
+      "sim/ot2_shell.py",
+      "sim/ot2_thermocycler.py",
+      "sim/play_ot2_protocol.py",
+      "sim/flex_protocol.py",
+      "sim/flex_scene.py",
+      "sim/flex_shell.py",
+      "sim/play_protocol.py"
+    ],
+    "isolated_flex": "sim/flex3d_runtime/",
+    "flex_reference_repo": "https://github.com/KRATSZ/labscriptai-ot/tree/a3182eb5befc8ce535c33a225ae80b287e87c211",
+    "flex_reference_commit": "a3182eb5befc8ce535c33a225ae80b287e87c211",
+    "analysis_entrypoints": {
+      "ot2_python": "sim/play_ot2_protocol.py -> public opentrons.cli analyze --check (OT-2 .py input only)",
+      "ot2_python_interpreter": "OPENTRONS_PYTHON or sys.executable",
+      "analysis_json": "sim/web_player.py accepts an existing analysis JSON directly for OT-2 and Flex",
+      "flex_analysis_json": "sim/flex3d_runtime/flex_protocol.py loader; loader errors reject invalid input; this path is not an analyze --check CLI",
+      "private_fallback": false
+    }
+  },
+  "python_dependencies": {
+    "opentrons": ">=7,<9 (8.8.2 maintained QA target)",
+    "requirements_file": "renderer/requirements.txt",
+    "renderer_imports": [
+      "mujoco>=3.3,<4",
+      "numpy>=1.26",
+      "Pillow>=10"
+    ],
+    "launcher": "LABSCRIPTAI_PYTHON is shared with the code service"
+  },
+  "supported_scope": {
+    "ot2_pipette_models": [
+      "p10_single",
+      "p50_single",
+      "p300_single",
+      "p1000_single",
+      "p10_multi",
+      "p50_multi",
+      "p300_multi",
+      "p20_single_gen2",
+      "p300_single_gen2",
+      "p1000_single_gen2",
+      "p20_multi_gen2",
+      "p300_multi_gen2"
+    ],
+    "ot2_module_models": [
+      "magneticModuleV1",
+      "magneticModuleV2",
+      "temperatureModuleV1",
+      "temperatureModuleV2",
+      "thermocyclerModuleV1"
+    ],
+    "replay_behavior": {
+      "unknown_actions": "Unknown actions, unsupported module commands, addressable areas, robot/model mismatches, and unsupported home axes are rejected with ProtocolError; there is no silent fallback.",
+      "air_segments": "airGap/airGapInPlace and aspirates above a well opening remain explicit air segments with separate tip-air state; analysis coordinates remain the source of motion positions.",
+      "home": "Full home and x/y, leftZ/rightZ, leftPlunger/rightPlunger axis-home commands are replayed; unknown axes are rejected."
+    },
+    "static_layout_overlap": "Static definition-envelope overlap is surfaced as a partial warning. It is not precise continuous collision certification or physical hardware acceptance."
+  },
+  "assets": {
+    "ot2": [
+      "cad/ot2/deck/ot2_standard.json",
+      "cad/ot2/modules/*.json",
+      "cad/ot2/stl/OT-2 Reference Model Basic.STL",
+      "cad/ot2/stl/OT-2 Reference Model Detailed.STL"
+    ],
+    "flex": [
+      "cad/flex/deck/ot3_standard.json",
+      "cad/flex/modules/manifest.json",
+      "cad/flex/modules/*.json",
+      "cad/flex/modules/*/parts/*.obj"
+    ],
+    "default_analysis": "protocols/flex_serial_dilution.analysis.json",
+    "loader_coverage": {
+      "ot2_scene": [
+        "cad/ot2/deck/ot2_standard.json",
+        "cad/ot2/modules/*.json",
+        "cad/ot2/stl/*.STL"
+      ],
+      "ot2_thermocycler": [
+        "cad/ot2/modules/thermocyclerModuleV1.json"
+      ],
+      "flex_scene": [
+        "cad/flex/deck/ot3_standard.json",
+        "cad/flex/modules/*.json"
+      ],
+      "flex_detail": [
+        "cad/flex/modules/manifest.json",
+        "cad/flex/modules/*/parts/*.obj"
+      ]
+    },
+    "excluded": "Reference images, manuals, STEP/DXF files, Blender/GLB duplicates, STL module duplicates, generated exports and caches are not runtime inputs."
+  },
+  "generated_output": {
+    "dev_default": "webdemo/.local/renderer/{mujoco,flex3d}",
+    "override": "LABSCRIPTAI_RENDERER_EXPORT (plus FLEX3D_EXPORT for isolated Flex output)",
+    "gitignored": true
+  },
+  "validation_scope": {
+    "supported_range": "OT-2 replay covers 12 pipette models and 5 module definitions listed in supported_scope; unsupported actions and model names are rejected.",
+    "warnings": "Plan warnings are returned in info and make digital validation partial.",
+    "static_overlap": "Definition-envelope overlap is reported as a partial warning, not a precise continuous collision check or clearance certificate.",
+    "limitation": "Validation is a digital model replay, not physical robot acceptance or a continuous hardware clearance certificate.",
+    "timing": "Motion and thermal ramp durations are illustrative; explicit waits and thermal holds are preserved.",
+    "flex_touch_tip": "Known text-only action with an explicit warning; contact waypoints are not modeled.",
+    "partial_nozzle_layout": "Flex ALL layouts supported; partial layouts explicitly rejected before playback."
+  },
+  "historical_evidence": {
+    "records": [
+      "../UX_REVIEW.md",
+      "../renderer-patches/ot2-base-clearance.patch",
+      "../renderer-patches/ot2-model-polish.patch"
+    ],
+    "runtime_input": false,
+    "note": "These records document the earlier external-renderer workflow and are retained for review provenance; they are not applied by the bundled launcher."
+  },
+  "provenance": {
+    "citation": "Gao, Yuan et al. Autonomous Liquid-handling Robotics Scripting for Accessible and Responsible Protein Engineering. bioRxiv (2025). DOI 10.1101/2025.09.30.679666.",
+    "upstream_asset_metadata": "The copied Flex manifest retains its Opentrons source-definition fields.",
+    "ot2_references": [
+      "https://docs.opentrons.com/ot-2/pipettes/",
+      "https://docs.opentrons.com/ot-2/system-description/robot/",
+      "https://insights.opentrons.com/hubfs/Products/Modules/Thermocycler%20Module%20White%20Paper.pdf"
+    ]
+  }
+}

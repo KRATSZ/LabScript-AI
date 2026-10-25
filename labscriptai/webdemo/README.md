@@ -42,6 +42,7 @@ Optional: `pip install pylabrobot` for Hamilton/Tecan and OT step-table simulati
 cd labscriptai/webdemo
 cp .env.example .env   # set LABSCRIPTAI_DEEPSEEK_* — never commit
 pip install -r python/requirements-code-service.txt
+pip install -r renderer/requirements.txt
 npm install
 npm test && npm run dev
 ```
@@ -64,21 +65,72 @@ No `0.0.0.0`. Frontend-only: `npm run build`. Server-only: `npm run dev:server`.
 
 ## Current-protocol 3D service (maintainers)
 
-The web server forwards accepted OT-2/Flex analyses to `FLEX3D_URL` (default `http://127.0.0.1:8791`). The renderer is the separate `virtual-lab` workspace's `sim.web_player`; it is **not bundled in this repository**. OT-2 requires that service's OT-2-capable version (`robotType: "OT-2 Standard"`); Flex uses `"OT-3 Standard"`. Unsupported, mismatched or unfinished sessions return a clear error instead of loading an example. The 2D toggle remains available if 3D is unavailable.
+`npm run dev` starts the bundled `renderer/sim/web_player.py` on `127.0.0.1:8791`.
+The web server forwards the current accepted analysis to that service. Robot
+identity selects `OT-2 Standard` or `OT-3 Standard` (Flex); unfinished,
+mismatched and unsupported sessions return an error and retain the current
+protocol. The 2D view remains available when the 3D service is unavailable.
 
-`npm run dev` can find a sibling `virtual-lab` checkout; maintainers may override its path with `LABSCRIPTAI_PLAYER_ROOT`. It uses the same `LABSCRIPTAI_PYTHON` interpreter as the code service, which must also contain the renderer dependencies. No browser-side setup is required.
+Cold model preparation has a 45-second total limit, including analysis loading.
+An interrupted request shows a readable error and a direct retry button. Model
+eviction releases graphics resources in their owning context so switching
+between protocols keeps overview and close-up frames intact.
 
-The accompanying patches belong to that separate renderer workspace. Apply them in this order:
+Install `renderer/requirements.txt` in the same `LABSCRIPTAI_PYTHON` environment
+as the code service. Python 3.11, Opentrons 8.8.2 and MuJoCo 3.17 are the tested
+combination. OT-2 Python input uses the public `opentrons analyze --check` CLI
+through `OPENTRONS_PYTHON` or the current interpreter. Existing analysis JSON
+can be replayed directly. A normal checkout includes the runtime and assets;
+`LABSCRIPTAI_PLAYER_ROOT` is an explicit development override.
 
-1. [ot2-base-clearance.patch](renderer-patches/ot2-base-clearance.patch) replaces the old solid base band with a surrounding ring so low plates remain visible.
-2. [ot2-model-polish.patch](renderer-patches/ot2-model-polish.patch) is the cumulative four-source refinement: photo-based enclosure/GEN2 pipette details, open OT-2 tips, module support alignment, and corrected thermocycler animation. It includes metre conversion, compiled mesh reference transforms, an upright simplified hinged heating panel, action timing after retraction, and OT-2 mesh-vertex bounds. It also hides analytical debug spheres and frames the full machine. Apply it after the first patch.
+Generated models and frames use the ignored `webdemo/.local/renderer` cache.
+`LABSCRIPTAI_RENDERER_EXPORT` selects another writable output directory. No
+browser-side renderer configuration is required.
 
-From the renderer root, check each patch with `patch --dry-run -p1 < /absolute/path/to/PATCH`, then apply it with `patch -p1 < /absolute/path/to/PATCH`. Substitute the actual absolute patch path and restart the service after both patches. Skip a patch already present; do not apply it twice. If an earlier draft of the polish patch was installed, return to its pre-polish source or reverse that exact earlier patch before installing this cumulative revision, preserving any local work. No Git checkout is needed. The patches preserve the deck frame, authoritative labware/command targets and joint/body/site frames. Module drawing metadata is converted from slot to body coordinates; its simplified lid trajectory and digital park envelope are corrected. Extra module skins participate in the finite clearance check. The visual deck skirt is trimmed to the enclosure. The default camera now includes the raised home pose, with orbit/zoom available for details. This is an illustrative procedural model, not manufacturer CAD or a hardware clearance certificate.
+The OT-2 model preserves official deck/command coordinates while refining the
+GEN2 single/eight-channel shells, model-specific nozzles, open translucent tips,
+Z-mount connections and GEN1 thermocycler outer lid. Its envelope follows the
+2019 manufacturer reference: 154 mm closed and 312 mm open; hinge and small
+part dimensions remain estimates. The planner clears the lid's XY sweep
+before opening or closing it. The isolated Flex runtime retains its modules,
+stacked adapters, tube racks, waste chute and gripper handling.
 
-Keyless replay inputs: [single 80 µL](renderer-patches/ot2-80ul-visual-fixture.analysis.json), [two mounts](renderer-patches/ot2-two-mount-visual-fixture.analysis.json), and [five supported module variants](renderer-patches/ot2-modules-visual-fixture.analysis.json). From the patched renderer root, run `PYTHONPATH=. python -m sim.play_ot2_protocol /absolute/path/to/FIXTURE.analysis.json --no-video` to check and render an existing analysis. Latest numerical/browser evidence uses MuJoCo 3.17.0; no new protocol generation or API credential is needed. The thermocycler remains a simplified heating-panel illustration, not its full factory outer cover or physical open-envelope model.
+Both runtimes track liquid separately from air gaps, preserve explicit waits
+and thermal holds, and check positional commands and sampled moving clearance
+before serving a preview. Unknown actions are rejected. Flex `touchTip` remains
+an explicit text-only action with a warning. Missing inventories, manual pause
+markers and possible overlap between coarse static definition envelopes appear
+as range warnings and make validation `partial`. Motion and thermal ramp
+durations are illustrative; the renderer does not certify physical execution.
 
-The five-module input is a **negative static-layout coverage catalogue**, not an executable hardware arrangement: the temperature V1/V2 modules in slots 5/6 have overlapping body-definition envelopes (63.5 × 91 × 84 mm). Moving-tool clearance sweeps do not check static pairs. The current simplified TC park also leaves only 1.2 mm to the right-Z joint limit; taller modules require renewed checks.
+Run the maintained regression tests from `labscriptai/webdemo/renderer`:
 
-This PR's latest model evidence uses both external patches. Merging only the web code does not update the renderer or deploy the website. Model scope, checks and screenshots are recorded in [UX_REVIEW.md](UX_REVIEW.md).
+```bash
+OT2_GEOMETRY=1 PYTHONPATH=. /path/to/qa-venv/bin/python -m unittest discover -s tests -p 'test_*protocol_regression.py' -v
+```
 
-For a keyless visual regression, the [fixed 80 µL analysis](renderer-patches/ot2-80ul-visual-fixture.analysis.json) can be passed to the renderer's existing CLI: from its root, run `PYTHONPATH=. python -m sim.play_ot2_protocol /absolute/path/to/ot2-80ul-visual-fixture.analysis.json --no-video` with its MuJoCo environment. This replays an existing analysis; it does not exercise new generation, downloads or starting-volume validation.
+The OT-2 matrix includes 27 positive replay protocols, one unsupported manual
+move, and one short-tip/deep-tube clearance negative. Every input is freshly
+analyzed by the official SDK; independent intent oracles check the liquid
+results. Flex tests cover gas/liquid order, absolute moves, waits, manual
+pauses, waste, modules and gripper moves. See [test details](renderer/tests/README.md).
+
+After reviewing a source-runtime change, refresh the snapshot with:
+
+```bash
+node scripts/sync-renderer.mjs --source /absolute/path/to/virtual-lab
+node --test scripts/renderer-root.test.mjs
+```
+
+The script copies the runtime and required assets in [SOURCE.json](renderer/SOURCE.json)
+and applies portable output/interpreter defaults. Generated models, reference
+photos and authoring files are excluded.
+
+The [earlier patches](renderer-patches/) and [UX records](UX_REVIEW.md) remain
+historical evidence; they are not applied to the bundled renderer. The historical
+five-module catalogue has overlapping temperature-module envelopes and is a
+layout-warning example, not an accepted hardware arrangement. A fixed
+[80 µL analysis](renderer-patches/ot2-80ul-visual-fixture.analysis.json) can also be
+replayed without a generation API call. Source provenance and remaining visual
+limits are recorded in [renderer/README.md](renderer/README.md). Repository
+changes do not deploy the website.

@@ -1,0 +1,61 @@
+{
+  "$otSharedSchema": "module/schemas/3",
+  "moduleType": "thermocyclerModuleType",
+  "model": "thermocyclerModuleV1",
+  "labwareOffset": {
+    "x": 0,
+    "y": 82.56,
+    "z": 97.8
+  },
+  "features": {},
+  "dimensions": {
+    "bareOverallHeight": 98.0,
+    "overLabwareHeight": 0.0,
+    "lidHeight": 37.7,
+    "xDimension": 172,
+    "yDimension": 259.7,
+    "labwareInterfaceXDimension": 128,
+    "labwareInterfaceYDimension": 86
+  },
+  "extents": {
+    "total": {
+      "backLeftBottom": {
+        "x": -22.125,
+        "y": 0,
+        "z": 0
+      },
+      "frontRightTop": {
+        "x": 149.875,
+        "y": -259.7,
+        "z": 98.0
+      }
+    }
+  },
+  "cornerOffsetFromSlot": {
+    "x": -22.125,
+    "y": 0,
+    "z": 0
+  },
+  "calibrationPoint": {
+    "x": 14.4,
+    "y": 64.93,
+    "z": 97.8
+  },
+  "config": {
+    "minBlockTemperature": 0,
+    "maxBlockTemperature": 99,
+    "minLidTemperature": 37,
+    "maxLidTemperature": 110,
+    "minBlockVolume": 0,
+    "maxBlockVolume": 100
+  },
+  "displayName": "Thermocycler Module GEN1",
+  "quirks": [],
+  "slotTransforms": {},
+  "orientation": {
+    "7": "left"
+  },
+  "compatibleWith": ["thermocyclerModuleV1"],
+  "incompatibleWithDecks": ["ot3_standard"],
+  "uniqueModuleData": {}
+}

@@ -1,0 +1,141 @@
+{
+  "module_only.py": {
+    "pipettes": 0,
+    "module": "thermocyclerModuleV1",
+    "block_temperature_c": 37,
+    "hold_seconds": [
+      2
+    ]
+  },
+  "no_tip_motion.py": {
+    "pipettes": 1,
+    "tip_pickups": 0,
+    "tip_drops": 0,
+    "explicit_wait_seconds": [
+      1
+    ]
+  },
+  "thermal_profile.py": {
+    "module": "thermocyclerModuleV1",
+    "profile_celsius": [
+      42,
+      25,
+      42,
+      25
+    ],
+    "profile_hold_seconds": [
+      1,
+      2,
+      1,
+      2
+    ],
+    "repetitions": 2
+  },
+  "air_gap_224.py": {
+    "api_level": "2.24",
+    "source": {
+      "slot": "2",
+      "load_name": "nest_96_wellplate_200ul_flat",
+      "well": "A1",
+      "volume": 90
+    },
+    "destination": {
+      "slot": "2",
+      "load_name": "nest_96_wellplate_200ul_flat",
+      "well": "A2",
+      "volume": 0
+    },
+    "air_gap_ul": 2,
+    "dispense_command_ul": 2,
+    "return_tip_remaining_liquid_ul": 10,
+    "return_tip": true
+  },
+  "absolute_move.py": {
+    "api_level": "2.24",
+    "source": {
+      "slot": "2",
+      "load_name": "nest_96_wellplate_200ul_flat",
+      "well": "A1",
+      "volume": 90
+    },
+    "absolute_coordinates_mm": [
+      200,
+      300,
+      100
+    ],
+    "outside_wells_ul": 10,
+    "return_tip": true
+  },
+  "manual_move.py": {
+    "api_level": "2.24",
+    "unsupported_command": "moveLabware",
+    "expected_plan_error": true
+  },
+  "mixed_rack_air.py": {
+    "api_level": "2.20",
+    "source": {
+      "slot": "2",
+      "load_name": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical",
+      "well": "A3",
+      "volume": 90
+    },
+    "destination": {
+      "slot": "3",
+      "load_name": "nest_96_wellplate_200ul_flat",
+      "well": "A1",
+      "volume": 0
+    },
+    "air_gap_ul": 2,
+    "return_tip_remaining_liquid_ul": 10,
+    "pause_warning": false,
+    "expected_clearance_error": "runs into",
+    "geometry_reason": "Intentional deep-tube clearance negative: short P20 tip places the current gun housing base at81.25mm, below the120.3mm tube opening. Semantics are checked separately; SDK analysis success does not assert modeled physical clearance."
+  },
+  "plunger_home.py": {
+    "api_level": "2.24",
+    "home_axes": [
+      "rightPlunger"
+    ],
+    "wait_seconds": 1,
+    "xyz_unchanged": true
+  },
+  "reset_tips.py": {
+    "api_level": "2.20",
+    "reset_tip_state": "clean",
+    "pause_warning": true,
+    "destination": {
+      "slot": "2",
+      "load_name": "nest_96_wellplate_200ul_flat",
+      "well": "A2",
+      "volume": 10
+    },
+    "tip_pickups": 2,
+    "tip_drops": 2,
+    "rack_restored_before_second_pickup": true
+  },
+  "thermal_224.py": {
+    "api_level": "2.24",
+    "module": "thermocyclerModuleV1",
+    "block_temperature_c": 37,
+    "hold_seconds": [
+      2
+    ]
+  },
+  "mixed_rack_air_reachable.py": {
+    "api_level": "2.20",
+    "source": {
+      "slot": "2",
+      "load_name": "opentrons_10_tuberack_falcon_4x50ml_6x15ml_conical",
+      "well": "A3",
+      "volume": 44990
+    },
+    "destination": {
+      "slot": "3",
+      "load_name": "nest_96_wellplate_200ul_flat",
+      "well": "A1",
+      "volume": 0
+    },
+    "air_gap_ul": 2,
+    "return_tip_remaining_liquid_ul": 10
+  }
+}
